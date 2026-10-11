@@ -1,1 +1,150 @@
-<h1>Hola</h1>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba 2 · Identidad con Google</title>
+  <style>
+    body { font-family: sans-serif; padding: 16px; max-width: 700px; margin: 0 auto; }
+    button { font-size: 18px; padding: 12px; margin: 6px 0; width: 100%; }
+    pre { background: #eee; padding: 8px; white-space: pre-wrap; overflow-wrap: anywhere;
+          max-height: 280px; overflow: auto; font-size: 13px; }
+    #paginas canvas { display: block; width: 100%; margin-bottom: 8px; border: 1px solid #ccc; }
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body oncontextmenu="return false">
+  <h2>Prueba 2 · Identidad con Google</h2>
+  <div id="boton"></div>
+  <button onclick="cambiarCuenta()">Cambiar de cuenta</button>
+  <button onclick="quien()">1. ¿Quién soy? (verificado en el servidor)</button>
+  <button onclick="cargar('mp3')">2. Cargar MP3</button>
+  <button onclick="cargar('pdf')">3. Cargar PDF</button>
+  <pre id="log">Registro:</pre>
+  <audio id="audio" controls controlsList="nodownload" style="width:100%"></audio>
+  <button id="btnLoop" onclick="alternarLoop()">🔁 Repetir: NO</button>
+  <div id="paginas"></div>
+
+  <script>
+    const CLIENT_ID = '397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com';
+    const API_URL = 'PEGA_AQUI_LA_URL_EXEC_DE_APPS_SCRIPT';
+    let ID_TOKEN = null;
+
+    const logEl = document.getElementById('log');
+    const log = t => { logEl.textContent += '\n' + t; logEl.scrollTop = logEl.scrollHeight; };
+    window.addEventListener('error', e => log('ERROR JS: ' + e.message));
+    window.addEventListener('unhandledrejection', e =>
+      log('ERROR PROMESA: ' + ((e.reason && e.reason.message) || e.reason)));
+
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      log('pdf.js ' + pdfjsLib.version);
+    } else { log('pdf.js NO CARGÓ'); }
+
+    let intentos = 0;
+    function iniciarGoogle() {
+      if (!(window.google && google.accounts && google.accounts.id)) {
+        if (++intentos > 50) { log('No cargó el inicio de sesión de Google.'); return; }
+        setTimeout(iniciarGoogle, 200); return;
+      }
+      google.accounts.id.initialize({ client_id: CLIENT_ID, callback: alCredencial });
+      google.accounts.id.renderButton(document.getElementById('boton'),
+        { theme: 'outline', size: 'large', text: 'signin_with', locale: 'es' });
+      log('Botón de Google listo.');
+    }
+    function alCredencial(resp) {
+      ID_TOKEN = resp.credential;
+      log('Sesión de Google recibida. Verificando en el servidor...');
+      quien();
+    }
+    function cambiarCuenta() {
+      ID_TOKEN = null;
+      if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+      log('Sesión cerrada en la página. Pulsa el botón de Google para elegir cuenta.');
+    }
+    iniciarGoogle();
+
+    async function api(accion) {
+      if (!ID_TOKEN) { log('Primero inicia sesión con el botón de Google.'); return null; }
+      const t0 = performance.now();
+      let resp;
+      try {
+        const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: accion, token: ID_TOKEN }) });
+        const txt = await r.text();
+        try { resp = JSON.parse(txt); }
+        catch (e) { log('Respuesta no válida del servidor: ' + txt.slice(0, 150)); return null; }
+      } catch (e) {
+        log('ERROR de red o CORS: ' + e.message); return null;
+      }
+      resp._ms = Math.round(performance.now() - t0);
+      if (!resp.ok && ['TOKEN_INVALIDO', 'TOKEN_EXPIRADO', 'SIN_TOKEN'].includes(resp.error)) {
+        ID_TOKEN = null;
+        log('Sesión caducada. Pulsa de nuevo el botón de Google.');
+      }
+      return resp;
+    }
+
+    async function quien() {
+      const r = await api('quien'); if (!r) return;
+      if (r.ok) log('IDENTIDAD VERIFICADA\n  correo: ' + r.email + '\n  nombre: ' + r.nombre +
+                    '\n  rol: ' + r.rol + '\n  tiempo: ' + r._ms + ' ms');
+      else log('ACCESO DENEGADO: ' + r.error + (r.email ? ' (correo ' + r.email + ')' : ''));
+    }
+
+    function aBytes(b64) {
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return arr;
+    }
+
+    async function mostrarPdf(arr) {
+      const cont = document.getElementById('paginas');
+      cont.innerHTML = '';
+      const pdf = await pdfjsLib.getDocument({ data: arr, isEvalSupported: false }).promise;
+      log('PDF abierto: ' + pdf.numPages + ' página(s)');
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const page = await pdf.getPage(n);
+        const base = page.getViewport({ scale: 1 });
+        const escala = (cont.clientWidth / base.width) * (window.devicePixelRatio || 1);
+        const vp = page.getViewport({ scale: escala });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        cont.appendChild(canvas);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      }
+    }
+
+    async function cargar(tipo) {
+      const t0 = performance.now();
+      log('Cargando ' + tipo.toUpperCase() + '...');
+      const r = await api(tipo); if (!r) return;
+      if (!r.ok) { log('ACCESO DENEGADO: ' + r.error + (r.email ? ' (' + r.email + ')' : '')); return; }
+      const ms = Math.round(performance.now() - t0);
+      log(tipo.toUpperCase() + ': ' + r.nombre + ' | ' + (r.bytes / 1048576).toFixed(2) +
+          ' MB | servidor ' + r.msServidor + ' ms | total ' + ms + ' ms');
+      try {
+        const arr = aBytes(r.base64);
+        if (tipo === 'mp3') {
+          const a = document.getElementById('audio');
+          a.addEventListener('playing', () =>
+            log('Empezó a sonar a los ' + Math.round(performance.now() - t0) + ' ms'), { once: true });
+          a.src = URL.createObjectURL(new Blob([arr], { type: r.tipo }));
+          a.play().catch(() => log('Pulsa ▶ para reproducir.'));
+        } else {
+          await mostrarPdf(arr);
+          log('PDF dibujado en pantalla.');
+        }
+      } catch (e) { log('ERROR al mostrar: ' + e.name + ': ' + e.message); }
+    }
+
+    function alternarLoop() {
+      const a = document.getElementById('audio');
+      a.loop = !a.loop;
+      document.getElementById('btnLoop').textContent = '🔁 Repetir: ' + (a.loop ? 'SÍ' : 'NO');
+    }
+  </script>
+</body>
+</html>
