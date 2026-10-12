@@ -169,9 +169,22 @@
 
   <div class="card">
     <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
-    <button class="btn-primary" onclick="cargar('mp3')">2. Cargar pista de ensayo (MP3)</button>
-    <button class="btn-accent" onclick="cargar('pdf')">3. Cargar partitura o letra (PDF)</button>
+    <button class="btn-accent" onclick="cargarEventoActivo()">🎵 2. Ver Repertorio del Evento Activo</button>
   </div>
+
+  <!-- Contenedor dinámico donde aparecerá la lista de canciones del evento -->
+  <div class="card" id="contenedor-repertorio" style="display:none;">
+    <h3 id="titulo-evento" style="margin-top:0; color: var(--primary);">Repertorio</h3>
+    <div id="lista-canciones"></div>
+  </div>
+
+  <div class="card">
+    <pre id="log">Estado del sistema:</pre>
+    <audio id="audio" controls controlsList="nodownload"></audio>
+    <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()">🔁 Repetir: NO</button>
+  </div>
+
+  <div id="paginas"></div>
 
   <div class="card">
     <pre id="log">Estado del sistema:</pre>
@@ -320,6 +333,89 @@
       a.loop = !a.loop;
       document.getElementById('btnLoop').textContent = '🔁 Repetir: ' + (a.loop ? 'SÍ' : 'NO');
     }
+// Función para cargar el evento activo y su lista de canciones
+    async function cargarEventoActivo() {
+      const r = await api('evento_activo');
+      if (!r || !r.ok) {
+        log('No se pudo cargar el evento activo.');
+        return;
+      }
+      
+      const contRepertorio = document.getElementById('contenedor-repertorio');
+      const tituloEvento = document.getElementById('titulo-evento');
+      const listaDiv = document.getElementById('lista-canciones');
+      listaDiv.innerHTML = '';
+
+      if (!r.evento) {
+        tituloEvento.textContent = 'No hay eventos publicados actualmente.';
+        contRepertorio.style.display = 'block';
+        return;
+      }
+
+      tituloEvento.textContent = `📅 ${r.evento.nombre} (${r.evento.fecha})`;
+      
+      if (!r.canciones || r.canciones.length === 0) {
+        listaDiv.innerHTML = '<p>El evento aún no tiene canciones asignadas.</p>';
+      } else {
+        let html = '<ul style="padding-left: 20px; margin: 0;">';
+        r.canciones.forEach(c => {
+          html += `<li style="margin-bottom: 12px;">
+            <strong>${c.posicion || '-'}. ${c.titulo}</strong> 
+            <span style="font-size: 12px; color: #555;">[Tonalidad: ${c.tonalidad || 'N/A'}]</span>
+            <br>
+            <button class="btn-secondary" style="font-size: 12px; padding: 6px 10px; width: auto; margin-top: 4px;" 
+              onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">📁 Ver mis recursos de ensayo</button>
+          </li>`;
+        });
+        html += '</ul>';
+        listaDiv.innerHTML = html;
+      }
+      contRepertorio.style.display = 'block';
+      log('Repertorio del evento cargado correctamente.');
+    }
+
+    // Función para solicitar los recursos filtrados (PDF y MP3) de una canción específica
+    async function cargarRecursosCancion(idCancion, tituloCancion) {
+      log(`Buscando recursos para: ${tituloCancion} (ID: ${idCancion})...`);
+      
+      const r = await apiAccionConParametros('recursos_cancion', { idCancion: idCancion });
+      if (!r || !r.ok) {
+        log('Error al obtener recursos para esta canción.');
+        return;
+      }
+
+      log(`Perfil detectado: ${r.perfil}. Recursos encontrados: ${r.recursos.length}`);
+      
+      if (r.recursos.length === 0) {
+        log('No hay recursos disponibles para tu perfil/voz en esta canción.');
+        return;
+      }
+
+      // Mostrar los recursos encontrados en el registro de la app
+      r.recursos.forEach(rec => {
+        log(` - [${rec.tipo}] Parte: ${rec.parte} | Archivo: ${rec.nombreArchivo}`);
+      });
+    }
+
+    // Función auxiliar para enviar peticiones con parámetros adicionales al Apps Script
+    async function apiAccionConParametros(accion, datosExtra) {
+      if (!ID_TOKEN) { log('Inicia sesión con tu cuenta de Google.'); return null; }
+      try {
+        const payload = { accion: accion, token: ID_TOKEN, ...datosExtra };
+        const r = await fetch(API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const txt = await r.text();
+        return JSON.parse(txt);
+      } catch (e) {
+        log('ERROR en API: ' + e.message);
+        return null;
+      }
+    }
+    
   </script>
 </body>
 </html>
