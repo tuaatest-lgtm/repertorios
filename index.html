@@ -28,14 +28,17 @@
 
   <script>
     const CLIENT_ID = '397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com';
-    const API_URL = 'PEGA_AQUI_LA_URL_EXEC_DE_APPS_SCRIPT';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz_xybeq1_IpOrULbxppSW9nQUDRW66mh9s0gzzrXild4WG5gu4oiL_NjmiGYuAFtSOZw/exec';
     let ID_TOKEN = null;
+    const VERSION_PAGINA = '2.1';
 
     const logEl = document.getElementById('log');
     const log = t => { logEl.textContent += '\n' + t; logEl.scrollTop = logEl.scrollHeight; };
     window.addEventListener('error', e => log('ERROR JS: ' + e.message));
     window.addEventListener('unhandledrejection', e =>
       log('ERROR PROMESA: ' + ((e.reason && e.reason.message) || e.reason)));
+
+    log('Versión de la página: ' + VERSION_PAGINA);
 
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -71,7 +74,17 @@
       const t0 = performance.now();
       let resp;
       try {
-        const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: accion, token: ID_TOKEN }) });
+        if (!API_URL.startsWith('https://script.google.com/macros/s/') || !API_URL.endsWith('/exec')) {
+          log('ERROR: API_URL no es una URL /exec de Apps Script. Empieza con: ' + API_URL.slice(0, 40));
+          return null;
+        }
+        log('Llamando al API (' + accion + ')... destino: ' + API_URL.slice(0, 45) + '...');
+        const r = await fetch(API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ accion: accion, token: ID_TOKEN })
+        });
         const txt = await r.text();
         try { resp = JSON.parse(txt); }
         catch (e) { log('Respuesta no válida del servidor: ' + txt.slice(0, 150)); return null; }
