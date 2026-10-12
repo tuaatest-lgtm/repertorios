@@ -3,390 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Palermo Music · Repertorios y Ensayos</title>
+  <title>Prueba 2 · Identidad con Google</title>
   <style>
-    :root {
-      --primary: #12304A;
-      --accent: #C6A15B;
-      --bg: #F7F5EF;
-      --text: #303943;
-      --card-bg: #FFFFFF;
-      --border: #E5E7EB;
-      --success: #287A57;
-      --error: #B42318;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 20px;
-      max-width: 750px;
-      margin: 0 auto;
-      line-height: 1.5;
-    }
-
-    header {
-      background-color: var(--primary);
-      color: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(18, 48, 74, 0.1);
-      border-bottom: 4px solid var(--accent);
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 24px;
-      letter-spacing: 0.5px;
-    }
-
-    header p {
-      margin: 5px 0 0 0;
-      font-size: 14px;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-
-    .auth-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    button {
-      font-size: 16px;
-      font-weight: 600;
-      padding: 12px 16px;
-      margin: 4px 0;
-      width: 100%;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s;
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      color: var(--card-bg);
-    }
-    .btn-primary:hover {
-      background-color: #1a4468;
-    }
-
-    .btn-secondary {
-      background-color: #E5E7EB;
-      color: var(--text);
-    }
-    .btn-secondary:hover {
-      background-color: #d1d5db;
-    }
-
-    .btn-accent {
-      background-color: var(--accent);
-      color: var(--card-bg);
-    }
-    .btn-accent:hover {
-      background-color: #b38e4a;
-    }
-
-    pre {
-      background: var(--primary);
-      color: #E2E8F0;
-      padding: 12px;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      max-height: 250px;
-      overflow: auto;
-      font-size: 12px;
-      font-family: monospace;
-    }
-
-    audio {
-      width: 100%;
-      margin: 10px 0;
-    }
-
-    #paginas {
-      margin-top: 15px;
-    }
-
-    #paginas canvas {
-      display: block;
-      width: 100%;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .watermark-note {
-      font-size: 11px;
-      color: #64748B;
-      text-align: center;
-      margin-top: 10px;
-      font-style: italic;
-    }
+    body { font-family: sans-serif; padding: 16px; max-width: 700px; margin: 0 auto; }
+    button { font-size: 18px; padding: 12px; margin: 6px 0; width: 100%; }
+    pre { background: #eee; padding: 8px; white-space: pre-wrap; overflow-wrap: anywhere;
+          max-height: 280px; overflow: auto; font-size: 13px; }
+    #paginas canvas { display: block; width: 100%; margin-bottom: 8px; border: 1px solid #ccc; }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body oncontextmenu="return false">
-
-<header style="background-color: #000000; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); border-bottom: 4px solid var(--accent);">
-    <div style="display: flex; align-items: center; justify-content: flex-start; gap: 20px;">
-      <!-- Logo alineado a la izquierda y con tamaño aumentado (ej. 75px de altura) -->
-      <img src="logo.png" alt="Palermo Music Logo" style="height: 90px; width: auto; object-fit: contain;">
-      
-      <div style="text-align: left;">
-        <h1 style="margin: 0; font-size: 26px; color: #FFFFFF; letter-spacing: 0.5px;">Palermo Music</h1>
-        <p style="margin: 4px 0 0 0; font-size: 15px; color: var(--accent); font-weight: 500;">Sistema de Repertorios y Ensayo</p>
-      </div>
-    </div>
-  </header>
-
-  <div class="card auth-container">
-    <div id="boton"></div>
-    <button class="btn-secondary" onclick="cambiarCuenta()">Cambiar de cuenta</button>
-  </div>
-
-  <div class="card">
-    <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
-    <button class="btn-accent" onclick="cargarEventoActivo()"> 2. Ver Repertorio del Evento Activo</button>
-  </div>
-
-  <!-- Contenedor dinámico donde aparecerá la lista de canciones del evento -->
-  <div class="card" id="contenedor-repertorio" style="display:none;">
-    <h3 id="titulo-evento" style="margin-top:0; color: var(--primary);">Repertorio</h3>
-    <div id="lista-canciones"></div>
-  </div>
-
-  <div class="card">
-    <pre id="log">Estado del sistema:</pre>
-    <audio id="audio" controls controlsList="nodownload"></audio>
-    <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()">🔁 Repetir: NO</button>
-  </div>
-
-  <div id="paginas"></div>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Palermo Music · Repertorios y Ensayos</title>
-  <style>
-    :root {
-      --primary: #12304A;
-      --accent: #C6A15B;
-      --bg: #F7F5EF;
-      --text: #303943;
-      --card-bg: #FFFFFF;
-      --border: #E5E7EB;
-      --success: #287A57;
-      --error: #B42318;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 20px;
-      max-width: 750px;
-      margin: 0 auto;
-      line-height: 1.5;
-    }
-
-    header {
-      background-color: var(--primary);
-      color: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(18, 48, 74, 0.1);
-      border-bottom: 4px solid var(--accent);
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 24px;
-      letter-spacing: 0.5px;
-    }
-
-    header p {
-      margin: 5px 0 0 0;
-      font-size: 14px;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-
-    .auth-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    button {
-      font-size: 16px;
-      font-weight: 600;
-      padding: 12px 16px;
-      margin: 4px 0;
-      width: 100%;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s;
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      color: var(--card-bg);
-    }
-    .btn-primary:hover {
-      background-color: #1a4468;
-    }
-
-    .btn-secondary {
-      background-color: #E5E7EB;
-      color: var(--text);
-    }
-    .btn-secondary:hover {
-      background-color: #d1d5db;
-    }
-
-    .btn-accent {
-      background-color: var(--accent);
-      color: var(--card-bg);
-    }
-    .btn-accent:hover {
-      background-color: #b38e4a;
-    }
-
-    pre {
-      background: var(--primary);
-      color: #E2E8F0;
-      padding: 12px;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      max-height: 250px;
-      overflow: auto;
-      font-size: 12px;
-      font-family: monospace;
-    }
-
-    audio {
-      width: 100%;
-      margin: 10px 0;
-    }
-
-    #paginas {
-      margin-top: 15px;
-    }
-
-    #paginas canvas {
-      display: block;
-      width: 100%;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .watermark-note {
-      font-size: 11px;
-      color: #64748B;
-      text-align: center;
-      margin-top: 10px;
-      font-style: italic;
-    }
-  </style>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-</head>
-<body oncontextmenu="return false">
-
-<header style="background-color: #000000; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); border-bottom: 4px solid var(--accent);">
-    <div style="display: flex; align-items: center; justify-content: flex-start; gap: 20px;">
-      <!-- Logo alineado a la izquierda y con tamaño aumentado (ej. 75px de altura) -->
-      <img src="logo.png" alt="Palermo Music Logo" style="height: 90px; width: auto; object-fit: contain;">
-      
-      <div style="text-align: left;">
-        <h1 style="margin: 0; font-size: 26px; color: #FFFFFF; letter-spacing: 0.5px;">Palermo Music</h1>
-        <p style="margin: 4px 0 0 0; font-size: 15px; color: var(--accent); font-weight: 500;">Sistema de Repertorios y Ensayo</p>
-      </div>
-    </div>
-  </header>
-
-  <div class="card auth-container">
-    <div id="boton"></div>
-    <button class="btn-secondary" onclick="cambiarCuenta()">Cambiar de cuenta</button>
-  </div>
-
-  <div class="card">
-    <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
-    <button class="btn-accent" onclick="cargarEventoActivo()"> 2. Ver Repertorio del Evento Activo</button>
-  </div>
-
-  <!-- Contenedor dinámico donde aparecerá la lista de canciones del evento -->
-  <div class="card" id="contenedor-repertorio" style="display:none;">
-    <h3 id="titulo-evento" style="margin-top:0; color: var(--primary);">Repertorio</h3>
-    <div id="lista-canciones"></div>
-  </div>
-
-  <div class="card">
-    <pre id="log">Estado del sistema:</pre>
-    <audio id="audio" controls controlsList="nodownload"></audio>
-    <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()">🔁 Repetir: NO</button>
-  </div>
-
+  <h2>Prueba 2 · Identidad con Google</h2>
+  <div id="boton"></div>
+  <button onclick="cambiarCuenta()">Cambiar de cuenta</button>
+  <button onclick="quien()">1. ¿Quién soy? (verificado en el servidor)</button>
+  <button onclick="cargar('mp3')">2. Cargar MP3</button>
+  <button onclick="cargar('pdf')">3. Cargar PDF</button>
+  <pre id="log">Registro:</pre>
+  <audio id="audio" controls controlsList="nodownload" style="width:100%"></audio>
+  <button id="btnLoop" onclick="alternarLoop()">🔁 Repetir: NO</button>
   <div id="paginas"></div>
 
-  <div class="card">
-    <pre id="log">Estado del sistema:</pre>
-    <audio id="audio" controls controlsList="nodownload"></audio>
-    <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()">🔁 Repetir: NO</button>
-  </div>
-
-  <div id="paginas"></div>
-  <div class="watermark-note">Documentos protegidos bajo derechos institucionales de Palermo Music.</div>
-
+  
   <script>
     const CLIENT_ID = '397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com';
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxo9bqTE4S0Am7fA2oU-Z3Ys9lUzWgBAKjwDPWVdsXv0LblJ7gJFFyarBK-rIB_z-qyRw/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxL0ZlgzadmHsn4yy6O2Y11wtGmXNgST5c63MfIvl_ODPjZqzk7tLGQEirQKrDyYdso/exec';
     let ID_TOKEN = null;
-    const VERSION_PAGINA = '3.0-palermo';
+    const VERSION_PAGINA = '2.1';
 
     const logEl = document.getElementById('log');
     const log = t => { logEl.textContent += '\n' + t; logEl.scrollTop = logEl.scrollHeight; };
@@ -399,8 +44,8 @@
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      log('Visor PDF.js listo.');
-    } else { log('ADVERTENCIA: PDF.js no cargó.'); }
+      log('pdf.js ' + pdfjsLib.version);
+    } else { log('pdf.js NO CARGÓ'); }
 
     let intentos = 0;
     function iniciarGoogle() {
@@ -411,28 +56,30 @@
       google.accounts.id.initialize({ client_id: CLIENT_ID, callback: alCredencial });
       google.accounts.id.renderButton(document.getElementById('boton'),
         { theme: 'outline', size: 'large', text: 'signin_with', locale: 'es' });
-      log('Botón de acceso Google listo.');
+      log('Botón de Google listo.');
     }
-
     function alCredencial(resp) {
       ID_TOKEN = resp.credential;
-      log('Autenticación recibida. Verificando en el servidor...');
+      log('Sesión de Google recibida. Verificando en el servidor...');
       quien();
     }
-
     function cambiarCuenta() {
       ID_TOKEN = null;
       if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
-      log('Sesión cerrada en la página. Selecciona tu cuenta de Google.');
+      log('Sesión cerrada en la página. Pulsa el botón de Google para elegir cuenta.');
     }
     iniciarGoogle();
 
     async function api(accion) {
-      if (!ID_TOKEN) { log('Inicia sesión con tu cuenta de Google.'); return null; }
+      if (!ID_TOKEN) { log('Primero inicia sesión con el botón de Google.'); return null; }
       const t0 = performance.now();
       let resp;
       try {
-        log('Consultando API (' + accion + ')...');
+        if (!API_URL.startsWith('https://script.google.com/macros/s/') || !API_URL.endsWith('/exec')) {
+          log('ERROR: API_URL no es una URL /exec de Apps Script. Empieza con: ' + API_URL.slice(0, 40));
+          return null;
+        }
+        log('Llamando al API (' + accion + ')... destino: ' + API_URL.slice(0, 45) + '...');
         const r = await fetch(API_URL, {
           method: 'POST',
           redirect: 'follow',
@@ -443,20 +90,20 @@
         try { resp = JSON.parse(txt); }
         catch (e) { log('Respuesta no válida del servidor: ' + txt.slice(0, 150)); return null; }
       } catch (e) {
-        log('ERROR de red: ' + e.message); return null;
+        log('ERROR de red o CORS: ' + e.message); return null;
       }
       resp._ms = Math.round(performance.now() - t0);
       if (!resp.ok && ['TOKEN_INVALIDO', 'TOKEN_EXPIRADO', 'SIN_TOKEN'].includes(resp.error)) {
         ID_TOKEN = null;
-        log('Sesión expirada. Vuelve a iniciar sesión.');
+        log('Sesión caducada. Pulsa de nuevo el botón de Google.');
       }
       return resp;
     }
 
     async function quien() {
       const r = await api('quien'); if (!r) return;
-      if (r.ok) log('IDENTIDAD VERIFICADA\n  Correo: ' + r.email + '\n  Nombre: ' + r.nombre +
-                    '\n  Rol: ' + r.rol + '\n  Estado: ' + r.estado + ' (' + r._ms + ' ms)');
+      if (r.ok) log('IDENTIDAD VERIFICADA\n  correo: ' + r.email + '\n  nombre: ' + r.nombre +
+                    '\n  rol: ' + r.rol + '\n  tiempo: ' + r._ms + ' ms');
       else log('ACCESO DENEGADO: ' + r.error + (r.email ? ' (correo ' + r.email + ')' : ''));
     }
 
@@ -471,7 +118,7 @@
       const cont = document.getElementById('paginas');
       cont.innerHTML = '';
       const pdf = await pdfjsLib.getDocument({ data: arr, isEvalSupported: false }).promise;
-      log('Partitura cargada: ' + pdf.numPages + ' página(s)');
+      log('PDF abierto: ' + pdf.numPages + ' página(s)');
       for (let n = 1; n <= pdf.numPages; n++) {
         const page = await pdf.getPage(n);
         const base = page.getViewport({ scale: 1 });
@@ -480,39 +127,31 @@
         const canvas = document.createElement('canvas');
         canvas.width = vp.width; canvas.height = vp.height;
         cont.appendChild(canvas);
-        
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-        // Renderizado de marca de agua / firma institucional "Palermo Music" sutil en el documento
-        ctx.save();
-        ctx.font = '14px sans-serif';
-        ctx.fillStyle = 'rgba(18, 48, 74, 0.15)'; // Azul institucional translúcido
-        ctx.textAlign = 'right';
-        ctx.fillText('Palermo Music · Uso Institucional', canvas.width - 20, canvas.height - 20);
-        ctx.restore();
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
       }
     }
 
     async function cargar(tipo) {
       const t0 = performance.now();
-      log('Descargando ' + tipo.toUpperCase() + '...');
+      log('Cargando ' + tipo.toUpperCase() + '...');
       const r = await api(tipo); if (!r) return;
       if (!r.ok) { log('ACCESO DENEGADO: ' + r.error + (r.email ? ' (' + r.email + ')' : '')); return; }
       const ms = Math.round(performance.now() - t0);
       log(tipo.toUpperCase() + ': ' + r.nombre + ' | ' + (r.bytes / 1048576).toFixed(2) +
-          ' MB | servidor ' + r.msServidor + ' ms');
+          ' MB | servidor ' + r.msServidor + ' ms | total ' + ms + ' ms');
       try {
         const arr = aBytes(r.base64);
         if (tipo === 'mp3') {
           const a = document.getElementById('audio');
+          a.addEventListener('playing', () =>
+            log('Empezó a sonar a los ' + Math.round(performance.now() - t0) + ' ms'), { once: true });
           a.src = URL.createObjectURL(new Blob([arr], { type: r.tipo }));
-          a.play().catch(() => log('Pulsa ▶ para reproducir la pista.'));
+          a.play().catch(() => log('Pulsa ▶ para reproducir.'));
         } else {
           await mostrarPdf(arr);
-          log('Partitura renderizada en pantalla con marca de agua institucional.');
+          log('PDF dibujado en pantalla.');
         }
-      } catch (e) { log('ERROR al mostrar: ' + e.message); }
+      } catch (e) { log('ERROR al mostrar: ' + e.name + ': ' + e.message); }
     }
 
     function alternarLoop() {
@@ -520,89 +159,6 @@
       a.loop = !a.loop;
       document.getElementById('btnLoop').textContent = '🔁 Repetir: ' + (a.loop ? 'SÍ' : 'NO');
     }
-// Función para cargar el evento activo y su lista de canciones
-    async function cargarEventoActivo() {
-      const r = await api('evento_activo');
-      if (!r || !r.ok) {
-        log('No se pudo cargar el evento activo.');
-        return;
-      }
-      
-      const contRepertorio = document.getElementById('contenedor-repertorio');
-      const tituloEvento = document.getElementById('titulo-evento');
-      const listaDiv = document.getElementById('lista-canciones');
-      listaDiv.innerHTML = '';
-
-      if (!r.evento) {
-        tituloEvento.textContent = 'No hay eventos publicados actualmente.';
-        contRepertorio.style.display = 'block';
-        return;
-      }
-
-      tituloEvento.textContent = `📅 ${r.evento.nombre} (${r.evento.fecha})`;
-      
-      if (!r.canciones || r.canciones.length === 0) {
-        listaDiv.innerHTML = '<p>El evento aún no tiene canciones asignadas.</p>';
-      } else {
-        let html = '<ul style="padding-left: 20px; margin: 0;">';
-        r.canciones.forEach(c => {
-          html += `<li style="margin-bottom: 12px;">
-            <strong>${c.posicion || '-'}. ${c.titulo}</strong> 
-            <span style="font-size: 12px; color: #555;">[Tonalidad: ${c.tonalidad || 'N/A'}]</span>
-            <br>
-            <button class="btn-secondary" style="font-size: 12px; padding: 6px 10px; width: auto; margin-top: 4px;" 
-              onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">📁 Ver mis recursos de ensayo</button>
-          </li>`;
-        });
-        html += '</ul>';
-        listaDiv.innerHTML = html;
-      }
-      contRepertorio.style.display = 'block';
-      log('Repertorio del evento cargado correctamente.');
-    }
-
-    // Función para solicitar los recursos filtrados (PDF y MP3) de una canción específica
-    async function cargarRecursosCancion(idCancion, tituloCancion) {
-      log(`Buscando recursos para: ${tituloCancion} (ID: ${idCancion})...`);
-      
-      const r = await apiAccionConParametros('recursos_cancion', { idCancion: idCancion });
-      if (!r || !r.ok) {
-        log('Error al obtener recursos para esta canción.');
-        return;
-      }
-
-      log(`Perfil detectado: ${r.perfil}. Recursos encontrados: ${r.recursos.length}`);
-      
-      if (r.recursos.length === 0) {
-        log('No hay recursos disponibles para tu perfil/voz en esta canción.');
-        return;
-      }
-
-      // Mostrar los recursos encontrados en el registro de la app
-      r.recursos.forEach(rec => {
-        log(` - [${rec.tipo}] Parte: ${rec.parte} | Archivo: ${rec.nombreArchivo}`);
-      });
-    }
-
-    // Función auxiliar para enviar peticiones con parámetros adicionales al Apps Script
-    async function apiAccionConParametros(accion, datosExtra) {
-      if (!ID_TOKEN) { log('Inicia sesión con tu cuenta de Google.'); return null; }
-      try {
-        const payload = { accion: accion, token: ID_TOKEN, ...datosExtra };
-        const r = await fetch(API_URL, {
-          method: 'POST',
-          redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-        const txt = await r.text();
-        return JSON.parse(txt);
-      } catch (e) {
-        log('ERROR en API: ' + e.message);
-        return null;
-      }
-    }
-    
   </script>
 </body>
 </html>
