@@ -178,6 +178,34 @@
   <!-- Contenedor del Formulario de Administración de Eventos -->
   <div class="card" id="contenedor-admin-evento" style="display:none;">
     <h3 style="margin-top:0; color: var(--primary);">Programación de Eventos y Repertorio</h3>
+
+<div class="card">
+    <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
+    <button class="btn-accent" onclick="cargarEventoActivo()">🎵 2. Ver Repertorio del Evento Activo</button>
+    
+    <!-- 👉 PEGA EL NUEVO BOTÓN AQUÍ, JUSTO DEBAJO DE LOS ANTERIORES -->
+    <button class="btn-secondary" onclick="cargarCalendarioEventos()" style="margin-top: 10px;">📅 Ver Calendario y Eventos Futuros</button>
+  </div>
+
+  <!-- Contenedor dinámico donde aparecerá la lista de canciones del evento activo -->
+  <div class="card" id="contenedor-repertorio" style="display:none;">
+    <h3 id="titulo-evento" style="margin-top:0; color: var(--primary);">Repertorio</h3>
+    <div id="lista-canciones"></div>
+  </div>
+
+  <!-- 👉 PEGA EL CONTENEDOR DEL CALENDARIO AQUÍ ABAJO -->
+  <div class="card" id="contenedor-calendario" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Próximos Eventos y Ensayos</h3>
+    <div id="lista-calendario-eventos"></div>
+  </div>
+
+  <div class="card">
+    <pre id="log">Estado del sistema:</pre>
+    <audio id="audio" controls controlsList="nodownload"></audio>
+    <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()">🔁 Repetir: NO</button>
+  </div>
+
+  <div id="paginas"></div>
     
     <div style="margin-bottom: 12px;">
       <label><strong>Nombre del Evento / Culto:</strong></label><br>
@@ -520,7 +548,47 @@
         log('Error al guardar el evento: ' + (r ? r.error : 'Respuesta vacía'));
       }
     }
+// Función para consultar todos los eventos futuros y pasados registrados
+    async function cargarCalendarioEventos() {
+      log('Consultando calendario de eventos...');
+      const r = await api('listar_eventos');
+      if (!r || !r.ok) {
+        log('No se pudo cargar el calendario.');
+        return;
+      }
 
+      const contenedor = document.getElementById('contenedor-calendario');
+      const listaDiv = document.getElementById('lista-calendario-eventos');
+      listaDiv.innerHTML = '';
+
+      if (!r.eventos || r.eventos.length === 0) {
+        listaDiv.innerHTML = '<p>No hay eventos registrados en el sistema.</p>';
+      } else {
+        let html = '<ul style="padding-left: 20px; margin: 0;">';
+        r.eventos.forEach(ev => {
+          html += `<li style="margin-bottom: 10px;">
+            <strong>${ev.nombre}</strong> <span style="font-size: 12px; color: #666;">[Fecha: ${ev.fecha} | Estado: ${ev.estado}]</span><br>
+            <small>${ev.mensaje || 'Sin mensajes adicionales'}</small>
+          </li>`;
+        });
+        html += '</ul>';
+        listaDiv.innerHTML = html;
+      }
+      contenedor.style.display = 'block';
+      log('Calendario de eventos cargado con éxito.');
+    }
+
+    // Función para pedir sugerencias automáticas de canciones al programar
+    async function solicitarSugerenciaTemas(funcionLiturgica, nivelEnergia) {
+      log(`Buscando sugerencias para función: ${funcionLiturgica} (Energía: ${nivelEnergia})...`);
+      const r = await apiAccionConParametros('sugerir_canciones', { funcion: funcionLiturgica, energia: nivelEnergia });
+      if (!r || !r.ok || r.sugerencias.length === 0) {
+        log('No se encontraron sugerencias específicas.');
+        return [];
+      }
+      log(`¡${r.sugerencias.length} temas sugeridos encontrados!`);
+      return r.sugerencias;
+    }
     
   </script>
 </body>
