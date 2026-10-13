@@ -171,7 +171,41 @@
     <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
     <button class="btn-accent" onclick="cargarEventoActivo()"> 2. Ver Repertorio del Evento Activo</button>
   </div>
+<div class="card">
+    <button class="btn-secondary" onclick="mostrarFormularioEvento()">➕ 3. Crear y Programar Nuevo Evento</button>
+  </div>
 
+  <!-- Contenedor del Formulario de Administración de Eventos -->
+  <div class="card" id="contenedor-admin-evento" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Programación de Eventos y Repertorio</h3>
+    
+    <div style="margin-bottom: 12px;">
+      <label><strong>Nombre del Evento / Culto:</strong></label><br>
+      <input type="text" id="admin-nombre-evento" placeholder="Ej. Culto Dominical" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label><strong>Fecha:</strong></label><br>
+      <input type="date" id="admin-fecha-evento" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label><strong>Mensaje General para el equipo:</strong></label><br>
+      <input type="text" id="admin-mensaje-general" placeholder="Ej. Llegar 30 min antes" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label><strong>Número de Servicios (Sets) en este evento:</strong></label><br>
+      <input type="number" id="admin-num-sets" min="1" max="5" value="1" onchange="generarConfiguracionSets()" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
+    <!-- Contenedor dinámico donde se configuran los servicios y canciones -->
+    <div id="admin-sets-dinamicos" style="margin-bottom: 15px;"></div>
+
+    <button class="btn-primary" onclick="enviarNuevoEvento()">💾 Guardar y Publicar Evento</button>
+  </div>
+
+  
   <!-- Contenedor dinámico donde aparecerá la lista de canciones del evento -->
   <div class="card" id="contenedor-repertorio" style="display:none;">
     <h3 id="titulo-evento" style="margin-top:0; color: var(--primary);">Repertorio</h3>
@@ -409,6 +443,84 @@
         return null;
       }
     }
+// Muestra u oculta el panel de creación de eventos
+    function mostrarFormularioEvento() {
+      const contenedor = document.getElementById('contenedor-admin-evento');
+      if (contenedor.style.display === 'none') {
+        contenedor.style.display = 'block';
+        generarConfiguracionSets();
+        log('Panel de programación abierto.');
+      } else {
+        contenedor.style.display = 'none';
+      }
+    }
+
+    // Genera dinámicamente los campos según el número de servicios (sets)
+    function generarConfiguracionSets() {
+      const numSets = parseInt(document.getElementById('admin-num-sets').value) || 1;
+      const contenedorSets = document.getElementById('admin-sets-dinamicos');
+      contenedorSets.innerHTML = '';
+
+      for (let i = 1; i <= numSets; i++) {
+        let htmlSet = `
+          <div style="background: #F7F5EF; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--accent);">
+            <strong>Servicio / Tanda ${i}</strong><br>
+            <input type="text" id="set-nombre-${i}" placeholder="Nombre del set (Ej. Apertura, Adoración)" value="Servicio ${i}" style="width: 100%; padding: 6px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px;">
+            <label style="font-size: 13px;">Cantidad de cantos en este servicio:</label>
+            <input type="number" id="set-num-canciones-${i}" min="1" max="10" value="2" style="width: 100%; padding: 6px; margin: 4px 0; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+        `;
+        contenedorSets.innerHTML += htmlSet;
+      }
+    }
+
+    // Envía la estructura completa del evento al Apps Script
+    async function enviarNuevoEvento() {
+      const nombreEvento = document.getElementById('admin-nombre-evento').value;
+      const fechaEvento = document.getElementById('admin-fecha-evento').value;
+      const mensajeGeneral = document.getElementById('admin-mensaje-general').value;
+      const numSets = parseInt(document.getElementById('admin-num-sets').value) || 1;
+
+      if (!nombreEvento || !fechaEvento) {
+        log('Error: Debes ingresar al menos el nombre y la fecha del evento.');
+        return;
+      }
+
+      let setsArray = [];
+      for (let i = 1; i <= numSets; i++) {
+        const nombreSet = document.getElementById(`set-nombre-${i}`).value;
+        const numCantos = parseInt(document.getElementById(`set-num-canciones-${i}`).value) || 1;
+        
+        // Simulación temporal de canciones para estructurar (en la siguiente iteración conectaremos con la lista de la base de datos)
+        let cancionesEjemplo = [];
+        for (let c = 1; c <= numCantos; c++) {
+          cancionesEjemplo.push(c === 1 ? 'CAN-0001' : 'CAN-0002');
+        }
+
+        setsArray.push({
+          numeroSet: i,
+          nombreSet: nombreSet,
+          canciones: cancionesEjemplo
+        });
+      }
+
+      log('Enviando nuevo evento al servidor...');
+      const r = await apiAccionConParametros('guardar_evento', {
+        nombreEvento: nombreEvento,
+        fechaEvento: fechaEvento,
+        mensajeGeneral: mensajeGeneral,
+        estado: 'Borrador',
+        sets: setsArray
+      });
+
+      if (r && r.ok) {
+        log(`¡Éxito! Evento creado con ID: ${r.idEvento}`);
+        document.getElementById('contenedor-admin-evento').style.display = 'none';
+      } else {
+        log('Error al guardar el evento: ' + (r ? r.error : 'Respuesta vacía'));
+      }
+    }
+
     
   </script>
 </body>
