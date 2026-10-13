@@ -1,111 +1,67 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Palermo Music · Repertorios y Ensayos</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Palermo Music – Sistema de Repertorios</title>
+  
+  <!-- Estilos institucionales -->
   <style>
     :root {
       --primary: #12304A;
       --accent: #C6A15B;
-      --bg: #F7F5EF;
-      --text: #303943;
-      --card-bg: #FFFFFF;
-      --border: #E5E7EB;
-      --success: #287A57;
-      --error: #B42318;
+      --ivory: #F7F5EF;
+      --graphite: #303943;
     }
-
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 20px;
-      max-width: 750px;
-      margin: 0 auto;
-      line-height: 1.5;
-    }
-
-    header {
-      background-color: var(--primary);
-      color: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(18, 48, 74, 0.1);
-      border-bottom: 4px solid var(--accent);
-    }
-
-    header h1 {
+      font-family: Arial, sans-serif;
+      background-color: var(--ivory);
+      color: var(--graphite);
       margin: 0;
-      font-size: 24px;
-      letter-spacing: 0.5px;
-    }
-
-    header p {
-      margin: 5px 0 0 0;
-      font-size: 14px;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-
-    .auth-container {
+      padding: 15px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
     }
-
-    button {
-      font-size: 16px;
-      font-weight: 600;
-      padding: 12px 16px;
-      margin: 4px 0;
+    .header-container {
       width: 100%;
+      max-width: 600px;
+      background: var(--primary);
+      color: white;
+      padding: 15px;
       border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+    .header-container img {
+      height: 45px;
+    }
+    .card {
+      background: white;
+      width: 100%;
+      max-width: 600px;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      margin-bottom: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
       border: none;
+      border-radius: 6px;
+      font-weight: bold;
       cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s;
+      margin-bottom: 8px;
+      font-size: 14px;
     }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      color: var(--card-bg);
-    }
-    .btn-primary:hover {
-      background-color: #1a4468;
-    }
-
-    .btn-secondary {
-      background-color: #E5E7EB;
-      color: var(--text);
-    }
-    .btn-secondary:hover {
-      background-color: #d1d5db;
-    }
-
-    .btn-accent {
-      background-color: var(--accent);
-      color: var(--card-bg);
-    }
-    .btn-accent:hover {
-      background-color: #b38e4a;
-    }
-
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-accent { background: var(--accent); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--graphite); }
+    
     pre {
       background: var(--primary);
       color: #E2E8F0;
@@ -113,396 +69,291 @@
       border-radius: 8px;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      max-height: 250px;
-      overflow: auto;
+      height: 140px;
+      max-height: 140px;
+      overflow-y: auto;
+      overflow-x: hidden;
       font-size: 12px;
       font-family: monospace;
+      margin: 0 0 10px 0;
     }
-
-    audio {
+    audio { width: 100%; margin-bottom: 8px; }
+    input, select {
       width: 100%;
-      margin: 10px 0;
-    }
-
-    #paginas {
-      margin-top: 15px;
-    }
-
-    #paginas canvas {
-      display: block;
-      width: 100%;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .watermark-note {
-      font-size: 11px;
-      color: #64748B;
-      text-align: center;
-      margin-top: 10px;
-      font-style: italic;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
     }
   </style>
+
+  <!-- Google Identity Services para OAuth 2.0 -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- PDF.js para renderizado de partituras -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
 </head>
-<body oncontextmenu="return false">
+<body>
 
-<header style="background-color: #000000; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); border-bottom: 4px solid var(--accent);">
-    <div style="display: flex; align-items: center; justify-content: flex-start; gap: 20px;">
-      <!-- Logo alineado a la izquierda y con tamaño aumentado (ej. 75px de altura) -->
-      <img src="logo.png" alt="Palermo Music Logo" style="height: 90px; width: auto; object-fit: contain;">
-      
-      <div style="text-align: left;">
-        <h1 style="margin: 0; font-size: 26px; color: #FFFFFF; letter-spacing: 0.5px;">Palermo Music</h1>
-        <p style="margin: 4px 0 0 0; font-size: 15px; color: var(--accent); font-weight: 500;">Sistema de Repertorios y Ensayo</p>
-      </div>
+  <!-- Encabezado Institucional -->
+  <div class="header-container">
+    <!-- Ajusta la ruta de tu logo institucional alineado a la izquierda -->
+    <img src="logo-palermo.png" alt="Palermo Music Logo" onerror="this.style.display='none'">
+    <div>
+      <h2 style="margin: 0; font-size: 20px;">Palermo Music</h2>
+      <span style="font-size: 13px; color: var(--accent);">Sistema de Repertorios y Ensayo</span>
     </div>
-  </header>
-
-  <div class="card auth-container">
-    <div id="boton"></div>
-    <button class="btn-secondary" onclick="cambiarCuenta()">Cambiar de cuenta</button>
   </div>
 
+  <!-- Botón de Autenticación Google -->
+  <div class="card" style="text-align: center;">
+    <div id="g_id_onload"
+         data-client_id="397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com"
+         data-callback="manejarCredencial"
+         data-auto_select="false">
+    </div>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular"></div>
+  </div>
+
+  <!-- Acciones Principales -->
   <div class="card">
     <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
-    <button class="btn-accent" onclick="cargarEventoActivo()"> 2. Ver Repertorio del Evento Activo</button>
-  </div>
-<div class="card">
-    <button class="btn-secondary" onclick="mostrarFormularioEvento()">➕ 3. Crear y Programar Nuevo Evento</button>
-  </div>
-
-  <!-- Contenedor del Formulario de Administración de Eventos -->
-  <div class="card" id="contenedor-admin-evento" style="display:none;">
-    <h3 style="margin-top:0; color: var(--primary);">Programación de Eventos y Repertorio</h3>
-
-<div class="card">
-    <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
     <button class="btn-accent" onclick="cargarEventoActivo()">🎵 2. Ver Repertorio del Evento Activo</button>
-    
-    <!-- 👉 PEGA EL NUEVO BOTÓN AQUÍ, JUSTO DEBAJO DE LOS ANTERIORES -->
-    <button class="btn-secondary" onclick="cargarCalendarioEventos()" style="margin-top: 10px;">📅 Ver Calendario y Eventos Futuros</button>
+    <button class="btn-secondary" onclick="cargarCalendarioEventos()">📅 3. Ver Calendario y Eventos Futuros</button>
+    <button class="btn-secondary" onclick="mostrarFormularioEvento()">➕ 4. Crear y Programar Nuevo Evento</button>
   </div>
 
-  <!-- Contenedor dinámico donde aparecerá la lista de canciones del evento activo -->
+  <!-- Contenedor del Repertorio del Evento Activo -->
   <div class="card" id="contenedor-repertorio" style="display:none;">
     <h3 id="titulo-evento" style="margin-top:0; color: var(--primary);">Repertorio</h3>
     <div id="lista-canciones"></div>
   </div>
 
-  <!-- 👉 PEGA EL CONTENEDOR DEL CALENDARIO AQUÍ ABAJO -->
+  <!-- Contenedor del Calendario de Eventos -->
   <div class="card" id="contenedor-calendario" style="display:none;">
     <h3 style="margin-top:0; color: var(--primary);">Próximos Eventos y Ensayos</h3>
     <div id="lista-calendario-eventos"></div>
   </div>
 
-  <div class="card">
-    <pre id="log">Estado del sistema:</pre>
-    <audio id="audio" controls controlsList="nodownload"></audio>
-    <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()">🔁 Repetir: NO</button>
-  </div>
-
-  <div id="paginas"></div>
+  <!-- Formulario de Creación de Eventos (Administración) -->
+  <div class="card" id="contenedor-admin-evento" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Programación de Eventos</h3>
     
-    <div style="margin-bottom: 12px;">
-      <label><strong>Nombre del Evento / Culto:</strong></label><br>
-      <input type="text" id="admin-nombre-evento" placeholder="Ej. Culto Dominical" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
-    </div>
+    <label><strong>Nombre del Evento / Culto:</strong></label>
+    <input type="text" id="admin-nombre-evento" placeholder="Ej. Culto Dominical">
 
-    <div style="margin-bottom: 12px;">
-      <label><strong>Fecha:</strong></label><br>
-      <input type="date" id="admin-fecha-evento" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
-    </div>
+    <label><strong>Fecha:</strong></label>
+    <input type="date" id="admin-fecha-evento">
 
-    <div style="margin-bottom: 12px;">
-      <label><strong>Mensaje General para el equipo:</strong></label><br>
-      <input type="text" id="admin-mensaje-general" placeholder="Ej. Llegar 30 min antes" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
-    </div>
+    <label><strong>Mensaje General para el equipo:</strong></label>
+    <input type="text" id="admin-mensaje-general" placeholder="Ej. Llegar 30 min antes">
 
-    <div style="margin-bottom: 12px;">
-      <label><strong>Número de Servicios (Sets) en este evento:</strong></label><br>
-      <input type="number" id="admin-num-sets" min="1" max="5" value="1" onchange="generarConfiguracionSets()" style="width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
-    </div>
+    <label><strong>Número de Servicios (Sets):</strong></label>
+    <input type="number" id="admin-num-sets" min="1" max="5" value="1" onchange="generarConfiguracionSets()">
 
-    <!-- Contenedor dinámico donde se configuran los servicios y canciones -->
-    <div id="admin-sets-dinamicos" style="margin-bottom: 15px;"></div>
+    <div id="admin-sets-dinamicos"></div>
 
     <button class="btn-primary" onclick="enviarNuevoEvento()">💾 Guardar y Publicar Evento</button>
   </div>
 
-  
-  <!-- Contenedor dinámico donde aparecerá la lista de canciones del evento -->
-  <div class="card" id="contenedor-repertorio" style="display:none;">
-    <h3 id="titulo-evento" style="margin-top:0; color: var(--primary);">Repertorio</h3>
-    <div id="lista-canciones"></div>
-  </div>
-
+  <!-- Consola de Estado y Reproductor -->
   <div class="card">
     <pre id="log">Estado del sistema:</pre>
     <audio id="audio" controls controlsList="nodownload"></audio>
     <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()">🔁 Repetir: NO</button>
   </div>
 
-  <div id="paginas"></div>
+  <!-- Visor de Partituras PDF -->
+  <div class="card" id="contenedor-pdf" style="display:none; text-align:center;">
+    <h4 style="margin-top:0; color: var(--primary);">Visor de Partitura</h4>
+    <canvas id="pdf-canvas" style="max-width:150%; border:1px solid #ccc;"></canvas>
+  </div>
 
-  <div id="paginas"></div>
-  <div class="watermark-note">Documentos protegidos bajo derechos institucionales de Palermo Music.</div>
+  <div id="paginas" style="font-size: 11px; color: #666; text-align: center; margin-top: 10px;">
+    Documentos protegidos bajo derechos institucionales de Palermo Music.
+  </div>
 
+  <!-- Lógica JavaScript del Frontend -->
   <script>
-    const CLIENT_ID = '397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com';
-    const API_URL = 'https://script.google.com/macros/s/AKfycbw3jKI3feK1c7wwxihzWxmIiTx8kL5AmGD9JzleYpQFDH1_noPNUdaYy4gTatYMLKQWDQ/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyzKPiVDTHKeuc9MsT28SLLmoxbfwqxVf-ReCys0B-1GHZMLLb7bL8b3uqj-GJRl0Yc3g/exec'; // Reemplaza con tu URL de Web App si es diferente
     let ID_TOKEN = null;
-    const VERSION_PAGINA = '3.0-palermo';
+    let esLoop = false;
 
-    const logEl = document.getElementById('log');
-    const log = t => { logEl.textContent += '\n' + t; logEl.scrollTop = logEl.scrollHeight; };
-    window.addEventListener('error', e => log('ERROR JS: ' + e.message));
-    window.addEventListener('unhandledrejection', e =>
-      log('ERROR PROMESA: ' + ((e.reason && e.reason.message) || e.reason)));
-
-    log('Versión de la página: ' + VERSION_PAGINA);
-
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      log('Visor PDF.js listo.');
-    } else { log('ADVERTENCIA: PDF.js no cargó.'); }
-
-    let intentos = 0;
-    function iniciarGoogle() {
-      if (!(window.google && google.accounts && google.accounts.id)) {
-        if (++intentos > 50) { log('No cargó el inicio de sesión de Google.'); return; }
-        setTimeout(iniciarGoogle, 200); return;
-      }
-      google.accounts.id.initialize({ client_id: CLIENT_ID, callback: alCredencial });
-      google.accounts.id.renderButton(document.getElementById('boton'),
-        { theme: 'outline', size: 'large', text: 'signin_with', locale: 'es' });
-      log('Botón de acceso Google listo.');
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += '\n> ' + msg;
+      el.scrollTop = el.scrollHeight;
     }
 
-    function alCredencial(resp) {
-      ID_TOKEN = resp.credential;
-      log('Autenticación recibida. Verificando en el servidor...');
+    function manejarCredencial(response) {
+      ID_TOKEN = response.credential;
+      log('Sesión iniciada con Google OAuth.');
       quien();
     }
 
-    function cambiarCuenta() {
-      ID_TOKEN = null;
-      if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
-      log('Sesión cerrada en la página. Selecciona tu cuenta de Google.');
-    }
-    iniciarGoogle();
-
-    async function api(accion) {
-      if (!ID_TOKEN) { log('Inicia sesión con tu cuenta de Google.'); return null; }
-      const t0 = performance.now();
-      let resp;
+    async function api(accion, payloadExtra = {}) {
+      if (!ID_TOKEN) { log('Error: Inicia sesión con Google primero.'); return null; }
       try {
-        log('Consultando API (' + accion + ')...');
-        const r = await fetch(API_URL, {
-          method: 'POST',
-          redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ accion: accion, token: ID_TOKEN })
-        });
-        const txt = await r.text();
-        try { resp = JSON.parse(txt); }
-        catch (e) { log('Respuesta no válida del servidor: ' + txt.slice(0, 150)); return null; }
-      } catch (e) {
-        log('ERROR de red: ' + e.message); return null;
-      }
-      resp._ms = Math.round(performance.now() - t0);
-      if (!resp.ok && ['TOKEN_INVALIDO', 'TOKEN_EXPIRADO', 'SIN_TOKEN'].includes(resp.error)) {
-        ID_TOKEN = null;
-        log('Sesión expirada. Vuelve a iniciar sesión.');
-      }
-      return resp;
-    }
-
-    async function quien() {
-      const r = await api('quien'); if (!r) return;
-      if (r.ok) log('IDENTIDAD VERIFICADA\n  Correo: ' + r.email + '\n  Nombre: ' + r.nombre +
-                    '\n  Rol: ' + r.rol + '\n  Estado: ' + r.estado + ' (' + r._ms + ' ms)');
-      else log('ACCESO DENEGADO: ' + r.error + (r.email ? ' (correo ' + r.email + ')' : ''));
-    }
-
-    function aBytes(b64) {
-      const bin = atob(b64);
-      const arr = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-      return arr;
-    }
-
-    async function mostrarPdf(arr) {
-      const cont = document.getElementById('paginas');
-      cont.innerHTML = '';
-      const pdf = await pdfjsLib.getDocument({ data: arr, isEvalSupported: false }).promise;
-      log('Partitura cargada: ' + pdf.numPages + ' página(s)');
-      for (let n = 1; n <= pdf.numPages; n++) {
-        const page = await pdf.getPage(n);
-        const base = page.getViewport({ scale: 1 });
-        const escala = (cont.clientWidth / base.width) * (window.devicePixelRatio || 1);
-        const vp = page.getViewport({ scale: escala });
-        const canvas = document.createElement('canvas');
-        canvas.width = vp.width; canvas.height = vp.height;
-        cont.appendChild(canvas);
-        
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-        // Renderizado de marca de agua / firma institucional "Palermo Music" sutil en el documento
-        ctx.save();
-        ctx.font = '14px sans-serif';
-        ctx.fillStyle = 'rgba(18, 48, 74, 0.15)'; // Azul institucional translúcido
-        ctx.textAlign = 'right';
-        ctx.fillText('Palermo Music · Uso Institucional', canvas.width - 20, canvas.height - 20);
-        ctx.restore();
-      }
-    }
-
-    async function cargar(tipo) {
-      const t0 = performance.now();
-      log('Descargando ' + tipo.toUpperCase() + '...');
-      const r = await api(tipo); if (!r) return;
-      if (!r.ok) { log('ACCESO DENEGADO: ' + r.error + (r.email ? ' (' + r.email + ')' : '')); return; }
-      const ms = Math.round(performance.now() - t0);
-      log(tipo.toUpperCase() + ': ' + r.nombre + ' | ' + (r.bytes / 1048576).toFixed(2) +
-          ' MB | servidor ' + r.msServidor + ' ms');
-      try {
-        const arr = aBytes(r.base64);
-        if (tipo === 'mp3') {
-          const a = document.getElementById('audio');
-          a.src = URL.createObjectURL(new Blob([arr], { type: r.tipo }));
-          a.play().catch(() => log('Pulsa ▶ para reproducir la pista.'));
-        } else {
-          await mostrarPdf(arr);
-          log('Partitura renderizada en pantalla con marca de agua institucional.');
-        }
-      } catch (e) { log('ERROR al mostrar: ' + e.message); }
-    }
-
-    function alternarLoop() {
-      const a = document.getElementById('audio');
-      a.loop = !a.loop;
-      document.getElementById('btnLoop').textContent = '🔁 Repetir: ' + (a.loop ? 'SÍ' : 'NO');
-    }
-// Función para cargar el evento activo y su lista de canciones
-    async function cargarEventoActivo() {
-      const r = await api('evento_activo');
-      if (!r || !r.ok) {
-        log('No se pudo cargar el evento activo.');
-        return;
-      }
-      
-      const contRepertorio = document.getElementById('contenedor-repertorio');
-      const tituloEvento = document.getElementById('titulo-evento');
-      const listaDiv = document.getElementById('lista-canciones');
-      listaDiv.innerHTML = '';
-
-      if (!r.evento) {
-        tituloEvento.textContent = 'No hay eventos publicados actualmente.';
-        contRepertorio.style.display = 'block';
-        return;
-      }
-
-      tituloEvento.textContent = `📅 ${r.evento.nombre} (${r.evento.fecha})`;
-      
-      if (!r.canciones || r.canciones.length === 0) {
-        listaDiv.innerHTML = '<p>El evento aún no tiene canciones asignadas.</p>';
-      } else {
-        let html = '<ul style="padding-left: 20px; margin: 0;">';
-        r.canciones.forEach(c => {
-          html += `<li style="margin-bottom: 12px;">
-            <strong>${c.posicion || '-'}. ${c.titulo}</strong> 
-            <span style="font-size: 12px; color: #555;">[Tonalidad: ${c.tonalidad || 'N/A'}]</span>
-            <br>
-            <button class="btn-secondary" style="font-size: 12px; padding: 6px 10px; width: auto; margin-top: 4px;" 
-              onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">📁 Ver mis recursos de ensayo</button>
-          </li>`;
-        });
-        html += '</ul>';
-        listaDiv.innerHTML = html;
-      }
-      contRepertorio.style.display = 'block';
-      log('Repertorio del evento cargado correctamente.');
-    }
-
-    // Función para solicitar los recursos filtrados (PDF y MP3) de una canción específica
-    async function cargarRecursosCancion(idCancion, tituloCancion) {
-      log(`Buscando recursos para: ${tituloCancion} (ID: ${idCancion})...`);
-      
-      const r = await apiAccionConParametros('recursos_cancion', { idCancion: idCancion });
-      if (!r || !r.ok) {
-        log('Error al obtener recursos para esta canción.');
-        return;
-      }
-
-      log(`Perfil detectado: ${r.perfil}. Recursos encontrados: ${r.recursos.length}`);
-      
-      if (r.recursos.length === 0) {
-        log('No hay recursos disponibles para tu perfil/voz en esta canción.');
-        return;
-      }
-
-      // Mostrar los recursos encontrados en el registro de la app
-      r.recursos.forEach(rec => {
-        log(` - [${rec.tipo}] Parte: ${rec.parte} | Archivo: ${rec.nombreArchivo}`);
-      });
-    }
-
-    // Función auxiliar para enviar peticiones con parámetros adicionales al Apps Script
-    async function apiAccionConParametros(accion, datosExtra) {
-      if (!ID_TOKEN) { log('Inicia sesión con tu cuenta de Google.'); return null; }
-      try {
-        const payload = { accion: accion, token: ID_TOKEN, ...datosExtra };
-        const r = await fetch(API_URL, {
+        const payload = { accion: accion, token: ID_TOKEN, ...payloadExtra };
+        const res = await fetch(API_URL, {
           method: 'POST',
           redirect: 'follow',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
-        const txt = await r.text();
+        const txt = await res.text();
         return JSON.parse(txt);
       } catch (e) {
-        log('ERROR en API: ' + e.message);
+        log('ERROR API: ' + e.message);
         return null;
       }
     }
-// Muestra u oculta el panel de creación de eventos
-    function mostrarFormularioEvento() {
-      const contenedor = document.getElementById('contenedor-admin-evento');
-      if (contenedor.style.display === 'none') {
-        contenedor.style.display = 'block';
-        generarConfiguracionSets();
-        log('Panel de programación abierto.');
+
+    async function quien() {
+      log('Verificando perfil y rol...');
+      const r = await api('quien');
+      if (r && r.ok) {
+        log(`Hola ${r.nombre} (${r.email}) - Rol: [${r.rol.toUpperCase()}]`);
       } else {
-        contenedor.style.display = 'none';
+        log('Acceso no autorizado o usuario inactivo.');
       }
     }
 
-    // Genera dinámicamente los campos según el número de servicios (sets)
+    async function cargarEventoActivo() {
+      log('Consultando evento activo...');
+      const r = await api('evento_activo');
+      if (!r || !r.ok || !r.evento) {
+        log('No se pudo cargar el evento activo.');
+        return;
+      }
+
+      document.getElementById('titulo-evento').textContent = `📅 ${r.evento.nombre} (${r.evento.fecha})`;
+      const listaDiv = document.getElementById('lista-canciones');
+      listaDiv.innerHTML = '';
+
+      if (r.canciones.length === 0) {
+        listaDiv.innerHTML = '<p>No hay canciones asignadas a este evento.</p>';
+      } else {
+        let html = '<ul style="padding-left: 20px;">';
+        r.canciones.forEach(c => {
+          html += `<li style="margin-bottom: 12px;">
+            <strong>${c.posicion}. ${c.titulo}</strong> <span style="font-size:12px; color:#555;">[Tonalidad: ${c.tonalidad}]</span><br>
+            <button class="btn-secondary" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">📁 Ver mis recursos de ensayo</button>
+          </li>`;
+        });
+        html += '</ul>';
+        listaDiv.innerHTML = html;
+      }
+      document.getElementById('contenedor-repertorio').style.display = 'block';
+      log('Repertorio cargado con éxito.');
+    }
+
+    async function cargarRecursosCancion(idCancion, titulo) {
+      log(`Buscando recursos para: ${titulo}...`);
+      const r = await api('recursos_cancion', { idCancion: idCancion });
+      if (!r || !r.ok) {
+        log('Error al obtener recursos.');
+        return;
+      }
+      log(`Perfil detectado: ${r.perfil}. Recursos encontrados: ${r.recursos.length}`);
+      
+      const pdfRec = r.recursos.find(rec => rec.tipo === 'PDF');
+      const mp3Rec = r.recursos.find(rec => rec.tipo === 'MP3');
+
+      if (mp3Rec && mp3Rec.idDrive && mp3Rec.idDrive !== '(automático)') {
+        log(`Pista de audio disponible: ${mp3Rec.parte}`);
+        // Carga lógica del reproductor si cuenta con el enlace o ID de Drive directo
+      }
+
+      if (pdfRec) {
+        log(`Cargando partitura: ${pdfRec.parte} (${pdfRec.nombreArchivo})`);
+        cargarPdfPorId(pdfRec.idRecurso);
+      } else {
+        log('No hay partitura PDF específica para tu perfil en esta canción.');
+      }
+    }
+
+    async function cargarPdfPorId(idRecurso) {
+      log('Descargando documento PDF...');
+      const r = await api('entregar_recurso', { idRecurso: idRecurso });
+      if (!r || !r.ok) {
+        log('No se pudo descargar el archivo.');
+        return;
+      }
+      try {
+        const rawBytes = Uint8Array.from(atob(r.base64), c => c.charCodeAt(0));
+        const loadingTask = pdfjsLib.getDocument({ data: rawBytes });
+        const pdfDoc = await loadingTask.promise;
+        const page = await pdfDoc.getPage(1);
+        const scale = 1.2;
+        const viewport = page.getViewport({ scale: scale });
+        const canvas = document.getElementById('pdf-canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        document.getElementById('contenedor-pdf').style.display = 'block';
+        log('Partitura renderizada correctamente.');
+      } catch (e) {
+        log('ERROR al renderizar PDF: ' + e.message);
+      }
+    }
+
+    async function cargarCalendarioEventos() {
+      log('Consultando calendario de eventos...');
+      const r = await api('listar_eventos');
+      if (!r || !r.ok) {
+        log('No se pudo cargar el calendario.');
+        return;
+      }
+      const contenedor = document.getElementById('contenedor-calendario');
+      const listaDiv = document.getElementById('lista-calendario-eventos');
+      listaDiv.innerHTML = '';
+
+      if (!r.eventos || r.eventos.length === 0) {
+        listaDiv.innerHTML = '<p>No hay eventos registrados.</p>';
+      } else {
+        let html = '<ul style="padding-left: 20px; margin: 0;">';
+        r.eventos.forEach(ev => {
+          html += `<li style="margin-bottom: 10px;">
+            <strong>${ev.nombre}</strong> <span style="font-size: 12px; color: #666;">[Fecha: ${ev.fecha} | Estado: ${ev.estado}]</span><br>
+            <small>${ev.mensaje || 'Sin notas adicionales'}</small>
+          </li>`;
+        });
+        html += '</ul>';
+        listaDiv.innerHTML = html;
+      }
+      contenedor.style.display = 'block';
+      log('Calendario cargado con éxito.');
+    }
+
+    function mostrarFormularioEvento() {
+      const contenedor = document.getElementById('contenedor-admin-evento');
+      contenedor.style.display = contenedor.style.display === 'none' ? 'block' : 'none';
+      if (contenedor.style.display === 'block') generarConfiguracionSets();
+    }
+
     function generarConfiguracionSets() {
       const numSets = parseInt(document.getElementById('admin-num-sets').value) || 1;
       const contenedorSets = document.getElementById('admin-sets-dinamicos');
       contenedorSets.innerHTML = '';
 
       for (let i = 1; i <= numSets; i++) {
-        let htmlSet = `
-          <div style="background: #F7F5EF; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--accent);">
+        contenedorSets.innerHTML += `
+          <div style="background: #F7F5EF; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid var(--accent);">
             <strong>Servicio / Tanda ${i}</strong><br>
-            <input type="text" id="set-nombre-${i}" placeholder="Nombre del set (Ej. Apertura, Adoración)" value="Servicio ${i}" style="width: 100%; padding: 6px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px;">
-            <label style="font-size: 13px;">Cantidad de cantos en este servicio:</label>
-            <input type="number" id="set-num-canciones-${i}" min="1" max="10" value="2" style="width: 100%; padding: 6px; margin: 4px 0; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="text" id="set-nombre-${i}" value="Servicio ${i}">
+            <label style="font-size: 12px;">Cantidad de cantos:</label>
+            <input type="number" id="set-num-canciones-${i}" min="1" max="10" value="2">
           </div>
         `;
-        contenedorSets.innerHTML += htmlSet;
       }
     }
 
-    // Envía la estructura completa del evento al Apps Script
     async function enviarNuevoEvento() {
       const nombreEvento = document.getElementById('admin-nombre-evento').value;
       const fechaEvento = document.getElementById('admin-fecha-evento').value;
@@ -510,7 +361,7 @@
       const numSets = parseInt(document.getElementById('admin-num-sets').value) || 1;
 
       if (!nombreEvento || !fechaEvento) {
-        log('Error: Debes ingresar al menos el nombre y la fecha del evento.');
+        log('Error: Ingresa al menos el nombre y la fecha del evento.');
         return;
       }
 
@@ -519,21 +370,16 @@
         const nombreSet = document.getElementById(`set-nombre-${i}`).value;
         const numCantos = parseInt(document.getElementById(`set-num-canciones-${i}`).value) || 1;
         
-        // Simulación temporal de canciones para estructurar (en la siguiente iteración conectaremos con la lista de la base de datos)
         let cancionesEjemplo = [];
         for (let c = 1; c <= numCantos; c++) {
           cancionesEjemplo.push(c === 1 ? 'CAN-0001' : 'CAN-0002');
         }
 
-        setsArray.push({
-          numeroSet: i,
-          nombreSet: nombreSet,
-          canciones: cancionesEjemplo
-        });
+        setsArray.push({ numeroSet: i, nombreSet: nombreSet, canciones: cancionesEjemplo });
       }
 
       log('Enviando nuevo evento al servidor...');
-      const r = await apiAccionConParametros('guardar_evento', {
+      const r = await api('guardar_evento', {
         nombreEvento: nombreEvento,
         fechaEvento: fechaEvento,
         mensajeGeneral: mensajeGeneral,
@@ -545,51 +391,16 @@
         log(`¡Éxito! Evento creado con ID: ${r.idEvento}`);
         document.getElementById('contenedor-admin-evento').style.display = 'none';
       } else {
-        log('Error al guardar el evento: ' + (r ? r.error : 'Respuesta vacía'));
+        log('Error al guardar el evento.');
       }
     }
-// Función para consultar todos los eventos futuros y pasados registrados
-    async function cargarCalendarioEventos() {
-      log('Consultando calendario de eventos...');
-      const r = await api('listar_eventos');
-      if (!r || !r.ok) {
-        log('No se pudo cargar el calendario.');
-        return;
-      }
 
-      const contenedor = document.getElementById('contenedor-calendario');
-      const listaDiv = document.getElementById('lista-calendario-eventos');
-      listaDiv.innerHTML = '';
-
-      if (!r.eventos || r.eventos.length === 0) {
-        listaDiv.innerHTML = '<p>No hay eventos registrados en el sistema.</p>';
-      } else {
-        let html = '<ul style="padding-left: 20px; margin: 0;">';
-        r.eventos.forEach(ev => {
-          html += `<li style="margin-bottom: 10px;">
-            <strong>${ev.nombre}</strong> <span style="font-size: 12px; color: #666;">[Fecha: ${ev.fecha} | Estado: ${ev.estado}]</span><br>
-            <small>${ev.mensaje || 'Sin mensajes adicionales'}</small>
-          </li>`;
-        });
-        html += '</ul>';
-        listaDiv.innerHTML = html;
-      }
-      contenedor.style.display = 'block';
-      log('Calendario de eventos cargado con éxito.');
+    function alternarLoop() {
+      esLoop = !esLoop;
+      const audio = document.getElementById('audio');
+      audio.loop = esLoop;
+      document.getElementById('btnLoop').textContent = `🔁 Repetir: ${esLoop ? 'SÍ' : 'NO'}`;
     }
-
-    // Función para pedir sugerencias automáticas de canciones al programar
-    async function solicitarSugerenciaTemas(funcionLiturgica, nivelEnergia) {
-      log(`Buscando sugerencias para función: ${funcionLiturgica} (Energía: ${nivelEnergia})...`);
-      const r = await apiAccionConParametros('sugerir_canciones', { funcion: funcionLiturgica, energia: nivelEnergia });
-      if (!r || !r.ok || r.sugerencias.length === 0) {
-        log('No se encontraron sugerencias específicas.');
-        return [];
-      }
-      log(`¡${r.sugerencias.length} temas sugeridos encontrados!`);
-      return r.sugerencias;
-    }
-    
   </script>
 </body>
 </html>
