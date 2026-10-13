@@ -120,11 +120,49 @@
   </div>
 
   <!-- Acciones Principales -->
+  <!-- Acciones Principales Organizadas por Secuencia -->
   <div class="card">
     <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
-    <button class="btn-accent" onclick="cargarEventoActivo()">🎵 2. Ver Repertorio del Evento Activo</button>
-    <button class="btn-secondary" onclick="cargarCalendarioEventos()">📅 3. Ver Calendario y Eventos Futuros</button>
+    <button class="btn-accent" onclick="cargarBibliotecaRecursos()">📂 2. Recursos de Ensayo (Biblioteca General)</button>
+    <button class="btn-primary" onclick="cargarCalendarioEventos()">🎵 3. Ver Repertorios de Eventos</button>
     <button class="btn-secondary" onclick="mostrarFormularioEvento()">➕ 4. Crear y Programar Nuevo Evento</button>
+  </div>
+
+  <!-- Contenedor 1: Biblioteca General de Temas -->
+  <div class="card" id="contenedor-biblioteca" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Biblioteca de Temas Disponibles</h3>
+    <p style="font-size: 13px; color: #666;">Selecciona cualquier tema del catálogo general para ensayar:</p>
+    <div id="lista-biblioteca-general"></div>
+  </div>
+
+  <!-- Contenedor 2: Listado de Eventos para Elegir -->
+  <div class="card" id="contenedor-eventos-lista" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Seleccione un Evento</h3>
+    <div id="lista-eventos-disponibles"></div>
+  </div>
+
+  <!-- Contenedor 3: Repertorio Detallado del Evento Seleccionado -->
+  <div class="card" id="contenedor-repertorio-evento" style="display:none;">
+    <h3 id="titulo-evento-seleccionado" style="margin-top:0; color: var(--primary);">Repertorio del Evento</h3>
+    <div id="lista-canciones-evento"></div>
+  </div>
+
+  <!-- Panel Dinámico de Ensayo (Audio y Partitura PDF - Aparece solo tras seleccionar un canto) -->
+  <div class="card" id="contenedor-ensayo" style="display:none;">
+    <h3 id="titulo-cancion-activa" style="margin-top:0; color: var(--primary);">Panel de Ensayo</h3>
+    
+    <!-- Reproductor de Audio -->
+    <div id="seccion-audio" style="display:none; margin-bottom: 12px;">
+      <label style="font-size: 13px; font-weight: bold;">Pista de Audio:</label><br>
+      <audio id="audio" controls controlsList="nodownload" style="width: 100%; margin-top: 5px;"></audio>
+      <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()" style="margin-top: 5px;">🔁 Repetir: NO</button>
+    </div>
+
+    <!-- Visor de Partituras PDF -->
+    <div id="seccion-pdf" style="display:none; text-align:center; margin-top: 15px;">
+      <h4 style="margin-top:0; color: var(--primary);">Visor de Partitura / Letra</h4>
+      <canvas id="pdf-canvas" style="max-width:100%; border:1px solid #ccc;"></canvas>
+    </div>
   </div>
 
   <!-- Contenedor del Repertorio del Evento Activo -->
@@ -401,6 +439,118 @@
       audio.loop = esLoop;
       document.getElementById('btnLoop').textContent = `🔁 Repetir: ${esLoop ? 'SÍ' : 'NO'}`;
     }
+
+    // 1. Carga la biblioteca general de temas para ensayo libre
+    async function cargarBibliotecaRecursos() {
+      log('Cargando catálogo general de canciones...');
+      document.getElementById('contenedor-eventos-lista').style.display = 'none';
+      document.getElementById('contenedor-repertorio-evento').style.display = 'none';
+      document.getElementById('contenedor-ensayo').style.display = 'none';
+      
+      const r = await api('listar_eventos'); // O endpoint de canciones si lo tienes definido
+      const contenedor = document.getElementById('contenedor-biblioteca');
+      contenedor.style.display = 'block';
+      log('Biblioteca general lista para selección.');
+    }
+
+    // 2. Muestra la lista de eventos para que el usuario seleccione uno
+    async function cargarCalendarioEventos() {
+      log('Consultando repertorios de eventos disponibles...');
+      document.getElementById('contenedor-biblioteca').style.display = 'none';
+      document.getElementById('contenedor-ensayo').style.display = 'none';
+      
+      const r = await api('listar_eventos');
+      if (!r || !r.ok || !r.eventos) {
+        log('No se pudieron cargar los eventos.');
+        return;
+      }
+
+      const listaDiv = document.getElementById('lista-eventos-disponibles');
+      listaDiv.innerHTML = '';
+
+      let html = '<ul style="padding-left: 20px; margin: 0;">';
+      r.eventos.forEach(ev => {
+        html += `<li style="margin-bottom: 10px;">
+          <strong>${ev.nombre}</strong> [Fecha: ${ev.fecha}]<br>
+          <button class="btn-accent" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="seleccionarEvento('${ev.idEvento}', '${ev.nombre}')">📂 Ver Repertorio de este Evento</button>
+        </li>`;
+      });
+      html += '</ul>';
+      listaDiv.innerHTML = html;
+
+      document.getElementById('contenedor-eventos-lista').style.display = 'block';
+      log('Seleccione un evento para ver su repertorio.');
+    }
+
+    // 3. Al seleccionar un evento específico, carga sus canciones
+    async function seleccionarEvento(idEvento, nombreEvento) {
+      log(`Cargando repertorio para: ${nombreEvento}...`);
+      const r = await api('evento_activo', { idEvento: idEvento });
+      if (!r || !r.ok) {
+        log('Error al cargar las canciones del evento.');
+        return;
+      }
+
+      document.getElementById('titulo-evento-seleccionado').textContent = `🎵 Repertorio: ${nombreEvento}`;
+      const listaDiv = document.getElementById('lista-canciones-evento');
+      listaDiv.innerHTML = '';
+
+      if (!r.canciones || r.canciones.length === 0) {
+        listaDiv.innerHTML = '<p>Este evento no tiene canciones asignadas.</p>';
+      } else {
+        let html = '<ul style="padding-left: 20px;">';
+        r.canciones.forEach(c => {
+          html += `<li style="margin-bottom: 12px;">
+            <strong>${c.posicion}. ${c.titulo}</strong> [Tonalidad: ${c.tonalidad}]<br>
+            <button class="btn-secondary" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">🎵 Seleccionar y Ver Recursos de Ensayo</button>
+          </li>`;
+        });
+        html += '</ul>';
+        listaDiv.innerHTML = html;
+      }
+
+      document.getElementById('contenedor-repertorio-evento').style.display = 'block';
+      log('Repertorio del evento cargado. Haga clic en una canción para abrir el panel de ensayo.');
+    }
+
+    // 4. Activa y despliega los recursos (Audio / PDF) solo al seleccionar un canto
+    async function cargarRecursosCancion(idCancion, titulo) {
+      log(`Buscando recursos de ensayo para: ${titulo}...`);
+      const r = await api('recursos_cancion', { idCancion: idCancion });
+      if (!r || !r.ok) {
+        log('Error al obtener recursos.');
+        return;
+      }
+      log(`Perfil detectado: ${r.perfil}. Recursos encontrados: ${r.recursos.length}`);
+      
+      const pdfRec = r.recursos.find(rec => rec.tipo === 'PDF');
+      const mp3Rec = r.recursos.find(rec => rec.tipo === 'MP3');
+
+      // Mostrar el contenedor general de ensayo
+      document.getElementById('contenedor-ensayo').style.display = 'block';
+      document.getElementById('titulo-cancion-activa').textContent = `🎵 Ensayo: ${titulo}`;
+
+      // Manejo del Reproductor MP3
+      const seccionAudio = document.getElementById('seccion-audio');
+      if (mp3Rec && mp3Rec.idDrive && mp3Rec.idDrive !== '(automático)') {
+        log(`Pista de audio disponible: ${mp3Rec.parte}`);
+        seccionAudio.style.display = 'block';
+      } else {
+        seccionAudio.style.display = 'none';
+      }
+
+      // Manejo del Visor PDF
+      const seccionPdf = document.getElementById('seccion-pdf');
+      if (pdfRec) {
+        log(`Cargando partitura: ${pdfRec.parte} (${pdfRec.nombreArchivo})`);
+        seccionPdf.style.display = 'block';
+        cargarPdfPorId(pdfRec.idRecurso);
+      } else {
+        seccionPdf.style.display = 'none';
+        log('No hay partitura PDF específica para tu perfil en esta canción.');
+      }
+    }
+    
   </script>
 </body>
 </html>
