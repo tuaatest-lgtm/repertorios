@@ -186,7 +186,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycby0A3NdM1I4kXSQeKAfPWoR-ZEZla1Gx19SxdPQVE9sgNRNwlGOwovxVOas8D7yqLJWsw/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyzKPiVDTHKeuc9MsT28SLLmoxbfwqxVf-ReCys0B-1GHZMLLb7bL8b3uqj-GJRl0Yc3g/exec';
     let ID_TOKEN = null;
     let esLoop = false;
     let rolUsuarioActual = '';
@@ -401,7 +401,6 @@
 
       document.getElementById('titulo-evento-seleccionado').textContent = `🎵 Repertorio: ${nombreEvento}`;
       
-      // Mostrar botón de borrado en la cabecera del repertorio si es admin/programador
       const contenedorBorrar = document.getElementById('boton-borrar-evento-contenedor');
       if (rolUsuarioActual === 'admin' || rolUsuarioActual === 'programador') {
         contenedorBorrar.innerHTML = `<button class="btn-danger" style="padding: 6px 12px; font-size: 11px; width: auto;" onclick="borrarEvento('${idEvento}')">🗑️ Borrar Evento</button>`;
