@@ -160,19 +160,33 @@
     <div id="lista-canciones-evento"></div>
   </div>
 
-  <!-- Panel Dinámico de Ensayo -->
+  <!-- Panel Dinámico de Ensayo con Selectores y Cancelación -->
   <div class="card" id="contenedor-ensayo" style="display:none;">
     <h3 id="titulo-cancion-activa" style="margin-top:0; color: var(--primary);">Panel de Ensayo</h3>
     
-    <div id="seccion-audio" style="display:none; margin-bottom: 12px;">
-      <label style="font-size: 13px; font-weight: bold;">Pista de Audio:</label><br>
-      <audio id="audio" controls controlsList="nodownload" style="width: 100%; margin-top: 5px;"></audio>
-      <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()" style="margin-top: 5px;">🔁 Repetir: NO</button>
+    <!-- Selector y Reproductor de Audio MP3 -->
+    <div style="margin-bottom: 15px; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px;">
+      <label style="font-size: 13px; font-weight: bold; color: var(--primary);">🎧 Seleccionar Pista de Audio:</label>
+      <select id="select-audio" onchange="cambiarAudioSeleccionado()">
+        <option value="">--- Ninguna / Cancelar audio ---</option>
+      </select>
+      
+      <div id="seccion-reproductor" style="display:none; margin-top: 8px;">
+        <audio id="audio" controls controlsList="nodownload" style="width: 100%; margin-top: 5px;"></audio>
+        <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()" style="margin-top: 5px;">🔁 Repetir: NO</button>
+      </div>
     </div>
 
-    <div id="seccion-pdf" style="display:none; text-align:center; margin-top: 15px;">
-      <h4 style="margin-top:0; color: var(--primary);">Visor de Partitura / Letra</h4>
-      <canvas id="pdf-canvas" style="max-width:100%; border:1px solid #ccc;"></canvas>
+    <!-- Selector y Visor de PDF (Partituras / Letras) -->
+    <div>
+      <label style="font-size: 13px; font-weight: bold; color: var(--primary);">📄 Seleccionar Partitura o Letra:</label>
+      <select id="select-pdf" onchange="cambiarPdfSeleccionado()">
+        <option value="">--- Ninguno / Cancelar documento ---</option>
+      </select>
+
+      <div id="seccion-pdf-visor" style="display:none; text-align:center; margin-top: 10px;">
+        <canvas id="pdf-canvas" style="max-width:100%; border:1px solid #ccc; border-radius: 4px;"></canvas>
+      </div>
     </div>
   </div>
 
@@ -186,12 +200,13 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycby0A3NdM1I4kXSQeKAfPWoR-ZEZla1Gx19SxdPQVE9sgNRNwlGOwovxVOas8D7yqLJWsw/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyzKPiVDTHKeuc9MsT28SLLmoxbfwqxVf-ReCys0B-1GHZMLLb7bL8b3uqj-GJRl0Yc3g/exec';
     let ID_TOKEN = null;
     let esLoop = false;
     let rolUsuarioActual = '';
     let catalogoCancionesMemoria = [];
     let cancionesSeleccionadasEvento = [];
+    let recursosCancionActual = [];
     let idEventoActivoSeleccionado = '';
 
     function log(msg) {
@@ -433,43 +448,84 @@
       const r = await api('recursos_cancion', { idCancion: idCancion });
       if (!r || !r.ok) { log('Error al obtener recursos.'); return; }
       
-      const pdfRec = r.recursos.find(rec => rec.tipo === 'PDF');
-      const mp3Rec = r.recursos.find(rec => rec.tipo === 'MP3');
+      recursosCancionActual = r.recursos || [];
 
       document.getElementById('contenedor-ensayo').style.display = 'block';
       document.getElementById('titulo-cancion-activa').textContent = `🎵 Ensayo: ${titulo}`;
 
-      const seccionAudio = document.getElementById('seccion-audio');
-      if (mp3Rec && mp3Rec.idDrive) {
-        seccionAudio.style.display = 'block';
-        cargarAudioPorId(mp3Rec.idDrive);
-      } else {
-        seccionAudio.style.display = 'none';
-      }
+      // Llenar selector de Audios (MP3)
+      const selectAudio = document.getElementById('select-audio');
+      selectAudio.innerHTML = '<option value="">--- Ninguna / Cancelar audio ---</option>';
+      const audios = recursosCancionActual.filter(rec => rec.tipo === 'MP3');
+      audios.forEach(aud => {
+        selectAudio.innerHTML += `<option value="${aud.idDrive}">${aud.parte} - ${aud.nombreArchivo}</option>`;
+      });
 
-      const seccionPdf = document.getElementById('seccion-pdf');
-      if (pdfRec && pdfRec.idDrive) {
-        seccionPdf.style.display = 'block';
-        cargarPdfPorId(pdfRec.idDrive);
-      } else {
-        seccionPdf.style.display = 'none';
-      }
+      // Llenar selector de Partituras/Letras (PDF)
+      const selectPdf = document.getElementById('select-pdf');
+      selectPdf.innerHTML = '<option value="">--- Ninguno / Cancelar documento ---</option>';
+      const pdfs = recursosCancionActual.filter(rec => rec.tipo === 'PDF');
+      pdfs.forEach(pdf => {
+        selectPdf.innerHTML += `<option value="${pdf.idDrive}">${pdf.parte} - ${pdf.nombreArchivo}</option>`;
+      });
+
+      // Resetear reproductores y visores activos
+      document.getElementById('seccion-reproductor').style.display = 'none';
+      document.getElementById('audio').pause();
+      document.getElementById('audio').src = '';
+      
+      document.getElementById('seccion-pdf-visor').style.display = 'none';
+      const canvas = document.getElementById('pdf-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      log('Recursos listos para seleccionar.');
     }
 
-    async function cargarAudioPorId(idDrive) {
+    async function cambiarAudioSeleccionado() {
+      const selectAudio = document.getElementById('select-audio');
+      const idDrive = selectAudio.value;
+      const seccionRep = document.getElementById('seccion-reproductor');
+
+      if (!idDrive) {
+        seccionRep.style.display = 'none';
+        const audio = document.getElementById('audio');
+        audio.pause();
+        audio.src = '';
+        log('Audio cancelado / cerrado.');
+        return;
+      }
+
+      log('Cargando pista de audio seleccionada...');
       const r = await api('mp3', { idDrive: idDrive });
       if (r && r.ok) {
         const audio = document.getElementById('audio');
         audio.src = `data:${r.tipo};base64,${r.base64}`;
+        seccionRep.style.display = 'block';
+        audio.play().catch(e => log('Reproducción automática bloqueada por el navegador. Pulse play.'));
+        log('Pista de audio lista para reproducir.');
       } else {
-        log('No se pudo cargar el audio.');
+        log('No se pudo cargar el audio seleccionado.');
       }
     }
 
-    async function cargarPdfPorId(idDrive) {
-      log('Descargando documento PDF...');
+    async function cambiarPdfSeleccionado() {
+      const selectPdf = document.getElementById('select-pdf');
+      const idDrive = selectPdf.value;
+      const seccionVisor = document.getElementById('seccion-pdf-visor');
+
+      if (!idDrive) {
+        seccionVisor.style.display = 'none';
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        log('Documento PDF cancelado / cerrado.');
+        return;
+      }
+
+      log('Descargando documento PDF seleccionado...');
       const r = await api('pdf', { idDrive: idDrive });
-      if (!r || !r.ok) { log('No se pudo descargar el archivo.'); return; }
+      if (!r || !r.ok) { log('No se pudo descargar el documento.'); return; }
 
       const raw = atob(r.base64);
       const uint8 = new Uint8Array(raw.length);
@@ -487,6 +543,7 @@
       canvas.width = viewport.width;
 
       await page.render({ canvasContext: context, viewport: viewport }).promise;
+      seccionVisor.style.display = 'block';
       log('PDF cargado y renderizado correctamente.');
     }
 
