@@ -229,6 +229,7 @@
 
     function manejarCredencial(response) {
       ID_TOKEN = response.credential;
+      log('Interfaz Palermo Music: diagnóstico v2.');
       log('Sesión iniciada con Google OAuth.');
       quien();
     }
@@ -299,7 +300,18 @@
       document.getElementById('contenedor-ensayo').style.display = 'none';
 
       const r = await api('listar_eventos');
-      if (!r || !r.ok || !r.eventos) { log('No se pudieron cargar los eventos.'); return; }
+      if (!r) {
+        log('ERROR AL CARGAR EVENTOS: no hubo respuesta de la API. Revisa la URL del despliegue y la conexión.');
+        return;
+      }
+      if (!r.ok || !Array.isArray(r.eventos)) {
+        const detalle = r.error || r.mensaje || JSON.stringify(r);
+        log('ERROR AL CARGAR EVENTOS: ' + detalle);
+        return;
+      }
+      if (r.eventos.length === 0) {
+        log('No hay eventos registrados en la pestaña Eventos.');
+      }
 
       const listaDiv = document.getElementById('lista-eventos-disponibles');
       listaDiv.innerHTML = '';
@@ -631,9 +643,7 @@
         } else if (r) {
           const detalle = r.error || r.mensaje || JSON.stringify(r);
           log('ERROR DE SINCRONIZACIÓN: ' + detalle);
-          alert('No se pudo sincronizar el catálogo.
-
-Detalle: ' + detalle);
+          alert('No se pudo sincronizar el catálogo.\n\nDetalle: ' + detalle);
         } else {
           log('ERROR DE SINCRONIZACIÓN: no hubo respuesta de la API. Revisa la URL del despliegue, conexión y permisos.');
           alert('No hubo respuesta del servidor. Revisa la conexión y el despliegue de Apps Script.');
