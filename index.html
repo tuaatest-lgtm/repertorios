@@ -4,534 +4,588 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Palermo Music – Sistema de Repertorios</title>
+
   <style>
-    :root { --primary:#12304A; --accent:#C6A15B; --ivory:#F7F5EF; --graphite:#303943; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: var(--ivory); color: var(--graphite);
-           margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-    .header-container { width:100%; max-width:600px; background:var(--primary); color:#fff; padding:15px;
-           border-radius:8px; display:flex; align-items:center; gap:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); margin-bottom:15px; }
-    .header-container img { height:45px; }
-    .card { background:#fff; width:100%; max-width:600px; padding:15px; border-radius:8px;
-            box-shadow:0 2px 4px rgba(0,0,0,.05); margin-bottom:15px; }
-    h3 { margin:0 0 10px; color:var(--primary); }
-    button { width:100%; padding:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;
-             margin-bottom:8px; font-size:14px; }
-    button:disabled { opacity:.5; cursor:not-allowed; }
-    .btn-primary { background:var(--primary); color:#fff; }
-    .btn-accent { background:var(--accent); color:#fff; }
-    .btn-secondary { background:#E2E8F0; color:var(--graphite); }
-    .btn-danger { background:#E53E3E; color:#fff; }
-    .btn-dark { background:#2D3748; color:#fff; }
-    .btn-small { width:auto; padding:8px 14px; margin:0; font-size:13px; min-height:38px; }
-    .fila { display:flex; align-items:center; justify-content:space-between; gap:10px;
-            padding:9px 0; border-bottom:1px solid #EDF2F7; }
-    .fila:last-child { border-bottom:none; }
-    .fila .nombre { flex:1; font-size:15px; }
-    .fila .meta { font-size:11px; color:#718096; display:block; margin-top:2px; }
-    .set-titulo { margin:14px 0 2px; font-size:13px; font-weight:bold; color:var(--accent); text-transform:uppercase; }
-    .aviso { font-size:12px; color:#718096; margin:6px 0; }
-    .estado-ok { color:#2F855A; font-weight:bold; }
-    pre { background:var(--primary); color:#E2E8F0; padding:12px; border-radius:8px; white-space:pre-wrap;
-          overflow-wrap:anywhere; height:150px; overflow-y:auto; font-size:12px; font-family:monospace; margin:0; }
-    input, select, textarea { width:100%; padding:10px; margin:4px 0 10px; border:1px solid #ccc;
-          border-radius:4px; font-size:14px; }
-    .grupo { border-top:1px solid #E2E8F0; padding-top:12px; margin-top:12px; }
-    .grupo label { font-size:13px; font-weight:bold; color:var(--primary); }
-    .botones { display:flex; gap:8px; }
-    .botones button { margin-bottom:0; }
-    #visor-pdf canvas { display:block; width:100%; margin:0 0 8px; border:1px solid #ccc; border-radius:4px; }
-    #lista-selector { max-height:220px; overflow-y:auto; border:1px solid #ccc; border-radius:4px; padding:8px; }
-    #lista-selector label { display:block; font-size:14px; margin-bottom:8px; cursor:pointer; }
-    #lista-selector input { width:auto; margin:0 6px 0 0; }
-    .oculto { display:none !important; }
-    details summary { cursor:pointer; font-size:12px; color:#718096; margin-bottom:6px; }
+    :root {
+      --primary: #12304A;
+      --accent: #C6A15B;
+      --ivory: #F7F5EF;
+      --graphite: #303943;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--ivory);
+      color: var(--graphite);
+      margin: 0;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header-container {
+      width: 100%;
+      max-width: 600px;
+      background: var(--primary);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+    .header-container img { height: 45px; }
+    .card {
+      background: white;
+      width: 100%;
+      max-width: 600px;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      margin-bottom: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-accent { background: var(--accent); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--graphite); }
+    .btn-danger { background: #E53E3E; color: white; }
+
+    pre {
+      background: var(--primary);
+      color: #E2E8F0;
+      padding: 12px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      height: 140px;
+      max-height: 140px;
+      overflow-y: auto;
+      font-size: 12px;
+      font-family: monospace;
+      margin: 0;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
   </style>
+
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
 </head>
 <body>
 
   <div class="header-container">
-    <img src="logo-palermo.png" alt="Palermo Music" onerror="this.style.display='none'">
+    <img src="logo-palermo.png" alt="Palermo Music Logo" onerror="this.style.display='none'">
     <div>
-      <h2 style="margin:0;font-size:20px;">Palermo Music</h2>
-      <span style="font-size:13px;color:var(--accent);">Sistema de Repertorios y Ensayo</span>
+      <h2 style="margin: 0; font-size: 20px;">Palermo Music</h2>
+      <span style="font-size: 13px; color: var(--accent);">Sistema de Repertorios y Ensayo</span>
     </div>
   </div>
 
-  <!-- Inicio de sesión -->
-  <div class="card" style="text-align:center;">
+  <div class="card" style="text-align: center;">
     <div id="g_id_onload"
          data-client_id="397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com"
-         data-callback="manejarCredencial" data-auto_select="false"></div>
+         data-callback="manejarCredencial"
+         data-auto_select="false">
+    </div>
     <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
-    <div id="estado-sesion" class="aviso">Inicie sesión con su cuenta de Google.</div>
   </div>
 
-  <!-- Menú principal -->
-  <div class="card oculto" id="menu">
-    <button class="btn-accent" id="btn-biblioteca">🎧 Canciones para ensayo</button>
-    <button class="btn-primary" id="btn-eventos">📅 Repertorios de eventos</button>
-    <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">➕ Programar nuevo evento</button>
-    <button class="btn-dark oculto" id="btn-sync" data-rol="admin">🔄 Sincronizar catálogo con Drive</button>
-    <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="admin">🔎 Vista previa de la sincronización (no cambia nada)</button>
-  </div>
-
-  <!-- Biblioteca -->
-  <div class="card oculto" id="vista-biblioteca">
-    <h3>Canciones disponibles para ensayo</h3>
-    <input type="search" id="buscar-biblioteca" placeholder="Buscar canción…" autocomplete="off">
-    <div id="lista-biblioteca"></div>
-  </div>
-
-  <!-- Eventos -->
-  <div class="card oculto" id="vista-eventos">
-    <h3>Repertorios de eventos</h3>
-    <div id="lista-eventos"></div>
-  </div>
-
-  <!-- Repertorio de un evento -->
-  <div class="card oculto" id="vista-repertorio">
-    <h3 id="titulo-evento">Repertorio</h3>
-    <div id="mensaje-evento" class="aviso"></div>
-    <div id="lista-repertorio"></div>
-    <div id="acciones-evento" style="margin-top:10px;"></div>
-  </div>
-
-  <!-- Crear evento -->
-  <div class="card oculto" id="vista-formulario">
-    <h3>Programar nuevo evento</h3>
-    <label for="in-nombre"><b>Nombre del evento / culto</b></label>
-    <input type="text" id="in-nombre" maxlength="120" placeholder="Ej: Culto dominical">
-    <label for="in-fecha"><b>Fecha</b></label>
-    <input type="date" id="in-fecha">
-    <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
-    <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
-
-    <label><b>Canciones del repertorio</b> <span class="aviso" id="contador-seleccion"></span></label>
-    <input type="search" id="buscar-selector" placeholder="Buscar canción…" autocomplete="off">
-    <div id="lista-selector"></div>
-
-    <div class="grupo">
-      <label>Sugerencia automática</label>
-      <div class="botones">
-        <select id="sug-funcion" style="margin:0;">
-          <option>Apertura</option><option selected>Adoración</option><option>Alabanza</option>
-          <option>Transición</option><option>Cierre</option>
-        </select>
-        <select id="sug-energia" style="margin:0;">
-          <option value="1">Energía 1</option><option value="2">Energía 2</option>
-          <option value="3" selected>Energía 3</option><option value="4">Energía 4</option><option value="5">Energía 5</option>
-        </select>
-      </div>
-      <button class="btn-secondary" id="btn-sugerir" style="margin-top:8px;">⚡ Sugerir canciones</button>
-    </div>
-    <button class="btn-primary" id="btn-guardar-evento">💾 Guardar evento</button>
-  </div>
-
-  <!-- Panel de ensayo (único; lo usan la biblioteca y los eventos) -->
-  <div class="card oculto" id="panel-ensayo">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-      <h3 id="titulo-ensayo" style="margin:0;">Ensayo</h3>
-      <button class="btn-secondary btn-small" id="btn-cerrar-panel">✕ Cerrar</button>
-    </div>
-    <div id="sin-recursos" class="aviso oculto">Esta canción no tiene recursos disponibles para su parte.</div>
-
-    <div class="grupo" id="bloque-audio">
-      <label for="sel-audio">🎧 Audio (MP3)</label>
-      <select id="sel-audio"></select>
-      <div class="botones">
-        <button class="btn-primary" id="btn-abrir-audio">▶ Cargar audio</button>
-        <button class="btn-secondary" id="btn-cerrar-audio">✕ Cerrar audio</button>
-      </div>
-      <div id="zona-audio" class="oculto" style="margin-top:8px;">
-        <audio id="audio" controls controlsList="nodownload" style="width:100%;"></audio>
-        <button class="btn-secondary" id="btn-loop" style="margin-top:6px;">🔁 Repetir: NO</button>
-      </div>
-    </div>
-
-    <div class="grupo" id="bloque-pdf">
-      <label for="sel-pdf">📄 Partitura o letra (PDF)</label>
-      <select id="sel-pdf"></select>
-      <div class="botones">
-        <button class="btn-primary" id="btn-abrir-pdf">📖 Abrir documento</button>
-        <button class="btn-secondary" id="btn-cerrar-pdf">✕ Cerrar documento</button>
-      </div>
-      <div id="visor-pdf" class="oculto" style="margin-top:10px;"></div>
-    </div>
-  </div>
-
-  <!-- Consola de estado -->
+  <!-- Botones de Secuencia Principal -->
   <div class="card">
-    <details open>
-      <summary>Estado del sistema</summary>
-      <pre id="log">Estado del sistema:</pre>
-    </details>
+    <button class="btn-primary" onclick="quien()">1. ¿Quién soy? (Verificar perfil y rol)</button>
+    <button class="btn-accent" onclick="cargarBibliotecaRecursos()">📂 2. Recursos de Ensayo (Biblioteca General)</button>
+    <button class="btn-primary" onclick="cargarCalendarioEventos()">🎵 3. Ver Repertorios de Eventos</button>
+    <button class="btn-secondary" onclick="mostrarFormularioEvento()">➕ 4. Crear y Programar Nuevo Evento</button>
+    <button class="btn-secondary" onclick="sincronizarDrive()" style="background: #2D3748; color: white;">🔄 Sincronizar Catálogo con Drive</button>
   </div>
 
-  <div style="font-size:11px;color:#666;text-align:center;margin:6px 0 20px;">
+  <!-- Contenedor 1: Biblioteca General -->
+  <div class="card" id="contenedor-biblioteca" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Biblioteca de Temas Disponibles</h3>
+    <div id="lista-biblioteca-general"></div>
+  </div>
+
+  <!-- Contenedor 2: Listado de Eventos -->
+  <div class="card" id="contenedor-eventos-lista" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Seleccione un Evento</h3>
+    <div id="lista-eventos-disponibles"></div>
+  </div>
+
+  <!-- Contenedor 3: Formulario de Creación de Eventos con Selector -->
+  <div class="card" id="contenedor-formulario-evento" style="display:none;">
+    <h3 style="margin-top:0; color: var(--primary);">Programación de Nuevo Evento</h3>
+    <label style="font-size: 13px; font-weight: bold;">Nombre del Evento / Culto:</label>
+    <input type="text" id="input-nombre-evento" placeholder="Ej: Culto Dominical">
+
+    <label style="font-size: 13px; font-weight: bold;">Fecha del Evento:</label>
+    <input type="date" id="input-fecha-evento">
+
+    <label style="font-size: 13px; font-weight: bold;">Mensaje General para el Equipo:</label>
+    <textarea id="input-mensaje-evento" rows="2" placeholder="Indicaciones o notas generales"></textarea>
+
+    <!-- Selector de Cantos -->
+    <div id="selector-canciones-form" style="margin-top: 10px; margin-bottom: 10px;">
+      <!-- Se llena dinámicamente -->
+    </div>
+
+    <button class="btn-primary" onclick="enviarNuevoEvento()">💾 Guardar y Publicar Evento</button>
+  </div>
+
+  <!-- Contenedor 4: Repertorio del Evento Seleccionado -->
+  <div class="card" id="contenedor-repertorio-evento" style="display:none;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 id="titulo-evento-seleccionado" style="margin-top:0; color: var(--primary);">Repertorio del Evento</h3>
+      <div id="boton-borrar-evento-contenedor"></div>
+    </div>
+    <div id="lista-canciones-evento"></div>
+  </div>
+
+  <!-- Panel Dinámico de Ensayo con Selectores y Cancelación -->
+  <div class="card" id="contenedor-ensayo" style="display:none;">
+    <h3 id="titulo-cancion-activa" style="margin-top:0; color: var(--primary);">Panel de Ensayo</h3>
+
+    <!-- Selector y Reproductor de Audio MP3 -->
+    <div style="margin-bottom: 15px; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px;">
+      <label style="font-size: 13px; font-weight: bold; color: var(--primary);">🎧 Seleccionar Pista de Audio:</label>
+      <select id="select-audio" onchange="cambiarAudioSeleccionado()">
+        <option value="">--- Ninguna / Cancelar audio ---</option>
+      </select>
+
+      <div id="seccion-reproductor" style="display:none; margin-top: 8px;">
+        <audio id="audio" controls controlsList="nodownload" style="width: 100%; margin-top: 5px;"></audio>
+        <button id="btnLoop" class="btn-secondary" onclick="alternarLoop()" style="margin-top: 5px;">🔁 Repetir: NO</button>
+      </div>
+    </div>
+
+    <!-- Selector y Visor de PDF (Partituras / Letras) -->
+    <div>
+      <label style="font-size: 13px; font-weight: bold; color: var(--primary);">📄 Seleccionar Partitura o Letra:</label>
+      <select id="select-pdf" onchange="cambiarPdfSeleccionado()">
+        <option value="">--- Ninguno / Cancelar documento ---</option>
+      </select>
+
+      <div id="seccion-pdf-visor" style="display:none; text-align:center; margin-top: 10px;">
+        <canvas id="pdf-canvas" style="max-width:100%; border:1px solid #ccc; border-radius: 4px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Consola de Estado -->
+  <div class="card">
+    <pre id="log">Estado del sistema:</pre>
+  </div>
+
+  <div id="paginas" style="font-size: 11px; color: #666; text-align: center; margin-top: 10px;">
     Documentos protegidos bajo derechos institucionales de Palermo Music.
   </div>
 
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzTofc3jSMQHX_Az7_LwZHdlTuSNLwKAIGizEsiwIxfIVp5QNvMMxHSlGU4ezHmbcOwxg/exec';
+    let ID_TOKEN = null;
+    let esLoop = false;
+    let rolUsuarioActual = '';
+    let catalogoCancionesMemoria = [];
+    let cancionesSeleccionadasEvento = [];
+    let recursosCancionActual = [];
+    let idEventoActivoSeleccionado = '';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzTofc3jSMQHX_Az7_LwZHdlTuSNLwKAIGizEsiwIxfIVp5QNvMMxHSlGU4ezHmbcOwxg/exec';
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += '\n> ' + msg;
+      el.scrollTop = el.scrollHeight;
+    }
 
-  let ID_TOKEN = null;
-  let rol = '';
-  let ocupado = false;
-  let catalogo = [];            // canciones disponibles (solo con recursos)
-  let seleccionEvento = [];     // ids elegidos al programar
-  let recursos = [];            // recursos de la canción abierta
-  let urlAudio = null;
-  let pdfActual = null;
-  let idRender = 0;
+    function manejarCredencial(response) {
+      ID_TOKEN = response.credential;
+      log('Sesión iniciada con Google OAuth.');
+      quien();
+    }
 
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
-    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const programa = () => rol === 'admin' || rol === 'programador';
+    async function api(accion, payloadExtra = {}) {
+      if (!ID_TOKEN) { log('Error: Inicia sesión con Google primero.'); return null; }
+      try {
+        const payload = { accion: accion, token: ID_TOKEN, ...payloadExtra };
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          body: JSON.stringify(payload)
+        });
 
-  function log(msg) {
-    const el = $('log');
-    el.textContent += '\n> ' + msg;
-    el.scrollTop = el.scrollHeight;
-  }
-
-  const ERRORES = {
-    NO_AUTORIZADO: 'Su cuenta no está autorizada o está inactiva.',
-    TOKEN_INVALIDO: 'La sesión de Google no es válida. Inicie sesión de nuevo.',
-    TOKEN_EXPIRADO: 'La sesión de Google venció. Inicie sesión de nuevo.',
-    SIN_TOKEN: 'Primero inicie sesión con Google.',
-    SIN_PERMISO_PARTE: 'Este archivo no corresponde a su parte.',
-    RECURSO_NO_REGISTRADO: 'El archivo no está registrado. Pida al administrador sincronizar el catálogo.',
-    SOLO_ADMIN: 'Solo un administrador puede hacer esto.',
-    NO_AUTORIZADO_PARA_PROGRAMAR: 'No tiene permiso para programar eventos.',
-    NO_AUTORIZADO_PARA_BORRAR: 'No tiene permiso para archivar eventos.',
-    SINCRONIZACION_EN_CURSO: 'Ya hay una sincronización en curso. Espere un momento.',
-    TIEMPO_AGOTADO: 'Se agotó el tiempo leyendo Drive. No se escribió nada; intente de nuevo.',
-    FECHA_INVALIDA: 'La fecha no es válida.',
-    FALTA_NOMBRE: 'Falta el nombre del evento.'
-  };
-  const textoError = e => ERRORES[e] || String(e || 'Error desconocido');
-
-  function manejarCredencial(resp) {
-    ID_TOKEN = resp.credential;
-    log('Sesión de Google recibida.');
-    quien();
-  }
-
-  async function api(accion, extra) {
-    if (!ID_TOKEN) { log('Inicie sesión con Google primero.'); return null; }
-    try {
-      const res = await fetch(API_URL, {
-        method: 'POST', redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ accion: accion, token: ID_TOKEN }, extra || {}))
-      });
-      const txt = await res.text();
-      let r;
-      try { r = JSON.parse(txt); }
-      catch (e) { log('Respuesta no válida del servidor (¿despliegue desactualizado?): ' + txt.slice(0, 120)); return null; }
-      if (!r.ok && /TOKEN_|SIN_TOKEN/.test(String(r.error))) {
-        ID_TOKEN = null;
-        $('estado-sesion').textContent = 'La sesión venció. Pulse el botón de Google para entrar de nuevo.';
-        try { google.accounts.id.prompt(); } catch (e) {}
+        const textoRespuesta = await res.text();
+        try {
+          return JSON.parse(textoRespuesta);
+        } catch (err) {
+          return { ok: true, mensaje: textoRespuesta };
+        }
+      } catch (e) {
+        log('ERROR API: ' + e.message);
+        return null;
       }
-      return r;
-    } catch (e) {
-      log('Error de red: ' + e.message);
-      return null;
     }
-  }
 
-  // Ejecuta una acción deshabilitando los botones para evitar dobles clics
-  async function conOcupado(fn) {
-    if (ocupado) return;
-    ocupado = true;
-    document.querySelectorAll('button').forEach(b => { b.dataset.prev = b.disabled ? '1' : ''; b.disabled = true; });
-    try { await fn(); }
-    finally {
-      document.querySelectorAll('button').forEach(b => { b.disabled = b.dataset.prev === '1'; });
-      ocupado = false;
-    }
-  }
-
-  function mostrarVista(id) {
-    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario'].forEach(v =>
-      $(v).classList.toggle('oculto', v !== id));
-  }
-
-  /* ---------------- Sesión ---------------- */
-  async function quien() {
-    const r = await api('quien');
-    if (r && r.ok) {
-      rol = r.rol;
-      $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · rol: <b>' + esc(r.rol) + '</b>';
-      $('menu').classList.remove('oculto');
-      document.querySelectorAll('[data-rol]').forEach(b => {
-        const need = b.dataset.rol;
-        b.classList.toggle('oculto', !((need === 'admin' && rol === 'admin') || (need === 'programa' && programa())));
-      });
-      log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
-    } else {
-      $('menu').classList.add('oculto');
-      $('estado-sesion').textContent = r ? textoError(r.error) : 'No se pudo verificar la sesión.';
-      log($('estado-sesion').textContent);
-    }
-  }
-
-  /* ---------------- Biblioteca ---------------- */
-  async function cargarCatalogo() {
-    const r = await api('listar_canciones_catalogo');
-    if (!r || !r.ok) { log('No se pudo cargar el catálogo: ' + textoError(r && r.error)); return false; }
-    catalogo = r.canciones || [];
-    return true;
-  }
-
-  function pintarBiblioteca() {
-    const q = $('buscar-biblioteca').value.trim().toLowerCase();
-    const lista = catalogo.filter(c => !q || c.titulo.toLowerCase().includes(q));
-    $('lista-biblioteca').innerHTML = lista.length
-      ? lista.map(c => '<div class="fila"><span class="nombre">' + esc(c.titulo) + '</span>' +
-          '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '">▶ Ensayar</button></div>').join('')
-      : '<p class="aviso">' + (catalogo.length ? 'Sin resultados.' :
-          'No hay canciones con recursos. Un administrador debe sincronizar el catálogo con Drive.') + '</p>';
-  }
-
-  $('btn-biblioteca').onclick = () => conOcupado(async () => {
-    log('Cargando canciones disponibles…');
-    cerrarPanel();
-    if (await cargarCatalogo()) {
-      mostrarVista('vista-biblioteca'); pintarBiblioteca();
-      log(catalogo.length + ' canciones disponibles.');
-    }
-  });
-  $('buscar-biblioteca').oninput = pintarBiblioteca;
-
-  /* ---------------- Eventos ---------------- */
-  $('btn-eventos').onclick = () => conOcupado(cargarEventos);
-
-  async function cargarEventos() {
-    log('Consultando eventos…');
-    cerrarPanel();
-    const r = await api('listar_eventos');
-    if (!r || !r.ok) { log('No se pudieron cargar los eventos: ' + textoError(r && r.error)); return; }
-    $('lista-eventos').innerHTML = r.eventos.length
-      ? r.eventos.map(e => '<div class="fila"><span class="nombre"><b>' + esc(e.nombre) + '</b>' +
-          '<span class="meta">' + esc(e.fecha) + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
-          '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">Ver repertorio</button></div>').join('')
-      : '<p class="aviso">No hay eventos programados.</p>';
-    mostrarVista('vista-eventos');
-  }
-
-  async function verEvento(idEvento, nombre) {
-    log('Cargando repertorio de «' + nombre + '»…');
-    cerrarPanel();
-    const r = await api('evento_activo', { idEvento: idEvento });
-    if (!r || !r.ok) { log('No se pudo cargar el repertorio: ' + textoError(r && r.error)); return; }
-    $('titulo-evento').textContent = nombre;
-    const ev = r.evento;
-    $('mensaje-evento').textContent = ev ? ((ev.fecha || '') + (ev.mensaje ? ' · ' + ev.mensaje : '')) : '';
-    let html = '';
-    const sets = (r.sets || []).filter(s => s.canciones.length);
-    sets.forEach(s => {
-      if (sets.length > 1) html += '<div class="set-titulo">' + esc(s.nombreSet || ('Set ' + s.numeroSet)) + '</div>';
-      s.canciones.forEach(c => {
-        html += '<div class="fila"><span class="nombre">' + esc(c.titulo) + '</span>' +
-          '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '">▶ Ensayar</button></div>';
-      });
-    });
-    $('lista-repertorio').innerHTML = html || '<p class="aviso">Este evento no tiene canciones con recursos disponibles.</p>';
-    if (programa() && r.ocultas > 0) {
-      $('lista-repertorio').innerHTML += '<p class="aviso">⚠ ' + r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran.</p>';
-    }
-    $('acciones-evento').innerHTML = programa()
-      ? '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button>' : '';
-    mostrarVista('vista-repertorio');
-    log('Repertorio cargado.');
-  }
-
-  async function archivarEvento(id) {
-    if (!confirm('¿Archivar este evento? Dejará de mostrarse en la lista (los datos se conservan).')) return;
-    const r = await api('borrar_evento', { idEvento: id });
-    if (r && r.ok) { log(r.mensaje); await cargarEventos(); }
-    else log('No se pudo archivar: ' + textoError(r && r.error));
-  }
-
-  /* ---------------- Programar evento ---------------- */
-  $('btn-nuevo-evento').onclick = () => conOcupado(async () => {
-    cerrarPanel();
-    seleccionEvento = [];
-    $('in-nombre').value = ''; $('in-fecha').value = ''; $('in-mensaje').value = ''; $('buscar-selector').value = '';
-    mostrarVista('vista-formulario');
-    if (await cargarCatalogo()) { pintarSelector(); log('Seleccione las canciones del repertorio.'); }
-  });
-
-  function pintarSelector() {
-    const q = $('buscar-selector').value.trim().toLowerCase();
-    const lista = catalogo.filter(c => !q || c.titulo.toLowerCase().includes(q));
-    $('lista-selector').innerHTML = lista.length
-      ? lista.map(c => '<label><input type="checkbox" data-sel="' + esc(c.idCancion) + '"' +
-          (seleccionEvento.includes(c.idCancion) ? ' checked' : '') + '>' + esc(c.titulo) + '</label>').join('')
-      : '<span class="aviso">No hay canciones con recursos disponibles.</span>';
-    $('contador-seleccion').textContent = '(' + seleccionEvento.length + ' elegidas)';
-  }
-  $('buscar-selector').oninput = pintarSelector;
-
-  $('btn-sugerir').onclick = () => conOcupado(async () => {
-    const r = await api('sugerir_canciones', { funcion: $('sug-funcion').value, energia: Number($('sug-energia').value), cantidad: 5 });
-    if (r && r.ok && r.sugerencias) {
-      seleccionEvento = r.sugerencias.map(s => s.idCancion);
-      pintarSelector();
-      log('Se sugirieron ' + seleccionEvento.length + ' canciones. Puede ajustarlas.');
-    } else log('No se pudieron obtener sugerencias: ' + textoError(r && r.error));
-  });
-
-  $('btn-guardar-evento').onclick = () => conOcupado(async () => {
-    const nombre = $('in-nombre').value.trim(), fecha = $('in-fecha').value;
-    if (!nombre || !fecha) { alert('Ingrese el nombre y la fecha del evento.'); return; }
-    if (!seleccionEvento.length && !confirm('No eligió canciones. ¿Guardar el evento vacío?')) return;
-    const r = await api('guardar_evento', {
-      nombreEvento: nombre, fechaEvento: fecha, estado: 'Programado', mensajeGeneral: $('in-mensaje').value.trim(),
-      sets: [{ numeroSet: 1, nombreSet: 'Servicio principal', canciones: seleccionEvento }]
-    });
-    if (r && r.ok) { log('Evento creado: ' + r.idEvento); alert('Evento guardado.'); await cargarEventos(); }
-    else { log('No se guardó el evento: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
-  });
-
-  /* ---------------- Sincronización (admin) ---------------- */
-  function mostrarResultadoSync(r) {
-    log(r.mensaje);
-    const extra = (r.ejemplosAvisos || r.informe || []).slice(0, 8).join('\n• ');
-    alert(r.mensaje + (extra ? '\n\nPrimeros avisos:\n• ' + extra : ''));
-  }
-  async function sincronizar(simular) {
-    log(simular ? 'Calculando vista previa (no se escribe nada)…' : 'Sincronizando con Drive… puede tardar 1 a 3 minutos. No cierre la página.');
-    const r = await api('sincronizar_drive', { simular: !!simular });
-    if (r && r.ok) mostrarResultadoSync(r);
-    else { const m = (r && (r.mensaje || textoError(r.error))) || 'Sin respuesta del servidor.'; log('Error al sincronizar: ' + m); alert('Error al sincronizar:\n' + m); }
-  }
-  $('btn-sync').onclick = () => conOcupado(() => sincronizar(false));
-  $('btn-sync-previa').onclick = () => conOcupado(() => sincronizar(true));
-
-  /* ---------------- Panel de ensayo ---------------- */
-  function cerrarAudio() {
-    const a = $('audio'); a.pause(); a.removeAttribute('src'); a.load();
-    if (urlAudio) { URL.revokeObjectURL(urlAudio); urlAudio = null; }
-    $('zona-audio').classList.add('oculto');
-    $('sel-audio').value = '';
-  }
-  function cerrarPdf() {
-    idRender++;
-    if (pdfActual) { try { pdfActual.destroy(); } catch (e) {} pdfActual = null; }
-    $('visor-pdf').innerHTML = ''; $('visor-pdf').classList.add('oculto');
-    $('sel-pdf').value = '';
-  }
-  function cerrarPanel() { cerrarAudio(); cerrarPdf(); $('panel-ensayo').classList.add('oculto'); }
-  $('btn-cerrar-panel').onclick = cerrarPanel;
-  $('btn-cerrar-audio').onclick = cerrarAudio;
-  $('btn-cerrar-pdf').onclick = cerrarPdf;
-
-  async function abrirEnsayo(idCancion, titulo) {
-    cerrarAudio(); cerrarPdf();
-    log('Buscando recursos de «' + titulo + '»…');
-    const r = await api('recursos_cancion', { idCancion: idCancion });
-    if (!r || !r.ok) { log('No se pudieron obtener los recursos: ' + textoError(r && r.error)); return; }
-    recursos = r.recursos || [];
-    $('titulo-ensayo').textContent = titulo;
-    const opciones = tipo => '<option value="">— Seleccione —</option>' + recursos.filter(x => x.tipo === tipo)
-      .map(x => '<option value="' + esc(x.idRecurso) + '">' + esc(x.parte) + ' — ' + esc(x.nombreArchivo) + '</option>').join('');
-    $('sel-audio').innerHTML = opciones('MP3');
-    $('sel-pdf').innerHTML = opciones('PDF');
-    const hayA = recursos.some(x => x.tipo === 'MP3'), hayP = recursos.some(x => x.tipo === 'PDF');
-    $('bloque-audio').classList.toggle('oculto', !hayA);
-    $('bloque-pdf').classList.toggle('oculto', !hayP);
-    $('sin-recursos').classList.toggle('oculto', hayA || hayP);
-    $('panel-ensayo').classList.remove('oculto');
-    $('panel-ensayo').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    log('Recursos listos: ' + recursos.filter(x => x.tipo === 'MP3').length + ' audio(s), ' +
-        recursos.filter(x => x.tipo === 'PDF').length + ' documento(s).');
-  }
-
-  function aBytes(b64) {
-    const bin = atob(b64), arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    return arr;
-  }
-
-  $('btn-abrir-audio').onclick = () => conOcupado(async () => {
-    const id = $('sel-audio').value;
-    if (!id) { log('Seleccione un audio.'); return; }
-    log('Cargando audio…');
-    const r = await api('mp3', { idRecurso: id });
-    if (!r || !r.ok) { log('No se pudo cargar el audio: ' + textoError(r && r.error)); return; }
-    const a = $('audio'), loop = a.loop;
-    a.pause();
-    if (urlAudio) URL.revokeObjectURL(urlAudio);
-    urlAudio = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' }));
-    a.src = urlAudio; a.loop = loop;
-    $('zona-audio').classList.remove('oculto');
-    a.play().catch(() => log('Pulse ▶ para reproducir.'));
-    log('Audio listo (' + (r.bytes / 1048576).toFixed(1) + ' MB).');
-  });
-
-  $('btn-loop').onclick = () => {
-    const a = $('audio'); a.loop = !a.loop;
-    $('btn-loop').textContent = '🔁 Repetir: ' + (a.loop ? 'SÍ' : 'NO');
-  };
-
-  $('btn-abrir-pdf').onclick = () => conOcupado(async () => {
-    const id = $('sel-pdf').value;
-    if (!id) { log('Seleccione un documento.'); return; }
-    cerrarPdf();
-    log('Cargando documento…');
-    const r = await api('pdf', { idRecurso: id });
-    if (!r || !r.ok) { log('No se pudo cargar el documento: ' + textoError(r && r.error)); return; }
-    $('sel-pdf').value = id;
-    const mio = ++idRender;
-    const cont = $('visor-pdf'); cont.innerHTML = ''; cont.classList.remove('oculto');
-    try {
-      const pdf = await pdfjsLib.getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise;
-      if (mio !== idRender) { pdf.destroy(); return; }
-      pdfActual = pdf;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      for (let n = 1; n <= pdf.numPages; n++) {
-        if (mio !== idRender) return;
-        const page = await pdf.getPage(n);
-        const base = page.getViewport({ scale: 1 });
-        const vp = page.getViewport({ scale: (cont.clientWidth / base.width) * dpr });
-        const canvas = document.createElement('canvas');
-        canvas.width = vp.width; canvas.height = vp.height;
-        cont.appendChild(canvas);
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    async function quien() {
+      log('Verificando perfil y rol...');
+      const r = await api('quien');
+      if (r && r.ok) {
+        rolUsuarioActual = r.rol;
+        log(`Hola ${r.nombre} - Rol: [${r.rol.toUpperCase()}]`);
+      } else {
+        log('Acceso no autorizado o usuario inactivo.');
       }
-      log('Documento abierto (' + pdf.numPages + ' página(s)).');
-    } catch (e) { log('No se pudo mostrar el documento: ' + e.message); cerrarPdf(); }
-  });
-
-  // Protección ligera: sin menú contextual ni arrastre sobre el visor y el audio
-  ['visor-pdf', 'zona-audio'].forEach(id => {
-    $(id).addEventListener('contextmenu', e => e.preventDefault());
-    $(id).addEventListener('dragstart', e => e.preventDefault());
-  });
-
-  /* ---------------- Delegación de clics en listas ---------------- */
-  document.addEventListener('click', e => {
-    const b = e.target.closest('button, input[data-sel]');
-    if (!b) return;
-    if (b.dataset.ensayo) conOcupado(() => abrirEnsayo(b.dataset.ensayo, b.dataset.titulo));
-    else if (b.dataset.evento) conOcupado(() => verEvento(b.dataset.evento, b.dataset.nombre));
-    else if (b.dataset.archivar) conOcupado(() => archivarEvento(b.dataset.archivar));
-    else if (b.dataset.sel !== undefined) {
-      const id = b.dataset.sel, i = seleccionEvento.indexOf(id);
-      if (b.checked && i < 0) seleccionEvento.push(id);
-      if (!b.checked && i > -1) seleccionEvento.splice(i, 1);
-      $('contador-seleccion').textContent = '(' + seleccionEvento.length + ' elegidas)';
     }
-  });
-</script>
+
+    async function cargarBibliotecaRecursos() {
+      log('Cargando catálogo general de canciones...');
+      document.getElementById('contenedor-eventos-lista').style.display = 'none';
+      document.getElementById('contenedor-formulario-evento').style.display = 'none';
+      document.getElementById('contenedor-repertorio-evento').style.display = 'none';
+      document.getElementById('contenedor-ensayo').style.display = 'none';
+      document.getElementById('contenedor-biblioteca').style.display = 'block';
+
+      const r = await api('listar_canciones_catalogo');
+      const biblioDiv = document.getElementById('lista-biblioteca-general');
+      if (r && r.ok && r.canciones) {
+        let html = '<ul style="padding-left: 20px;">';
+        r.canciones.forEach(c => {
+          html += `<li style="margin-bottom: 10px;">
+            <strong>${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]<br>
+            <button class="btn-secondary" style="width: auto; padding: 4px 10px; margin-top: 4px; font-size: 11px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">🎵 Abrir Ensayo</button>
+          </li>`;
+        });
+        html += '</ul>';
+        biblioDiv.innerHTML = html;
+        log('Biblioteca general lista con cantos activos.');
+      } else {
+        biblioDiv.innerHTML = '<p>No hay canciones activas con recursos en Drive.</p>';
+      }
+    }
+
+    async function cargarCalendarioEventos() {
+      log('Consultando repertorios de eventos disponibles...');
+      document.getElementById('contenedor-biblioteca').style.display = 'none';
+      document.getElementById('contenedor-formulario-evento').style.display = 'none';
+      document.getElementById('contenedor-ensayo').style.display = 'none';
+
+      const r = await api('listar_eventos');
+      if (!r || !r.ok || !r.eventos) { log('No se pudieron cargar los eventos.'); return; }
+
+      const listaDiv = document.getElementById('lista-eventos-disponibles');
+      listaDiv.innerHTML = '';
+      let html = '<ul style="padding-left: 20px; margin: 0;">';
+      r.eventos.forEach(ev => {
+        let botonBorrar = '';
+        if (rolUsuarioActual === 'admin' || rolUsuarioActual === 'programador') {
+          botonBorrar = `<button class="btn-danger" style="width: auto; padding: 4px 8px; margin-top: 4px; font-size: 11px;" onclick="borrarEvento('${ev.idEvento}')">🗑️ Borrar Evento</button>`;
+        }
+        html += `<li style="margin-bottom: 12px;">
+          <strong>${ev.nombre}</strong> [Fecha: ${ev.fecha}]<br>
+          <button class="btn-accent" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="seleccionarEvento('${ev.idEvento}', '${ev.nombre}')">📂 Ver Repertorio</button>
+          ${botonBorrar}
+        </li>`;
+      });
+      html += '</ul>';
+      listaDiv.innerHTML = html;
+      document.getElementById('contenedor-eventos-lista').style.display = 'block';
+      log('Seleccione un evento para ver su repertorio o eliminarlo.');
+    }
+
+    async function mostrarFormularioEvento() {
+      document.getElementById('contenedor-biblioteca').style.display = 'none';
+      document.getElementById('contenedor-eventos-lista').style.display = 'none';
+      document.getElementById('contenedor-repertorio-evento').style.display = 'none';
+      document.getElementById('contenedor-ensayo').style.display = 'none';
+
+      cancionesSeleccionadasEvento = [];
+      document.getElementById('input-nombre-evento').value = '';
+      document.getElementById('input-fecha-evento').value = '';
+      document.getElementById('input-mensaje-evento').value = '';
+
+      document.getElementById('contenedor-formulario-evento').style.display = 'block';
+      log('Cargando catálogo de canciones para la programación...');
+
+      const r = await api('listar_canciones_catalogo');
+      if (r && r.ok) {
+        catalogoCancionesMemoria = r.canciones;
+        renderizarSelectorCanciones();
+        log('Selector de canciones listo para selección.');
+      } else {
+        log('Error al cargar el catálogo de canciones.');
+      }
+    }
+
+    function renderizarSelectorCanciones() {
+      const contenedor = document.getElementById('selector-canciones-form');
+      if (!contenedor) return;
+
+      let html = '<label style="font-weight:bold; font-size:13px;">Seleccionar Cantos del Repertorio (Base de Datos):</label>';
+      html += '<div style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; margin-bottom: 10px; border-radius: 4px;">';
+
+      if (catalogoCancionesMemoria.length === 0) {
+        html += '<p style="font-size: 12px; color: #666;">No hay canciones con archivos en Drive. Ejecute primero "Sincronizar Catálogo con Drive".</p>';
+      } else {
+        catalogoCancionesMemoria.forEach(c => {
+          const marcada = cancionesSeleccionadasEvento.includes(c.idCancion) ? 'checked' : '';
+          html += `<label style="display:block; font-size:12px; margin-bottom:6px; cursor:pointer;">
+            <input type="checkbox" value="${c.idCancion}" ${marcada} onchange="toggleCancionSet('${c.idCancion}')"> 
+            <strong>${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]
+          </label>`;
+        });
+      }
+      html += '</div>';
+      html += `<button type="button" class="btn-secondary" onclick="generarRepertorioAutomatico()">⚡ Generar Repertorio Automático (Smart Suggest)</button>`;
+      contenedor.innerHTML = html;
+    }
+
+    function toggleCancionSet(idCancion) {
+      const idx = cancionesSeleccionadasEvento.indexOf(idCancion);
+      if (idx > -1) {
+        cancionesSeleccionadasEvento.splice(idx, 1);
+      } else {
+        cancionesSeleccionadasEvento.push(idCancion);
+      }
+    }
+
+    async function generarRepertorioAutomatico() {
+      log('Generando repertorio automático basado en Adoración y Energía...');
+      const r = await api('sugerir_canciones', { funcion: 'Adoración', energia: 3 });
+      if (r && r.ok && r.sugerencias) {
+        cancionesSeleccionadasEvento = r.sugerencias.map(s => s.idCancion);
+        renderizarSelectorCanciones();
+        log(`¡Se seleccionaron automáticamente ${r.sugerencias.length} temas sugeridos!`);
+      } else {
+        log('No se pudieron obtener sugerencias automáticas.');
+      }
+    }
+
+    async function enviarNuevoEvento() {
+      log('Enviando nuevo evento al servidor...');
+      const nombreEvento = document.getElementById('input-nombre-evento').value.trim();
+      const fechaEvento = document.getElementById('input-fecha-evento').value;
+      const mensajeGeneral = document.getElementById('input-mensaje-evento').value.trim();
+
+      if (!nombreEvento || !fechaEvento) {
+        alert('Por favor ingrese el nombre y la fecha del evento.');
+        return;
+      }
+
+      const payload = {
+        accion: 'guardar_evento',
+        nombreEvento: nombreEvento,
+        fechaEvento: fechaEvento,
+        estado: 'Programado',
+        mensajeGeneral: mensajeGeneral,
+        sets: [
+          {
+            numeroSet: 1,
+            nombreSet: 'Servicio Principal',
+            canciones: cancionesSeleccionadasEvento
+          }
+        ]
+      };
+
+      const r = await api('guardar_evento', payload);
+      if (r && r.ok) {
+        log(`¡Éxito! Evento creado con ID: ${r.idEvento}`);
+        alert('¡Evento guardado y publicado correctamente!');
+        cargarCalendarioEventos();
+      } else {
+        log('Error al guardar el evento: ' + (r ? r.error : 'Desconocido'));
+        alert('No autorizado o error al registrar el evento.');
+      }
+    }
+
+    async function borrarEvento(idEvento) {
+      if (!confirm('¿Está seguro de eliminar este evento y su repertorio programado?')) return;
+      log(`Eliminando evento ${idEvento}...`);
+      const r = await api('borrar_evento', { idEvento: idEvento });
+      if (r && r.ok) {
+        log('Evento eliminado correctamente.');
+        alert('Evento eliminado con éxito.');
+        document.getElementById('contenedor-repertorio-evento').style.display = 'none';
+        cargarCalendarioEventos();
+      } else {
+        log('Error al borrar el evento.');
+        alert('No cuenta con permisos o el evento no existe.');
+      }
+    }
+
+    async function seleccionarEvento(idEvento, nombreEvento) {
+      idEventoActivoSeleccionado = idEvento;
+      log(`Cargando repertorio para: ${nombreEvento}...`);
+      const r = await api('evento_activo', { idEvento: idEvento });
+      if (!r || !r.ok) { log('Error al cargar canciones.'); return; }
+
+      document.getElementById('titulo-evento-seleccionado').textContent = `🎵 Repertorio: ${nombreEvento}`;
+
+      const contenedorBorrar = document.getElementById('boton-borrar-evento-contenedor');
+      if (rolUsuarioActual === 'admin' || rolUsuarioActual === 'programador') {
+        contenedorBorrar.innerHTML = `<button class="btn-danger" style="padding: 6px 12px; font-size: 11px; width: auto;" onclick="borrarEvento('${idEvento}')">🗑️ Borrar Evento</button>`;
+      } else {
+        contenedorBorrar.innerHTML = '';
+      }
+
+      const listaDiv = document.getElementById('lista-canciones-evento');
+      listaDiv.innerHTML = '';
+
+      if (!r.canciones || r.canciones.length === 0) {
+        listaDiv.innerHTML = '<p>Este evento no tiene canciones asignadas.</p>';
+      } else {
+        let html = '<ul style="padding-left: 20px;">';
+        r.canciones.forEach(c => {
+          // Mostrar únicamente el nombre limpio de la canción y el botón de ensayo
+          html += `<li style="margin-bottom: 12px;">
+            <strong>${c.posicion}. ${c.titulo}</strong> [Tonalidad: ${c.tonalidad}]<br>
+            <button class="btn-secondary" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">🎵 Ver Recursos de Ensayo</button>
+          </li>`;
+        });
+        html += '</ul>';
+        listaDiv.innerHTML = html;
+      }
+      document.getElementById('contenedor-repertorio-evento').style.display = 'block';
+      log('Repertorio del evento cargado. Haga clic en una canción para abrir el panel de ensayo.');
+    }
+
+    async function cargarRecursosCancion(idCancion, titulo) {
+      log(`Buscando recursos de ensayo para: ${titulo}...`);
+      const r = await api('recursos_cancion', { idCancion: idCancion });
+      if (!r || !r.ok) { log('Error al obtener recursos.'); return; }
+
+      recursosCancionActual = r.recursos || [];
+
+      document.getElementById('contenedor-ensayo').style.display = 'block';
+      document.getElementById('titulo-cancion-activa').textContent = `🎵 Ensayo: ${titulo}`;
+
+      // Llenar selector de Audios (MP3) de forma limpia
+      const selectAudio = document.getElementById('select-audio');
+      selectAudio.innerHTML = '<option value="">--- Ninguna / Cancelar audio ---</option>';
+      const audios = recursosCancionActual.filter(rec => rec.tipo === 'MP3');
+      audios.forEach(aud => {
+        selectAudio.innerHTML += `<option value="${aud.idDrive}">${aud.nombreArchivo}</option>`;
+      });
+
+      // Llenar selector de Partituras/Letras (PDF) de forma limpia
+      const selectPdf = document.getElementById('select-pdf');
+      selectPdf.innerHTML = '<option value="">--- Ninguno / Cancelar documento ---</option>';
+      const pdfs = recursosCancionActual.filter(rec => rec.tipo === 'PDF');
+      pdfs.forEach(pdf => {
+        selectPdf.innerHTML += `<option value="${pdf.idDrive}">${pdf.parte}: ${pdf.nombreArchivo}</option>`;
+      });
+
+      // Resetear reproductores y visores activos
+      document.getElementById('seccion-reproductor').style.display = 'none';
+      document.getElementById('audio').pause();
+      document.getElementById('audio').src = '';
+
+      document.getElementById('seccion-pdf-visor').style.display = 'none';
+      const canvas = document.getElementById('pdf-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      log('Recursos listos para seleccionar.');
+    }
+
+    async function cambiarAudioSeleccionado() {
+      const selectAudio = document.getElementById('select-audio');
+      const idDrive = selectAudio.value;
+      const seccionRep = document.getElementById('seccion-reproductor');
+
+      if (!idDrive) {
+        seccionRep.style.display = 'none';
+        const audio = document.getElementById('audio');
+        audio.pause();
+        audio.src = '';
+        log('Audio cancelado / cerrado.');
+        return;
+      }
+
+      log('Cargando pista de audio seleccionada...');
+      const r = await api('mp3', { idDrive: idDrive });
+      if (r && r.ok) {
+        const audio = document.getElementById('audio');
+        audio.src = `data:${r.tipo};base64,${r.base64}`;
+        seccionRep.style.display = 'block';
+        audio.play().catch(e => log('Reproducción automática bloqueada por el navegador. Pulse play.'));
+        log('Pista de audio lista para reproducir.');
+      } else {
+        log('No se pudo cargar el audio seleccionado.');
+      }
+    }
+
+    async function cambiarPdfSeleccionado() {
+      const selectPdf = document.getElementById('select-pdf');
+      const idDrive = selectPdf.value;
+      const seccionVisor = document.getElementById('seccion-pdf-visor');
+
+      if (!idDrive) {
+        seccionVisor.style.display = 'none';
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        log('Documento PDF cancelado / cerrado.');
+        return;
+      }
+
+      log('Descargando documento PDF seleccionado...');
+      const r = await api('pdf', { idDrive: idDrive });
+      if (!r || !r.ok) { log('No se pudo descargar el documento.'); return; }
+
+      const raw = atob(r.base64);
+      const uint8 = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) uint8[i] = raw.charCodeAt(i);
+
+      const loadingTask = pdfjsLib.getDocument({ data: uint8 });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      const scale = 1.2;
+      const viewport = page.getViewport({ scale: scale });
+
+      const canvas = document.getElementById('pdf-canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({ canvasContext: context, viewport: viewport }).promise;
+      seccionVisor.style.display = 'block';
+      log('PDF cargado y renderizado correctamente.');
+    }
+
+    async function sincronizarDrive() {
+      log('Sincronizando carpetas y recursos con Google Drive...');
+      const r = await api('sincronizar_drive');
+      if (r && r.ok) {
+        log(r.mensaje);
+        alert('¡Catálogo sincronizado exitosamente con Google Drive!');
+      } else {
+        log('Error al sincronizar el catálogo.');
+      }
+    }
+
+    function alternarLoop() {
+      esLoop = !esLoop;
+      const audio = document.getElementById('audio');
+      audio.loop = esLoop;
+      document.getElementById('btnLoop').textContent = `🔁 Repetir: ${esLoop ? 'SÍ' : 'NO'}`;
+    }
+  </script>
 </body>
 </html>
