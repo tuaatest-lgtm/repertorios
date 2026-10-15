@@ -200,7 +200,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxj0GSuNG7lOD0vTJhde2rLw8gp_5mcacA1tAOsenwTaRLRCbanATHCrt2Wn_ETA5YgEg/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzphszv3OzH1yJAzjP42LIFlPCUIytmcBzlQAiclZSIDLlOLe6n5gtsbasfuZS9eJp6_A/exec';
     let ID_TOKEN = null;
     let esLoop = false;
     let rolUsuarioActual = '';
@@ -622,13 +622,25 @@
 
     async function sincronizarDrive() {
       log('Sincronizando carpetas y recursos con Google Drive...');
-      const r = await api('sincronizar_drive');
-      if (r && r.ok) {
-        log(r.mensaje);
-        alert(r.mensaje || 'Catálogo sincronizado.');
-        await cargarBibliotecaRecursos();
-      } else {
-        log('Error al sincronizar el catálogo.');
+      try {
+        const r = await api('sincronizar_drive');
+        if (r && r.ok) {
+          log(r.mensaje || 'Sincronización terminada.');
+          alert(r.mensaje || 'Catálogo sincronizado.');
+          await cargarBibliotecaRecursos();
+        } else if (r) {
+          const detalle = r.error || r.mensaje || JSON.stringify(r);
+          log('ERROR DE SINCRONIZACIÓN: ' + detalle);
+          alert('No se pudo sincronizar el catálogo.
+
+Detalle: ' + detalle);
+        } else {
+          log('ERROR DE SINCRONIZACIÓN: no hubo respuesta de la API. Revisa la URL del despliegue, conexión y permisos.');
+          alert('No hubo respuesta del servidor. Revisa la conexión y el despliegue de Apps Script.');
+        }
+      } catch (e) {
+        log('EXCEPCIÓN AL SINCRONIZAR: ' + (e && e.message ? e.message : String(e)));
+        alert('Error al sincronizar: ' + (e && e.message ? e.message : String(e)));
       }
     }
 
