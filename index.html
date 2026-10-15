@@ -200,7 +200,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxrBgzRMmWBefGPvXZ6qTZZEt-5FhOr_znJwWnRcdoHArtzFF-AyCGuZJ-TAW2UjUJnEA/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwlouiqtyAghAHFM8VSuf_8gNOdzUcqnG9AsD3mP04PBIlwKPGtXyg9qFRfzYcu-DYGNg/exec';
     let ID_TOKEN = null;
     let esLoop = false;
     let rolUsuarioActual = '';
@@ -208,18 +208,6 @@
     let cancionesSeleccionadasEvento = [];
     let recursosCancionActual = [];
     let idEventoActivoSeleccionado = '';
-    let pdfActual = null;
-    let paginaPdfActual = 1;
-    let solicitudPdf = 0;
-
-    function escaparHtml(valor) {
-      return String(valor == null ? '' : valor).replace(/[&<>"']/g, c => ({
-        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-      }[c]));
-    }
-    function escaparJs(valor) {
-      return String(valor == null ? '' : valor).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\\r\\n]/g, ' ');
-    }
 
     function log(msg) {
       const el = document.getElementById('log');
@@ -280,8 +268,8 @@
         let html = '<ul style="padding-left: 20px;">';
         r.canciones.forEach(c => {
           html += `<li style="margin-bottom: 10px;">
-            <strong>${escaparHtml(c.titulo)}</strong> [Función: ${escaparHtml(c.funcion)} | Tono: ${escaparHtml(c.tonalidad)}]<br>
-            <button class="btn-secondary" style="width: auto; padding: 4px 10px; margin-top: 4px; font-size: 11px;" onclick="cargarRecursosCancion('${escaparJs(c.idCancion)}', '${escaparJs(c.titulo)}')">🎵 Abrir Ensayo</button>
+            <strong>${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]<br>
+            <button class="btn-secondary" style="width: auto; padding: 4px 10px; margin-top: 4px; font-size: 11px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">🎵 Abrir Ensayo</button>
           </li>`;
         });
         html += '</ul>';
@@ -307,11 +295,11 @@
       r.eventos.forEach(ev => {
         let botonBorrar = '';
         if (rolUsuarioActual === 'admin' || rolUsuarioActual === 'programador') {
-          botonBorrar = `<button class="btn-danger" style="width: auto; padding: 4px 8px; margin-top: 4px; font-size: 11px;" onclick="borrarEvento('${escaparJs(ev.idEvento)}')">🗑️ Borrar Evento</button>`;
+          botonBorrar = `<button class="btn-danger" style="width: auto; padding: 4px 8px; margin-top: 4px; font-size: 11px;" onclick="borrarEvento('${ev.idEvento}')">🗑️ Borrar Evento</button>`;
         }
         html += `<li style="margin-bottom: 12px;">
-          <strong>${escaparHtml(ev.nombre)}</strong> [Fecha: ${escaparHtml(ev.fecha)}]<br>
-          <button class="btn-accent" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="seleccionarEvento('${escaparJs(ev.idEvento)}', '${escaparJs(ev.nombre)}')">📂 Ver Repertorio</button>
+          <strong>${ev.nombre}</strong> [Fecha: ${ev.fecha}]<br>
+          <button class="btn-accent" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="seleccionarEvento('${ev.idEvento}', '${ev.nombre}')">📂 Ver Repertorio</button>
           ${botonBorrar}
         </li>`;
       });
@@ -359,7 +347,7 @@
           const marcada = cancionesSeleccionadasEvento.includes(c.idCancion) ? 'checked' : '';
           html += `<label style="display:block; font-size:12px; margin-bottom:6px; cursor:pointer;">
             <input type="checkbox" value="${c.idCancion}" ${marcada} onchange="toggleCancionSet('${c.idCancion}')"> 
-            <strong>${escaparHtml(c.titulo)}</strong> [Función: ${escaparHtml(c.funcion)} | Tono: ${escaparHtml(c.tonalidad)}]
+            <strong>${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]
           </label>`;
         });
       }
@@ -466,8 +454,8 @@
         r.canciones.forEach(c => {
           // Mostrar únicamente el nombre limpio de la canción y el botón de ensayo
           html += `<li style="margin-bottom: 12px;">
-            <strong>${escaparHtml(c.titulo)}</strong><br>
-            <button class="btn-secondary" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="cargarRecursosCancion('${escaparJs(c.idCancion)}', '${escaparJs(c.titulo)}')">🎵 Abrir</button>
+            <strong>${c.posicion}. ${c.titulo}</strong> [Tonalidad: ${c.tonalidad}]<br>
+            <button class="btn-secondary" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">🎵 Ver Recursos de Ensayo</button>
           </li>`;
         });
         html += '</ul>';
@@ -483,11 +471,6 @@
       if (!r || !r.ok) { log('Error al obtener recursos.'); return; }
 
       recursosCancionActual = r.recursos || [];
-      esLoop = false;
-      document.getElementById('audio').loop = false;
-      document.getElementById('btnLoop').textContent = '🔁 Repetir: NO';
-      pdfActual = null;
-      solicitudPdf++;
 
       document.getElementById('contenedor-ensayo').style.display = 'block';
       document.getElementById('titulo-cancion-activa').textContent = `🎵 Ensayo: ${titulo}`;
@@ -497,7 +480,7 @@
       selectAudio.innerHTML = '<option value="">--- Ninguna / Cancelar audio ---</option>';
       const audios = recursosCancionActual.filter(rec => rec.tipo === 'MP3');
       audios.forEach(aud => {
-        selectAudio.innerHTML += `<option value="${aud.idDrive}">${escaparHtml(aud.nombreArchivo)}</option>`;
+        selectAudio.innerHTML += `<option value="${aud.idDrive}">${aud.nombreArchivo}</option>`;
       });
 
       // Llenar selector de Partituras/Letras (PDF) de forma limpia
@@ -505,7 +488,7 @@
       selectPdf.innerHTML = '<option value="">--- Ninguno / Cancelar documento ---</option>';
       const pdfs = recursosCancionActual.filter(rec => rec.tipo === 'PDF');
       pdfs.forEach(pdf => {
-        selectPdf.innerHTML += `<option value="${pdf.idDrive}">${escaparHtml(pdf.parte)}: ${escaparHtml(pdf.nombreArchivo)}</option>`;
+        selectPdf.innerHTML += `<option value="${pdf.idDrive}">${pdf.parte}: ${pdf.nombreArchivo}</option>`;
       });
 
       // Resetear reproductores y visores activos
@@ -514,7 +497,6 @@
       document.getElementById('audio').src = '';
 
       document.getElementById('seccion-pdf-visor').style.display = 'none';
-      document.getElementById('select-pdf').value = '';
       const canvas = document.getElementById('pdf-canvas');
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -531,11 +513,7 @@
         seccionRep.style.display = 'none';
         const audio = document.getElementById('audio');
         audio.pause();
-        audio.removeAttribute('src');
-        audio.load();
-        audio.loop = false;
-        esLoop = false;
-        document.getElementById('btnLoop').textContent = '🔁 Repetir: NO';
+        audio.src = '';
         log('Audio cancelado / cerrado.');
         return;
       }
@@ -554,70 +532,41 @@
     }
 
     async function cambiarPdfSeleccionado() {
-      const idDrive = document.getElementById('select-pdf').value;
+      const selectPdf = document.getElementById('select-pdf');
+      const idDrive = selectPdf.value;
       const seccionVisor = document.getElementById('seccion-pdf-visor');
-      const canvas = document.getElementById('pdf-canvas');
-      const ctx = canvas.getContext('2d');
-      const miSolicitud = ++solicitudPdf;
 
       if (!idDrive) {
-        pdfActual = null;
-        paginaPdfActual = 1;
         seccionVisor.style.display = 'none';
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        document.getElementById('pdf-pagina-info').textContent = '';
-        log('Documento PDF cerrado.');
+        log('Documento PDF cancelado / cerrado.');
         return;
       }
 
-      log('Cargando documento PDF...');
-      try {
-        const r = await api('pdf', { idDrive: idDrive });
-        if (miSolicitud !== solicitudPdf) return;
-        if (!r || !r.ok || !r.base64) throw new Error((r && r.error) || 'No se recibió el archivo');
-        const raw = atob(r.base64);
-        const uint8 = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) uint8[i] = raw.charCodeAt(i);
-        const loadingTask = pdfjsLib.getDocument({ data: uint8 });
-        const pdf = await loadingTask.promise;
-        if (miSolicitud !== solicitudPdf) return;
-        pdfActual = pdf;
-        paginaPdfActual = 1;
-        await renderizarPaginaPdf_();
-        seccionVisor.style.display = 'block';
-        log('PDF cargado. Páginas: ' + pdf.numPages);
-      } catch (e) {
-        if (miSolicitud === solicitudPdf) {
-          pdfActual = null;
-          seccionVisor.style.display = 'none';
-          log('No se pudo abrir el PDF: ' + e.message);
-        }
-      }
-    }
+      log('Descargando documento PDF seleccionado...');
+      const r = await api('pdf', { idDrive: idDrive });
+      if (!r || !r.ok) { log('No se pudo descargar el documento.'); return; }
 
-    async function renderizarPaginaPdf_() {
-      if (!pdfActual) return;
-      const pagina = await pdfActual.getPage(paginaPdfActual);
+      const raw = atob(r.base64);
+      const uint8 = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) uint8[i] = raw.charCodeAt(i);
+
+      const loadingTask = pdfjsLib.getDocument({ data: uint8 });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      const scale = 1.2;
+      const viewport = page.getViewport({ scale: scale });
+
       const canvas = document.getElementById('pdf-canvas');
       const context = canvas.getContext('2d');
-      const maxWidth = Math.max(280, Math.min(900, document.getElementById('seccion-pdf-visor').clientWidth - 20));
-      const viewportBase = pagina.getViewport({ scale: 1 });
-      const escala = Math.min(1.5, maxWidth / viewportBase.width);
-      const viewport = pagina.getViewport({ scale: escala });
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      await pagina.render({ canvasContext: context, viewport: viewport }).promise;
-      document.getElementById('pdf-pagina-info').textContent =
-        'Página ' + paginaPdfActual + ' de ' + pdfActual.numPages;
-    }
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
 
-    async function cambiarPaginaPdf(delta) {
-      if (!pdfActual) return;
-      const siguiente = paginaPdfActual + delta;
-      if (siguiente < 1 || siguiente > pdfActual.numPages) return;
-      paginaPdfActual = siguiente;
-      try { await renderizarPaginaPdf_(); }
-      catch (e) { log('Error al mostrar página PDF: ' + e.message); }
+      await page.render({ canvasContext: context, viewport: viewport }).promise;
+      seccionVisor.style.display = 'block';
+      log('PDF cargado y renderizado correctamente.');
     }
 
     async function sincronizarDrive() {
@@ -625,8 +574,7 @@
       const r = await api('sincronizar_drive');
       if (r && r.ok) {
         log(r.mensaje);
-        alert(r.mensaje || 'Catálogo sincronizado.');
-        await cargarBibliotecaRecursos();
+        alert('¡Catálogo sincronizado exitosamente con Google Drive!');
       } else {
         log('Error al sincronizar el catálogo.');
       }
