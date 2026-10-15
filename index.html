@@ -200,7 +200,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyUa8i7qRGrgNwJLW-4cyQeOuBc0pm6NnpHFP5ysak7Z8B4HLES6fw4K2BierxfZfd6PA/exec';
+    const API_URL = '';
     let ID_TOKEN = null;
     let esLoop = false;
     let rolUsuarioActual = '';
@@ -229,7 +229,6 @@
 
     function manejarCredencial(response) {
       ID_TOKEN = response.credential;
-      log('Interfaz Palermo Music: diagnóstico v2.');
       log('Sesión iniciada con Google OAuth.');
       quien();
     }
@@ -300,18 +299,7 @@
       document.getElementById('contenedor-ensayo').style.display = 'none';
 
       const r = await api('listar_eventos');
-      if (!r) {
-        log('ERROR AL CARGAR EVENTOS: no hubo respuesta de la API. Revisa la URL del despliegue y la conexión.');
-        return;
-      }
-      if (!r.ok || !Array.isArray(r.eventos)) {
-        const detalle = r.error || r.mensaje || JSON.stringify(r);
-        log('ERROR AL CARGAR EVENTOS: ' + detalle);
-        return;
-      }
-      if (r.eventos.length === 0) {
-        log('No hay eventos registrados en la pestaña Eventos.');
-      }
+      if (!r || !r.ok || !r.eventos) { log('No se pudieron cargar los eventos.'); return; }
 
       const listaDiv = document.getElementById('lista-eventos-disponibles');
       listaDiv.innerHTML = '';
@@ -634,23 +622,13 @@
 
     async function sincronizarDrive() {
       log('Sincronizando carpetas y recursos con Google Drive...');
-      try {
-        const r = await api('sincronizar_drive');
-        if (r && r.ok) {
-          log(r.mensaje || 'Sincronización terminada.');
-          alert(r.mensaje || 'Catálogo sincronizado.');
-          await cargarBibliotecaRecursos();
-        } else if (r) {
-          const detalle = r.error || r.mensaje || JSON.stringify(r);
-          log('ERROR DE SINCRONIZACIÓN: ' + detalle);
-          alert('No se pudo sincronizar el catálogo.\n\nDetalle: ' + detalle);
-        } else {
-          log('ERROR DE SINCRONIZACIÓN: no hubo respuesta de la API. Revisa la URL del despliegue, conexión y permisos.');
-          alert('No hubo respuesta del servidor. Revisa la conexión y el despliegue de Apps Script.');
-        }
-      } catch (e) {
-        log('EXCEPCIÓN AL SINCRONIZAR: ' + (e && e.message ? e.message : String(e)));
-        alert('Error al sincronizar: ' + (e && e.message ? e.message : String(e)));
+      const r = await api('sincronizar_drive');
+      if (r && r.ok) {
+        log(r.mensaje);
+        alert(r.mensaje || 'Catálogo sincronizado.');
+        await cargarBibliotecaRecursos();
+      } else {
+        log('Error al sincronizar el catálogo.');
       }
     }
 
