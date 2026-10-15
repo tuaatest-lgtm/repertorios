@@ -200,7 +200,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwWlmzhC5smvibY5WRi9vSTWFgguHes8Urjm-IZeFxwCNRWRAfIqv1rQMkPGupuYhNi0g/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwjQnEakSAT8vOqyJzyOH--IsoKJyev6a2tSYb6oqmF6bh4rtP-iTaIrrJY4hkIwp7GQQ/exec';
     let ID_TOKEN = null;
     let esLoop = false;
     let rolUsuarioActual = '';
@@ -225,8 +225,6 @@
       if (!ID_TOKEN) { log('Error: Inicia sesión con Google primero.'); return null; }
       try {
         const payload = { accion: accion, token: ID_TOKEN, ...payloadExtra };
-        
-        // Realizar fetch optimizado para evitar bloqueos por cabeceras preflight CORS
         const res = await fetch(API_URL, {
           method: 'POST',
           redirect: 'follow',
@@ -237,7 +235,6 @@
         try {
           return JSON.parse(textoRespuesta);
         } catch (err) {
-          console.warn('Respuesta no JSON directa, intentando parsear...', textoRespuesta);
           return { ok: true, mensaje: textoRespuesta };
         }
       } catch (e) {
@@ -270,13 +267,16 @@
       if (r && r.ok && r.canciones) {
         let html = '<ul style="padding-left: 20px;">';
         r.canciones.forEach(c => {
-          html += `<li style="margin-bottom: 8px;"><strong>${c.idCancion} - ${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]</li>`;
+          html += `<li style="margin-bottom: 10px;">
+            <strong>${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]<br>
+            <button class="btn-secondary" style="width: auto; padding: 4px 10px; margin-top: 4px; font-size: 11px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">🎵 Abrir Ensayo</button>
+          </li>`;
         });
         html += '</ul>';
         biblioDiv.innerHTML = html;
         log('Biblioteca general lista con cantos activos.');
       } else {
-        biblioDiv.innerHTML = '<p>No hay canciones activas con recursos disponibles.</p>';
+        biblioDiv.innerHTML = '<p>No hay canciones activas con recursos en Drive.</p>';
       }
     }
 
@@ -347,7 +347,7 @@
           const marcada = cancionesSeleccionadasEvento.includes(c.idCancion) ? 'checked' : '';
           html += `<label style="display:block; font-size:12px; margin-bottom:6px; cursor:pointer;">
             <input type="checkbox" value="${c.idCancion}" ${marcada} onchange="toggleCancionSet('${c.idCancion}')"> 
-            <strong>${c.idCancion} - ${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]
+            <strong>${c.titulo}</strong> [Función: ${c.funcion} | Tono: ${c.tonalidad}]
           </label>`;
         });
       }
@@ -453,7 +453,7 @@
         let html = '<ul style="padding-left: 20px;">';
         r.canciones.forEach(c => {
           html += `<li style="margin-bottom: 12px;">
-            <strong>${c.posicion}. ${c.idCancion} - ${c.titulo}</strong> [Tonalidad: ${c.tonalidad}]<br>
+            <strong>${c.posicion}. ${c.titulo}</strong> [Tonalidad: ${c.tonalidad}]<br>
             <button class="btn-secondary" style="width: auto; padding: 6px 12px; margin-top: 4px; font-size: 12px;" onclick="cargarRecursosCancion('${c.idCancion}', '${c.titulo}')">🎵 Ver Recursos de Ensayo</button>
           </li>`;
         });
@@ -465,32 +465,29 @@
     }
 
     async function cargarRecursosCancion(idCancion, titulo) {
-      log(`Buscando recursos de ensayo para: ${idCancion}...`);
+      log(`Buscando recursos de ensayo para: ${titulo}...`);
       const r = await api('recursos_cancion', { idCancion: idCancion });
       if (!r || !r.ok) { log('Error al obtener recursos.'); return; }
 
       recursosCancionActual = r.recursos || [];
 
       document.getElementById('contenedor-ensayo').style.display = 'block';
-      document.getElementById('titulo-cancion-activa').textContent = `🎵 Ensayo: ${idCancion} - ${titulo}`;
+      document.getElementById('titulo-cancion-activa').textContent = `🎵 Ensayo: ${titulo}`;
 
-      // Llenar selector de Audios (MP3)
       const selectAudio = document.getElementById('select-audio');
       selectAudio.innerHTML = '<option value="">--- Ninguna / Cancelar audio ---</option>';
       const audios = recursosCancionActual.filter(rec => rec.tipo === 'MP3');
       audios.forEach(aud => {
-        selectAudio.innerHTML += `<option value="${aud.idDrive}">${aud.parte} - ${aud.nombreArchivo}</option>`;
+        selectAudio.innerHTML += `<option value="${aud.idDrive}">${aud.nombreArchivo}</option>`;
       });
 
-      // Llenar selector de Partituras/Letras (PDF)
       const selectPdf = document.getElementById('select-pdf');
       selectPdf.innerHTML = '<option value="">--- Ninguno / Cancelar documento ---</option>';
       const pdfs = recursosCancionActual.filter(rec => rec.tipo === 'PDF');
       pdfs.forEach(pdf => {
-        selectPdf.innerHTML += `<option value="${pdf.idDrive}">${pdf.parte} - ${pdf.nombreArchivo}</option>`;
+        selectPdf.innerHTML += `<option value="${pdf.idDrive}">${pdf.parte}: ${pdf.nombreArchivo}</option>`;
       });
 
-      // Resetear reproductores y visores activos
       document.getElementById('seccion-reproductor').style.display = 'none';
       document.getElementById('audio').pause();
       document.getElementById('audio').src = '';
