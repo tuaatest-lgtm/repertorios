@@ -9,9 +9,10 @@
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: var(--ivory); color: var(--graphite);
            margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-    .header-container { width:100%; max-width:600px; background:var(--primary); color:#fff; padding:15px;
-           border-radius:8px; display:flex; align-items:center; gap:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); margin-bottom:15px; }
+    .header-container { width:100%; max-width:600px; background:#000; color:#fff; padding:12px 15px;
+           border-radius:8px; display:flex; align-items:center; gap:15px; border-bottom:3px solid var(--accent); box-shadow:0 4px 6px rgba(0,0,0,.1); margin-bottom:15px; }
     .header-container img { height:45px; }
+    #popup-inicio:not(.oculto) { display:flex; }
     .card { background:#fff; width:100%; max-width:600px; padding:15px; border-radius:8px;
             box-shadow:0 2px 4px rgba(0,0,0,.05); margin-bottom:15px; }
     h3 { margin:0 0 10px; color:var(--primary); }
@@ -65,7 +66,7 @@
 <body>
 
   <div class="header-container">
-    <img src="logo-palermo.png" alt="Palermo Music" onerror="this.style.display='none'">
+    <img id="logo" src="logo-palermo.png" alt="Palermo Music" style="height:56px;width:auto;object-fit:contain;" onerror="logoSiguiente(this)">
     <div>
       <h2 style="margin:0;font-size:20px;">Palermo Music</h2>
       <span style="font-size:13px;color:var(--accent);">Sistema de Repertorios y Ensayo</span>
@@ -80,6 +81,8 @@
     <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
     <div id="estado-sesion" class="aviso">Inicie sesión con su cuenta de Google.</div>
   </div>
+
+  <div id="aviso-usuario" class="card oculto" style="color:#C53030;font-size:14px;"></div>
 
   <!-- Menú principal -->
   <div class="card oculto" id="menu">
@@ -224,8 +227,16 @@
     </div>
   </div>
 
+  <!-- Imagen de bienvenida -->
+  <div id="popup-inicio" class="oculto" style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;align-items:center;justify-content:center;padding:16px;">
+    <div style="position:relative;max-width:560px;width:100%;max-height:92vh;background:#000;border-radius:10px;overflow:auto;">
+      <button id="popup-cerrar" aria-label="Cerrar" style="position:absolute;top:6px;right:6px;width:40px;height:40px;border-radius:50%;margin:0;padding:0;background:#fff;color:#000;font-size:20px;">✕</button>
+      <img id="popup-img" alt="Aviso" style="display:block;width:100%;height:auto;">
+    </div>
+  </div>
+
   <!-- Consola de estado -->
-  <div class="card">
+  <div class="card oculto" id="card-log">
     <details open>
       <summary>Estado del sistema</summary>
       <pre id="log">Estado del sistema:</pre>
@@ -239,12 +250,12 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxlOEFyp3Vhwh3zGHmx8Kjx0a3tG-w6bN6avINdUxCmpYx8PdOMO9iVUqb_h5A21zURbw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbz-xpFNIUtZnOpAx3Fdwo-hAonjy_KH_kbmP6CbbT6H-1yefl8V9u0qs_m1MGXYlrp4YQ/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.7';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.8';
   let ID_TOKEN = null;
   let rol = '';
-  let permisos = { programar: false, sincronizar: false, usuarios: false };   // los define el servidor
+  let permisos = { programar: false, reordenar: false, sincronizar: false, usuarios: false };   // los define el servidor
   let ocupado = false;
   let catalogo = [];            // canciones disponibles (solo con recursos)
   let setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [] }];   // constructor de evento: sets con cantos en orden
@@ -262,7 +273,16 @@
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const programa = () => !!permisos.programar;
 
+  // el logo puede llamarse de varias formas en GitHub: prueba nombres habituales antes de ocultarlo
+  const LOGOS = ['logo-palermo.png', 'logo.png', 'logo.jpg', 'logo.jpeg', 'logo.svg', 'Logo.png', 'logo.webp'];
+  function logoSiguiente(img) {
+    const i = Number(img.dataset.i || 0) + 1; img.dataset.i = i;
+    if (i < LOGOS.length) img.src = LOGOS[i]; else img.style.display = 'none';
+  }
   function log(msg) {
+    if (!permisos.programar && /^(No se|Error|AVISO)/.test(msg)) {   // quien no ve la consola igual debe enterarse de un fallo
+      $('aviso-usuario').textContent = '⚠ ' + msg; $('aviso-usuario').classList.remove('oculto');
+    }
     const el = $('log');
     el.textContent += '\n> ' + msg;
     el.scrollTop = el.scrollHeight;
@@ -343,7 +363,8 @@
     const r = await api('quien');
     if (r && r.ok) {
       rol = r.rol;
-      permisos = r.permisos || { programar: false, sincronizar: false, usuarios: false };
+      permisos = r.permisos || { programar: false, reordenar: false, sincronizar: false, usuarios: false };
+      $('card-log').classList.toggle('oculto', !permisos.programar);   // usuarios sin cargo no ven el estado del sistema
       $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · rol: <b>' + esc(r.rol) + '</b>';
       $('menu').classList.remove('oculto');
       document.querySelectorAll('[data-rol]').forEach(b => {
@@ -351,6 +372,7 @@
         const ok = (need === 'admin' && permisos.usuarios) || (need === 'programa' && permisos.programar) || (need === 'sync' && permisos.sincronizar);
         b.classList.toggle('oculto', !ok);
       });
+      mostrarPopupInicio();
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
       if (!String(r.version || '').startsWith(VERSION_SERVIDOR_ESPERADA)) {
         $('estado-sesion').innerHTML += '<br><b style="color:#C53030">⚠ El servidor está desactualizado (' + esc(r.version || 'desconocido') +
@@ -414,7 +436,7 @@
     const r = await api('evento_activo', { idEvento: idEvento });
     if (!r || !r.ok) { log('No se pudo cargar el repertorio: ' + textoError(r && r.error)); return; }
     $('titulo-evento').textContent = nombre;
-    const ev = r.evento;
+    const ev = r.evento; vistaEv = { idEvento: idEvento, nombre: nombre, r: r };
     $('mensaje-evento').textContent = ev ? ((ev.fecha || '') + (ev.mensaje ? ' · ' + ev.mensaje : '')) : '';
     let html = '';
     const sets = (r.sets || []).filter(s => s.canciones.length);
@@ -430,7 +452,7 @@
       $('lista-repertorio').innerHTML += '<p class="aviso">⚠ ' + r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran.</p>';
     }
     $('acciones-evento').innerHTML = programa()
-      ? '<div class="botones"><button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
+      ? '<div class="botones">' + (permisos.reordenar && sets.length ? '<button class="btn-primary btn-small" id="btn-reordenar">↕ Cambiar el orden de los cantos</button>' : '') + '<button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
         '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button></div>' : '';
     mostrarVista('vista-repertorio');
     log('Repertorio cargado.');
@@ -610,6 +632,51 @@
       alert('Evento guardado.'); await cargarEventos();
     } else { log('No se guardó el evento: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
   });
+
+  /* ---------------- Imagen de bienvenida ---------------- */
+  let popupPedido = false;
+  async function mostrarPopupInicio() {
+    if (popupPedido) return; popupPedido = true;
+    try { if (sessionStorage.getItem('popup_visto')) return; } catch (e) {}
+    const r = await api('popup_inicio');
+    if (!r || !r.ok || !r.hay) { if (r && r.motivo === 'IMAGEN_MUY_GRANDE') log('AVISO: la imagen de bienvenida supera 3 MB y no se muestra.'); return; }
+    $('popup-img').src = 'data:' + r.tipo + ';base64,' + r.base64;
+    $('popup-inicio').classList.remove('oculto');
+    try { sessionStorage.setItem('popup_visto', '1'); } catch (e) {}
+  }
+  $('popup-cerrar').onclick = () => $('popup-inicio').classList.add('oculto');
+  $('popup-inicio').onclick = e => { if (e.target === $('popup-inicio')) $('popup-inicio').classList.add('oculto'); };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') $('popup-inicio').classList.add('oculto'); });
+
+  /* ---------------- Reordenar un evento guardado (admin y programador) ---------------- */
+  let vistaEv = null;   // { idEvento, nombre, r, orden:[{set, ids:[...]}], modo }
+  function pintarReorden() {
+    const v = vistaEv; let html = '';
+    v.orden.forEach((s, si) => {
+      if (v.orden.length > 1) html += '<div class="set-titulo">' + esc(s.nombre) + '</div>';
+      s.items.forEach((c, ci) => {
+        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (ci + 1) + '.</span>' + esc(c.titulo) + '</span>' +
+          '<span class="mov"><button class="btn-secondary" data-rsubir="' + si + ':' + ci + '"' + (ci === 0 ? ' disabled' : '') + ' aria-label="Subir">▲</button>' +
+          '<button class="btn-secondary" data-rbajar="' + si + ':' + ci + '"' + (ci === s.items.length - 1 ? ' disabled' : '') + ' aria-label="Bajar">▼</button></span></div>';
+      });
+    });
+    $('lista-repertorio').innerHTML = html;
+    $('acciones-evento').innerHTML = '<div class="botones"><button class="btn-primary btn-small" id="btn-guardar-orden">💾 Guardar orden</button>' +
+      '<button class="btn-secondary btn-small" id="btn-cancelar-orden">Cancelar</button></div>';
+  }
+  function iniciarReorden() {
+    const v = vistaEv;
+    if (v.r.ocultas > 0 && !confirm(v.r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran: se QUITARÁN al guardar. ¿Continuar?')) return;
+    v.orden = (v.r.sets || []).filter(s => s.canciones.length).map(s => ({ nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '', items: s.canciones.map(c => ({ idCancion: c.idCancion, titulo: c.titulo })) }));
+    pintarReorden();
+  }
+  async function guardarOrden() {
+    const v = vistaEv, ev = v.r.evento;
+    const sets = v.orden.map((s, i) => ({ numeroSet: i + 1, nombreSet: s.nombre, mensajeSet: s.mensaje, canciones: s.items.map(c => c.idCancion) }));
+    const r = await api('actualizar_evento', { idEvento: v.idEvento, estado: ev.estado || 'Programado', nombreEvento: ev.nombre, fechaEvento: ev.fecha, mensajeGeneral: ev.mensaje || '', sets: sets });
+    if (r && r.ok) { log(r.mensaje || 'Orden guardado.'); alert('Orden guardado.'); await verEvento(v.idEvento, v.nombre); }
+    else { log('No se guardó el orden: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
+  }
 
   /* ---------------- Registro de usuarios (solo admin) ---------------- */
   function pintarRegistro(r, pend) {
@@ -793,10 +860,17 @@
     const b = e.target.closest('button');
     if (!b) return;
     const d = b.dataset;
+    if (b.id === 'btn-reordenar') { iniciarReorden(); return; }
+    if (b.id === 'btn-cancelar-orden') { verEvento(vistaEv.idEvento, vistaEv.nombre); return; }
+    if (b.id === 'btn-guardar-orden') { conOcupado(guardarOrden); return; }
     if (d.ensayo) conOcupado(() => abrirEnsayo(d.ensayo, d.titulo));
     else if (d.evento) conOcupado(() => verEvento(d.evento, d.nombre));
     else if (d.archivar) conOcupado(() => archivarEvento(d.archivar));
     else if (d.editar) conOcupado(() => editarEvento(d.editar));
+    else if (d.rsubir || d.rbajar) {
+      const [si, ci] = (d.rsubir || d.rbajar).split(':').map(Number), it = vistaEv.orden[si].items, nj = d.rsubir ? ci - 1 : ci + 1;
+      if (nj >= 0 && nj < it.length) { [it[ci], it[nj]] = [it[nj], it[ci]]; pintarReorden(); }
+    }
     else if (d.activar) conOcupado(() => resolverUsuarios('activar_usuarios', [d.activar], false));
     else if (d.rechazar) conOcupado(() => resolverUsuarios('rechazar_usuarios', [d.rechazar], false));
     else if (ocupado) return;
@@ -819,5 +893,6 @@
     }
   });
 </script>
+
 </body>
 </html>
