@@ -86,8 +86,9 @@
     <button class="btn-accent" id="btn-biblioteca">🎧 Canciones para ensayo</button>
     <button class="btn-primary" id="btn-eventos">📅 Repertorios de eventos</button>
     <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">➕ Programar nuevo evento</button>
-    <button class="btn-dark oculto" id="btn-sync" data-rol="admin">🔄 Sincronizar catálogo con Drive</button>
-    <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="admin">🔎 Vista previa de la sincronización (no cambia nada)</button>
+    <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar catálogo con Drive</button>
+    <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="sync">🔎 Vista previa de la sincronización (no cambia nada)</button>
+    <button class="btn-primary oculto" id="btn-usuarios" data-rol="admin">👥 Registro de usuarios</button>
   </div>
 
   <!-- Biblioteca -->
@@ -164,6 +165,33 @@
     <button class="btn-secondary oculto" id="btn-cancelar-edicion">Cancelar edición</button>
   </div>
 
+  <!-- Registro de usuarios (solo admin) -->
+  <div class="card oculto" id="vista-usuarios">
+    <h3>Registro de usuarios</h3>
+    <div id="estado-registro" class="aviso"></div>
+    <label for="sel-horas"><b>Duración al abrir la ventana</b></label>
+    <select id="sel-horas">
+      <option value="1">1 hora</option><option value="24" selected>24 horas</option>
+      <option value="168">7 días</option><option value="0">Hasta que yo la cierre</option>
+    </select>
+    <div class="botones">
+      <button class="btn-primary" id="btn-abrir-registro">🔓 Abrir registro</button>
+      <button class="btn-danger" id="btn-cerrar-registro">🔒 Cerrar registro</button>
+    </div>
+    <div class="aviso" style="margin-top:8px;">Con la ventana abierta, quien entre con este enlace queda como <b>Pendiente</b> (sin permisos). Cerrada, nadie nuevo se registra.<br>
+      Enlace: <b id="enlace-registro" style="overflow-wrap:anywhere;"></b></div>
+    <button class="btn-secondary btn-small" id="btn-copiar-enlace" style="margin-top:6px;">📋 Copiar enlace</button>
+    <div class="grupo">
+      <label><b>Solicitudes pendientes</b> <span class="aviso" id="contador-pendientes"></span></label>
+      <div id="lista-pendientes"></div>
+      <div class="botones" style="margin-top:8px;">
+        <button class="btn-accent" id="btn-activar-todos">✅ Activar todos</button>
+        <button class="btn-secondary" id="btn-actualizar-pendientes">↻ Actualizar</button>
+      </div>
+      <div class="aviso">Los usuarios activados solo pueden ver repertorios y ensayar. Para darles un cargo (editor, programador o administrador) edite la hoja Usuarios.</div>
+    </div>
+  </div>
+
   <!-- Panel de ensayo (único; lo usan la biblioteca y los eventos) -->
   <div class="card oculto" id="panel-ensayo">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -211,11 +239,12 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxi1PD_DWKAN9J0lgEbZhmTDzQrDqRff09qbQ60ITYNHKcKjlBR0V3wvIjAngI0evxIfQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxlOEFyp3Vhwh3zGHmx8Kjx0a3tG-w6bN6avINdUxCmpYx8PdOMO9iVUqb_h5A21zURbw/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.6.1';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.7';
   let ID_TOKEN = null;
   let rol = '';
+  let permisos = { programar: false, sincronizar: false, usuarios: false };   // los define el servidor
   let ocupado = false;
   let catalogo = [];            // canciones disponibles (solo con recursos)
   let setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [] }];   // constructor de evento: sets con cantos en orden
@@ -231,7 +260,7 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const programa = () => rol === 'admin' || rol === 'programador';
+  const programa = () => !!permisos.programar;
 
   function log(msg) {
     const el = $('log');
@@ -240,7 +269,12 @@
   }
 
   const ERRORES = {
-    NO_AUTORIZADO: 'Su cuenta no está autorizada o está inactiva.',
+    NO_AUTORIZADO: 'Su cuenta no está autorizada o está inactiva. Si cree que es un error, comuníquese con el administrador.',
+    USUARIO_PENDIENTE: 'Su registro está PENDIENTE: un administrador debe activar su cuenta. Vuelva a entrar cuando se lo indiquen.',
+    REGISTRO_RECIBIDO: 'Su solicitud quedó registrada como PENDIENTE. Avise al administrador para que active su cuenta y vuelva a entrar después.',
+    REGISTRO_LLENO: 'Hay demasiadas solicitudes pendientes. Avise al administrador.',
+    NO_AUTORIZADO_PARA_SINCRONIZAR: 'No tiene permiso para sincronizar el catálogo.',
+    SIN_USUARIOS_SELECCIONADOS: 'No hay usuarios seleccionados.',
     TOKEN_INVALIDO: 'La sesión de Google no es válida. Inicie sesión de nuevo.',
     TOKEN_EXPIRADO: 'La sesión de Google venció. Inicie sesión de nuevo.',
     SIN_TOKEN: 'Primero inicie sesión con Google.',
@@ -300,7 +334,7 @@
   }
 
   function mostrarVista(id) {
-    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario'].forEach(v =>
+    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios'].forEach(v =>
       $(v).classList.toggle('oculto', v !== id));
   }
 
@@ -309,11 +343,13 @@
     const r = await api('quien');
     if (r && r.ok) {
       rol = r.rol;
+      permisos = r.permisos || { programar: false, sincronizar: false, usuarios: false };
       $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · rol: <b>' + esc(r.rol) + '</b>';
       $('menu').classList.remove('oculto');
       document.querySelectorAll('[data-rol]').forEach(b => {
         const need = b.dataset.rol;
-        b.classList.toggle('oculto', !((need === 'admin' && rol === 'admin') || (need === 'programa' && programa())));
+        const ok = (need === 'admin' && permisos.usuarios) || (need === 'programa' && permisos.programar) || (need === 'sync' && permisos.sincronizar);
+        b.classList.toggle('oculto', !ok);
       });
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
       if (!String(r.version || '').startsWith(VERSION_SERVIDOR_ESPERADA)) {
@@ -575,6 +611,50 @@
     } else { log('No se guardó el evento: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
   });
 
+  /* ---------------- Registro de usuarios (solo admin) ---------------- */
+  function pintarRegistro(r, pend) {
+    $('estado-registro').innerHTML = r.abierto
+      ? '🔓 <b>ABIERTA</b> ' + (r.hastaCerrar ? 'hasta que usted la cierre' : 'hasta ' + esc(new Date(r.hasta).toLocaleString('es-CO')))
+        + (r.abiertoPor ? ' (abierta por ' + esc(r.abiertoPor) + ')' : '')
+      : '🔒 <b>CERRADA</b>: nadie nuevo puede registrarse.';
+    $('enlace-registro').textContent = location.origin + location.pathname;
+    $('contador-pendientes').textContent = '(' + pend.length + ')';
+    $('lista-pendientes').innerHTML = pend.length
+      ? pend.map(p => '<div class="fila"><span class="nombre">' + esc(p.nombre || p.correo) + '<span class="meta">' + esc(p.correo) + (p.fecha ? ' · ' + esc(p.fecha) : '') + '</span></span>' +
+          '<span class="mov"><button class="btn-accent" data-activar="' + esc(p.correo) + '" title="Activar" aria-label="Activar">✓</button>' +
+          '<button class="btn-danger" data-rechazar="' + esc(p.correo) + '" title="Rechazar" aria-label="Rechazar">✕</button></span></div>').join('')
+      : '<p class="aviso">No hay solicitudes pendientes.</p>';
+    $('btn-activar-todos').disabled = !pend.length; $('btn-activar-todos').dataset.prev = pend.length ? '' : '1';
+  }
+  async function cargarRegistro() {
+    const r = await api('registro_estado'), l = await api('listar_pendientes');
+    if (!r || !r.ok || !l || !l.ok) { log('No se pudo cargar el registro de usuarios: ' + textoError((r && r.error) || (l && l.error))); return; }
+    pintarRegistro(r, l.pendientes || []);
+    mostrarVista('vista-usuarios');
+  }
+  $('btn-usuarios').onclick = () => conOcupado(async () => { cerrarPanel(); log('Consultando el registro de usuarios…'); await cargarRegistro(); });
+  $('btn-actualizar-pendientes').onclick = () => conOcupado(cargarRegistro);
+  $('btn-abrir-registro').onclick = () => conOcupado(async () => {
+    const r = await api('registro_abrir', { horas: Number($('sel-horas').value) });
+    log(r && r.ok ? r.mensaje : 'No se pudo abrir el registro: ' + textoError(r && r.error)); await cargarRegistro();
+  });
+  $('btn-cerrar-registro').onclick = () => conOcupado(async () => {
+    const r = await api('registro_cerrar');
+    log(r && r.ok ? r.mensaje : 'No se pudo cerrar el registro: ' + textoError(r && r.error)); await cargarRegistro();
+  });
+  $('btn-copiar-enlace').onclick = async () => {
+    const url = location.origin + location.pathname;
+    try { await navigator.clipboard.writeText(url); log('Enlace copiado.'); } catch (e) { prompt('Copie el enlace:', url); }
+  };
+  async function resolverUsuarios(accion, correos, todos) {
+    const r = await api(accion, todos ? { todos: true } : { correos: correos });
+    log(r && r.ok ? r.mensaje : 'No se pudo completar: ' + textoError(r && r.error)); await cargarRegistro();
+  }
+  $('btn-activar-todos').onclick = () => conOcupado(async () => {
+    if (!confirm('¿Activar TODAS las solicitudes pendientes? Quedarán como usuarios sin cargo (solo ver y ensayar).')) return;
+    await resolverUsuarios('activar_usuarios', [], true);
+  });
+
   /* ---------------- Sincronización (admin) ---------------- */
   function mostrarResultadoSync(r) {
     log(r.mensaje);
@@ -717,6 +797,8 @@
     else if (d.evento) conOcupado(() => verEvento(d.evento, d.nombre));
     else if (d.archivar) conOcupado(() => archivarEvento(d.archivar));
     else if (d.editar) conOcupado(() => editarEvento(d.editar));
+    else if (d.activar) conOcupado(() => resolverUsuarios('activar_usuarios', [d.activar], false));
+    else if (d.rechazar) conOcupado(() => resolverUsuarios('rechazar_usuarios', [d.rechazar], false));
     else if (ocupado) return;
     else if (d.agregar) {
       const s = setsEv[setActivo];
