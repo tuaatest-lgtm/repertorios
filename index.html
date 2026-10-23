@@ -216,6 +216,21 @@
         <audio id="audio" controls controlsList="nodownload" style="width:100%;"></audio>
         <button class="btn-secondary" id="btn-loop" style="margin-top:6px;">🔁 Repetir: NO</button>
       </div>
+      <div id="bloque-secuencia" style="margin-top:14px;padding-top:10px;border-top:1px dashed #CBD5E0;">
+        <label>🎼 Secuencia de ensayo</label>
+        <div class="aviso">Elija una parte arriba y pulse «Agregar». Puede repetir la misma parte cuantas veces quiera (ej.: Tenor Voz I → Coro → Voz II → Coro → Puente → Coro final). Se reproducen una tras otra.</div>
+        <button class="btn-accent" id="btn-seq-agregar" style="margin-top:6px;">＋ Agregar a la secuencia el audio elegido</button>
+        <div id="seq-lista"></div>
+        <div id="seq-estado" class="aviso" aria-live="polite"></div>
+        <div class="botones">
+          <button class="btn-primary" id="btn-seq-play">▶ Reproducir secuencia</button>
+          <button class="btn-secondary" id="btn-seq-stop">⏹ Detener</button>
+        </div>
+        <div class="botones">
+          <button class="btn-secondary" id="btn-seq-loop">🔁 Repetir toda la secuencia: NO</button>
+          <button class="btn-secondary" id="btn-seq-vaciar">🗑 Vaciar</button>
+        </div>
+      </div>
     </div>
 
     <div class="grupo" id="bloque-pdf">
@@ -259,7 +274,7 @@
 
   const API_URL = 'https://script.google.com/macros/s/AKfycbz41b_sK0dsXyUHSEJ4WnBvIPBj77Y3aGVB3YZEfbA7tZC2t_uyp_qpIkaWCLP8BRvlRQ/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.9';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.9';   // (esta versión de la página no cambia el servidor)
   let ID_TOKEN = null;
   let rol = '';
   let permisos = { programar: false, reordenar: false, sincronizar: false, usuarios: false };   // los define el servidor
@@ -762,6 +777,7 @@
 
   /* ---------------- Panel de ensayo ---------------- */
   function cerrarAudio() {
+    seqDetener();
     const a = $('audio'); a.pause(); a.removeAttribute('src'); a.load();
     if (urlAudio) { URL.revokeObjectURL(urlAudio); urlAudio = null; }
     $('zona-audio').classList.add('oculto');
@@ -773,7 +789,7 @@
     $('visor-pdf').innerHTML = ''; $('visor-pdf').classList.add('oculto');
     $('sel-pdf').value = '';
   }
-  function cerrarPanel() { cerrarAudio(); cerrarPdf(); $('panel-ensayo').classList.add('oculto'); }
+  function cerrarPanel() { cerrarAudio(); seqLimpiar(); cerrarPdf(); $('panel-ensayo').classList.add('oculto'); }
   $('btn-cerrar-panel').onclick = cerrarPanel;
   $('btn-cerrar-audio').onclick = cerrarAudio;
   $('btn-cerrar-pdf').onclick = cerrarPdf;
@@ -793,6 +809,7 @@
     $('bloque-audio').classList.toggle('oculto', !hayA);
     $('bloque-pdf').classList.toggle('oculto', !hayP);
     $('sin-recursos').classList.toggle('oculto', hayA || hayP);
+    seqCambiarCancion(idCancion);
     $('panel-ensayo').classList.remove('oculto');
     $('panel-ensayo').scrollIntoView({ behavior: 'smooth', block: 'start' });
     log('Recursos listos: ' + recursos.filter(x => x.tipo === 'MP3').length + ' audio(s), ' +
@@ -808,6 +825,7 @@
   $('btn-abrir-audio').onclick = () => conOcupado(async () => {
     const id = $('sel-audio').value;
     if (!id) { log('Seleccione un audio.'); return; }
+    seqDetener();
     log('Cargando audio…');
     const r = await api('mp3', { idCancion: cancionAbierta, idArchivo: id });
     if (!r || !r.ok) { log('No se pudo cargar el audio: ' + textoError(r && r.error)); return; }
@@ -820,6 +838,86 @@
     a.play().catch(() => log('Pulse ▶ para reproducir.'));
     log('Audio listo (' + (r.bytes / 1048576).toFixed(1) + ' MB).');
   });
+
+  /* ---------------- Secuencia de ensayo (varios MP3 seguidos) ---------------- */
+  const SEQ_MAX = 30;
+  const seq = { items: [], idx: -1, activo: false, repetir: false, cache: new Map(), cargando: new Map(), run: 0, gen: 0 };
+  const seqNombre = id => { const r = recursos.find(x => x.idArchivo === id); return r ? r.parte : '(audio no disponible)'; };
+  const seqClave = () => 'seq_' + cancionAbierta;
+  function seqGuardar() { try { localStorage.setItem(seqClave(), JSON.stringify(seq.items)); } catch (e) {} }
+  function seqCambiarCancion(idCancion) {
+    seqLimpiar(); seq.items = [];
+    try {
+      const g = JSON.parse(localStorage.getItem('seq_' + idCancion) || '[]');
+      if (Array.isArray(g)) seq.items = g.filter(id => recursos.some(x => x.idArchivo === id && x.tipo === 'MP3')).slice(0, SEQ_MAX);
+    } catch (e) {}
+    seq.idx = -1; seq.activo = false; pintarSeq();
+  }
+  function seqLimpiar() {            // libera los audios descargados (al cambiar de canción o cerrar el panel)
+    seq.gen++; seqDetener();
+    seq.cache.forEach(u => URL.revokeObjectURL(u)); seq.cache.clear(); seq.cargando.clear();
+  }
+  function seqDetener(msg) {
+    seq.run++; const estaba = seq.activo; seq.activo = false; seq.idx = -1;
+    if (estaba) { const a = $('audio'); a.pause(); a.removeAttribute('src'); a.load(); $('zona-audio').classList.add('oculto'); }
+    $('btn-loop').classList.remove('oculto');
+    if (msg !== undefined) $('seq-estado').textContent = msg; else if (estaba) $('seq-estado').textContent = '';
+    if ($('seq-lista')) pintarSeq();
+  }
+  function pintarSeq() {
+    $('seq-lista').innerHTML = seq.items.length
+      ? seq.items.map((id, i) => '<div class="fila' + (i === seq.idx ? ' usada' : '') + '"><span class="nombre"><span class="pos-lista">' + (i + 1) + '.</span>' +
+          esc(seqNombre(id)) + (i === seq.idx ? ' ▶' : '') + '</span><span class="mov">' +
+          '<button class="btn-secondary" data-ssubir="' + i + '"' + (i === 0 ? ' disabled' : '') + ' aria-label="Subir">▲</button>' +
+          '<button class="btn-secondary" data-sbajar="' + i + '"' + (i === seq.items.length - 1 ? ' disabled' : '') + ' aria-label="Bajar">▼</button>' +
+          '<button class="btn-danger" data-squitar="' + i + '" aria-label="Quitar">✕</button></span></div>').join('')
+      : '<p class="aviso">La secuencia está vacía.</p>';
+    $('btn-seq-play').disabled = !seq.items.length; $('btn-seq-vaciar').disabled = !seq.items.length;
+  }
+  async function seqUrl(id) {
+    if (seq.cache.has(id)) return seq.cache.get(id);
+    if (seq.cargando.has(id)) return seq.cargando.get(id);
+    const gen = seq.gen, cancion = cancionAbierta;
+    const p = (async () => {
+      const r = await api('mp3', { idCancion: cancion, idArchivo: id });
+      if (!r || !r.ok) throw new Error(textoError(r && r.error));
+      const u = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' }));
+      if (gen !== seq.gen) { URL.revokeObjectURL(u); throw new Error('cancelado'); }
+      seq.cache.set(id, u); return u;
+    })();
+    seq.cargando.set(id, p);
+    try { return await p; } finally { seq.cargando.delete(id); }
+  }
+  const seqSiguiente = i => (i + 1 < seq.items.length ? i + 1 : (seq.repetir ? 0 : -1));
+  async function seqReproducir(i) {
+    const token = ++seq.run; seq.activo = true; seq.idx = i; pintarSeq();
+    $('seq-estado').textContent = 'Cargando ' + (i + 1) + '/' + seq.items.length + ' · ' + seqNombre(seq.items[i]) + '…';
+    let url;
+    try { url = await seqUrl(seq.items[i]); }
+    catch (e) { if (token === seq.run) { seqDetener('No se pudo cargar «' + seqNombre(seq.items[i]) + '»: ' + e.message); log('Secuencia detenida: ' + e.message); } return; }
+    if (token !== seq.run) return;
+    const a = $('audio'); a.loop = false; a.src = url;
+    if (urlAudio) { URL.revokeObjectURL(urlAudio); urlAudio = null; }
+    $('zona-audio').classList.remove('oculto'); $('btn-loop').classList.add('oculto');
+    $('seq-estado').textContent = 'Reproduciendo ' + (i + 1) + '/' + seq.items.length + ' · ' + seqNombre(seq.items[i]);
+    a.play().catch(() => log('Pulse ▶ en el reproductor para continuar.'));
+    const nx = seqSiguiente(i); if (nx >= 0) seqUrl(seq.items[nx]).catch(() => {});   // precarga la siguiente
+  }
+  $('audio').addEventListener('ended', () => {
+    if (!seq.activo) return;
+    const nx = seqSiguiente(seq.idx);
+    if (nx < 0) seqDetener('Secuencia terminada.'); else seqReproducir(nx);
+  });
+  $('btn-seq-agregar').onclick = () => {
+    const id = $('sel-audio').value;
+    if (!id) { $('seq-estado').textContent = 'Primero elija una parte en la lista de audios.'; return; }
+    if (seq.items.length >= SEQ_MAX) { $('seq-estado').textContent = 'La secuencia admite hasta ' + SEQ_MAX + ' partes.'; return; }
+    seq.items.push(id); seqGuardar(); $('seq-estado').textContent = ''; pintarSeq();
+  };
+  $('btn-seq-play').onclick = () => { if (seq.items.length) { seqDetener(); seqReproducir(0); } };
+  $('btn-seq-stop').onclick = () => seqDetener('Detenida.');
+  $('btn-seq-loop').onclick = () => { seq.repetir = !seq.repetir; $('btn-seq-loop').textContent = '🔁 Repetir toda la secuencia: ' + (seq.repetir ? 'SÍ' : 'NO'); };
+  $('btn-seq-vaciar').onclick = () => { seqDetener(); seq.items = []; seqGuardar(); pintarSeq(); };
 
   $('btn-loop').onclick = () => {
     const a = $('audio'); a.loop = !a.loop;
@@ -897,6 +995,14 @@
     else if (d.rsubir || d.rbajar) {
       const [si, ci] = (d.rsubir || d.rbajar).split(':').map(Number), it = vistaEv.orden[si].items, nj = d.rsubir ? ci - 1 : ci + 1;
       if (nj >= 0 && nj < it.length) { [it[ci], it[nj]] = [it[nj], it[ci]]; pintarReorden(); }
+    }
+    else if (d.ssubir !== undefined || d.sbajar !== undefined || d.squitar !== undefined) {
+      const i = Number(d.ssubir !== undefined ? d.ssubir : d.sbajar !== undefined ? d.sbajar : d.squitar);
+      const activo = seq.idx >= 0 && seq.activo ? seq.items[seq.idx] : null;
+      if (d.squitar !== undefined) { seq.items.splice(i, 1); if (seq.activo) { if (i === seq.idx) seqDetener('Detenida.'); else if (i < seq.idx) seq.idx--; } }
+      else { const j = d.ssubir !== undefined ? i - 1 : i + 1;
+        if (j >= 0 && j < seq.items.length) { [seq.items[i], seq.items[j]] = [seq.items[j], seq.items[i]]; if (seq.activo) { if (seq.idx === i) seq.idx = j; else if (seq.idx === j) seq.idx = i; } } }
+      seqGuardar(); pintarSeq();
     }
     else if (d.activar) conOcupado(() => resolverUsuarios('activar_usuarios', [d.activar], false));
     else if (d.rechazar) conOcupado(() => resolverUsuarios('rechazar_usuarios', [d.rechazar], false));
