@@ -51,6 +51,8 @@
     .cancion-fila { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #EDF2F7; }
     .cancion-fila .pos { width:22px; text-align:center; font-weight:bold; color:var(--accent); }
     .cancion-fila .nombre { flex:1; font-size:14px; }
+    .nota-in { width:100%; margin-top:4px; padding:6px 8px; font-size:13px; border:1px dashed #A0AEC0; border-radius:6px; background:#FFFBF0; }
+    .nota-ev { display:inline-block; margin-left:6px; padding:1px 8px; font-size:12px; font-weight:bold; color:#7A5C14; background:#F6E9C8; border-radius:10px; vertical-align:middle; }
     .cancion-fila .meta { font-size:11px; color:#718096; display:block; margin-top:1px; }
     .mov { display:flex; gap:4px; }
     .mov button { width:40px; height:40px; padding:0; margin:0; font-size:15px; }
@@ -227,6 +229,11 @@
     </div>
   </div>
 
+  <datalist id="sugerencias-nota">
+    <option value="Oración"><option value="Diezmos"><option value="Ofrendas"><option value="Doxología"><option value="Imposición">
+    <option value="Lectura bíblica"><option value="Bienvenida"><option value="Himno de apertura"><option value="Cena del Señor"><option value="Bendición final">
+  </datalist>
+
   <!-- Imagen de bienvenida -->
   <div id="popup-inicio" class="oculto" style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;align-items:center;justify-content:center;padding:16px;">
     <div style="position:relative;max-width:560px;width:100%;max-height:92vh;background:#000;border-radius:10px;overflow:auto;">
@@ -250,15 +257,15 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbz-xpFNIUtZnOpAx3Fdwo-hAonjy_KH_kbmP6CbbT6H-1yefl8V9u0qs_m1MGXYlrp4YQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbz41b_sK0dsXyUHSEJ4WnBvIPBj77Y3aGVB3YZEfbA7tZC2t_uyp_qpIkaWCLP8BRvlRQ/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.8';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.9';
   let ID_TOKEN = null;
   let rol = '';
   let permisos = { programar: false, reordenar: false, sincronizar: false, usuarios: false };   // los define el servidor
   let ocupado = false;
   let catalogo = [];            // canciones disponibles (solo con recursos)
-  let setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [] }];   // constructor de evento: sets con cantos en orden
+  let setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [], notas: {} }];   // constructor de evento: sets con cantos en orden
   let setActivo = 0;            // set al que se agregan los cantos
   let eventoEditando = null;    // {idEvento, estado} si se edita un evento existente
   let recursos = [];            // recursos de la canción abierta
@@ -443,7 +450,7 @@
     sets.forEach(s => {
       if (sets.length > 1) html += '<div class="set-titulo">' + esc(s.nombreSet || ('Set ' + s.numeroSet)) + '</div>';
       s.canciones.forEach((c, n) => {
-        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (n + 1) + '.</span>' + esc(c.titulo) + '</span>' +
+        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (n + 1) + '.</span>' + esc(c.titulo) + (c.nota ? '<span class="nota-ev">' + esc(c.nota) + '</span>' : '') + '</span>' +
           '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '">▶ Ensayar</button></div>';
       });
     });
@@ -507,7 +514,8 @@
       const filas = s.canciones.map((id, j) => {
         const c = infoCancion(id);
         return '<div class="cancion-fila"><span class="pos">' + (j + 1) + '</span>' +
-          '<span class="nombre">' + esc(c ? c.titulo : id) + '<span class="meta">' + esc(metaCancion(c)) + '</span></span>' +
+          '<span class="nombre">' + esc(c ? c.titulo : id) + '<span class="meta">' + esc(metaCancion(c)) + '</span>' +
+          '<input type="text" class="nota-in" list="sugerencias-nota" maxlength="80" placeholder="Comentario (ej. Oración, Diezmos…)" data-nota="' + i + '" data-id="' + esc(id) + '" value="' + esc((s.notas || {})[id] || '') + '" aria-label="Comentario del canto"></span>' +
           '<span class="mov">' +
           '<button class="btn-secondary" data-subir="' + i + ':' + j + '" title="Subir" aria-label="Subir"' + (j === 0 ? ' disabled' : '') + '>▲</button>' +
           '<button class="btn-secondary" data-bajar="' + i + ':' + j + '" title="Bajar" aria-label="Bajar"' + (j === s.canciones.length - 1 ? ' disabled' : '') + '>▼</button>' +
@@ -547,8 +555,11 @@
       : '<span class="aviso">No hay canciones con recursos disponibles.</span>';
   }
 
+  function notasDe(s) {   // solo comentarios de cantos que siguen en el set
+    const o = {}; s.canciones.forEach(id => { const t = ((s.notas || {})[id] || '').trim(); if (t) o[id] = t; }); return o;
+  }
   function nuevoConstructor() {
-    setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [] }]; setActivo = 0; eventoEditando = null;
+    setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [], notas: {} }]; setActivo = 0; eventoEditando = null;
     $('buscar-selector').value = '';
   }
   function configurarFormulario() {
@@ -576,7 +587,8 @@
     nuevoConstructor();
     const sets = (r.sets || []).slice().sort((a, b) => a.numeroSet - b.numeroSet);
     setsEv = sets.length ? sets.map(s => ({ nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '',
-      canciones: s.canciones.map(c => c.idCancion).filter(id => infoCancion(id)) })) : setsEv;
+      canciones: s.canciones.map(c => c.idCancion).filter(id => infoCancion(id)),
+      notas: Object.fromEntries(s.canciones.filter(c => c.nota && infoCancion(c.idCancion)).map(c => [c.idCancion, c.nota])) })) : setsEv;
     eventoEditando = { idEvento: r.evento.idEvento, estado: r.evento.estado || '' };
     $('in-nombre').value = r.evento.nombre || ''; $('in-fecha').value = r.evento.fecha || ''; $('in-mensaje').value = r.evento.mensaje || '';
     configurarFormulario(); mostrarVista('vista-formulario'); pintarConstructor();
@@ -585,9 +597,18 @@
 
   $('buscar-selector').oninput = pintarSelector;
   $('sel-set-activo').onchange = () => { setActivo = Number($('sel-set-activo').value) || 0; pintarConstructor(); };
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.nota !== undefined) {              // comentario en el constructor
+      const st = setsEv[Number(t.dataset.nota)]; if (!st) return; st.notas = st.notas || {};
+      if (t.value.trim()) st.notas[t.dataset.id] = t.value; else delete st.notas[t.dataset.id];
+    } else if (t.dataset && t.dataset.rnota !== undefined && vistaEv && vistaEv.orden) {   // comentario al reordenar
+      const [si, ci] = t.dataset.rnota.split(':').map(Number); vistaEv.orden[si].items[ci].nota = t.value;
+    }
+  });
   $('btn-add-set').onclick = () => {
     if (setsEv.length >= MAX_SETS_UI) return;
-    setsEv.push({ nombre: 'Set ' + (setsEv.length + 1), mensaje: '', canciones: [] });
+    setsEv.push({ nombre: 'Set ' + (setsEv.length + 1), mensaje: '', canciones: [], notas: {} });
     setActivo = setsEv.length - 1; pintarConstructor();
   };
   $('btn-ordenar-todos').onclick = () => {
@@ -614,7 +635,7 @@
     const nombre = $('in-nombre').value.trim(), fecha = $('in-fecha').value;
     if (!nombre || !fecha) { alert('Ingrese el nombre y la fecha del evento.'); return; }
     const sets = setsEv.filter(s => s.canciones.length).map((s, i) => ({
-      numeroSet: i + 1, nombreSet: (s.nombre || '').trim() || ('Set ' + (i + 1)), mensajeSet: s.mensaje || '', canciones: s.canciones.slice() }));
+      numeroSet: i + 1, nombreSet: (s.nombre || '').trim() || ('Set ' + (i + 1)), mensajeSet: s.mensaje || '', canciones: s.canciones.slice(), notas: notasDe(s) }));
     if (!sets.length && !confirm('No eligió canciones. ¿Guardar el evento vacío?')) return;
     const vacios = setsEv.length - sets.length;
     if (sets.length && vacios > 0 && !confirm(vacios + ' set(s) sin cantos no se guardarán. ¿Continuar?')) return;
@@ -655,7 +676,8 @@
     v.orden.forEach((s, si) => {
       if (v.orden.length > 1) html += '<div class="set-titulo">' + esc(s.nombre) + '</div>';
       s.items.forEach((c, ci) => {
-        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (ci + 1) + '.</span>' + esc(c.titulo) + '</span>' +
+        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (ci + 1) + '.</span>' + esc(c.titulo) +
+          '<input type="text" class="nota-in" list="sugerencias-nota" maxlength="80" placeholder="Comentario" data-rnota="' + si + ':' + ci + '" value="' + esc(c.nota || '') + '" aria-label="Comentario del canto"></span>' +
           '<span class="mov"><button class="btn-secondary" data-rsubir="' + si + ':' + ci + '"' + (ci === 0 ? ' disabled' : '') + ' aria-label="Subir">▲</button>' +
           '<button class="btn-secondary" data-rbajar="' + si + ':' + ci + '"' + (ci === s.items.length - 1 ? ' disabled' : '') + ' aria-label="Bajar">▼</button></span></div>';
       });
@@ -667,12 +689,13 @@
   function iniciarReorden() {
     const v = vistaEv;
     if (v.r.ocultas > 0 && !confirm(v.r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran: se QUITARÁN al guardar. ¿Continuar?')) return;
-    v.orden = (v.r.sets || []).filter(s => s.canciones.length).map(s => ({ nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '', items: s.canciones.map(c => ({ idCancion: c.idCancion, titulo: c.titulo })) }));
+    v.orden = (v.r.sets || []).filter(s => s.canciones.length).map(s => ({ nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '', items: s.canciones.map(c => ({ idCancion: c.idCancion, titulo: c.titulo, nota: c.nota || '' })) }));
     pintarReorden();
   }
   async function guardarOrden() {
     const v = vistaEv, ev = v.r.evento;
-    const sets = v.orden.map((s, i) => ({ numeroSet: i + 1, nombreSet: s.nombre, mensajeSet: s.mensaje, canciones: s.items.map(c => c.idCancion) }));
+    const sets = v.orden.map((s, i) => ({ numeroSet: i + 1, nombreSet: s.nombre, mensajeSet: s.mensaje, canciones: s.items.map(c => c.idCancion),
+      notas: Object.fromEntries(s.items.filter(c => (c.nota || '').trim()).map(c => [c.idCancion, c.nota.trim()])) }));
     const r = await api('actualizar_evento', { idEvento: v.idEvento, estado: ev.estado || 'Programado', nombreEvento: ev.nombre, fechaEvento: ev.fecha, mensajeGeneral: ev.mensaje || '', sets: sets });
     if (r && r.ok) { log(r.mensaje || 'Orden guardado.'); alert('Orden guardado.'); await verEvento(v.idEvento, v.nombre); }
     else { log('No se guardó el orden: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
@@ -855,7 +878,11 @@
   document.addEventListener('click', e => {
     const card = e.target.closest('.set-card');
     if (card && !card.classList.contains('activo') && e.target.tagName !== 'BUTTON') {
-      setActivo = Number(card.dataset.set); pintarConstructor();
+      setActivo = Number(card.dataset.set);
+      if (e.target.tagName === 'INPUT') {   // repintar todo le quitaría el foco al campo
+        document.querySelectorAll('.set-card').forEach(c => c.classList.toggle('activo', Number(c.dataset.set) === setActivo));
+        pintarSelectSet(); pintarSelector();
+      } else pintarConstructor();
     }
     const b = e.target.closest('button');
     if (!b) return;
@@ -882,7 +909,7 @@
     }
     else if (d.subir) { const p = d.subir.split(':').map(Number); moverCancion(p[0], p[1], -1); }
     else if (d.bajar) { const p = d.bajar.split(':').map(Number); moverCancion(p[0], p[1], 1); }
-    else if (d.quitar) { const p = d.quitar.split(':').map(Number); setsEv[p[0]].canciones.splice(p[1], 1); pintarConstructor(); }
+    else if (d.quitar) { const p = d.quitar.split(':').map(Number); { const st = setsEv[p[0]], idq = st.canciones[p[1]]; st.canciones.splice(p[1], 1); if (st.notas) delete st.notas[idq]; } pintarConstructor(); }
     else if (d.ordenarSet !== undefined) {
       const i = Number(d.ordenarSet); setsEv[i].canciones = ordenarIds(setsEv[i].canciones, $('sel-orden').value); pintarConstructor();
     }
