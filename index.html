@@ -44,6 +44,16 @@
     #lista-selector { max-height:220px; overflow-y:auto; border:1px solid #ccc; border-radius:4px; padding:8px; }
     #lista-selector label { display:block; font-size:14px; margin-bottom:8px; cursor:pointer; }
     #lista-selector input { width:auto; margin:0 6px 0 0; }
+    .set-card { border:2px solid #E2E8F0; border-radius:8px; padding:10px; margin:10px 0; background:#FBFBFA; }
+    .set-card.activo { border-color:var(--accent); background:#FFFDF7; }
+    .set-card .set-nombre { font-weight:bold; margin:0 0 6px; }
+    .cancion-fila { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #EDF2F7; }
+    .cancion-fila .pos { width:22px; text-align:center; font-weight:bold; color:var(--accent); }
+    .cancion-fila .nombre { flex:1; font-size:14px; }
+    .cancion-fila .meta { font-size:11px; color:#718096; display:block; margin-top:1px; }
+    .mov { display:flex; gap:4px; }
+    .mov button { width:40px; height:40px; padding:0; margin:0; font-size:15px; }
+    .pos-lista { display:inline-block; width:22px; color:var(--accent); font-weight:bold; }
     .oculto { display:none !important; }
     details summary { cursor:pointer; font-size:12px; color:#718096; margin-bottom:6px; }
   </style>
@@ -101,7 +111,7 @@
 
   <!-- Crear evento -->
   <div class="card oculto" id="vista-formulario">
-    <h3>Programar nuevo evento</h3>
+    <h3 id="titulo-formulario">Programar nuevo evento</h3>
     <label for="in-nombre"><b>Nombre del evento / culto</b></label>
     <input type="text" id="in-nombre" maxlength="120" placeholder="Ej: Culto dominical">
     <label for="in-fecha"><b>Fecha</b></label>
@@ -109,12 +119,33 @@
     <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
     <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
 
-    <label><b>Canciones del repertorio</b> <span class="aviso" id="contador-seleccion"></span></label>
-    <input type="search" id="buscar-selector" placeholder="Buscar canción…" autocomplete="off">
-    <div id="lista-selector"></div>
+    <div class="grupo">
+      <label><b>Sets y orden de los cantos</b> <span class="aviso" id="contador-seleccion"></span></label>
+      <div id="constructor-sets"></div>
+      <button class="btn-secondary" id="btn-add-set">➕ Agregar set</button>
+    </div>
 
     <div class="grupo">
-      <label>Sugerencia automática</label>
+      <label for="sel-orden">Orden automático (de lo más tranquilo a lo más dinámico)</label>
+      <select id="sel-orden">
+        <option value="tipo_energia" selected>Por tipo y luego energía (1 → 5)</option>
+        <option value="funcion_energia">Por función (Apertura → Cierre) y luego energía</option>
+        <option value="energia_asc">Solo energía, de menor a mayor</option>
+        <option value="energia_desc">Solo energía, de mayor a menor</option>
+      </select>
+      <button class="btn-secondary" id="btn-ordenar-todos">↕ Ordenar todos los sets automáticamente</button>
+      <div class="aviso">También puede ordenar un set con su propio botón y mover cada canto con ▲ ▼.</div>
+    </div>
+
+    <div class="grupo">
+      <label for="sel-set-activo"><b>Agregar cantos al set:</b></label>
+      <select id="sel-set-activo"></select>
+      <input type="search" id="buscar-selector" placeholder="Buscar canción…" autocomplete="off">
+      <div id="lista-selector"></div>
+    </div>
+
+    <div class="grupo">
+      <label>Sugerencia automática (se agrega al set elegido)</label>
       <div class="botones">
         <select id="sug-funcion" style="margin:0;">
           <option>Apertura</option><option selected>Adoración</option><option>Alabanza</option>
@@ -128,6 +159,7 @@
       <button class="btn-secondary" id="btn-sugerir" style="margin-top:8px;">⚡ Sugerir canciones</button>
     </div>
     <button class="btn-primary" id="btn-guardar-evento">💾 Guardar evento</button>
+    <button class="btn-secondary oculto" id="btn-cancelar-edicion">Cancelar edición</button>
   </div>
 
   <!-- Panel de ensayo (único; lo usan la biblioteca y los eventos) -->
@@ -177,13 +209,15 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxroJyy1gPdlily2-EJuiI9jDo-_jowQo4EbTuC5J6UQ2cUe__-29uxwD6iYT_yZS-2eA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwxd3KPg4CXLTndxMLHZoZsgru4sbETp46A0-kqUNKQtxfv2eC5DQySQijVOthuHey1sw/exec';
 
   let ID_TOKEN = null;
   let rol = '';
   let ocupado = false;
   let catalogo = [];            // canciones disponibles (solo con recursos)
-  let seleccionEvento = [];     // ids elegidos al programar
+  let setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [] }];   // constructor de evento: sets con cantos en orden
+  let setActivo = 0;            // set al que se agregan los cantos
+  let eventoEditando = null;    // {idEvento, estado} si se edita un evento existente
   let recursos = [];            // recursos de la canción abierta
   let cancionAbierta = '';      // id de la canción del panel de ensayo
   let claveEvento = '';         // clave de idempotencia del evento en curso
@@ -342,8 +376,8 @@
     const sets = (r.sets || []).filter(s => s.canciones.length);
     sets.forEach(s => {
       if (sets.length > 1) html += '<div class="set-titulo">' + esc(s.nombreSet || ('Set ' + s.numeroSet)) + '</div>';
-      s.canciones.forEach(c => {
-        html += '<div class="fila"><span class="nombre">' + esc(c.titulo) + '</span>' +
+      s.canciones.forEach((c, n) => {
+        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (n + 1) + '.</span>' + esc(c.titulo) + '</span>' +
           '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '">▶ Ensayar</button></div>';
       });
     });
@@ -352,7 +386,8 @@
       $('lista-repertorio').innerHTML += '<p class="aviso">⚠ ' + r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran.</p>';
     }
     $('acciones-evento').innerHTML = programa()
-      ? '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button>' : '';
+      ? '<div class="botones"><button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
+        '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button></div>' : '';
     mostrarVista('vista-repertorio');
     log('Repertorio cargado.');
   }
@@ -364,46 +399,170 @@
     else log('No se pudo archivar: ' + textoError(r && r.error));
   }
 
-  /* ---------------- Programar evento ---------------- */
-  $('btn-nuevo-evento').onclick = () => conOcupado(async () => {
-    cerrarPanel();
-    seleccionEvento = [];
-    $('in-nombre').value = ''; $('in-fecha').value = ''; $('in-mensaje').value = ''; $('buscar-selector').value = '';
-    mostrarVista('vista-formulario');
-    if (await cargarCatalogo()) { pintarSelector(); log('Seleccione las canciones del repertorio.'); }
-  });
+  /* ---------------- Programar / editar evento ---------------- */
+  const FUNCION_ORDEN = ['apertura', 'adoracion', 'alabanza', 'transicion', 'cierre'];
+  const TIPO_ORDEN = ['himno', 'canto', 'coro_e', 'alabanza'];
+  const clv = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const rango = (lista, v) => { const i = lista.indexOf(clv(v)); return i < 0 ? 99 : i; };
+  const infoCancion = id => catalogo.find(c => c.idCancion === id);
+  const MAX_SETS_UI = 6, MAX_CANC_UI = 30;
+
+  // Clave de orden: lo más tranquilo/espiritual primero, lo más dinámico al final
+  function claveOrden(c, criterio) {
+    const e = Number(c.energia) || 3;
+    if (criterio === 'funcion_energia') return [rango(FUNCION_ORDEN, c.funcion), e];
+    if (criterio === 'energia_asc') return [e, 0];
+    if (criterio === 'energia_desc') return [-e, 0];
+    return [rango(TIPO_ORDEN, c.tipo), e];                     // tipo_energia
+  }
+  function ordenarIds(ids, criterio) {
+    return ids.slice().sort((a, b) => {
+      const A = infoCancion(a) || {}, B = infoCancion(b) || {};
+      const ka = claveOrden(A, criterio), kb = claveOrden(B, criterio);
+      return (ka[0] - kb[0]) || (ka[1] - kb[1]) || String(A.titulo || '').localeCompare(String(B.titulo || ''), 'es');
+    });
+  }
+
+  function metaCancion(c) {
+    if (!c) return '';
+    const p = [];
+    if (c.tipo) p.push(c.tipo);
+    if (c.funcion) p.push(c.funcion);
+    if (c.energia) p.push('Energía ' + c.energia);
+    return p.join(' · ');
+  }
+  function setDeCancion(id) { return setsEv.findIndex(s => s.canciones.includes(id)); }
+  const totalCantos = () => setsEv.reduce((n, s) => n + s.canciones.length, 0);
+
+  function pintarConstructor(foco) {
+    $('constructor-sets').innerHTML = setsEv.map((s, i) => {
+      const filas = s.canciones.map((id, j) => {
+        const c = infoCancion(id);
+        return '<div class="cancion-fila"><span class="pos">' + (j + 1) + '</span>' +
+          '<span class="nombre">' + esc(c ? c.titulo : id) + '<span class="meta">' + esc(metaCancion(c)) + '</span></span>' +
+          '<span class="mov">' +
+          '<button class="btn-secondary" data-subir="' + i + ':' + j + '" title="Subir" aria-label="Subir"' + (j === 0 ? ' disabled' : '') + '>▲</button>' +
+          '<button class="btn-secondary" data-bajar="' + i + ':' + j + '" title="Bajar" aria-label="Bajar"' + (j === s.canciones.length - 1 ? ' disabled' : '') + '>▼</button>' +
+          '<button class="btn-danger" data-quitar="' + i + ':' + j + '" title="Quitar" aria-label="Quitar">✕</button></span></div>';
+      }).join('');
+      return '<div class="set-card' + (i === setActivo ? ' activo' : '') + '" data-set="' + i + '">' +
+        '<input type="text" class="set-nombre" data-setnombre="' + i + '" maxlength="80" value="' + esc(s.nombre) + '" aria-label="Nombre del set ' + (i + 1) + '">' +
+        (filas || '<div class="aviso">Sin cantos todavía. Agréguelos desde la lista de abajo.</div>') +
+        '<div class="botones" style="margin-top:8px;">' +
+        '<button class="btn-secondary btn-small" data-ordenar-set="' + i + '"' + (s.canciones.length < 2 ? ' disabled' : '') + '>↕ Ordenar este set</button>' +
+        (setsEv.length > 1 ? '<button class="btn-danger btn-small" data-quitar-set="' + i + '">🗑 Quitar set</button>' : '') +
+        '</div></div>';
+    }).join('');
+    pintarSelectSet();
+    pintarSelector();
+    $('btn-add-set').disabled = setsEv.length >= MAX_SETS_UI;
+    $('contador-seleccion').textContent = '(' + totalCantos() + ' cantos en ' + setsEv.length + ' set' + (setsEv.length === 1 ? '' : 's') + ')';
+    if (foco) { const b = document.querySelector('[' + foco.attr + '="' + foco.val + '"]'); if (b && !b.disabled) b.focus(); }
+  }
+
+  function pintarSelectSet() {
+    if (setActivo >= setsEv.length) setActivo = setsEv.length - 1;
+    $('sel-set-activo').innerHTML = setsEv.map((s, i) =>
+      '<option value="' + i + '"' + (i === setActivo ? ' selected' : '') + '>' + esc(s.nombre || ('Set ' + (i + 1))) + '</option>').join('');
+  }
 
   function pintarSelector() {
     const q = $('buscar-selector').value.trim().toLowerCase();
     const lista = catalogo.filter(c => !q || c.titulo.toLowerCase().includes(q));
     $('lista-selector').innerHTML = lista.length
-      ? lista.map(c => '<label><input type="checkbox" data-sel="' + esc(c.idCancion) + '"' +
-          (seleccionEvento.includes(c.idCancion) ? ' checked' : '') + '>' + esc(c.titulo) + '</label>').join('')
+      ? lista.map(c => {
+          const en = setDeCancion(c.idCancion);
+          return '<div class="fila"><span class="nombre">' + esc(c.titulo) + '<span class="meta">' + esc(metaCancion(c)) +
+            (en >= 0 ? ' · ✓ en ' + esc(setsEv[en].nombre) : '') + '</span></span>' +
+            '<button class="btn-accent btn-small" data-agregar="' + esc(c.idCancion) + '"' + (en >= 0 ? ' disabled' : '') + '>＋ Agregar</button></div>';
+        }).join('')
       : '<span class="aviso">No hay canciones con recursos disponibles.</span>';
-    $('contador-seleccion').textContent = '(' + seleccionEvento.length + ' elegidas)';
   }
+
+  function nuevoConstructor() {
+    setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [] }]; setActivo = 0; eventoEditando = null;
+    $('buscar-selector').value = '';
+  }
+  function configurarFormulario() {
+    $('titulo-formulario').textContent = eventoEditando ? 'Editar repertorio del evento' : 'Programar nuevo evento';
+    $('btn-guardar-evento').textContent = eventoEditando ? '💾 Guardar cambios' : '💾 Guardar evento';
+    $('btn-cancelar-edicion').classList.toggle('oculto', !eventoEditando);
+  }
+
+  $('btn-nuevo-evento').onclick = () => conOcupado(async () => {
+    cerrarPanel();
+    nuevoConstructor(); claveEvento = '';
+    $('in-nombre').value = ''; $('in-fecha').value = ''; $('in-mensaje').value = '';
+    configurarFormulario();
+    mostrarVista('vista-formulario');
+    if (await cargarCatalogo()) { pintarConstructor(); log('Agregue cantos a cada set, ordénelos automáticamente o con ▲ ▼.'); }
+  });
+
+  async function editarEvento(idEvento) {
+    log('Cargando el evento para editar…');
+    cerrarPanel();
+    if (!(await cargarCatalogo())) return;
+    const r = await api('evento_activo', { idEvento: idEvento });
+    if (!r || !r.ok || !r.evento) { log('No se pudo cargar el evento: ' + textoError(r && r.error)); return; }
+    if (r.ocultas > 0 && !confirm(r.ocultas + ' canción(es) de este evento no tienen recursos y no se pueden editar aquí: se QUITARÁN al guardar. ¿Continuar?')) return;
+    nuevoConstructor();
+    const sets = (r.sets || []).slice().sort((a, b) => a.numeroSet - b.numeroSet);
+    setsEv = sets.length ? sets.map(s => ({ nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '',
+      canciones: s.canciones.map(c => c.idCancion).filter(id => infoCancion(id)) })) : setsEv;
+    eventoEditando = { idEvento: r.evento.idEvento, estado: r.evento.estado || '' };
+    $('in-nombre').value = r.evento.nombre || ''; $('in-fecha').value = r.evento.fecha || ''; $('in-mensaje').value = r.evento.mensaje || '';
+    configurarFormulario(); mostrarVista('vista-formulario'); pintarConstructor();
+    log('Edite el orden y guarde los cambios.');
+  }
+
   $('buscar-selector').oninput = pintarSelector;
+  $('sel-set-activo').onchange = () => { setActivo = Number($('sel-set-activo').value) || 0; pintarConstructor(); };
+  $('btn-add-set').onclick = () => {
+    if (setsEv.length >= MAX_SETS_UI) return;
+    setsEv.push({ nombre: 'Set ' + (setsEv.length + 1), mensaje: '', canciones: [] });
+    setActivo = setsEv.length - 1; pintarConstructor();
+  };
+  $('btn-ordenar-todos').onclick = () => {
+    const crit = $('sel-orden').value;
+    setsEv.forEach(s => { s.canciones = ordenarIds(s.canciones, crit); });
+    pintarConstructor(); log('Todos los sets se ordenaron automáticamente.');
+  };
+  $('btn-cancelar-edicion').onclick = () => conOcupado(cargarEventos);
 
   $('btn-sugerir').onclick = () => conOcupado(async () => {
     const r = await api('sugerir_canciones', { funcion: $('sug-funcion').value, energia: Number($('sug-energia').value), cantidad: 5 });
     if (r && r.ok && r.sugerencias) {
-      seleccionEvento = r.sugerencias.map(s => s.idCancion);
-      pintarSelector();
-      log('Se sugirieron ' + seleccionEvento.length + ' canciones. Puede ajustarlas.');
+      const s = setsEv[setActivo]; let n = 0;
+      r.sugerencias.forEach(x => {
+        if (setDeCancion(x.idCancion) < 0 && s.canciones.length < MAX_CANC_UI) { s.canciones.push(x.idCancion); n++; }
+      });
+      s.canciones = ordenarIds(s.canciones, $('sel-orden').value);
+      pintarConstructor();
+      log('Se agregaron ' + n + ' canciones sugeridas a «' + s.nombre + '» y se ordenaron. Puede ajustarlas.');
     } else log('No se pudieron obtener sugerencias: ' + textoError(r && r.error));
   });
 
   $('btn-guardar-evento').onclick = () => conOcupado(async () => {
     const nombre = $('in-nombre').value.trim(), fecha = $('in-fecha').value;
     if (!nombre || !fecha) { alert('Ingrese el nombre y la fecha del evento.'); return; }
-    if (!seleccionEvento.length && !confirm('No eligió canciones. ¿Guardar el evento vacío?')) return;
-    if (!claveEvento) claveEvento = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
-    const r = await api('guardar_evento', {
-      idempotencia: claveEvento, nombreEvento: nombre, fechaEvento: fecha, estado: 'Programado', mensajeGeneral: $('in-mensaje').value.trim(),
-      sets: [{ numeroSet: 1, nombreSet: 'Servicio principal', canciones: seleccionEvento }]
-    });
-    if (r && r.ok) { claveEvento = ''; log(r.repetido ? 'El evento ya estaba guardado (reintento detectado): ' + r.idEvento : 'Evento creado: ' + r.idEvento); alert('Evento guardado.'); await cargarEventos(); }
-    else { log('No se guardó el evento: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
+    const sets = setsEv.filter(s => s.canciones.length).map((s, i) => ({
+      numeroSet: i + 1, nombreSet: (s.nombre || '').trim() || ('Set ' + (i + 1)), mensajeSet: s.mensaje || '', canciones: s.canciones.slice() }));
+    if (!sets.length && !confirm('No eligió canciones. ¿Guardar el evento vacío?')) return;
+    const vacios = setsEv.length - sets.length;
+    if (sets.length && vacios > 0 && !confirm(vacios + ' set(s) sin cantos no se guardarán. ¿Continuar?')) return;
+    const comun = { nombreEvento: nombre, fechaEvento: fecha, mensajeGeneral: $('in-mensaje').value.trim(), sets: sets };
+    let r;
+    if (eventoEditando) {
+      r = await api('actualizar_evento', Object.assign({ idEvento: eventoEditando.idEvento, estado: eventoEditando.estado || 'Programado' }, comun));
+    } else {
+      if (!claveEvento) claveEvento = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+      r = await api('guardar_evento', Object.assign({ idempotencia: claveEvento, estado: 'Programado' }, comun));
+    }
+    if (r && r.ok) {
+      claveEvento = ''; eventoEditando = null;
+      log(eventoEditando === null && r.repetido ? 'El evento ya estaba guardado (reintento detectado): ' + r.idEvento : (r.mensaje || 'Evento guardado.') + ' ' + r.idEvento);
+      alert('Evento guardado.'); await cargarEventos();
+    } else { log('No se guardó el evento: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
   });
 
   /* ---------------- Sincronización (admin) ---------------- */
@@ -523,17 +682,48 @@
   });
 
   /* ---------------- Delegación de clics en listas ---------------- */
+  function moverCancion(i, j, d) {
+    const l = setsEv[i].canciones, k = j + d;
+    if (k < 0 || k >= l.length) return;
+    const t = l[j]; l[j] = l[k]; l[k] = t;
+    pintarConstructor({ attr: d < 0 ? 'data-subir' : 'data-bajar', val: i + ':' + k });
+  }
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.setnombre !== undefined) {
+      setsEv[Number(t.dataset.setnombre)].nombre = t.value;
+      const op = $('sel-set-activo').options[Number(t.dataset.setnombre)]; if (op) op.textContent = t.value || ('Set ' + (Number(t.dataset.setnombre) + 1));
+    }
+  });
   document.addEventListener('click', e => {
-    const b = e.target.closest('button, input[data-sel]');
+    const card = e.target.closest('.set-card');
+    if (card && !card.classList.contains('activo') && e.target.tagName !== 'BUTTON') {
+      setActivo = Number(card.dataset.set); pintarConstructor();
+    }
+    const b = e.target.closest('button');
     if (!b) return;
-    if (b.dataset.ensayo) conOcupado(() => abrirEnsayo(b.dataset.ensayo, b.dataset.titulo));
-    else if (b.dataset.evento) conOcupado(() => verEvento(b.dataset.evento, b.dataset.nombre));
-    else if (b.dataset.archivar) conOcupado(() => archivarEvento(b.dataset.archivar));
-    else if (b.dataset.sel !== undefined) {
-      const id = b.dataset.sel, i = seleccionEvento.indexOf(id);
-      if (b.checked && i < 0) seleccionEvento.push(id);
-      if (!b.checked && i > -1) seleccionEvento.splice(i, 1);
-      $('contador-seleccion').textContent = '(' + seleccionEvento.length + ' elegidas)';
+    const d = b.dataset;
+    if (d.ensayo) conOcupado(() => abrirEnsayo(d.ensayo, d.titulo));
+    else if (d.evento) conOcupado(() => verEvento(d.evento, d.nombre));
+    else if (d.archivar) conOcupado(() => archivarEvento(d.archivar));
+    else if (d.editar) conOcupado(() => editarEvento(d.editar));
+    else if (ocupado) return;
+    else if (d.agregar) {
+      const s = setsEv[setActivo];
+      if (setDeCancion(d.agregar) >= 0) return;
+      if (s.canciones.length >= MAX_CANC_UI) { alert('Un set admite hasta ' + MAX_CANC_UI + ' cantos.'); return; }
+      s.canciones.push(d.agregar); pintarConstructor();
+    }
+    else if (d.subir) { const p = d.subir.split(':').map(Number); moverCancion(p[0], p[1], -1); }
+    else if (d.bajar) { const p = d.bajar.split(':').map(Number); moverCancion(p[0], p[1], 1); }
+    else if (d.quitar) { const p = d.quitar.split(':').map(Number); setsEv[p[0]].canciones.splice(p[1], 1); pintarConstructor(); }
+    else if (d.ordenarSet !== undefined) {
+      const i = Number(d.ordenarSet); setsEv[i].canciones = ordenarIds(setsEv[i].canciones, $('sel-orden').value); pintarConstructor();
+    }
+    else if (d.quitarSet !== undefined) {
+      const i = Number(d.quitarSet);
+      if (setsEv[i].canciones.length && !confirm('¿Quitar «' + setsEv[i].nombre + '» con sus ' + setsEv[i].canciones.length + ' cantos?')) return;
+      setsEv.splice(i, 1); if (setActivo >= setsEv.length) setActivo = setsEv.length - 1; pintarConstructor();
     }
   });
 </script>
