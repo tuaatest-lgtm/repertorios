@@ -53,6 +53,8 @@
     .cancion-fila .meta { font-size:11px; color:#718096; display:block; margin-top:1px; }
     .mov { display:flex; gap:4px; }
     .mov button { width:40px; height:40px; padding:0; margin:0; font-size:15px; }
+    .fila.usada { background:#FFF8E6; border-left:4px solid var(--accent); padding-left:8px; }
+    .badge-usada { color:#8A6D1F; font-weight:bold; }
     .pos-lista { display:inline-block; width:22px; color:var(--accent); font-weight:bold; }
     .oculto { display:none !important; }
     details summary { cursor:pointer; font-size:12px; color:#718096; margin-bottom:6px; }
@@ -209,8 +211,9 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwPWE1PdTS6NFYOnZBAWEbpimQoHsik0lN00QLOLYeE24aefAHe-TTdJ3jqQOF01_x-Xw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxi1PD_DWKAN9J0lgEbZhmTDzQrDqRff09qbQ60ITYNHKcKjlBR0V3wvIjAngI0evxIfQ/exec';
 
+  const VERSION_SERVIDOR_ESPERADA = 'v3.6.1';
   let ID_TOKEN = null;
   let rol = '';
   let ocupado = false;
@@ -313,6 +316,11 @@
         b.classList.toggle('oculto', !((need === 'admin' && rol === 'admin') || (need === 'programa' && programa())));
       });
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
+      if (!String(r.version || '').startsWith(VERSION_SERVIDOR_ESPERADA)) {
+        $('estado-sesion').innerHTML += '<br><b style="color:#C53030">⚠ El servidor está desactualizado (' + esc(r.version || 'desconocido') +
+          '; se espera ' + esc(VERSION_SERVIDOR_ESPERADA) + '). En Apps Script: Implementar → Administrar implementaciones → lápiz → Nueva versión.</b>';
+        log('AVISO: servidor desactualizado. Publique una nueva versión del Código.gs.');
+      }
     } else {
       $('menu').classList.add('oculto');
       $('estado-sesion').textContent = r ? textoError(r.error) : 'No se pudo verificar la sesión.';
@@ -431,7 +439,9 @@
     if (c.energia) p.push('Energía ' + c.energia);
     return p.join(' · ');
   }
-  function setDeCancion(id) { return setsEv.findIndex(s => s.canciones.includes(id)); }
+  // Un canto puede estar en varios sets (pero no repetido dentro del mismo set)
+  const setsDeCancion = id => setsEv.map((s, i) => (s.canciones.includes(id) ? i : -1)).filter(i => i >= 0);
+  const enSetActivo = id => !!(setsEv[setActivo] && setsEv[setActivo].canciones.includes(id));
   const totalCantos = () => setsEv.reduce((n, s) => n + s.canciones.length, 0);
 
   function pintarConstructor(foco) {
@@ -471,10 +481,10 @@
     const lista = catalogo.filter(c => !q || c.titulo.toLowerCase().includes(q));
     $('lista-selector').innerHTML = lista.length
       ? lista.map(c => {
-          const en = setDeCancion(c.idCancion);
-          return '<div class="fila"><span class="nombre">' + esc(c.titulo) + '<span class="meta">' + esc(metaCancion(c)) +
-            (en >= 0 ? ' · ✓ en ' + esc(setsEv[en].nombre) : '') + '</span></span>' +
-            '<button class="btn-accent btn-small" data-agregar="' + esc(c.idCancion) + '"' + (en >= 0 ? ' disabled' : '') + '>＋ Agregar</button></div>';
+          const en = setsDeCancion(c.idCancion), aqui = enSetActivo(c.idCancion);
+          return '<div class="fila' + (en.length ? ' usada' : '') + '"><span class="nombre">' + esc(c.titulo) + '<span class="meta">' + esc(metaCancion(c)) +
+            (en.length ? ' <span class="badge-usada">· ✓ Elegido en: ' + en.map(i => esc(setsEv[i].nombre || ('Set ' + (i + 1)))).join(', ') + '</span>' : '') + '</span></span>' +
+            '<button class="btn-accent btn-small" data-agregar="' + esc(c.idCancion) + '"' + (aqui ? ' disabled' : '') + '>' + (aqui ? '✓ En este set' : '＋ Agregar') + '</button></div>';
         }).join('')
       : '<span class="aviso">No hay canciones con recursos disponibles.</span>';
   }
@@ -534,7 +544,7 @@
     if (r && r.ok && r.sugerencias) {
       const s = setsEv[setActivo]; let n = 0;
       r.sugerencias.forEach(x => {
-        if (setDeCancion(x.idCancion) < 0 && s.canciones.length < MAX_CANC_UI) { s.canciones.push(x.idCancion); n++; }
+        if (!enSetActivo(x.idCancion) && s.canciones.length < MAX_CANC_UI) { s.canciones.push(x.idCancion); n++; }
       });
       s.canciones = ordenarIds(s.canciones, $('sel-orden').value);
       pintarConstructor();
@@ -710,7 +720,7 @@
     else if (ocupado) return;
     else if (d.agregar) {
       const s = setsEv[setActivo];
-      if (setDeCancion(d.agregar) >= 0) return;
+      if (enSetActivo(d.agregar)) return;
       if (s.canciones.length >= MAX_CANC_UI) { alert('Un set admite hasta ' + MAX_CANC_UI + ' cantos.'); return; }
       s.canciones.push(d.agregar); pintarConstructor();
     }
