@@ -37,6 +37,10 @@
           overflow-wrap:anywhere; height:150px; overflow-y:auto; font-size:12px; font-family:monospace; margin:0; }
     input, select, textarea { width:100%; padding:10px; margin:4px 0 10px; border:1px solid #ccc;
           border-radius:4px; font-size:14px; }
+    /* Listas de partes del panel de ensayo («— Seleccione —»): letra al 50 % (14px -> 7px). Para cambiarla, edite --fuente-selector */
+    :root { --fuente-selector: 7px; }
+    #sel-audio, #sel-pdf, #sel-audio option, #sel-pdf option { font-size: var(--fuente-selector); }
+    #sel-audio, #sel-pdf { padding: 8px 10px; }
     .grupo { border-top:1px solid #E2E8F0; padding-top:12px; margin-top:12px; }
     .grupo label { font-size:13px; font-weight:bold; color:var(--primary); }
     .botones { display:flex; gap:8px; }
