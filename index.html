@@ -37,10 +37,15 @@
           overflow-wrap:anywhere; height:150px; overflow-y:auto; font-size:12px; font-family:monospace; margin:0; }
     input, select, textarea { width:100%; padding:10px; margin:4px 0 10px; border:1px solid #ccc;
           border-radius:4px; font-size:14px; }
-    /* Listas de partes del panel de ensayo («— Seleccione —»): letra al 50 % (14px -> 7px). Para cambiarla, edite --fuente-selector */
-    :root { --fuente-selector: 7px; }
-    #sel-audio, #sel-pdf, #sel-audio option, #sel-pdf option { font-size: var(--fuente-selector); }
-    #sel-audio, #sel-pdf { padding: 8px 10px; }
+    /* Listas de partes del panel de ensayo: la caja «— Seleccione —» queda igual (14px); los nombres de la lista desplegada van a 50 % (7px) en una sola línea.
+       Para cambiar el tamaño de la lista, edite --fuente-lista. */
+    :root { --fuente-lista: 7px; }
+    .lista-sel .caja { text-align:left; background:#fff; color:var(--graphite); font-weight:normal; font-size:14px; border:1px solid #ccc; border-radius:4px;
+                       padding:10px; margin:4px 0 10px; width:100%; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lista-sel .caja::after { content:' ▾'; float:right; }
+    .lista-sel .panel { max-height:260px; overflow-y:auto; border:1px solid #ccc; border-radius:4px; background:#fff; margin:-6px 0 10px; }
+    .lista-sel .item { font-size:var(--fuente-lista); padding:9px 10px; border-bottom:1px solid #EDF2F7; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lista-sel .item:hover, .lista-sel .item.sel { background:#FFFBF0; }
     .grupo { border-top:1px solid #E2E8F0; padding-top:12px; margin-top:12px; }
     .grupo label { font-size:13px; font-weight:bold; color:var(--primary); }
     .botones { display:flex; gap:8px; }
@@ -780,18 +785,44 @@
   $('btn-sync-previa').onclick = () => conOcupado(() => sincronizar(true));
 
   /* ---------------- Panel de ensayo ---------------- */
+  /* Lista desplegable propia (el selector nativo del celular no permite cambiar la letra de sus opciones) */
+  const listas = {};
+  function vincularLista(id) {
+    const sel = $(id), wrap = document.createElement('div'); wrap.className = 'lista-sel';
+    const caja = document.createElement('button'); caja.type = 'button'; caja.className = 'caja';
+    const panel = document.createElement('div'); panel.className = 'panel oculto';
+    wrap.appendChild(caja); wrap.appendChild(panel); sel.after(wrap); sel.classList.add('oculto');
+    const refrescar = () => {
+      const op = sel.options[sel.selectedIndex];
+      caja.textContent = (op && op.value) ? op.text : '— Seleccione —';
+      panel.innerHTML = '';
+      Array.from(sel.options).filter(o => o.value).forEach(o => {
+        const it = document.createElement('div'); it.className = 'item' + (o.value === sel.value ? ' sel' : ''); it.textContent = o.text; it.title = o.text;
+        it.onclick = () => { sel.value = o.value; panel.classList.add('oculto'); refrescar(); sel.dispatchEvent(new Event('change')); };
+        panel.appendChild(it);
+      });
+    };
+    caja.onclick = () => { if (!panel.classList.contains('oculto')) { panel.classList.add('oculto'); return; }
+      Object.values(listas).forEach(l => l.cerrar()); if (panel.children.length) panel.classList.remove('oculto'); };
+    listas[id] = { refrescar: refrescar, cerrar: () => panel.classList.add('oculto') };
+    refrescar();
+  }
+  document.addEventListener('click', e => { if (!e.target.closest('.lista-sel')) Object.values(listas).forEach(l => l.cerrar()); });
+  function refrescarListas() { Object.values(listas).forEach(l => l.refrescar()); }
+  vincularLista('sel-audio'); vincularLista('sel-pdf');
+
   function cerrarAudio() {
     seqDetener();
     const a = $('audio'); a.pause(); a.removeAttribute('src'); a.load();
     if (urlAudio) { URL.revokeObjectURL(urlAudio); urlAudio = null; }
     $('zona-audio').classList.add('oculto');
-    $('sel-audio').value = '';
+    $('sel-audio').value = ''; refrescarListas();
   }
   function cerrarPdf() {
     idRender++;
     if (pdfActual) { try { pdfActual.destroy(); } catch (e) {} pdfActual = null; }
     $('visor-pdf').innerHTML = ''; $('visor-pdf').classList.add('oculto');
-    $('sel-pdf').value = '';
+    $('sel-pdf').value = ''; refrescarListas();
   }
   function cerrarPanel() { cerrarAudio(); seqLimpiar(); cerrarPdf(); $('panel-ensayo').classList.add('oculto'); }
   $('btn-cerrar-panel').onclick = cerrarPanel;
@@ -808,7 +839,7 @@
     const opciones = tipo => '<option value="">— Seleccione —</option>' + recursos.filter(x => x.tipo === tipo)
       .map(x => '<option value="' + esc(x.idArchivo) + '">' + esc(x.parte) + ' — ' + esc(x.nombreArchivo) + '</option>').join('');
     $('sel-audio').innerHTML = opciones('MP3');
-    $('sel-pdf').innerHTML = opciones('PDF');
+    $('sel-pdf').innerHTML = opciones('PDF'); refrescarListas();
     const hayA = recursos.some(x => x.tipo === 'MP3'), hayP = recursos.some(x => x.tipo === 'PDF');
     $('bloque-audio').classList.toggle('oculto', !hayA);
     $('bloque-pdf').classList.toggle('oculto', !hayP);
@@ -935,7 +966,7 @@
     log('Cargando documento…');
     const r = await api('pdf', { idCancion: cancionAbierta, idArchivo: id });
     if (!r || !r.ok) { log('No se pudo cargar el documento: ' + textoError(r && r.error)); return; }
-    $('sel-pdf').value = id;
+    $('sel-pdf').value = id; refrescarListas();
     const mio = ++idRender;
     const cont = $('visor-pdf'); cont.innerHTML = ''; cont.classList.remove('oculto');
     try {
