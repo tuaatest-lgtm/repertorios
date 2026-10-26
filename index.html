@@ -297,7 +297,7 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzsenADDJdsfUD37LWvwi1XYV3PkRE32aivNwnWql9SMsuNZ_Gip4fQ_z4zj3tUt6DZ/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v3.9.1';
   let ID_TOKEN = null;
@@ -1082,6 +1082,72 @@
     $('btn-loop').textContent = '🔁 Repetir: ' + (a.loop ? 'SÍ' : 'NO');
   };
 
+  /* ---------------- Marca de agua sobre cada página del documento ---------------- */
+  // Se dibuja SOLO en la imagen que se muestra; el PDF original no se modifica.
+  const MARCA = { opacidad: 0.19, ancho: 0.36, angulo: -28, color: [18, 48, 82] };
+  let marcaLista;   // undefined = sin preparar; null = no hay logo (se usa texto)
+  function cargarImagen(url) {
+    return new Promise(res => { const im = new Image(); im.onload = () => res(im.naturalWidth ? im : null); im.onerror = () => res(null); im.src = url; });
+  }
+  // Convierte CUALQUIER logo (blanco sobre negro, o con fondo transparente) en una silueta de un solo color
+  // recortada a su contenido. Así se ve igual aunque el logo original sea blanco.
+  function siluetaDeLogo(im) {
+    const W = im.naturalWidth, H = im.naturalHeight, c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0);
+    const d = x.getImageData(0, 0, W, H), p = d.data;
+    const esquina = [p[0], p[1], p[2], p[3]];
+    const conAlfa = esquina[3] < 40;                          // fondo transparente: la máscara es el alfa
+    const fondoOscuro = (esquina[0] + esquina[1] + esquina[2]) / 3 < 128;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let i = 0, k = 0; i < p.length; i += 4, k++) {
+      const lum = Math.max(p[i], p[i + 1], p[i + 2]) / 255;
+      let m = conAlfa ? p[i + 3] / 255 : (fondoOscuro ? lum : 1 - Math.min(p[i], p[i + 1], p[i + 2]) / 255);
+      m = Math.max(0, Math.min(1, (m - 0.12) / 0.5));         // endurece el borde y descarta ruido de compresión
+      p[i] = MARCA.color[0]; p[i + 1] = MARCA.color[1]; p[i + 2] = MARCA.color[2]; p[i + 3] = Math.round(m * 255);
+      if (m > 0.3) { const px = k % W, py = (k / W) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+    }
+    if (x1 < 0) return null;
+    x.putImageData(d, 0, 0);
+    const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+    o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return o;
+  }
+  async function prepararMarca() {
+    if (marcaLista !== undefined) return marcaLista;
+    try {
+      const cab = $('logo');
+      const fuentes = [];
+      if (cab && cab.complete && cab.naturalWidth > 0) fuentes.push(cab.currentSrc || cab.src);
+      LOGOS.forEach(n => fuentes.push(n));
+      for (const f of fuentes) {
+        const im = await cargarImagen(f);
+        if (im) { const s = siluetaDeLogo(im); if (s) return (marcaLista = s); }
+      }
+    } catch (e) { /* queda el texto */ }
+    return (marcaLista = null);
+  }
+  function aplicarMarca(canvas, sil) {
+    const x = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+    const w = Math.max(120, W * MARCA.ancho);
+    const h = sil ? w * sil.height / sil.width : w * 0.2;
+    const px = w * 1.2, py = h * 2.7;                         // separación entre repeticiones
+    x.save();
+    x.globalCompositeOperation = 'source-over';               // se ve igual sobre blanco o gris
+    x.globalAlpha = MARCA.opacidad;
+    x.translate(W / 2, H / 2); x.rotate(MARCA.angulo * Math.PI / 180);
+    const R = Math.hypot(W, H) / 2 + w;
+    x.fillStyle = 'rgb(' + MARCA.color.join(',') + ')'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = '700 ' + Math.round(h * 0.8) + 'px Arial, sans-serif';
+    let fila = 0;
+    for (let y = -R; y <= R; y += py, fila++) {
+      for (let cx = -R + (fila % 2 ? px / 2 : 0); cx <= R; cx += px) {
+        if (sil) x.drawImage(sil, cx - w / 2, y - h / 2, w, h); else x.fillText('PALERMO MUSIC', cx, y);
+      }
+    }
+    x.restore();
+  }
+
   $('btn-abrir-pdf').onclick = () => conOcupado(async () => {
     const id = $('sel-pdf').value;
     if (!id) { log('Seleccione un documento.'); return; }
@@ -1093,6 +1159,7 @@
     const mio = ++idRender;
     const cont = $('visor-pdf'); cont.innerHTML = ''; cont.classList.remove('oculto');
     try {
+      const sil = await prepararMarca();
       const pdf = await pdfjsLib.getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise;
       if (mio !== idRender) { pdf.destroy(); return; }
       pdfActual = pdf;
@@ -1106,8 +1173,9 @@
         canvas.width = vp.width; canvas.height = vp.height;
         cont.appendChild(canvas);
         await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        aplicarMarca(canvas, sil);
       }
-      log('Documento abierto (' + pdf.numPages + ' página(s)).');
+      log('Documento abierto (' + pdf.numPages + ' página(s)) con marca de agua (' + (sil ? 'logo' : 'texto') + ').');
     } catch (e) { log('No se pudo mostrar el documento: ' + e.message); cerrarPdf(); }
   });
 
