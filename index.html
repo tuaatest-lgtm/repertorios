@@ -28,6 +28,20 @@
     .fila { display:flex; align-items:center; justify-content:space-between; gap:10px;
             padding:9px 0; border-bottom:1px solid #EDF2F7; }
     .fila:last-child { border-bottom:none; }
+    .gu-fila { border-bottom:1px solid #EDF2F7; }
+    .gu-fila summary { color:var(--graphite); display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 0; cursor:pointer; list-style:none; }
+    .gu-fila summary::-webkit-details-marker { display:none; }
+    .gu-fila summary::after { content:'▾'; color:#718096; margin-left:4px; }
+    .gu-fila[open] summary::after { content:'▴'; }
+    .gu-quien { flex:1; min-width:0; font-size:15px; overflow-wrap:anywhere; }
+    .gu-quien .meta { font-size:11px; color:#718096; display:block; margin-top:2px; }
+    .gu-ins-wrap { display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end; max-width:48%; }
+    .gu-ins { font-size:11px; font-weight:bold; color:#fff; border-radius:10px; padding:2px 8px; white-space:nowrap; }
+    .gu-ins.gu-cargo { background:#E2E8F0; color:var(--graphite); }
+    .gu-edit { padding:0 0 12px; }
+    .gu-cargos { display:flex; flex-wrap:wrap; gap:6px 16px; margin:4px 0 10px; }
+    .gu-chk { display:flex; align-items:center; gap:6px; font-size:15px; margin:0; font-weight:normal; }
+    .gu-chk input { width:auto; margin:0; min-height:0; }
     .fila .nombre { flex:1; font-size:15px; }
     .fila .meta { font-size:11px; color:#718096; display:block; margin-top:2px; }
     .set-titulo { margin:14px 0 2px; font-size:13px; font-weight:bold; color:var(--accent); text-transform:uppercase; }
@@ -106,6 +120,7 @@
     <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar catálogo con Drive</button>
     <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="sync">🔎 Vista previa de la sincronización (no cambia nada)</button>
     <button class="btn-primary oculto" id="btn-usuarios" data-rol="admin">👥 Registro de usuarios</button>
+    <button class="btn-primary oculto" id="btn-gestion" data-rol="sync">🛠️ Gestión de usuarios</button>
   </div>
 
   <!-- Biblioteca -->
@@ -205,8 +220,25 @@
         <button class="btn-accent" id="btn-activar-todos">✅ Activar todos</button>
         <button class="btn-secondary" id="btn-actualizar-pendientes">↻ Actualizar</button>
       </div>
-      <div class="aviso">Los usuarios activados solo pueden ver repertorios y ensayar. Para darles un cargo (editor, programador o administrador) edite la hoja Usuarios.</div>
+      <div class="aviso">Los usuarios activados solo pueden ver repertorios y ensayar. Para darles un cargo (editor, programador o administrador) use «Gestión de usuarios».</div>
     </div>
+  </div>
+
+  <!-- Gestión de usuarios (administrador y programador) -->
+  <div class="card oculto" id="vista-gestion">
+    <h3>Gestión de usuarios</h3>
+    <div id="gu-resumen" class="aviso"></div>
+    <div class="botones" style="margin:6px 0;">
+      <input type="search" id="gu-buscar" placeholder="Buscar por nombre o correo" aria-label="Buscar usuario" style="margin:0;">
+    </div>
+    <label for="gu-filtro" style="font-size:13px;"><b>Mostrar</b></label>
+    <select id="gu-filtro">
+      <option value="">Todos</option><option value="Pendiente">Pendientes</option><option value="Activo">Activos</option><option value="Inactivo">Inactivos</option>
+      <option value="__cargo">Con algún cargo</option>
+    </select>
+    <div id="gu-lista"></div>
+    <button class="btn-secondary" id="btn-gu-actualizar">↻ Actualizar</button>
+    <div class="aviso">Toque un usuario para ver y cambiar su estado y sus cargos. Los cambios se guardan en la hoja Usuarios y quedan registrados en la hoja Cambios. Solo un administrador puede dar o quitar el cargo de Administrador.</div>
   </div>
 
   <!-- Panel de ensayo (único; lo usan la biblioteca y los eventos) -->
@@ -297,9 +329,9 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzsenADDJdsfUD37LWvwi1XYV3PkRE32aivNwnWql9SMsuNZ_Gip4fQ_z4zj3tUt6DZ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwMMK2JNg9E_07BrpJ3_5xEih2jszCVhkyPHKoRY_1UZTcm-fWAtaj5Zokpo8B9eJra6A/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.9.1';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.10.0';
   let ID_TOKEN = null;
   let rol = '';
   let permisos = { programar: false, reordenar: false, sincronizar: false, usuarios: false };   // los define el servidor
@@ -349,6 +381,15 @@
     RECURSO_NO_REGISTRADO: 'El archivo ya no está en la carpeta de esta canción. Cierre y vuelva a abrir el panel.',
     CANCION_NO_DISPONIBLE: 'La canción no está disponible (sin MP3/PDF o inactiva).',
     SOLO_ADMIN: 'Solo un administrador puede hacer esto.',
+    SIN_PERMISO: 'Solo un administrador o programador activo puede usar la gestión de usuarios.',
+    NO_AUTOMODIFICAR: 'No puede modificar su propia cuenta.',
+    SOLO_ADMIN_TOCA_ADMIN: 'Solo un administrador puede modificar a otro administrador.',
+    SOLO_ADMIN_OTORGA_ADMIN: 'Solo un administrador puede dar o quitar el cargo de Administrador.',
+    ULTIMO_ADMIN: 'Debe quedar al menos un administrador activo.',
+    CAMBIO_CONCURRENTE: 'Otra persona modificó a este usuario mientras tanto. Actualice la lista y repita el cambio.',
+    OCUPADO: 'El sistema está ocupado. Intente de nuevo en unos segundos.',
+    USUARIO_NO_ENCONTRADO: 'Ese usuario ya no está en la hoja Usuarios.',
+    ESTADO_INVALIDO: 'El estado elegido no es válido.',
     NO_AUTORIZADO_PARA_PROGRAMAR: 'No tiene permiso para programar eventos.',
     NO_AUTORIZADO_PARA_BORRAR: 'No tiene permiso para archivar eventos.',
     SINCRONIZACION_EN_CURSO: 'Ya hay una sincronización en curso. Espere un momento.',
@@ -401,7 +442,7 @@
   }
 
   function mostrarVista(id) {
-    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios'].forEach(v =>
+    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion'].forEach(v =>
       $(v).classList.toggle('oculto', v !== id));
   }
 
@@ -882,6 +923,72 @@
   $('btn-activar-todos').onclick = () => conOcupado(async () => {
     if (!confirm('¿Activar TODAS las solicitudes pendientes? Quedarán como usuarios sin cargo (solo ver y ensayar).')) return;
     await resolverUsuarios('activar_usuarios', [], true);
+  });
+
+  /* ---------------- Gestión de usuarios (administrador y programador) ---------------- */
+  let guDatos = null;
+  const guCargos = u => [u.admin && 'Administrador', u.programador && 'Programador', u.editor && 'Editor'].filter(Boolean);
+  function guInsignia(u) {
+    const col = u.estado === 'Activo' ? '#276749' : u.estado === 'Pendiente' ? '#B7791F' : '#9B2C2C';
+    return '<span class="gu-ins" style="background:' + col + '">' + esc(u.estado) + '</span>' +
+      (guCargos(u).length ? guCargos(u).map(c => '<span class="gu-ins gu-cargo">' + esc(c) + '</span>').join('') : '<span class="gu-ins gu-cargo">Miembro</span>');
+  }
+  function guEditor(u, d) {
+    if (!u.editable) return '<div class="aviso">' + (u.correo === d.yo.correo ? 'No puede modificar su propia cuenta.' : 'Solo un administrador puede modificar a un administrador.') + '</div>';
+    const cargos = d.modoRol === 'unico'
+      ? '<label>Nivel</label><select data-gu="nivel">' + ['Miembro', 'Editor', 'Programador', 'Administrador'].map(n =>
+          '<option' + (n === u.nivel ? ' selected' : '') + (n === 'Administrador' && !d.yo.esAdmin ? ' disabled' : '') + '>' + n + '</option>').join('') + '</select>'
+      : '<label>Cargos</label><div class="gu-cargos">' +
+        [['admin', 'Administrador'], ['programador', 'Programador'], ['editor', 'Editor']].map(([k, n]) =>
+          '<label class="gu-chk"><input type="checkbox" data-gu="' + k + '"' + (u[k] ? ' checked' : '') + (k === 'admin' && !d.yo.esAdmin ? ' disabled' : '') + '> ' + n + '</label>').join('') + '</div>';
+    return '<label>Estado</label><select data-gu="estado">' + (d.estados.indexOf(u.estado) < 0 ? [u.estado].concat(d.estados) : d.estados).map(e => '<option' + (e === u.estado ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>' +
+      cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>';
+  }
+  function pintarGestion() {
+    const d = guDatos; if (!d) return;
+    const q = ($('gu-buscar').value || '').trim().toLowerCase(), f = $('gu-filtro').value;
+    const abiertos = new Set([...document.querySelectorAll('#gu-lista details[open]')].map(x => x.dataset.correo));
+    const n = e => d.usuarios.filter(u => u.estado === e).length;
+    $('gu-resumen').innerHTML = 'Usuarios: <b>' + d.usuarios.length + '</b> · Activos <b>' + n('Activo') + '</b> · Pendientes <b>' + n('Pendiente') + '</b> · Inactivos <b>' + n('Inactivo') + '</b>';
+    const lista = d.usuarios.filter(u =>
+      (!q || (u.nombre + ' ' + u.correo).toLowerCase().includes(q)) &&
+      (!f || (f === '__cargo' ? guCargos(u).length > 0 : u.estado === f)));
+    $('gu-lista').innerHTML = lista.length ? lista.map(u =>
+      '<details class="gu-fila" data-correo="' + esc(u.correo) + '"' + (abiertos.has(u.correo) ? ' open' : '') + '><summary><span class="gu-quien">' +
+      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
+      '<div class="gu-edit">' + guEditor(u, d) + '</div></details>').join('')
+      : '<p class="aviso">Ningún usuario coincide con el filtro.</p>';
+  }
+  async function cargarGestion() {
+    const r = await api('usuarios_listar');
+    if (!r || !r.ok) {
+      const e = r && r.error;
+      const m = e === 'ESTRUCTURA_HOJA' ? 'No se reconocieron las columnas de la hoja Usuarios. Encabezados leídos: ' + (r.encabezados || []).join(' | ')
+        : (ERRORES[e] || (e ? 'El servidor respondió «' + e + '». Si el módulo no está instalado en el servidor, publique UsuariosAdmin.gs.' : 'Sin respuesta del servidor.'));
+      log('No se pudo cargar la gestión de usuarios: ' + m); alert('No se pudo cargar la gestión de usuarios:\n' + m); return;
+    }
+    guDatos = r; pintarGestion(); mostrarVista('vista-gestion');
+  }
+  async function guardarUsuario(correo, cont) {
+    const u = guDatos.usuarios.find(x => x.correo === correo); if (!u) return;
+    const cambios = {}, g = k => cont.querySelector('[data-gu="' + k + '"]');
+    const est = g('estado').value; if (est !== u.estado) cambios.estado = est;
+    if (guDatos.modoRol === 'unico') { const nv = g('nivel').value; if (nv !== u.nivel) cambios.nivel = nv; }
+    else ['admin', 'programador', 'editor'].forEach(k => { const c = g(k); if (c && !c.disabled && c.checked !== !!u[k]) cambios[k] = c.checked; });
+    if (!Object.keys(cambios).length) { log('No hay cambios que guardar.'); return; }
+    const txt = Object.entries(cambios).map(([k, v]) => k + ': ' + (typeof v === 'boolean' ? (v ? 'Sí' : 'No') : v)).join(', ');
+    if (!confirm('¿Guardar estos cambios para ' + (u.nombre || u.correo) + '?\n' + txt)) return;
+    const r = await api('usuarios_modificar', { correo: correo, cambios: cambios });
+    if (r && r.ok) { log(r.mensaje || 'Usuario actualizado.'); await cargarGestion(); }
+    else { const m = ERRORES[r && r.error] || String((r && r.error) || 'Sin respuesta del servidor.'); log('No se guardó: ' + m); alert('No se guardó: ' + m); }
+  }
+  $('btn-gestion').onclick = () => conOcupado(async () => { cerrarPanel(); log('Consultando usuarios…'); await cargarGestion(); });
+  $('btn-gu-actualizar').onclick = () => conOcupado(cargarGestion);
+  $('gu-buscar').addEventListener('input', pintarGestion);
+  $('gu-filtro').addEventListener('change', pintarGestion);
+  $('gu-lista').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-gu-guardar]'); if (!b) return;
+    conOcupado(() => guardarUsuario(b.dataset.guGuardar, b.closest('.gu-edit')));
   });
 
   /* ---------------- Sincronización (admin) ---------------- */
