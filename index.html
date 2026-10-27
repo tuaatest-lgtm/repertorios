@@ -28,6 +28,18 @@
     .fila { display:flex; align-items:center; justify-content:space-between; gap:10px;
             padding:9px 0; border-bottom:1px solid #EDF2F7; }
     .fila:last-child { border-bottom:none; }
+    .pub-zona { display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; padding:26px 14px; margin:6px 0 10px;
+                border:2px dashed #A0AEC0; border-radius:10px; background:#F7FAFC; color:var(--graphite); cursor:pointer; font-size:14px; }
+    .pub-zona .pub-ico { font-size:30px; }
+    .pub-zona.arrastrando, #vista-publicidad:focus-within .pub-zona { border-color:var(--accent); background:#FFF8E6; }
+    .pub-input { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; clip:rect(0 0 0 0); }
+    .pub-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #EDF2F7; }
+    .pub-item img { width:56px; height:56px; object-fit:cover; border-radius:6px; background:#EDF2F7; flex:none; }
+    .pub-item .pub-info { flex:1; min-width:0; font-size:14px; overflow-wrap:anywhere; }
+    .pub-item .meta { font-size:11px; color:#718096; display:block; margin-top:2px; }
+    .pub-item .pub-est { font-size:13px; white-space:nowrap; }
+    .pub-ok { color:#276749; } .pub-err { color:#C53030; }
+    .pub-popup { font-size:11px; font-weight:bold; color:#fff; background:#276749; border-radius:10px; padding:2px 8px; white-space:nowrap; }
     .gu-fila { border-bottom:1px solid #EDF2F7; }
     .gu-fila summary { color:var(--graphite); display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 0; cursor:pointer; list-style:none; }
     .gu-fila summary::-webkit-details-marker { display:none; }
@@ -114,25 +126,26 @@
 
   <!-- Menú principal -->
   <div class="card oculto" id="menu">
-    <button class="btn-accent" id="btn-biblioteca">🎧 Canciones para ensayo</button>
-    <button class="btn-primary" id="btn-eventos">📅 Repertorios de eventos</button>
-    <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">➕ Programar nuevo evento</button>
-    <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar catálogo con Drive</button>
+    <button class="btn-accent" id="btn-biblioteca">🎧 Material de ensayo</button>
+    <button class="btn-primary" id="btn-eventos">📅 Eventos Programados y Repertorio</button>
+    <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">➕ Programar Eventos</button>
+    <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar Catálogo de Recursos</button>
     <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="sync">🔎 Vista previa de la sincronización (no cambia nada)</button>
+    <button class="btn-secondary oculto" id="btn-publicidad" data-rol="publicidad">🖼️ Subir publicidad</button>
     <button class="btn-primary oculto" id="btn-usuarios" data-rol="admin">👥 Registro de usuarios</button>
-    <button class="btn-primary oculto" id="btn-gestion" data-rol="sync">🛠️ Gestión de usuarios</button>
+    <button class="btn-primary oculto" id="btn-gestion" data-rol="gestionar">🛠️ Gestión de usuarios</button>
   </div>
 
   <!-- Biblioteca -->
   <div class="card oculto" id="vista-biblioteca">
-    <h3>Canciones disponibles para ensayo</h3>
+    <h3>Material de ensayo</h3>
     <input type="search" id="buscar-biblioteca" placeholder="Buscar canción…" autocomplete="off">
     <div id="lista-biblioteca"></div>
   </div>
 
   <!-- Eventos -->
   <div class="card oculto" id="vista-eventos">
-    <h3>Repertorios de eventos</h3>
+    <h3>Eventos Programados y Repertorio</h3>
     <div id="lista-eventos"></div>
   </div>
 
@@ -241,6 +254,28 @@
     <div class="aviso">Toque un usuario para ver y cambiar su estado y sus cargos. Los cambios se guardan en la hoja Usuarios y quedan registrados en la hoja Cambios. Solo un administrador puede dar o quitar el cargo de Administrador.</div>
   </div>
 
+  <!-- Publicidad: subir imágenes a la carpeta de publicidad (Administrador y Programador) -->
+  <div class="card oculto" id="vista-publicidad">
+    <h3>Subir publicidad</h3>
+    <label class="pub-zona" id="pub-zona" for="pub-archivo">
+      <span class="pub-ico" aria-hidden="true">🖼️</span>
+      <b id="pub-titulo-zona">Arrastre las imágenes aquí</b>
+      <span>o toque para elegirlas desde su galería o sus carpetas</span>
+    </label>
+    <input type="file" id="pub-archivo" class="pub-input" accept="image/*" multiple>
+    <div id="pub-cola"></div>
+    <div class="botones">
+      <button class="btn-accent" id="btn-pub-subir" disabled>⬆ Subir a la carpeta de publicidad</button>
+      <button class="btn-secondary" id="btn-pub-limpiar" disabled>Quitar todas</button>
+    </div>
+    <div class="grupo">
+      <label><b>Imágenes en la carpeta</b> <span class="aviso" id="pub-total"></span></label>
+      <div id="pub-lista"></div>
+      <button class="btn-secondary" id="btn-pub-actualizar">↻ Actualizar</button>
+    </div>
+    <div class="aviso">El mensaje de bienvenida muestra la imagen <b>más reciente</b> de esta carpeta (hasta 3 MB). Las fotos grandes se reducen automáticamente en su dispositivo antes de subirlas. Formatos: JPG, PNG, WEBP y GIF.</div>
+  </div>
+
   <!-- Panel de ensayo (único; lo usan la biblioteca y los eventos) -->
   <div class="card oculto" id="panel-ensayo">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -329,9 +364,9 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwMMK2JNg9E_07BrpJ3_5xEih2jszCVhkyPHKoRY_1UZTcm-fWAtaj5Zokpo8B9eJra6A/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxYzckMicmgCx5kFUzYP85lNI143Is5RxZC0M1D-qhH3MMAHLQ5DaleQo5g3wNwuwVh/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.10.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.11.0';
   let ID_TOKEN = null;
   let rol = '';
   let permisos = { programar: false, reordenar: false, sincronizar: false, usuarios: false };   // los define el servidor
@@ -381,6 +416,13 @@
     RECURSO_NO_REGISTRADO: 'El archivo ya no está en la carpeta de esta canción. Cierre y vuelva a abrir el panel.',
     CANCION_NO_DISPONIBLE: 'La canción no está disponible (sin MP3/PDF o inactiva).',
     SOLO_ADMIN: 'Solo un administrador puede hacer esto.',
+    SOLO_IMAGENES: 'El archivo no es una imagen válida (JPG, PNG, WEBP o GIF).',
+    IMAGEN_MUY_GRANDE: 'La imagen pesa más de 3 MB.',
+    CARPETA_NO_ACCESIBLE: 'El servidor no puede abrir la carpeta de publicidad en Drive.',
+    SIN_PERMISO_CARPETA: 'El servidor no tiene permiso para guardar en la carpeta de publicidad. Comparta la carpeta con la cuenta propietaria del script como Editor.',
+    CARPETA_LLENA: 'La carpeta de publicidad ya tiene demasiadas imágenes. Borre algunas desde Drive.',
+    SIN_ARCHIVO: 'No se recibió ningún archivo.',
+    ARCHIVO_INVALIDO: 'El archivo está dañado o no se pudo leer.',
     SIN_PERMISO: 'Solo un administrador o programador activo puede usar la gestión de usuarios.',
     NO_AUTOMODIFICAR: 'No puede modificar su propia cuenta.',
     SOLO_ADMIN_TOCA_ADMIN: 'Solo un administrador puede modificar a otro administrador.',
@@ -442,7 +484,7 @@
   }
 
   function mostrarVista(id) {
-    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion'].forEach(v =>
+    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-publicidad'].forEach(v =>
       $(v).classList.toggle('oculto', v !== id));
   }
 
@@ -457,7 +499,8 @@
       $('menu').classList.remove('oculto');
       document.querySelectorAll('[data-rol]').forEach(b => {
         const need = b.dataset.rol;
-        const ok = (need === 'admin' && permisos.usuarios) || (need === 'programa' && permisos.programar) || (need === 'sync' && permisos.sincronizar);
+        const ok = (need === 'admin' && permisos.usuarios) || (need === 'programa' && permisos.programar) || (need === 'sync' && permisos.sincronizar) ||
+          (need === 'gestionar' && permisos.gestionar) || (need === 'publicidad' && permisos.publicidad);
         b.classList.toggle('oculto', !ok);
       });
       mostrarPopupInicio();
@@ -989,6 +1032,111 @@
   $('gu-lista').addEventListener('click', ev => {
     const b = ev.target.closest('[data-gu-guardar]'); if (!b) return;
     conOcupado(() => guardarUsuario(b.dataset.guGuardar, b.closest('.gu-edit')));
+  });
+
+  /* ---------------- Publicidad: subir imágenes (arrastrar en PC; galería o archivos en celular y tableta) ---------------- */
+  const PUB = { maxLado: 1600, tipos: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'], directoHasta: 1.5 * 1024 * 1024, tope: 2.4 * 1024 * 1024, maxCola: 10 };
+  let pubCola = [];   // { id, nombre, blob, tamano, url, estado: 'lista'|'subiendo'|'ok'|'error', msg }
+  let pubSeq = 0;
+  const kb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+
+  function leerImagen(file) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file), im = new Image();
+      im.onload = () => { URL.revokeObjectURL(url); res(im); };
+      im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la imagen. Si es una foto HEIC/HEIF, elíjala desde «Fotos» o conviértala a JPG.')); };
+      im.src = url;
+    });
+  }
+  function aBlob(canvas, calidad) { return new Promise(res => canvas.toBlob(res, 'image/jpeg', calidad)); }
+  // Devuelve { blob, nombre }: la imagen original si ya es liviana; si no, una copia reducida en JPG.
+  async function prepararImagen(file) {
+    if (!/^image\//i.test(file.type || '')) throw new Error('No es una imagen.');
+    const im = await leerImagen(file);   // comprueba que de verdad se pueda leer como imagen (un .png falso se rechaza aquí)
+    if (PUB.tipos.indexOf(file.type) >= 0 && file.size <= PUB.directoHasta) return { blob: file, nombre: file.name };
+    let lado = PUB.maxLado, calidad = 0.85, blob = null;
+    for (let i = 0; i < 6; i++) {
+      const k = Math.min(1, lado / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      blob = await aBlob(c, calidad);
+      if (blob && blob.size <= PUB.tope) break;
+      calidad = Math.max(0.55, calidad - 0.1); lado = Math.round(lado * 0.8);
+    }
+    if (!blob || blob.size > PUB.tope) throw new Error('La imagen sigue siendo demasiado pesada (' + (blob ? kb(blob.size) : '?') + ').');
+    return { blob: blob, nombre: file.name.replace(/\.[A-Za-z0-9]{1,5}$/, '') + '.jpg' };
+  }
+  function pintarCola() {
+    $('pub-cola').innerHTML = pubCola.map(it => {
+      const est = it.estado === 'ok' ? '<span class="pub-est pub-ok">✅ Subida</span>' : it.estado === 'subiendo' ? '<span class="pub-est">⏳ Subiendo…</span>'
+        : it.estado === 'error' ? '<span class="pub-est pub-err">❌ ' + esc(it.msg || 'Error') + '</span>' : '<button class="btn-secondary btn-small" data-pub-quitar="' + it.id + '" aria-label="Quitar">✕</button>';
+      return '<div class="pub-item"><img src="' + esc(it.url) + '" alt=""><div class="pub-info">' + esc(it.nombre) + '<span class="meta">' + kb(it.tamano) +
+        (it.msg && it.estado === 'lista' ? ' · ' + esc(it.msg) : '') + '</span></div>' + est + '</div>';
+    }).join('');
+    const hay = pubCola.some(i => i.estado === 'lista' || i.estado === 'error');
+    $('btn-pub-subir').disabled = !hay; $('btn-pub-subir').dataset.prev = hay ? '' : '1';
+    $('btn-pub-limpiar').disabled = !pubCola.length; $('btn-pub-limpiar').dataset.prev = pubCola.length ? '' : '1';
+  }
+  function pubLiberar(it) { try { URL.revokeObjectURL(it.url); } catch (e) { } }
+  async function pubAgregar(archivos) {
+    const lista = Array.from(archivos || []);
+    if (!lista.length) return;
+    $('pub-titulo-zona').textContent = 'Preparando imágenes…';
+    for (const f of lista) {
+      if (pubCola.length >= PUB.maxCola) { log('Máximo ' + PUB.maxCola + ' imágenes por vez.'); break; }
+      try {
+        const p = await prepararImagen(f);
+        const msg = p.blob.size < f.size ? 'reducida de ' + kb(f.size) : '';
+        pubCola.push({ id: ++pubSeq, nombre: p.nombre, blob: p.blob, tamano: p.blob.size, url: URL.createObjectURL(p.blob), estado: 'lista', msg: msg });
+      } catch (e) { log('No se agregó «' + f.name + '»: ' + e.message); alert('No se agregó «' + f.name + '»:\n' + e.message); }
+    }
+    $('pub-titulo-zona').textContent = 'Arrastre las imágenes aquí';
+    pintarCola();
+  }
+  function blobBase64(blob) {
+    return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] || ''); fr.onerror = () => rej(new Error('No se pudo leer el archivo.')); fr.readAsDataURL(blob); });
+  }
+  async function pubSubir() {
+    let ok = 0, mal = 0;
+    for (const it of pubCola.filter(i => i.estado === 'lista' || i.estado === 'error')) {
+      it.estado = 'subiendo'; it.msg = ''; pintarCola();
+      try {
+        const r = await api('publicidad_subir', { nombre: it.nombre, tipo: it.blob.type, base64: await blobBase64(it.blob) });
+        if (r && r.ok) { it.estado = 'ok'; ok++; log(r.mensaje || 'Imagen subida.'); }
+        else { it.estado = 'error'; it.msg = ERRORES[r && r.error] || String((r && r.error) || 'Sin respuesta del servidor'); mal++; }
+      } catch (e) { it.estado = 'error'; it.msg = e.message; mal++; }
+      pintarCola();
+    }
+    log('Publicidad: ' + ok + ' imagen(es) subida(s)' + (mal ? ', ' + mal + ' con error.' : '.'));
+    await cargarListaPublicidad();
+  }
+  function pintarListaPublicidad(r) {
+    $('pub-total').textContent = '(' + (r.total || 0) + ')';
+    $('pub-lista').innerHTML = (r.imagenes || []).length ? r.imagenes.map(i =>
+      '<div class="fila"><span class="nombre">' + esc(i.nombre) + '<span class="meta">' + esc(new Date(i.fecha).toLocaleString('es-CO')) + ' · ' + kb(i.tamano) + '</span></span>' +
+      (i.enPopup ? '<span class="pub-popup">En el mensaje de bienvenida</span>' : '') + '</div>').join('')
+      : '<p class="aviso">La carpeta no tiene imágenes todavía.</p>';
+  }
+  async function cargarListaPublicidad() {
+    const r = await api('publicidad_listar');
+    if (r && r.ok) { pintarListaPublicidad(r); return true; }
+    const m = ERRORES[r && r.error] || (r && r.error ? 'El servidor respondió «' + r.error + '». Si dice ACCION_DESCONOCIDA, publique la nueva versión de Código.gs.' : 'Sin respuesta del servidor.');
+    $('pub-lista').innerHTML = '<p class="aviso">No se pudo leer la carpeta: ' + esc(m) + '</p>'; log('Publicidad: ' + m); return false;
+  }
+  $('btn-publicidad').onclick = () => conOcupado(async () => { cerrarPanel(); mostrarVista('vista-publicidad'); pintarCola(); await cargarListaPublicidad(); });
+  $('pub-archivo').addEventListener('change', async ev => { const f = ev.target.files; await pubAgregar(f); ev.target.value = ''; });
+  const zonaPub = $('pub-zona');
+  ['dragenter', 'dragover'].forEach(n => zonaPub.addEventListener(n, ev => { ev.preventDefault(); zonaPub.classList.add('arrastrando'); }));
+  ['dragleave', 'drop'].forEach(n => zonaPub.addEventListener(n, ev => { ev.preventDefault(); zonaPub.classList.remove('arrastrando'); }));
+  zonaPub.addEventListener('drop', ev => { pubAgregar(ev.dataTransfer && ev.dataTransfer.files); });
+  // si se suelta una imagen fuera del recuadro, el navegador no debe abrirla y sacar al usuario de la página
+  ['dragover', 'drop'].forEach(n => window.addEventListener(n, ev => { if (!$('vista-publicidad').classList.contains('oculto') && !zonaPub.contains(ev.target)) ev.preventDefault(); }));
+  $('btn-pub-subir').onclick = () => conOcupado(pubSubir);
+  $('btn-pub-limpiar').onclick = () => { pubCola.forEach(pubLiberar); pubCola = []; pintarCola(); };
+  $('btn-pub-actualizar').onclick = () => conOcupado(cargarListaPublicidad);
+  $('pub-cola').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-pub-quitar]'); if (!b) return;
+    const k = pubCola.findIndex(i => String(i.id) === b.dataset.pubQuitar); if (k >= 0) { pubLiberar(pubCola[k]); pubCola.splice(k, 1); pintarCola(); }
   });
 
   /* ---------------- Sincronización (admin) ---------------- */
