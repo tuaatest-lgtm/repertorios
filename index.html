@@ -120,6 +120,7 @@
          data-callback="manejarCredencial" data-auto_select="false"></div>
     <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
     <div id="estado-sesion" class="aviso">Inicie sesión con su cuenta de Google.</div>
+    <button class="btn-secondary btn-small oculto" id="btn-salir" style="margin-top:8px;">Cerrar sesión</button>
   </div>
 
   <div id="aviso-usuario" class="card oculto" style="color:#C53030;font-size:14px;"></div>
@@ -364,10 +365,19 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxYzckMicmgCx5kFUzYP85lNI143Is5RxZC0M1D-qhH3MMAHLQ5DaleQo5g3wNwuwVh/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzI6xEITabN_rGdbCXcvPlz4Bi1Rhk0eiMpSJuey9AY2LV4tpw2BxBn_nHpTUuja5ZZpw/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.11.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.12.0';
   let ID_TOKEN = null;
+  /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+  let SESION = lsGet('pm_sesion') || null;     // token de sesión emitido por el servidor (60 min deslizantes)
+  let ultimoContacto = Date.now();
+  const ESTADO_CLAVE = 'pm_estado', RESTAURAR_HORAS = 12;
+  let est = {};
+  function estadoGuardar(parcial) { est = Object.assign(est, parcial, { ts: Date.now() }); lsSet(ESTADO_CLAVE, JSON.stringify(est)); }
   let rol = '';
   let permisos = { programar: false, reordenar: false, sincronizar: false, usuarios: false };   // los define el servidor
   let ocupado = false;
@@ -443,24 +453,33 @@
 
   function manejarCredencial(resp) {
     ID_TOKEN = resp.credential;
+    SESION = null; lsDel('pm_sesion');          // un inicio de sesión explícito con Google reemplaza la sesión guardada
     log('Sesión de Google recibida.');
     quien();
   }
 
-  async function api(accion, extra) {
-    if (!ID_TOKEN) { log('Inicie sesión con Google primero.'); return null; }
+  async function api(accion, extra, reintento) {
+    if (!ID_TOKEN && !SESION) { log('Inicie sesión con Google primero.'); return null; }
     try {
+      const cred = SESION ? { sesion: SESION } : { token: ID_TOKEN };
       const res = await fetch(API_URL, {
         method: 'POST', redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ accion: accion, token: ID_TOKEN }, extra || {}))
+        body: JSON.stringify(Object.assign({ accion: accion }, cred, extra || {}))
       });
       const txt = await res.text();
       let r;
       try { r = JSON.parse(txt); }
       catch (e) { log('Respuesta no válida del servidor (¿despliegue desactualizado?): ' + txt.slice(0, 120)); return null; }
-      if (!r.ok && /TOKEN_|SIN_TOKEN/.test(String(r.error))) {
-        ID_TOKEN = null;
+      ultimoContacto = Date.now();
+      if (r.sesion) { SESION = r.sesion; lsSet('pm_sesion', SESION); }   // el servidor renueva la ventana en cada respuesta
+      if (!r.ok && /SESION_/.test(String(r.error))) {
+        SESION = null; lsDel('pm_sesion');
+        if (ID_TOKEN && !reintento) return api(accion, extra, true);     // aún hay credencial de Google en memoria
+      }
+      if (!r.ok && /TOKEN_|SIN_TOKEN|SESION_/.test(String(r.error))) {
+        ID_TOKEN = null; SESION = null; lsDel('pm_sesion');
+        $('menu').classList.add('oculto');
         $('estado-sesion').textContent = 'La sesión venció. Pulse el botón de Google para entrar de nuevo.';
         try { google.accounts.id.prompt(); } catch (e) {}
       }
@@ -484,8 +503,30 @@
   }
 
   function mostrarVista(id) {
+    const estabaOculta = $(id).classList.contains('oculto');
     ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-publicidad'].forEach(v =>
       $(v).classList.toggle('oculto', v !== id));
+    estadoGuardar({ vista: id });
+    irAVista(id, estabaOculta);
+  }
+  // Lleva la pantalla al submenú abierto: si queda por debajo del menú principal, el usuario no se entera de que se abrió
+  function irAVista(id, forzar) {
+    const el = $(id);
+    const pos = () => el.getBoundingClientRect().top;
+    // Si la vista es corta, la página no tiene recorrido suficiente para dejarla arriba: se añade un espacio al final
+    const espacio = () => {
+      let e = $('espacio-scroll');
+      if (!e) { e = document.createElement('div'); e.id = 'espacio-scroll'; document.body.appendChild(e); }
+      e.style.height = '0px';
+      const objetivo = pos() + window.scrollY - 8, maximo = document.documentElement.scrollHeight - window.innerHeight;
+      e.style.height = Math.max(0, Math.ceil(objetivo - maximo)) + 'px';
+    };
+    const ir = suave => { espacio(); window.scrollTo({ top: Math.max(0, pos() + window.scrollY - 8), behavior: suave ? 'smooth' : 'auto' }); };
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!forzar && pos() < 120) return;       // ya visible (p. ej. al refrescar dentro de la misma vista)
+      ir(true);
+      setTimeout(() => { if (Math.abs(pos() - 8) > 24) ir(false); }, 700);   // corrige si el contenido cambió de altura
+    }));
   }
 
   /* ---------------- Sesión ---------------- */
@@ -504,18 +545,68 @@
         b.classList.toggle('oculto', !ok);
       });
       mostrarPopupInicio();
+      $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
       if (!String(r.version || '').startsWith(VERSION_SERVIDOR_ESPERADA)) {
         $('estado-sesion').innerHTML += '<br><b style="color:#C53030">⚠ El servidor está desactualizado (' + esc(r.version || 'desconocido') +
           '; se espera ' + esc(VERSION_SERVIDOR_ESPERADA) + '). En Apps Script: Implementar → Administrar implementaciones → lápiz → Nueva versión.</b>';
         log('AVISO: servidor desactualizado. Publique una nueva versión del Código.gs.');
       }
+      restaurarEstado();
     } else {
       $('menu').classList.add('oculto');
+      $('btn-salir').classList.add('oculto');
       $('estado-sesion').textContent = r ? textoError(r.error) : 'No se pudo verificar la sesión.';
       log($('estado-sesion').textContent);
     }
   }
+
+  /* ---------------- Restaurar lo que se estaba haciendo ---------------- */
+  let restaurado = false;
+  async function restaurarEstado() {
+    if (restaurado) return; restaurado = true;
+    let p = null; try { p = JSON.parse(lsGet(ESTADO_CLAVE) || 'null'); } catch (e) {}
+    if (!p || !p.vista || Date.now() - Number(p.ts || 0) > RESTAURAR_HORAS * 3600000) return;
+    est = Object.assign({}, p);
+    await conOcupado(async () => {
+      log('Restaurando su última pantalla…');
+      try {
+        if (p.vista === 'vista-biblioteca') { if (await cargarCatalogo()) { mostrarVista('vista-biblioteca'); pintarBiblioteca(); } }
+        else if (p.vista === 'vista-eventos') await cargarEventos();
+        else if (p.vista === 'vista-repertorio' && p.evento) await verEvento(p.evento.id, p.evento.nombre);
+        else if (p.vista === 'vista-usuarios' && permisos.usuarios) await cargarRegistro();
+        else if (p.vista === 'vista-gestion' && permisos.gestionar) await cargarGestion();
+        else if (p.vista === 'vista-publicidad' && permisos.publicidad) { mostrarVista('vista-publicidad'); pintarCola(); await cargarListaPublicidad(); }
+        if (p.cancion && ['vista-biblioteca', 'vista-repertorio'].includes(p.vista)) {
+          await abrirEnsayo(p.cancion.id, p.cancion.titulo);
+          if (cancionAbierta === p.cancion.id) {
+            if (p.audio && recursos.some(x => x.idArchivo === p.audio && x.tipo === 'MP3')) {
+              $('sel-audio').value = p.audio; refrescarListas(); await cargarAudioSel({ auto: false, t: Number(p.t) || 0 });
+            }
+            if (p.pdf && recursos.some(x => x.idArchivo === p.pdf && x.tipo === 'PDF')) {
+              $('sel-pdf').value = p.pdf; refrescarListas(); await cargarPdfSel();
+            }
+          }
+        }
+        log('Pantalla restaurada.');
+      } catch (e) { log('No se pudo restaurar la pantalla anterior: ' + e.message); }
+    });
+  }
+
+  $('btn-salir').onclick = () => {
+    SESION = null; ID_TOKEN = null; lsDel('pm_sesion'); lsDel(ESTADO_CLAVE); est = {}; restaurado = false;   // las secuencias (seq_*) se conservan
+    cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto');
+    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-publicidad'].forEach(v => $(v).classList.add('oculto'));
+    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    $('estado-sesion').textContent = 'Sesión cerrada. Inicie sesión con su cuenta de Google.';
+    window.scrollTo({ top: 0 });
+  };
+
+  // Mantiene viva la sesión: renueva al volver a la app tras un rato y mientras haya audio sonando
+  async function latido() { if (SESION && Date.now() - ultimoContacto > 20 * 60000) { await api('quien'); } }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) latido(); });
+  window.addEventListener('pageshow', latido);
+  setInterval(() => { if (!document.hidden || !$('audio').paused) latido(); }, 5 * 60000);
 
   /* ---------------- Biblioteca ---------------- */
   async function cargarCatalogo() {
@@ -585,6 +676,7 @@
     $('acciones-evento').innerHTML = programa()
       ? '<button class="btn-accent" id="btn-compartir" style="margin-bottom:8px;">📤 Compartir programa (imagen)</button><div class="botones">' + (permisos.reordenar && sets.length ? '<button class="btn-primary btn-small" id="btn-reordenar">↕ Cambiar el orden de los cantos</button>' : '') + '<button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
         '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button></div>' : '';
+    estadoGuardar({ evento: { id: idEvento, nombre: nombre } });
     mostrarVista('vista-repertorio');
     log('Repertorio cargado.');
   }
@@ -1195,14 +1287,16 @@
     if (urlAudio) { URL.revokeObjectURL(urlAudio); urlAudio = null; }
     $('zona-audio').classList.add('oculto');
     $('sel-audio').value = ''; refrescarListas();
+    estadoGuardar({ audio: '', t: 0 });
   }
   function cerrarPdf() {
     idRender++;
     if (pdfActual) { try { pdfActual.destroy(); } catch (e) {} pdfActual = null; }
     $('visor-pdf').innerHTML = ''; $('visor-pdf').classList.add('oculto');
     $('sel-pdf').value = ''; refrescarListas();
+    estadoGuardar({ pdf: '' });
   }
-  function cerrarPanel() { cerrarAudio(); seqLimpiar(); cerrarPdf(); $('panel-ensayo').classList.add('oculto'); }
+  function cerrarPanel() { cerrarAudio(); seqLimpiar(); cerrarPdf(); $('panel-ensayo').classList.add('oculto'); estadoGuardar({ cancion: null, audio: '', pdf: '', t: 0 }); }
   $('btn-cerrar-panel').onclick = cerrarPanel;
   $('btn-cerrar-audio').onclick = cerrarAudio;
   $('btn-cerrar-pdf').onclick = cerrarPdf;
@@ -1223,6 +1317,7 @@
     $('bloque-pdf').classList.toggle('oculto', !hayP);
     $('sin-recursos').classList.toggle('oculto', hayA || hayP);
     seqCambiarCancion(idCancion);
+    estadoGuardar({ cancion: { id: idCancion, titulo: titulo }, audio: '', pdf: '', t: 0 });
     $('panel-ensayo').classList.remove('oculto'); Object.values(listas).forEach(l => l.ajustar());
     $('panel-ensayo').scrollIntoView({ behavior: 'smooth', block: 'start' });
     log('Recursos listos: ' + recursos.filter(x => x.tipo === 'MP3').length + ' audio(s), ' +
@@ -1235,7 +1330,8 @@
     return arr;
   }
 
-  $('btn-abrir-audio').onclick = () => conOcupado(async () => {
+  async function cargarAudioSel(opc) {
+    opc = opc || {};
     const id = $('sel-audio').value;
     if (!id) { log('Seleccione un audio.'); return; }
     seqDetener();
@@ -1248,8 +1344,18 @@
     urlAudio = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' }));
     a.src = urlAudio; a.loop = loop;
     $('zona-audio').classList.remove('oculto');
-    a.play().catch(() => log('Pulse ▶ para reproducir.'));
+    estadoGuardar({ audio: id, t: opc.t || 0 });
+    if (opc.t) a.addEventListener('loadedmetadata', () => { try { a.currentTime = Math.min(opc.t, Math.max(0, (a.duration || opc.t) - 1)); } catch (e) {} }, { once: true });
+    if (opc.auto === false) log('Audio restaurado: pulse ▶ para continuar.');
+    else a.play().catch(() => log('Pulse ▶ para reproducir.'));
     log('Audio listo (' + (r.bytes / 1048576).toFixed(1) + ' MB).');
+  }
+  $('btn-abrir-audio').onclick = () => conOcupado(() => cargarAudioSel());
+  // recuerda el minuto del audio individual (no de la secuencia) para retomarlo al volver
+  let _tUlt = 0;
+  $('audio').addEventListener('timeupdate', () => {
+    const a = $('audio'), t = Math.floor(a.currentTime || 0);
+    if (!seq.activo && est.audio && Math.abs(t - _tUlt) >= 5) { _tUlt = t; estadoGuardar({ t: t }); }
   });
 
   /* ---------------- Secuencia de ensayo (varios MP3 seguidos) ---------------- */
@@ -1403,7 +1509,8 @@
     x.restore();
   }
 
-  $('btn-abrir-pdf').onclick = () => conOcupado(async () => {
+  $('btn-abrir-pdf').onclick = () => conOcupado(() => cargarPdfSel());
+  async function cargarPdfSel() {
     const id = $('sel-pdf').value;
     if (!id) { log('Seleccione un documento.'); return; }
     cerrarPdf();
@@ -1417,7 +1524,7 @@
       const sil = await prepararMarca();
       const pdf = await pdfjsLib.getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise;
       if (mio !== idRender) { pdf.destroy(); return; }
-      pdfActual = pdf;
+      pdfActual = pdf; estadoGuardar({ pdf: id });
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       for (let n = 1; n <= pdf.numPages; n++) {
         if (mio !== idRender) return;
@@ -1432,7 +1539,7 @@
       }
       log('Documento abierto (' + pdf.numPages + ' página(s)) con marca de agua (' + (sil ? 'logo' : 'texto') + ').');
     } catch (e) { log('No se pudo mostrar el documento: ' + e.message); cerrarPdf(); }
-  });
+  }
 
   // Protección ligera: sin menú contextual ni arrastre sobre el visor y el audio
   ['visor-pdf', 'zona-audio'].forEach(id => {
@@ -1507,6 +1614,9 @@
       setsEv.splice(i, 1); if (setActivo >= setsEv.length) setActivo = setsEv.length - 1; pintarConstructor();
     }
   });
+
+  // Arranque: si hay una sesión guardada y vigente, entra sin volver a pedir Google
+  if (SESION) { $('estado-sesion').textContent = 'Restaurando su sesión…'; quien(); }
 </script>
 
 </body>
