@@ -301,6 +301,15 @@
     <div class="aviso">Un ensamble define a qué Worship va dirigido un evento y qué funciones se necesitan (puede combinar varias, con su cantidad). Se aplica al programar un evento y se puede reutilizar, duplicar y modificar. Al aplicarlo, el evento guarda su propia copia.</div>
     <div id="ens-lista"></div>
     <div class="botones"><button class="btn-accent" id="ens-nuevo" type="button">➕ Nuevo ensamble</button></div>
+    <div id="fn-bloque" style="margin-top:12px;border-top:1px solid #ddd;padding-top:10px;">
+      <h3>Funciones de instrumentistas</h3>
+      <div class="aviso">Cree aquí las funciones que falten (Pianista, Trombonista, Bajista…). Después asígnelas a cada músico en Gestión de usuarios (columna «Parte», con Worship = BANDA) y úselas al armar ensambles y eventos. Las voces (Soprano, Contralto, Tenor, Bajo, Voz Lid.) ya existen.</div>
+      <div id="fn-lista"></div>
+      <label for="fn-nombre"><b>Nueva función</b></label>
+      <input type="text" id="fn-nombre" maxlength="40" placeholder="Ej.: Trombonista" autocomplete="off">
+      <div class="botones"><button class="btn-accent" id="fn-crear" type="button">➕ Crear función</button></div>
+      <div class="aviso" id="fn-aviso"></div>
+    </div>
     <div id="ens-form" class="oculto" style="margin-top:12px;border-top:1px solid #ddd;padding-top:10px;">
       <h3 id="ens-form-titulo">Nuevo ensamble</h3>
       <label for="ens-nombre"><b>Nombre</b></label><input type="text" id="ens-nombre" maxlength="80" placeholder="Ej.: Sábado W1 completo">
@@ -514,9 +523,9 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyzzcWHOBxh_B8c_sYLnNVVNmL-npVyEdB1tIDI1FvsIS2hElOTGDT0LSNimZbc1VHKJQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzLD3cLeN3HquK5X6d5xlP6d9t5LA5ind1M9z_0lk57nrxLlGhtCgc38UL4s5NQ9Z-drg/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.16.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.17.0';
   let ID_TOKEN = null;
   /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -611,7 +620,7 @@
     EVENTO_SIN_CANTOS: 'El evento no tiene cantos para asignar presentadores.',
     PERIODO_INVALIDO: 'La fecha inicial no puede ser posterior a la final.'
   };
-  Object.assign(ERRORES, { DESTINATARIO_INVALIDO: 'Hay correos con formato no válido.', SIN_DESTINATARIOS: 'Falta al menos un destinatario.',
+  Object.assign(ERRORES, { NOMBRE_FUNCION_INVALIDO: 'Escriba un nombre de al menos 3 letras, sin los signos ; ni :', FUNCION_RESERVADA: 'Ese nombre está reservado para una voz o un cargo que ya existe.', FUNCION_EXISTENTE: 'Esa función ya existe.', DEMASIADAS_FUNCIONES_PROPIAS: 'Se alcanzó el máximo de funciones creadas.', FUNCION_NO_ENCONTRADA: 'No se encontró la función.', FUNCION_EN_USO_USUARIOS: 'No se puede archivar: hay músicos con esa función. Cámbieles la Parte primero.', FUNCION_EN_USO_ENSAMBLES: 'No se puede archivar: la usa un ensamble activo. Quítela del ensamble primero.', DESTINATARIO_INVALIDO: 'Hay correos con formato no válido.', SIN_DESTINATARIOS: 'Falta al menos un destinatario.',
     DEMASIADOS_DESTINATARIOS: 'Máximo 10 destinatarios por envío.', PDF_INVALIDO: 'El PDF generado no es válido. Vuelva a generar el informe.',
     PDF_MUY_GRANDE: 'El PDF es demasiado grande para enviarlo.', CUOTA_DIARIA_INSUFICIENTE: 'Se agotó la cuota diaria de correos de la cuenta remitente. Intente mañana o cambie de remitente.',
     PARTICIPACION_PENDIENTE: 'Antes de ensayar debe responder si participará en el próximo evento.', EVENTO_NO_CUMPLIDO: 'Solo se pueden eliminar eventos cuya fecha ya pasó. Use «Archivar» para los demás.',
@@ -1058,8 +1067,9 @@
   let funcReq = [], funcionesKnown = [];
   async function cargarFuncionesKnown() {
     const r = await api('funciones_requeribles');
-    if (r && r.ok) funcionesKnown = r.funciones || [];
+    if (r && r.ok) { funcionesKnown = r.funciones || []; funcionesPropias = r.propias || []; }
   }
+  let funcionesPropias = [];
   function pintarFuncReq() {
     $('funciones-req').innerHTML = funcReq.map((f, i) =>
       '<div class="fr-fila"><select data-fr-f="' + i + '" aria-label="Función">' +
@@ -1655,8 +1665,8 @@
     pintarFormEnsamble(); $('ens-form').scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
   async function abrirEnsambles() {
-    cerrarPanel(); if (!funcionesKnown.length) await cargarFuncionesKnown();
-    await cargarEnsambles(); ensForm = null; pintarListaEnsambles(); pintarFormEnsamble(); mostrarVista('vista-ensambles');
+    cerrarPanel(); await cargarFuncionesKnown();
+    await cargarEnsambles(); ensForm = null; pintarListaEnsambles(); pintarFormEnsamble(); pintarFunciones(); mostrarVista('vista-ensambles');
   }
   $('btn-ensambles').onclick = () => conOcupado(abrirEnsambles);
   $('ens-nuevo').onclick = () => abrirFormEnsamble(null);
@@ -1686,6 +1696,31 @@
     if (d.ensEditar) abrirFormEnsamble(ensambles.find(x => x.idEnsamble === d.ensEditar));
     if (d.ensDup) conOcupado(async () => { const r = await api('ensamble_duplicar', { idEnsamble: d.ensDup }); if (r && r.ok) { await cargarEnsambles(); pintarListaEnsambles(); log('Ensamble duplicado. Edite la copia para ajustarla.'); } else log('No se pudo duplicar: ' + textoError(r && r.error)); });
     if (d.ensArch) conOcupado(async () => { const r = await api('ensamble_archivar', { idEnsamble: d.ensArch, archivar: d.a === '1' }); if (r && r.ok) { await cargarEnsambles(); pintarListaEnsambles(); } else log('No se pudo cambiar el estado: ' + textoError(r && r.error)); });
+  });
+
+  /* ---- v3.17.0: crear funciones de instrumentistas ---- */
+  function pintarFunciones() {
+    const l = $('fn-lista');
+    if (!funcionesPropias.length) { l.innerHTML = '<div class="aviso">Aún no ha creado funciones nuevas.</div>'; return; }
+    l.innerHTML = funcionesPropias.map(f => '<div class="set-card" style="' + (f.estado === 'Archivada' ? 'opacity:.6;' : '') + '"><div><b>' + esc(f.nombre) + '</b> <span class="ins ' + (f.estado === 'Activa' ? 'ok' : '') + '">' + esc(f.estado) + '</span></div>' +
+      '<div class="meta">' + f.usuarios + ' músico(s) · ' + f.ensambles + ' ensamble(s) activo(s)</div>' +
+      '<div class="botones" style="margin-top:6px;"><button class="btn-secondary btn-small" data-fn-arch="' + esc(f.nombre) + '" data-a="' + (f.estado === 'Activa' ? '1' : '0') + '" type="button">' + (f.estado === 'Activa' ? '🗄 Archivar' : '♻ Reactivar') + '</button></div></div>').join('');
+  }
+  async function crearFuncionUI() {
+    const nombre = $('fn-nombre').value.trim(); $('fn-aviso').textContent = '';
+    if (!nombre) { $('fn-aviso').textContent = 'Escriba el nombre de la función.'; $('fn-nombre').focus(); return; }
+    const r = await api('funcion_crear', { nombre: nombre });
+    if (r && r.ok) {
+      $('fn-nombre').value = ''; await cargarFuncionesKnown(); if (ensForm) { sincronizarFormEnsamble(); pintarFormEnsamble(); }
+      pintarFunciones(); $('fn-aviso').textContent = '✔ ' + (r.mensaje || 'Función creada.'); log(r.mensaje || 'Función creada.'); $('fn-nombre').focus();
+    } else $('fn-aviso').textContent = '✖ ' + textoError(r && r.error);
+  }
+  $('fn-crear').onclick = () => conOcupado(crearFuncionUI);
+  $('fn-nombre').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); conOcupado(crearFuncionUI); } });
+  $('fn-lista').addEventListener('click', e => {
+    const b = e.target.closest('button[data-fn-arch]'); if (!b) return;
+    conOcupado(async () => { const r = await api('funcion_archivar', { nombre: b.dataset.fnArch, archivar: b.dataset.a === '1' });
+      if (r && r.ok) { await cargarFuncionesKnown(); pintarFunciones(); $('fn-aviso').textContent = '✔ ' + r.mensaje; } else $('fn-aviso').textContent = '✖ ' + textoError(r && r.error); });
   });
 
   /* ---- Vía 1: al ingresar, preguntar la asistencia a quien cumple las condiciones ---- */
