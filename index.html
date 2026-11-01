@@ -96,6 +96,15 @@
     .mov button { width:40px; height:40px; padding:0; margin:0; font-size:15px; }
     .fila.usada { background:#FFF8E6; border-left:4px solid var(--accent); padding-left:8px; }
     .badge-usada { color:#8A6D1F; font-weight:bold; }
+    .tabla-mini { width:100%; border-collapse:collapse; font-size:13px; margin:6px 0 10px; }
+    .tabla-mini th, .tabla-mini td { border:1px solid #E2E8F0; padding:6px 8px; text-align:left; vertical-align:top; }
+    .tabla-mini th { background:#F7FAFC; color:var(--primary); }
+    .tabla-mini td.num, .tabla-mini th.num { text-align:center; }
+    .tabla-scroll { overflow-x:auto; }
+    .ins { display:inline-block; font-size:11px; font-weight:bold; border-radius:10px; padding:1px 8px; margin-left:4px; background:#E2E8F0; color:var(--graphite); white-space:nowrap; }
+    .ins.reemplazo { background:#F6E9C8; color:#7A5C14; } .ins.alerta { background:#FED7D7; color:#9B2C2C; } .ins.ok { background:#C6F6D5; color:#276749; }
+    .pres-ev { display:block; font-size:12px; color:#4A5568; margin-top:2px; }
+    .fr-fila { display:flex; gap:6px; align-items:center; } .fr-fila select { flex:1; margin:0 0 6px; } .fr-fila input { width:70px; margin:0 0 6px; } .fr-fila button { width:40px; margin:0 0 6px; padding:8px 0; }
     .pos-lista { display:inline-block; width:22px; color:var(--accent); font-weight:bold; }
     .oculto { display:none !important; }
     details summary { cursor:pointer; font-size:12px; color:#718096; margin-bottom:6px; }
@@ -135,6 +144,7 @@
     <button class="btn-secondary oculto" id="btn-publicidad" data-rol="publicidad">🖼️ Subir publicidad</button>
     <button class="btn-primary oculto" id="btn-usuarios" data-rol="admin">👥 Registro de usuarios</button>
     <button class="btn-primary oculto" id="btn-gestion" data-rol="gestionar">🛠️ Gestión de usuarios</button>
+    <button class="btn-secondary oculto" id="btn-correo" data-rol="admin">✉️ Correo remitente</button>
   </div>
 
   <!-- Biblioteca -->
@@ -155,6 +165,7 @@
     <h3 id="titulo-evento">Repertorio</h3>
     <div id="mensaje-evento" class="aviso"></div>
     <div id="lista-repertorio"></div>
+    <div id="panel-participacion"></div>
     <div id="acciones-evento" style="margin-top:10px;"></div>
   </div>
 
@@ -167,6 +178,25 @@
     <input type="date" id="in-fecha">
     <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
     <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
+    <label for="in-alcance"><b>Alcance del evento (quiénes registran su asistencia)</b></label>
+    <select id="in-alcance">
+      <option value="Todos">Todos (Worship 1 y Worship 2)</option>
+      <option value="Worship 1">Worship 1</option>
+      <option value="Worship 2">Worship 2</option>
+    </select>
+    <div class="aviso">Los instrumentistas, las voces líderes y el Departamento pueden confirmar en cualquiera de las tres opciones. Al programar los cantos podrá asignar a un cantante de otro Worship si hace falta.</div>
+    <div class="grupo">
+      <label><b>Funciones requeridas</b> (opcional)</label>
+      <div id="funciones-req"></div>
+      <button class="btn-secondary btn-small" id="btn-add-funcion" type="button">➕ Agregar función requerida</button>
+      <div class="aviso">Solo las funciones que agregue se consideran requeridas. Si no agrega ninguna, no se declara ninguna vacante.</div>
+    </div>
+    <div class="grupo">
+      <label for="in-publicidad"><b>Publicidad o anuncios</b> (opcional)</label>
+      <textarea id="in-publicidad" rows="2" maxlength="1000" placeholder="Solo si hay contenido para el informe"></textarea>
+      <label for="in-espiritual"><b>Información espiritual</b> (opcional)</label>
+      <textarea id="in-espiritual" rows="2" maxlength="1000" placeholder="Solo si hay contenido para el informe"></textarea>
+    </div>
 
     <div class="grupo">
       <label><b>Sets y orden de los cantos</b> <span class="aviso" id="contador-seleccion"></span></label>
@@ -239,9 +269,19 @@
   </div>
 
   <!-- Gestión de usuarios (administrador y programador) -->
+  <div class="card oculto" id="vista-correo">
+    <h3>Correo remitente de los informes</h3>
+    <div class="aviso">Elija desde qué cuenta se envían los informes por correo. Puede cambiarlo cuando quiera.</div>
+    <div id="cm-cuerpo"></div>
+  </div>
+
   <div class="card oculto" id="vista-gestion">
     <h3>Gestión de usuarios</h3>
     <div id="gu-resumen" class="aviso"></div>
+    <div class="botones" style="margin:6px 0 10px;">
+      <button class="btn-primary btn-small" id="btn-tablero" type="button">📊 Tablero del equipo</button>
+      <button class="btn-primary btn-small" id="btn-actividad" type="button">📈 Actividad de uso</button>
+    </div>
     <div class="botones" style="margin:6px 0;">
       <input type="search" id="gu-buscar" placeholder="Buscar por nombre o correo" aria-label="Buscar usuario" style="margin:0;">
     </div>
@@ -253,6 +293,31 @@
     <div id="gu-lista"></div>
     <button class="btn-secondary" id="btn-gu-actualizar">↻ Actualizar</button>
     <div class="aviso">Toque un usuario para ver y cambiar su estado y sus cargos. Los cambios se guardan en la hoja Usuarios y quedan registrados en la hoja Cambios. Solo un administrador puede dar o quitar el cargo de Administrador.</div>
+  </div>
+
+  <!-- Tablero del equipo musical (v3.13.0) -->
+  <div class="card oculto" id="vista-tablero">
+    <h3>Tablero del equipo musical</h3>
+    <div id="tb-contenido"></div>
+    <button class="btn-secondary" id="btn-tb-actualizar" type="button">↻ Actualizar</button>
+    <button class="btn-secondary" data-volver-gestion="1" type="button">← Volver a Gestión de usuarios</button>
+  </div>
+
+  <!-- Actividad de uso (v3.13.0) -->
+  <div class="card oculto" id="vista-actividad">
+    <h3>Actividad de uso de la aplicación</h3>
+    <div class="botones">
+      <div style="flex:1"><label for="ac-desde" style="font-size:12px;">Desde</label><input type="date" id="ac-desde"></div>
+      <div style="flex:1"><label for="ac-hasta" style="font-size:12px;">Hasta</label><input type="date" id="ac-hasta"></div>
+    </div>
+    <div class="botones">
+      <div style="flex:1"><label for="ac-worship" style="font-size:12px;">Área / Worship</label><select id="ac-worship"></select></div>
+      <div style="flex:1"><label for="ac-parte" style="font-size:12px;">Función</label><select id="ac-parte"></select></div>
+      <div style="flex:1"><label for="ac-estado" style="font-size:12px;">Estado</label><select id="ac-estado"><option value="">Todos</option><option>Activo</option><option>Inactivo</option></select></div>
+    </div>
+    <button class="btn-accent" id="btn-ac-consultar" type="button">Consultar</button>
+    <div id="ac-contenido"></div>
+    <button class="btn-secondary" data-volver-gestion="1" type="button">← Volver a Gestión de usuarios</button>
   </div>
 
   <!-- Publicidad: subir imágenes a la carpeta de publicidad (Administrador y Programador) -->
@@ -329,6 +394,28 @@
     <option value="Lectura bíblica"><option value="Bienvenida"><option value="Himno de apertura"><option value="Cena del Señor"><option value="Bendición final">
   </datalist>
 
+  <!-- Informe oficial -->
+  <div id="vista-informe" class="oculto" style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:61;align-items:flex-start;justify-content:center;padding:12px;overflow:auto;">
+    <div style="max-width:680px;width:100%;background:#fff;border-radius:10px;padding:12px;">
+      <img id="img-informe" alt="Informe oficial del programa" style="display:block;width:100%;height:auto;border:1px solid #ddd;">
+      <div class="botones" style="margin-top:10px;">
+        <button class="btn-primary" id="btn-inf-pdf" type="button">📄 Guardar PDF</button>
+        <button class="btn-secondary" id="btn-inf-png" type="button">🖼️ Guardar imagen</button>
+        <button class="btn-accent" id="btn-inf-correo" type="button">✉️ Enviar por correo…</button>
+      </div>
+      <div id="inf-correo" class="oculto" style="margin-top:8px;">
+        <label for="inf-para">Para (separe con comas)</label>
+        <textarea id="inf-para" rows="2" placeholder="correo1@ejemplo.com, correo2@ejemplo.com"></textarea>
+        <label for="inf-asunto">Asunto</label><input type="text" id="inf-asunto" maxlength="150">
+        <label for="inf-msg">Mensaje (opcional)</label><textarea id="inf-msg" rows="3" maxlength="2000"></textarea>
+        <div class="aviso" id="inf-remitente"></div>
+        <button class="btn-accent" id="btn-inf-enviar" type="button">Enviar</button>
+      </div>
+      <div class="aviso" id="inf-aviso"></div>
+      <button class="btn-secondary" id="btn-inf-cerrar" type="button">✕ Cerrar</button>
+    </div>
+  </div>
+
   <!-- Vista previa del programa para compartir -->
   <div id="vista-programa" class="oculto" style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:60;align-items:flex-start;justify-content:center;padding:12px;overflow:auto;">
     <div style="max-width:640px;width:100%;background:#fff;border-radius:10px;padding:12px;">
@@ -365,9 +452,9 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzI6xEITabN_rGdbCXcvPlz4Bi1Rhk0eiMpSJuey9AY2LV4tpw2BxBn_nHpTUuja5ZZpw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzQIxEPp0nhh2lH81Cd2Uh-uKsspwZq4YrZDHPneAfkwxtcc8h7OcoZna8yc7n6XyCNHg/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.12.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.14.0';
   let ID_TOKEN = null;
   /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -447,8 +534,27 @@
     SINCRONIZACION_EN_CURSO: 'Ya hay una sincronización en curso. Espere un momento.',
     TIEMPO_AGOTADO: 'Se agotó el tiempo leyendo Drive. No se escribió nada; intente de nuevo.',
     FECHA_INVALIDA: 'La fecha no es válida.',
-    FALTA_NOMBRE: 'Falta el nombre del evento.'
+    FALTA_NOMBRE: 'Falta el nombre del evento.',
+    NO_ELEGIBLE: 'Su perfil no está habilitado para confirmar en este evento (revise su Worship y función).',
+    EVENTO_NO_PUBLICADO: 'El evento aún no está publicado: la confirmación se abre al publicarlo.',
+    EVENTO_PASADO: 'El evento ya pasó: no se puede cambiar la confirmación.',
+    EVENTO_NO_ENCONTRADO: 'El evento ya no existe o no está disponible.',
+    ALCANCE_INVALIDO: 'El alcance del evento no es válido.',
+    PERSONA_NO_ACTIVA: 'Esa persona no está activa en la aplicación.',
+    PERSONA_SIN_FUNCION_MUSICAL: 'Esa persona es administrativa y no tiene función musical.',
+    WORSHIP_INVALIDO: 'El Worship elegido no está en la lista de valores válidos.',
+    PARTE_INVALIDA: 'La función elegida no está en la lista de valores válidos.',
+    FALTA_COLUMNA_WORSHIP: 'La hoja Usuarios no tiene la columna «Worship».',
+    FALTA_COLUMNA_PARTE_USUARIO: 'La hoja Usuarios no tiene la columna «Parte Usuario».',
+    EVENTO_SIN_CANTOS: 'El evento no tiene cantos para asignar presentadores.',
+    PERIODO_INVALIDO: 'La fecha inicial no puede ser posterior a la final.'
   };
+  Object.assign(ERRORES, { DESTINATARIO_INVALIDO: 'Hay correos con formato no válido.', SIN_DESTINATARIOS: 'Falta al menos un destinatario.',
+    DEMASIADOS_DESTINATARIOS: 'Máximo 10 destinatarios por envío.', PDF_INVALIDO: 'El PDF generado no es válido. Vuelva a generar el informe.',
+    PDF_MUY_GRANDE: 'El PDF es demasiado grande para enviarlo.', CUOTA_DIARIA_INSUFICIENTE: 'Se agotó la cuota diaria de correos de la cuenta remitente. Intente mañana o cambie de remitente.',
+    ENVIO_FALLIDO: 'El servicio de correo rechazó el envío.',
+    CUENTA_NO_CONECTADA: 'Aún no hay una cuenta conectada.', FALTA_SECRETO_OAUTH: 'Falta guardar OAUTH_CLIENT_SECRET en las propiedades del script.',
+    MODO_INVALIDO: 'Modo de remitente no válido.', SIN_PERMISO: 'No tiene permiso para esta acción.' });
   const textoError = e => ERRORES[e] || String(e || 'Error desconocido');
 
   function manejarCredencial(resp) {
@@ -502,9 +608,10 @@
     }
   }
 
+  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
-    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-publicidad'].forEach(v =>
+    VISTAS.forEach(v =>
       $(v).classList.toggle('oculto', v !== id));
     estadoGuardar({ vista: id });
     irAVista(id, estabaOculta);
@@ -596,7 +703,7 @@
   $('btn-salir').onclick = () => {
     SESION = null; ID_TOKEN = null; lsDel('pm_sesion'); lsDel(ESTADO_CLAVE); est = {}; restaurado = false;   // las secuencias (seq_*) se conservan
     cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto');
-    ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-publicidad'].forEach(v => $(v).classList.add('oculto'));
+    VISTAS.forEach(v => $(v).classList.add('oculto'));
     try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     $('estado-sesion').textContent = 'Sesión cerrada. Inicie sesión con su cuenta de Google.';
     window.scrollTo({ top: 0 });
@@ -646,7 +753,7 @@
     if (!r || !r.ok) { log('No se pudieron cargar los eventos: ' + textoError(r && r.error)); return; }
     $('lista-eventos').innerHTML = r.eventos.length
       ? r.eventos.map(e => '<div class="fila"><span class="nombre"><b>' + esc(e.nombre) + '</b>' +
-          '<span class="meta">' + esc(e.fecha) + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
+          '<span class="meta">' + esc(e.fecha) + (e.alcance && e.alcance !== 'Todos' ? ' · ' + esc(e.alcance) : '') + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
           '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">Ver repertorio</button></div>').join('')
       : '<p class="aviso">No hay eventos programados.</p>';
     mostrarVista('vista-eventos');
@@ -659,13 +766,14 @@
     if (!r || !r.ok) { log('No se pudo cargar el repertorio: ' + textoError(r && r.error)); return; }
     $('titulo-evento').textContent = nombre;
     const ev = r.evento; vistaEv = { idEvento: idEvento, nombre: nombre, r: r };
-    $('mensaje-evento').textContent = ev ? ((ev.fecha || '') + (ev.mensaje ? ' · ' + ev.mensaje : '')) : '';
+    $('mensaje-evento').textContent = ev ? ((ev.fecha || '') + (ev.alcance ? ' · ' + ev.alcance : '') + (ev.mensaje ? ' · ' + ev.mensaje : '')) : '';
     let html = '';
     const sets = (r.sets || []).filter(s => s.canciones.length);
     sets.forEach(s => {
       if (sets.length > 1) html += '<div class="set-titulo">' + esc(s.nombreSet || ('Set ' + s.numeroSet)) + '</div>';
       s.canciones.forEach((c, n) => {
-        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (n + 1) + '.</span>' + esc(c.titulo) + (c.nota ? '<span class="nota-ev">' + esc(c.nota) + '</span>' : '') + '</span>' +
+        html += '<div class="fila"><span class="nombre"><span class="pos-lista">' + (n + 1) + '.</span>' + esc(c.titulo) + (c.nota ? '<span class="nota-ev">' + esc(c.nota) + '</span>' : '') +
+          ((c.presentadores || []).length ? '<span class="pres-ev">🎤 Presentan: ' + c.presentadores.map(x => esc(x.nombre)).join(' y ') + '</span>' : '') + '</span>' +
           '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '">▶ Ensayar</button></div>';
       });
     });
@@ -674,10 +782,12 @@
       $('lista-repertorio').innerHTML += '<p class="aviso">⚠ ' + r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran.</p>';
     }
     $('acciones-evento').innerHTML = programa()
-      ? '<button class="btn-accent" id="btn-compartir" style="margin-bottom:8px;">📤 Compartir programa (imagen)</button><div class="botones">' + (permisos.reordenar && sets.length ? '<button class="btn-primary btn-small" id="btn-reordenar">↕ Cambiar el orden de los cantos</button>' : '') + '<button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
+      ? '<button class="btn-accent" id="btn-compartir" style="margin-bottom:8px;">📤 Compartir programa (imagen)</button>' + (permisos.reordenar ? '<button class="btn-primary" id="btn-informe" style="margin-bottom:8px;">📄 Informe oficial (PDF / correo)</button>' : '') + '<div class="botones">' + (permisos.reordenar && sets.length ? '<button class="btn-primary btn-small" id="btn-reordenar">↕ Cambiar el orden de los cantos</button>' : '') + '<button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
         '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button></div>' : '';
     estadoGuardar({ evento: { id: idEvento, nombre: nombre } });
+    $('panel-participacion').innerHTML = '';
     mostrarVista('vista-repertorio');
+    cargarParticipacion(idEvento);
     log('Repertorio cargado.');
   }
 
@@ -775,7 +885,7 @@
     const o = {}; s.canciones.forEach(id => { const t = ((s.notas || {})[id] || '').trim(); if (t) o[id] = t; }); return o;
   }
   function nuevoConstructor() {
-    setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [], notas: {} }]; setActivo = 0; eventoEditando = null;
+    setsEv = [{ nombre: 'Set 1', mensaje: '', canciones: [], notas: {} }]; setActivo = 0; eventoEditando = null; funcReq = [];
     $('buscar-selector').value = '';
   }
   function configurarFormulario() {
@@ -788,6 +898,8 @@
     cerrarPanel();
     nuevoConstructor(); claveEvento = '';
     $('in-nombre').value = ''; $('in-fecha').value = ''; $('in-mensaje').value = '';
+    $('in-alcance').value = 'Todos'; $('in-publicidad').value = ''; $('in-espiritual').value = '';
+    await cargarFuncionesKnown(); pintarFuncReq();
     configurarFormulario();
     mostrarVista('vista-formulario');
     if (await cargarCatalogo()) { pintarConstructor(); log('Agregue cantos a cada set, ordénelos automáticamente o con ▲ ▼.'); }
@@ -802,11 +914,15 @@
     if (r.ocultas > 0 && !confirm(r.ocultas + ' canción(es) de este evento no tienen recursos y no se pueden editar aquí: se QUITARÁN al guardar. ¿Continuar?')) return;
     nuevoConstructor();
     const sets = (r.sets || []).slice().sort((a, b) => a.numeroSet - b.numeroSet);
-    setsEv = sets.length ? sets.map(s => ({ nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '',
+    setsEv = sets.length ? sets.map(s => ({ idSet: s.idSet, nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '',
       canciones: s.canciones.map(c => c.idCancion).filter(id => infoCancion(id)),
       notas: Object.fromEntries(s.canciones.filter(c => c.nota && infoCancion(c.idCancion)).map(c => [c.idCancion, c.nota])) })) : setsEv;
     eventoEditando = { idEvento: r.evento.idEvento, estado: r.evento.estado || '' };
     $('in-nombre').value = r.evento.nombre || ''; $('in-fecha').value = r.evento.fecha || ''; $('in-mensaje').value = r.evento.mensaje || '';
+    $('in-alcance').value = r.evento.alcance || 'Todos'; $('in-publicidad').value = r.evento.publicidad || ''; $('in-espiritual').value = r.evento.infoEspiritual || '';
+    await cargarFuncionesKnown();
+    funcReq = (r.evento.funcionesRequeridas || '').split(';').map(x => { const i = x.lastIndexOf(':'); return i > 0 ? { funcion: x.slice(0, i).trim(), cantidad: parseInt(x.slice(i + 1), 10) || 1 } : null; }).filter(Boolean);
+    pintarFuncReq();
     configurarFormulario(); mostrarVista('vista-formulario'); pintarConstructor();
     log('Edite el orden y guarde los cambios.');
   }
@@ -851,11 +967,12 @@
     const nombre = $('in-nombre').value.trim(), fecha = $('in-fecha').value;
     if (!nombre || !fecha) { alert('Ingrese el nombre y la fecha del evento.'); return; }
     const sets = setsEv.filter(s => s.canciones.length).map((s, i) => ({
-      numeroSet: i + 1, nombreSet: (s.nombre || '').trim() || ('Set ' + (i + 1)), mensajeSet: s.mensaje || '', canciones: s.canciones.slice(), notas: notasDe(s) }));
+      idSet: s.idSet, numeroSet: i + 1, nombreSet: (s.nombre || '').trim() || ('Set ' + (i + 1)), mensajeSet: s.mensaje || '', canciones: s.canciones.slice(), notas: notasDe(s) }));
     if (!sets.length && !confirm('No eligió canciones. ¿Guardar el evento vacío?')) return;
     const vacios = setsEv.length - sets.length;
     if (sets.length && vacios > 0 && !confirm(vacios + ' set(s) sin cantos no se guardarán. ¿Continuar?')) return;
-    const comun = { nombreEvento: nombre, fechaEvento: fecha, mensajeGeneral: $('in-mensaje').value.trim(), sets: sets };
+    const comun = { nombreEvento: nombre, fechaEvento: fecha, mensajeGeneral: $('in-mensaje').value.trim(), sets: sets,
+      alcance: $('in-alcance').value, funcionesRequeridas: funcReq.filter(f => f.funcion), publicidad: $('in-publicidad').value.trim(), infoEspiritual: $('in-espiritual').value.trim() };
     let r;
     if (eventoEditando) {
       r = await api('actualizar_evento', Object.assign({ idEvento: eventoEditando.idEvento, estado: eventoEditando.estado || 'Programado' }, comun));
@@ -869,6 +986,204 @@
       alert('Evento guardado.'); await cargarEventos();
     } else { log('No se guardó el evento: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
   });
+
+
+  /* ---------------- v3.13.0: funciones requeridas del evento ---------------- */
+  let funcReq = [], funcionesKnown = [];
+  async function cargarFuncionesKnown() {
+    const r = await api('funciones_requeribles');
+    if (r && r.ok) funcionesKnown = r.funciones || [];
+  }
+  function pintarFuncReq() {
+    $('funciones-req').innerHTML = funcReq.map((f, i) =>
+      '<div class="fr-fila"><select data-fr-f="' + i + '" aria-label="Función">' +
+      (funcionesKnown.indexOf(f.funcion) < 0 && f.funcion ? [f.funcion].concat(funcionesKnown) : funcionesKnown).map(n => '<option' + (n === f.funcion ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
+      '</select><input type="number" min="1" max="20" value="' + esc(f.cantidad) + '" data-fr-n="' + i + '" aria-label="Cantidad">' +
+      '<button class="btn-danger" data-fr-quitar="' + i + '" type="button" aria-label="Quitar">✕</button></div>').join('');
+  }
+  $('btn-add-funcion').onclick = () => {
+    if (!funcionesKnown.length) { alert('No se pudo cargar la lista de funciones.'); return; }
+    const usadas = funcReq.map(f => f.funcion), libre = funcionesKnown.find(n => usadas.indexOf(n) < 0);
+    if (!libre) return;
+    funcReq.push({ funcion: libre, cantidad: 1 }); pintarFuncReq();
+  };
+  document.addEventListener('change', e => {
+    const t = e.target; if (!t.dataset) return;
+    if (t.id === 'rem-funcion') { cargarCandidatosRem(); return; }
+    if (t.dataset.frF !== undefined) funcReq[Number(t.dataset.frF)].funcion = t.value;
+    if (t.dataset.frN !== undefined) funcReq[Number(t.dataset.frN)].cantidad = Math.max(1, Math.min(20, parseInt(t.value, 10) || 1));
+  });
+
+  /* ---------------- v3.13.0: participación, reemplazos y presentadores ---------------- */
+  let part = null;
+  const MOTIVOS = {
+    FUERA_DE_ALCANCE: 'Este evento es de otro Worship: usted no necesita confirmar.',
+    EVENTO_NO_PUBLICADO: 'La confirmación se abre cuando el evento esté publicado.',
+    SIN_WORSHIP: 'Su perfil aún no tiene Worship asignado. Avise al administrador.',
+    SIN_FUNCION_MUSICAL: 'Su perfil no tiene una función musical que confirmar.',
+    INACTIVO: 'Su cuenta no está activa.'
+  };
+  async function cargarParticipacion(idEvento) {
+    try {
+      const r = await api('participacion_evento', { idEvento: idEvento });
+      if (!r || !r.ok) { part = null; $('panel-participacion').innerHTML = '<div class="aviso">No se pudo cargar la participación: ' + esc(textoError(r && r.error)) + '</div>'; return; }
+      part = r;
+      if (programa() && !funcionesKnown.length) await cargarFuncionesKnown();
+      pintarParticipacion();
+    } catch (e) { part = null; }
+  }
+  function filaPersona(p) {
+    return '<div class="fila"><span class="nombre">' + esc(p.nombre) + '<span class="meta">' + esc(p.funcion) + ' · ' + esc(p.worship || 'sin Worship') + '</span></span>' +
+      '<span>' + (p.condicion === 'Reemplazo' ? '<span class="ins reemplazo">Reemplazo' + (p.fueraAlcance ? ' · otro Worship' : '') + '</span>' : '<span class="ins ok">Titular</span>') +
+      (programa() && p.idReemplazo ? ' <button class="btn-secondary btn-small" data-rem-retirar="' + esc(p.idReemplazo) + '" type="button">Retirar</button>' : '') + '</span></div>';
+  }
+  function pintarParticipacion() {
+    const p = part; if (!p) { $('panel-participacion').innerHTML = ''; return; }
+    let h = '<div class="grupo"><label>Participación en este evento</label>' +
+      '<div class="aviso">Alcance: <b>' + esc(p.evento.alcance) + '</b>. Abrir el repertorio o una partitura <b>no</b> confirma su asistencia: debe pulsar «Confirmar».</div>';
+    if (p.puedoConfirmar) {
+      h += '<div class="fila"><span class="nombre">Mi participación: <b>' + esc(p.miEstado) + '</b></span>' +
+        (p.miEstado === 'Confirmado'
+          ? '<button class="btn-danger btn-small" data-part="cancelar" type="button">Cancelar</button>'
+          : '<button class="btn-accent btn-small" data-part="confirmar" type="button">✔ Confirmar mi participación</button>') + '</div>';
+    } else if (p.motivoNoConfirmar) h += '<div class="aviso">' + esc(MOTIVOS[p.motivoNoConfirmar] || p.motivoNoConfirmar) + '</div>';
+    h += '<div class="aviso">Habilitados: <b>' + p.resumen.habilitados + '</b> · Confirmados: <b>' + p.resumen.confirmados + '</b> · Reemplazos: <b>' + p.resumen.reemplazos + '</b> · Sin confirmar: <b>' + p.resumen.pendientes + '</b></div>';
+    h += '<div class="set-titulo">Cantantes (' + p.cantantes.length + ')</div>' + (p.cantantes.map(filaPersona).join('') || '<div class="aviso">Nadie ha confirmado todavía.</div>');
+    h += '<div class="set-titulo">Instrumentistas (' + p.instrumentistas.length + ')</div>' + (p.instrumentistas.map(filaPersona).join('') || '<div class="aviso">Nadie ha confirmado todavía.</div>');
+    if (p.otros.length) h += '<div class="set-titulo">Dirección y otros</div>' + p.otros.map(filaPersona).join('');
+    if (p.requeridas.length) {
+      h += '<div class="set-titulo">Funciones requeridas</div><div class="tabla-scroll"><table class="tabla-mini"><tr><th>Función</th><th class="num">Requeridas</th><th class="num">Cubiertas</th><th>Estado</th></tr>' +
+        p.requeridas.map(r => '<tr><td>' + esc(r.funcion) + '</td><td class="num">' + r.requeridas + '</td><td class="num">' + r.cubiertas + '</td><td>' +
+          (r.pendientes ? '<span class="ins alerta">Faltan ' + r.pendientes + '</span>' : '<span class="ins ok">Cubierta</span>') + '</td></tr>').join('') + '</table></div>';
+    }
+    if (programa()) {
+      h += '<div class="set-titulo">Reemplazos (asignar)</div>' +
+        '<label for="rem-funcion" style="font-size:12px;">Función a cubrir</label><select id="rem-funcion">' +
+        (funcionesKnown.length ? funcionesKnown : p.requeridas.map(r => r.funcion)).map(n => { const v = p.vacantes.find(x => x.funcion === n); return '<option value="' + esc(n) + '">' + esc(n) + (v ? ' (faltan ' + v.pendientes + ')' : '') + '</option>'; }).join('') + '</select>' +
+        '<label for="rem-persona" style="font-size:12px;">Persona (activa)</label><select id="rem-persona"><option value="">— cargando —</option></select>' +
+        '<button class="btn-accent btn-small" id="btn-rem-asignar" type="button">Asignar reemplazo</button>' +
+        '<div class="aviso">Puede elegir a alguien de otro Worship si es necesario; quedará marcado como «otro Worship».</div>';
+      if (p.pendientes && p.pendientes.length) h += '<details><summary>Habilitados sin confirmar (' + p.pendientes.length + ')</summary><div class="aviso">' + p.pendientes.map(x => esc(x.nombre) + ' (' + esc(x.funcion) + ')').join(' · ') + '</div></details>';
+      h += '<div class="set-titulo">Presentadores de los cantos</div>' +
+        '<div class="botones" style="flex-wrap:wrap;"><button class="btn-primary btn-small" data-pres="vacios" type="button">🎲 Sortear los que faltan</button>' +
+        '<button class="btn-secondary btn-small" data-pres="todos" type="button">🎲 Volver a sortear todos</button>' +
+        '<button class="btn-secondary btn-small" data-pres="editar" type="button">✏️ Editar presentadores</button></div>' +
+        '<div class="aviso">Cada canto lleva 2 cantantes; el primero de cada set incluye una voz líder. El sorteo se hace una vez y queda guardado.</div>';
+    }
+    h += '</div>';
+    $('panel-participacion').innerHTML = h;
+    if (programa()) cargarCandidatosRem();
+  }
+  async function cargarCandidatosRem() {
+    const sel = $('rem-persona'); if (!sel || !part) return;
+    const fn = $('rem-funcion') ? $('rem-funcion').value : '';
+    const r = await api('reemplazo_candidatos', { idEvento: part.evento.idEvento, funcion: fn });
+    if (!$('rem-persona')) return;
+    if (!r || !r.ok) { $('rem-persona').innerHTML = '<option value="">No se pudo cargar</option>'; return; }
+    $('rem-persona').innerHTML = '<option value="">— Elija una persona —</option>' + r.candidatos.map(c =>
+      '<option value="' + esc(c.correo) + '"' + (c.yaEnEvento ? ' disabled' : '') + '>' + esc(c.nombre || c.correo) + ' · ' + esc(c.funcion) + ' · ' + esc(c.worship || 'sin Worship') +
+      (c.fueraAlcance ? ' (otro Worship)' : '') + (c.yaEnEvento ? ' — ' + esc(c.yaEnEvento) : '') + '</option>').join('');
+    candidatosCache = r.candidatos;
+  }
+  let candidatosCache = [];
+  async function accionParticipacion(a) {
+    const r = await api(a === 'confirmar' ? 'participacion_confirmar' : 'participacion_cancelar', { idEvento: part.evento.idEvento });
+    if (r && r.ok) { log(r.mensaje || 'Listo.'); } else { alert(textoError(r && r.error)); log('No se pudo actualizar la participación: ' + textoError(r && r.error)); }
+    await cargarParticipacion(part.evento.idEvento);
+  }
+  async function asignarReemplazoUI() {
+    const funcion = $('rem-funcion').value, correo = $('rem-persona').value;
+    if (!funcion || !correo) { alert('Elija la función y la persona.'); return; }
+    const c = candidatosCache.find(x => x.correo === correo);
+    if (c && c.fueraAlcance && !confirm((c.nombre || correo) + ' pertenece a otro Worship (' + (c.worship || 'sin Worship') + '). ¿Asignarlo de todas formas?')) return;
+    const r = await api('reemplazo_asignar', { idEvento: part.evento.idEvento, funcion: funcion, correo: correo });
+    if (r && r.ok) log(r.mensaje || 'Reemplazo asignado.'); else { alert(textoError(r && r.error)); log('No se asignó el reemplazo: ' + textoError(r && r.error)); }
+    await cargarParticipacion(part.evento.idEvento);
+  }
+  async function retirarReemplazoUI(id) {
+    if (!confirm('¿Retirar este reemplazo?')) return;
+    const r = await api('reemplazo_retirar', { idEvento: part.evento.idEvento, idReemplazo: id });
+    log(r && r.ok ? (r.mensaje || 'Reemplazo retirado.') : 'No se pudo retirar: ' + textoError(r && r.error));
+    await cargarParticipacion(part.evento.idEvento);
+  }
+  const textoAdvertencias = a => (a || []).map(x => '• ' + x.detalle).join('\n');
+  async function sortearUI(soloVacios) {
+    if (!soloVacios && !confirm('Se descartarán los presentadores actuales y se sortearán de nuevo. ¿Continuar?')) return;
+    const r = await api('presentadores_sortear', { idEvento: vistaEv.idEvento, soloVacios: soloVacios });
+    if (r && r.ok) { log(r.mensaje); if (r.advertencias && r.advertencias.length) alert('Presentadores guardados con advertencias:\n' + textoAdvertencias(r.advertencias)); }
+    else { alert(textoError(r && r.error)); log('No se pudo sortear: ' + textoError(r && r.error)); }
+    await verEvento(vistaEv.idEvento, vistaEv.nombre);
+  }
+  let edicionPres = null;
+  async function editarPresentadoresUI() {
+    const r = await api('reemplazo_candidatos', { idEvento: vistaEv.idEvento, funcion: 'Soprano' });
+    if (!r || !r.ok) { alert(textoError(r && r.error)); return; }
+    const cantantes = r.candidatos.filter(c => c.cantante);
+    edicionPres = { cantantes: cantantes };
+    let html = '';
+    (vistaEv.r.sets || []).filter(s => s.canciones.length).forEach(s => {
+      html += '<div class="set-titulo">' + esc(s.nombreSet || ('Set ' + s.numeroSet)) + '</div>';
+      s.canciones.forEach((c, n) => {
+        const act = (c.presentadores || []).map(x => x.correo);
+        const sel = k => '<select data-pres-set="' + esc(s.idSet) + '" data-pres-can="' + esc(c.idCancion) + '" data-pres-k="' + k + '" style="margin:2px 0;"><option value="">— sin asignar —</option>' +
+          cantantes.map(x => '<option value="' + esc(x.correo) + '"' + (x.correo === act[k] ? ' selected' : '') + '>' + esc(x.nombre) + ' · ' + esc(x.funcion) + ' · ' + esc(x.worship || '') + '</option>').join('') + '</select>';
+        html += '<div class="fila" style="display:block;"><span class="nombre"><span class="pos-lista">' + (n + 1) + '.</span>' + esc(c.titulo) + (n === 0 ? ' <span class="ins">1.º del set: incluya una voz líder</span>' : '') + '</span>' + sel(0) + sel(1) + '</div>';
+      });
+    });
+    $('lista-repertorio').innerHTML = html;
+    $('panel-participacion').innerHTML = '';
+    $('acciones-evento').innerHTML = '<div class="botones"><button class="btn-primary btn-small" data-pres="guardar" type="button">💾 Guardar presentadores</button><button class="btn-secondary btn-small" data-pres="cancelar" type="button">Cancelar</button></div>';
+  }
+  async function guardarPresentadoresUI() {
+    const mapa = {};
+    document.querySelectorAll('#lista-repertorio select[data-pres-k]').forEach(sel => {
+      const k = sel.dataset.presSet + '|' + sel.dataset.presCan; mapa[k] = mapa[k] || { idSet: sel.dataset.presSet, idCancion: sel.dataset.presCan, p1: '', p2: '' };
+      mapa[k][sel.dataset.presK === '0' ? 'p1' : 'p2'] = sel.value;
+    });
+    const r = await api('presentadores_guardar', { idEvento: vistaEv.idEvento, asignaciones: Object.values(mapa) });
+    if (r && r.ok) { log(r.mensaje); if (r.advertencias && r.advertencias.length) alert('Guardado con advertencias:\n' + textoAdvertencias(r.advertencias)); }
+    else { alert(textoError(r && r.error)); log('No se guardaron los presentadores: ' + textoError(r && r.error)); return; }
+    await verEvento(vistaEv.idEvento, vistaEv.nombre);
+  }
+
+  /* ---------------- v3.13.0: tablero del equipo y actividad de uso ---------------- */
+  async function cargarTablero() {
+    const r = await api('tablero_usuarios');
+    if (!r || !r.ok) { alert('No se pudo cargar el tablero: ' + textoError(r && r.error)); return; }
+    const v = r.voces, filas = ['Soprano', 'Contralto', 'Tenor', 'Bajo', 'Voz Lid.'];
+    let h = '<div class="aviso">Calculado de la hoja Usuarios (solo usuarios <b>Activos</b>) · ' + esc(r.generado) + '</div>' +
+      '<div class="aviso">Usuarios: <b>' + r.totales.usuarios + '</b> · Activos <b>' + r.totales.activos + '</b> · Inactivos <b>' + r.totales.inactivos + '</b> · Pendientes <b>' + r.totales.pendientes + '</b></div>' +
+      '<div class="set-titulo">Voces por Worship</div><table class="tabla-mini"><tr><th>Voz</th><th class="num">W1</th><th class="num">W2</th></tr>' +
+      filas.map(f => '<tr><td>' + esc(f) + '</td><td class="num">' + v.W1[f] + '</td><td class="num">' + v.W2[f] + '</td></tr>').join('') + '</table>';
+    const lista = o => Object.keys(o).length ? '<table class="tabla-mini">' + Object.keys(o).sort().map(k => '<tr><td>' + esc(k) + '</td><td class="num">' + o[k] + '</td></tr>').join('') + '</table>' : '<div class="aviso">Sin integrantes activos.</div>';
+    h += '<div class="set-titulo">Instrumentistas activos (' + r.totalInstrumentistas + ')</div>' + lista(r.instrumentistas) +
+      '<div class="set-titulo">Departamento (aparte de los equipos)</div>' + lista(r.departamento) +
+      '<div class="aviso">Administrativos: <b>' + r.administrativos + '</b> · Directores: <b>' + r.directores + '</b> · Voces líderes fuera de W1/W2: <b>' + r.lideresFueraDeW1W2 + '</b> · Activos sin clasificar: <b>' + r.sinClasificar + '</b></div>' +
+      '<div class="set-titulo">Usuarios activos por categoría y función</div>' + lista(r.porCategoria) +
+      '<div class="set-titulo">Funciones con baja disponibilidad (menos de ' + r.umbral + ' activos)</div>' +
+      (r.bajaDisponibilidad.length ? '<table class="tabla-mini"><tr><th>Área</th><th>Función</th><th class="num">Activos</th><th>Nivel</th></tr>' + r.bajaDisponibilidad.map(b =>
+        '<tr><td>' + esc(b.area) + '</td><td>' + esc(b.funcion) + '</td><td class="num">' + b.activos + '</td><td><span class="ins ' + (b.nivel === 'SIN_INTEGRANTES' ? 'alerta' : 'reemplazo') + '">' + (b.nivel === 'SIN_INTEGRANTES' ? 'Sin integrantes' : 'Baja') + '</span></td></tr>').join('') + '</table>' : '<div class="aviso">Ninguna.</div>');
+    $('tb-contenido').innerHTML = h; mostrarVista('vista-tablero');
+  }
+  function llenarFiltrosActividad() {
+    const l = (guDatos && guDatos.listas) || { worship: [], partes: [] };
+    $('ac-worship').innerHTML = '<option value="">Todas</option>' + l.worship.map(x => '<option>' + esc(x) + '</option>').join('');
+    $('ac-parte').innerHTML = '<option value="">Todas</option>' + l.partes.map(x => '<option>' + esc(x) + '</option>').join('');
+  }
+  async function consultarActividad() {
+    const r = await api('informe_actividad', { desde: $('ac-desde').value, hasta: $('ac-hasta').value, worship: $('ac-worship').value, parte: $('ac-parte').value, estado: $('ac-estado').value });
+    if (!r || !r.ok) { alert('No se pudo cargar la actividad: ' + textoError(r && r.error)); return; }
+    $('ac-desde').value = r.desde; $('ac-hasta').value = r.hasta;
+    $('ac-contenido').innerHTML = '<div class="aviso">Periodo ' + esc(r.desde) + ' a ' + esc(r.hasta) + ' · ' + r.usuarios.length + ' usuario(s) · ' +
+      (r.registroDesde ? 'registro disponible desde ' + esc(r.registroDesde) : 'todavía no hay registros de actividad') + '</div><div class="aviso">' + esc(r.nota) + '</div>' +
+      '<div class="tabla-scroll"><table class="tabla-mini"><tr><th>Nombre</th><th>Worship</th><th>Función</th><th>Último acceso</th><th class="num">Accesos</th><th class="num">Ensayos</th><th>Última actividad</th></tr>' +
+      r.usuarios.map(u => '<tr><td>' + esc(u.nombre || u.correo) + '<br><span class="meta" style="font-size:11px;color:#718096;">' + esc(u.correo) + (u.estado !== 'Activo' ? ' · ' + esc(u.estado) : '') + '</span></td><td>' + esc(u.worship) + '</td><td>' + esc(u.parte) + '</td><td>' +
+        esc(u.ultimoAcceso || '—') + '</td><td class="num">' + u.accesos + '</td><td class="num">' + u.ensayos + '</td><td>' + esc(u.ultimaActividad || '—') + '</td></tr>').join('') + '</table></div>';
+  }
+  $('btn-tablero').onclick = () => conOcupado(cargarTablero);
+  $('btn-tb-actualizar').onclick = () => conOcupado(cargarTablero);
+  $('btn-actividad').onclick = () => conOcupado(async () => { llenarFiltrosActividad(); $('ac-contenido').innerHTML = ''; mostrarVista('vista-actividad'); await consultarActividad(); });
+  $('btn-ac-consultar').onclick = () => conOcupado(consultarActividad);
 
   /* ---------------- Imagen de bienvenida ---------------- */
   let popupPedido = false;
@@ -952,6 +1267,242 @@
     return cv;
   }
 
+  /* ---------------- Informe oficial (plantilla «Programa Worship») ---------------- */
+  const INF = { azul: '#0f1d4a', oro: '#e8b830', servicios: ['#1f4e9c', '#1d6b3a', '#5b2a86', '#8a4b0f', '#0a6b78', '#8a1c3b'],
+    personas: ['#1f5fbf', '#d62828', '#1d7a3b', '#c26a00', '#7b2cbf', '#0a7f8c', '#a31d5a', '#4d5b00'] };
+  let archivoInforme = null, bytesInforme = null;
+  function fechaLarga(f) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(f || '')); if (!m) return String(f || '').toUpperCase();
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '').toUpperCase();
+  }
+  function cargarLogoInforme() {
+    return new Promise(res => {
+      let i = 0; const im = new Image();
+      im.onload = () => res(im.naturalWidth ? im : null);
+      im.onerror = () => { i++; if (i < LOGOS.length) im.src = LOGOS[i]; else res(null); };
+      im.src = LOGOS[0];
+    });
+  }
+  async function dibujarInforme(ev, sets, part) {
+    try { await Promise.all([document.fonts.load('400 20px CarlitoPM'), document.fonts.load('700 20px CarlitoPM')]); } catch (e) {}
+    const logo = await cargarLogoInforme();
+    const F = 'CarlitoPM, Calibri, Arial, sans-serif', W = 1024, SC = 2, M = 16, WL = 660, XR = M + WL + 24, WR = W - M - XR;
+    const cv0 = document.createElement('canvas'), x0 = cv0.getContext('2d');
+    const medir = (t, sz, bold) => { x0.font = (bold ? '700 ' : '400 ') + sz + 'px ' + F; return x0.measureText(t).width; };
+    const envolver = (t, sz, ancho, bold) => {
+      const out = []; let lin = '';
+      String(t || '').split(/\n/).forEach(par => { lin = '';
+        par.split(/\s+/).filter(Boolean).forEach(p => { const prueba = lin ? lin + ' ' + p : p;
+          if (medir(prueba, sz, bold) > ancho && lin) { out.push(lin); lin = p; } else lin = prueba; });
+        out.push(lin); });
+      return out;
+    };
+    // colores por persona (misma persona = mismo color en todo el documento)
+    const colorDe = {}; let ncol = 0;
+    const col = n => { const k = String(n || '').toLowerCase(); if (!k) return '#222'; if (!(k in colorDe)) colorDe[k] = INF.personas[ncol++ % INF.personas.length]; return colorDe[k]; };
+    // ----- medidas -----
+    const objetivo = (ev.mensaje || '').trim();
+    const HH = 150, WOBJ = 300;
+    const lineasObj = objetivo ? envolver(objetivo, 15, WOBJ - 28, false).slice(0, 6) : [];
+    const RH = 40, CAB = 38, SUB = 30;
+    let altoIzq = 0;
+    const bloques = sets.map((s, i) => {
+      const propio = (s.nombreSet || '').trim(), esDef = !propio || /^set\s*\d+$/i.test(propio);
+      const nombre = esDef ? (PROG_SERVICIOS[i] || (propio || 'SET ' + (i + 1)).toUpperCase()) : propio.toUpperCase();
+      const conNota = s.canciones.some(c => (c.nota || '').trim());
+      const msg = (s.mensajeSet || '').trim();
+      const msgL = msg ? envolver(msg, 14, WL - 24, false).slice(0, 2) : [];
+      const h = CAB + (msgL.length ? msgL.length * 18 + 8 : 0) + SUB + s.canciones.length * RH;
+      altoIzq += h + 18; return { s, nombre, conNota, msgL, h, color: INF.servicios[i % INF.servicios.length] };
+    });
+    const voces = (part && part.cantantes) || [], instr = (part && part.instrumentistas) || [];
+    const vac = ((part && part.vacantes) || []);
+    const vacVoz = vac.filter(v => /soprano|contralto|tenor|bajo$|bajo \(|l[ií]der|voz/i.test(v.funcion) && !/instrumento/i.test(v.funcion));
+    const vacIns = vac.filter(v => vacVoz.indexOf(v) < 0);
+    const filasVoz = voces.length + vacVoz.reduce((n, v) => n + v.pendientes, 0), filasIns = instr.length + vacIns.reduce((n, v) => n + v.pendientes, 0);
+    const PH = 34, PR = 34;
+    const altoDer = (filasVoz ? PH + 30 + filasVoz * PR + 18 : 0) + (filasIns ? PH + filasIns * PR + 18 : 0);
+    const Y0 = HH + 18, FOOT = 46, H = Y0 + Math.max(altoIzq, altoDer) + FOOT + 4;
+    // ----- dibujo -----
+    const cv = document.createElement('canvas'); cv.width = W * SC; cv.height = H * SC;
+    const x = cv.getContext('2d'); x.scale(SC, SC); x.textBaseline = 'middle';
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    const T = (t, px, py, o) => { o = o || {}; let sz = o.size || 18; t = String(t || ''); const mw = o.max || 9999;
+      const set = () => { x.font = (o.italic ? 'italic ' : '') + (o.bold ? '700 ' : '400 ') + sz + 'px ' + F; };
+      set(); while (x.measureText(t).width > mw && sz > 11) { sz--; set(); }
+      while (x.measureText(t).width > mw && t.length > 3) t = t.slice(0, -2).trimEnd() + '…';
+      x.fillStyle = o.color || '#111'; x.textAlign = o.align || 'left'; x.fillText(t, px, py); };
+    const caja = (cx, cy, cw, ch, relleno, borde, r) => { x.beginPath(); x.roundRect ? x.roundRect(cx, cy, cw, ch, r || 0) : x.rect(cx, cy, cw, ch);
+      if (relleno) { x.fillStyle = relleno; x.fill(); } if (borde) { x.strokeStyle = borde; x.lineWidth = 1; x.stroke(); } };
+    // encabezado
+    x.fillStyle = INF.azul; x.fillRect(0, 0, W, HH);
+    let xt = M + 6;
+    if (logo) { const lh = 112, lw = Math.min(150, lh * logo.naturalWidth / logo.naturalHeight);
+      x.save(); x.globalCompositeOperation = 'lighten'; x.drawImage(logo, M, (HH - lh) / 2, lw, lh); x.restore(); xt = M + lw + 20; }
+    const wTit = (objetivo ? W - WOBJ - 32 : W - M) - xt - 10;
+    T('PROGRAMA WORSHIP', xt, 42, { size: 30, bold: true, color: '#fff', max: wTit });
+    T(String(ev.nombre || '').toUpperCase(), xt, 84, { size: 40, bold: true, color: INF.oro, max: wTit });
+    T(fechaLarga(ev.fecha) + (ev.alcance && ev.alcance !== 'Todos' ? '  ·  ' + String(ev.alcance).toUpperCase() : ''), xt, 122, { size: 20, bold: false, color: '#fff', max: wTit });
+    if (objetivo) {
+      caja(W - WOBJ - 14, 14, WOBJ, HH - 28, null, INF.oro, 14); x.lineWidth = 1.5; x.strokeStyle = INF.oro; x.stroke();
+      T('MENSAJE GENERAL', W - WOBJ / 2 - 14, 34, { size: 17, bold: true, color: INF.oro, align: 'center' });
+      lineasObj.forEach((l, i) => T(l, W - WOBJ / 2 - 14, 58 + i * 17, { size: 15, color: '#fff', align: 'center', max: WOBJ - 20 }));
+    }
+    // servicios (sets)
+    let y = Y0;
+    bloques.forEach(b => {
+      caja(M, y, WL, CAB, b.color, null, 6); T(b.nombre, M + 14, y + CAB / 2 + 1, { size: 21, bold: true, color: '#fff', max: WL - 28 }); y += CAB;
+      if (b.msgL.length) { b.msgL.forEach((l, i) => T(l, M + 12, y + 14 + i * 18, { size: 14, italic: true, color: '#444', max: WL - 24 })); y += b.msgL.length * 18 + 8; }
+      const cN = 44, cA = 210, cC = b.conNota ? 250 : WL - cN - cA, cT = WL - cN - cC - cA;
+      caja(M, y, WL, SUB, '#eef1f8', '#c9d0e0'); const hy = y + SUB / 2 + 1;
+      T('#', M + cN / 2, hy, { size: 14, bold: true, color: '#333', align: 'center' });
+      T('CANTO', M + cN + 10, hy, { size: 14, bold: true, color: '#333' });
+      if (b.conNota) T('NOTA', M + cN + cC + 10, hy, { size: 14, bold: true, color: '#333' });
+      T('ANUNCIA (VOCALISTA)', M + WL - cA / 2, hy, { size: 14, bold: true, color: '#333', align: 'center' }); y += SUB;
+      b.s.canciones.forEach((c, i) => {
+        caja(M, y, WL, RH, i % 2 ? '#f8f9fc' : '#fff', '#dde2ee'); const cy = y + RH / 2 + 1;
+        T(String(i + 1), M + cN / 2, cy, { size: 18, bold: true, color: '#222', align: 'center' });
+        T(c.titulo, M + cN + 10, cy, { size: 19, bold: true, color: '#111', max: cC - 16 });
+        if (b.conNota) T((c.nota || '').trim(), M + cN + cC + 10, cy, { size: 15, color: '#444', max: cT - 16 });
+        const pr = (c.presentadores || []);
+        if (pr.length === 1) T(pr[0].nombre, M + WL - cA / 2, cy, { size: 18, bold: true, color: col(pr[0].nombre), align: 'center', max: cA - 14 });
+        else pr.slice(0, 2).forEach((p, k) => T(p.nombre, M + WL - cA / 2, y + 12 + k * 17 + 1, { size: 15, bold: true, color: col(p.nombre), align: 'center', max: cA - 14 }));
+        y += RH;
+      });
+      y += 18;
+    });
+    // equipos (columna derecha)
+    let yr = Y0;
+    const panel = (tit, filas) => {
+      caja(XR, yr, WR, PH, INF.azul, null, 6); T(tit, XR + WR / 2, yr + PH / 2 + 1, { size: 18, bold: true, color: INF.oro, align: 'center' }); yr += PH;
+      filas.forEach((f, i) => { caja(XR, yr, WR, PR, i % 2 ? '#f8f9fc' : '#fff', '#dde2ee');
+        T(f.rol, XR + 10, yr + PR / 2 + 1, { size: 14, bold: true, color: '#222', max: WR * 0.42 });
+        if (f.pend) T('Por confirmar', XR + WR * 0.46, yr + PR / 2 + 1, { size: 15, italic: true, color: '#999', max: WR * 0.52 });
+        else T(f.nombre + (f.reemplazo ? ' (reemplazo)' : ''), XR + WR * 0.46, yr + PR / 2 + 1, { size: 17, bold: true, color: col(f.nombre), max: WR * 0.52 });
+        yr += PR; });
+      yr += 18;
+    };
+    const filaDe = p => ({ rol: String(p.funcion || '').toUpperCase(), nombre: p.nombre, reemplazo: p.condicion === 'Reemplazo' });
+    const pendDe = v => Array.from({ length: v.pendientes }, () => ({ rol: String(v.funcion).toUpperCase(), pend: true }));
+    if (filasVoz) { panel('EQUIPO DE VOCES', voces.map(filaDe).concat([].concat.apply([], vacVoz.map(pendDe)))); }
+    if (filasIns) { panel('EQUIPO DE INSTRUMENTISTAS', instr.map(filaDe).concat([].concat.apply([], vacIns.map(pendDe)))); }
+    // pie
+    x.fillStyle = INF.azul; x.fillRect(0, H - FOOT, W, FOOT);
+    T('PALERMO · CENTRO DE INFLUENCIA · IGLESIA ADVENTISTA DEL SÉPTIMO DÍA', W / 2, H - FOOT / 2 - 7, { size: 15, bold: true, color: '#fff', align: 'center' });
+    T('Departamento de Música · Palermo Music', W / 2, H - FOOT / 2 + 11, { size: 13, color: INF.oro, align: 'center' });
+    return cv;
+  }
+  function pdfDeJpeg(jpeg, wPx, hPx) {
+    const wPt = Math.round(wPx * 0.75 * 100) / 100, hPt = Math.round(hPx * 0.75 * 100) / 100;
+    const enc = s => { const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i) & 255; return b; };
+    const partes = [], offs = []; let pos = 0;
+    const add = b => { partes.push(b); pos += b.length; };
+    const obj = (n, cuerpo) => { offs[n] = pos; add(enc(n + ' 0 obj\n' + cuerpo + '\nendobj\n')); };
+    add(enc('%PDF-1.4\n'));
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>'); obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+    obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + wPt + ' ' + hPt + '] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+    offs[4] = pos; add(enc('4 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + wPx + ' /Height ' + hPx + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n'));
+    add(jpeg); add(enc('\nendstream\nendobj\n'));
+    const cont = 'q ' + wPt + ' 0 0 ' + hPt + ' 0 0 cm /Im0 Do Q';
+    obj(5, '<< /Length ' + cont.length + ' >>\nstream\n' + cont + '\nendstream');
+    const xr = pos; let t = 'xref\n0 6\n0000000000 65535 f \n';
+    for (let i = 1; i <= 5; i++) t += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    add(enc(t + 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xr + '\n%%EOF'));
+    const out = new Uint8Array(pos); let o = 0; partes.forEach(p => { out.set(p, o); o += p.length; }); return out;
+  }
+  function bytesABase64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+  async function generarInforme() {
+    if (!vistaEv || !vistaEv.r || !vistaEv.r.evento) { log('Abra un evento primero.'); return; }
+    const r = vistaEv.r, sets = (r.sets || []).filter(s => s.canciones.length);
+    if (!sets.length) { alert('El evento no tiene cantos para mostrar.'); return; }
+    log('Generando el informe oficial…');
+    let part = null;
+    try { const p = await api('participacion_evento', { idEvento: r.evento.idEvento }); if (p && p.ok) part = p; } catch (e) {}
+    const cv = await dibujarInforme(r.evento, sets, part);
+    const jpg = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92)), png = await new Promise(res => cv.toBlob(res, 'image/png'));
+    if (!jpg || !png) { log('No se pudo generar el informe.'); return; }
+    bytesInforme = pdfDeJpeg(new Uint8Array(await jpg.arrayBuffer()), cv.width, cv.height);
+    const base = 'Programa_' + String(r.evento.fecha || 'evento');
+    archivoInforme = { png: new File([png], base + '.png', { type: 'image/png' }), pdfNombre: base + '.pdf', idEvento: r.evento.idEvento, nombre: r.evento.nombre, fecha: r.evento.fecha };
+    const im = $('img-informe'); if (im.dataset.url) URL.revokeObjectURL(im.dataset.url);
+    im.src = URL.createObjectURL(png); im.dataset.url = im.src;
+    $('inf-correo').classList.add('oculto'); $('inf-aviso').textContent = '';
+    $('inf-asunto').value = 'Programa Worship · ' + r.evento.nombre + ' · ' + r.evento.fecha;
+    $('vista-informe').classList.remove('oculto'); $('vista-informe').scrollTop = 0;
+    log('Informe listo.');
+  }
+  function descargarBlob(blob, nombre) { const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+  $('btn-inf-cerrar').onclick = () => $('vista-informe').classList.add('oculto');
+  $('btn-inf-png').onclick = () => { if (archivoInforme) descargarBlob(archivoInforme.png, archivoInforme.png.name); };
+  $('btn-inf-pdf').onclick = () => { if (archivoInforme && bytesInforme) descargarBlob(new Blob([bytesInforme], { type: 'application/pdf' }), archivoInforme.pdfNombre); };
+  $('btn-inf-correo').onclick = async () => {
+    $('inf-correo').classList.toggle('oculto'); $('inf-aviso').textContent = '';
+    if (!$('inf-correo').classList.contains('oculto')) {
+      $('inf-remitente').textContent = 'Consultando remitente…';
+      const r = await api('correo_remitente', {});
+      $('inf-remitente').textContent = r && r.ok ? 'Se enviará desde: ' + r.remitente : 'No se pudo consultar el remitente: ' + textoError(r && r.error);
+    }
+  };
+  async function enviarInformeUI() {
+    if (!archivoInforme || !bytesInforme) return;
+    const dest = $('inf-para').value.trim();
+    if (!dest) { $('inf-aviso').textContent = 'Escriba al menos un correo destinatario.'; return; }
+    const lista = dest.split(/[\s,;]+/).filter(Boolean);
+    if (!confirm('Se enviará el informe «' + archivoInforme.nombre + '» a:\n\n' + lista.join('\n') + '\n\n' + $('inf-remitente').textContent + '\n\n¿Confirmar el envío?')) return;
+    const base = { idEvento: archivoInforme.idEvento, destinatarios: dest, asunto: $('inf-asunto').value, mensaje: $('inf-msg').value, pdfBase64: bytesABase64(bytesInforme) };
+    $('btn-inf-enviar').disabled = true; $('inf-aviso').textContent = 'Enviando…';
+    try {
+      let r = await api('informe_enviar', base);
+      if (r && r.error === 'DESTINATARIOS_EXTERNOS') {
+        if (confirm('Estos correos NO pertenecen a usuarios activos de la app:\n\n' + r.externos.join('\n') + '\n\n¿Enviar de todos modos?')) r = await api('informe_enviar', Object.assign({ confirmarExternos: true }, base));
+        else { $('inf-aviso').textContent = 'Envío cancelado.'; return; }
+      }
+      if (r && r.ok) { $('inf-aviso').textContent = '✔ ' + r.aviso + ' Remitente: ' + r.remitente + '. Destinatarios: ' + r.destinatarios.join(', ') + '.'; log('Informe aceptado para envío a ' + r.destinatarios.length + ' destinatario(s).'); }
+      else $('inf-aviso').textContent = '✖ No se envió. ' + textoError(r && r.error) + (r && r.invalidos ? ' (' + r.invalidos.join(', ') + ')' : '') + (r && r.detalle ? ' Detalle: ' + r.detalle : '');
+    } catch (e) { $('inf-aviso').textContent = '✖ No se envió: ' + e.message; }
+    finally { $('btn-inf-enviar').disabled = false; }
+  }
+  $('btn-inf-enviar').onclick = enviarInformeUI;
+
+  /* ---- Remitente del correo (solo administrador) ---- */
+  let cfgCorreo = null;
+  function pintarCorreo() {
+    const c = cfgCorreo; if (!c) return;
+    const op = (v, t) => '<label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;"><input type="radio" name="cm" value="' + v + '" ' + (c.modo === v ? 'checked' : '') + ' style="width:auto;margin:3px 0 0;"><span>' + t + '</span></label>';
+    $('cm-cuerpo').innerHTML = '<div class="aviso">Remitente actual: <b>' + esc(c.remitenteActual || '—') + '</b></div>' +
+      op('propietario', '<b>Cuenta propietaria</b> del sistema' + (c.propietario ? ' (' + esc(c.propietario) + ')' : '') + '. Es la opción por defecto.') +
+      op('conectada', '<b>Otra cuenta de Google</b> que usted autoriza' + (c.conectada ? ' (conectada: ' + esc(c.conectada) + ')' : ' (aún no conectada)') + '.') +
+      '<div class="botones"><button class="btn-primary btn-small" id="cm-conectar" type="button">🔗 Conectar / cambiar cuenta</button>' +
+      (c.conectada ? '<button class="btn-secondary btn-small" id="cm-desconectar" type="button">Desconectar</button>' : '') + '</div>' +
+      (c.secretoOauthListo ? '' : '<div class="aviso">Para conectar otra cuenta falta guardar el «secreto de cliente» OAuth en las propiedades del script (propiedad <b>OAUTH_CLIENT_SECRET</b>) y autorizar esta dirección de retorno en Google Cloud: <b>' + esc(c.urlRedireccion) + '</b>. Vea las instrucciones de entrega.</div>') +
+      '<div class="botones" style="margin-top:10px;"><button class="btn-accent" id="cm-guardar" type="button">💾 Guardar remitente</button></div><div class="aviso" id="cm-aviso"></div>';
+  }
+  async function cargarCorreo() {
+    const r = await api('correo_config', {});
+    if (!r || !r.ok) { log('No se pudo cargar la configuración de correo: ' + textoError(r && r.error)); return; }
+    cfgCorreo = r; pintarCorreo(); mostrarVista('vista-correo');
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || !b.id || b.id.indexOf('cm-') !== 0) return;
+    if (b.id === 'cm-guardar') conOcupado(async () => {
+      const sel = document.querySelector('input[name=cm]:checked'); if (!sel) { $('cm-aviso').textContent = 'Elija una opción.'; return; }
+      const r = await api('correo_config_guardar', { modo: sel.value });
+      if (r && r.ok) { cfgCorreo = r; pintarCorreo(); $('cm-aviso').textContent = '✔ Guardado. Remitente actual: ' + r.remitenteActual; }
+      else $('cm-aviso').textContent = '✖ ' + textoError(r && r.error);
+    });
+    if (b.id === 'cm-conectar') conOcupado(async () => {
+      const r = await api('correo_conectar_url', {});
+      if (r && r.ok) { window.open(r.url, '_blank', 'noopener'); $('cm-aviso').textContent = 'Se abrió Google en otra pestaña. Al terminar, vuelva aquí y pulse «Recargar».'; $('cm-aviso').innerHTML += ' <button class="btn-secondary btn-small" id="cm-recargar" type="button">Recargar</button>'; }
+      else $('cm-aviso').textContent = '✖ ' + textoError(r && r.error);
+    });
+    if (b.id === 'cm-recargar') conOcupado(cargarCorreo);
+    if (b.id === 'cm-desconectar' && confirm('¿Desconectar la cuenta de correo? Los envíos volverán a la cuenta propietaria.')) conOcupado(async () => {
+      const r = await api('correo_desconectar', {}); if (r && r.ok) { cfgCorreo = r; pintarCorreo(); }
+    });
+  });
+  $('btn-correo').onclick = () => conOcupado(async () => { cerrarPanel(); await cargarCorreo(); });
+
   async function compartirPrograma() {
     if (!vistaEv || !vistaEv.r || !vistaEv.r.evento) { log('Abra un evento primero.'); return; }
     const r = vistaEv.r, sets = (r.sets || []).filter(s => s.canciones.length);
@@ -1004,12 +1555,12 @@
   function iniciarReorden() {
     const v = vistaEv;
     if (v.r.ocultas > 0 && !confirm(v.r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran: se QUITARÁN al guardar. ¿Continuar?')) return;
-    v.orden = (v.r.sets || []).filter(s => s.canciones.length).map(s => ({ nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '', items: s.canciones.map(c => ({ idCancion: c.idCancion, titulo: c.titulo, nota: c.nota || '' })) }));
+    v.orden = (v.r.sets || []).filter(s => s.canciones.length).map(s => ({ idSet: s.idSet, nombre: s.nombreSet || ('Set ' + s.numeroSet), mensaje: s.mensajeSet || '', items: s.canciones.map(c => ({ idCancion: c.idCancion, titulo: c.titulo, nota: c.nota || '' })) }));
     pintarReorden();
   }
   async function guardarOrden() {
     const v = vistaEv, ev = v.r.evento;
-    const sets = v.orden.map((s, i) => ({ numeroSet: i + 1, nombreSet: s.nombre, mensajeSet: s.mensaje, canciones: s.items.map(c => c.idCancion),
+    const sets = v.orden.map((s, i) => ({ idSet: s.idSet, numeroSet: i + 1, nombreSet: s.nombre, mensajeSet: s.mensaje, canciones: s.items.map(c => c.idCancion),
       notas: Object.fromEntries(s.items.filter(c => (c.nota || '').trim()).map(c => [c.idCancion, c.nota.trim()])) }));
     const r = await api('actualizar_evento', { idEvento: v.idEvento, estado: ev.estado || 'Programado', nombreEvento: ev.nombre, fechaEvento: ev.fecha, mensajeGeneral: ev.mensaje || '', sets: sets });
     if (r && r.ok) { log(r.mensaje || 'Orden guardado.'); alert('Orden guardado.'); await verEvento(v.idEvento, v.nombre); }
@@ -1069,6 +1620,11 @@
       (guCargos(u).length ? guCargos(u).map(c => '<span class="gu-ins gu-cargo">' + esc(c) + '</span>').join('') : '<span class="gu-ins gu-cargo">Miembro</span>');
   }
   function guEditor(u, d) {
+    const opt = (lista, v) => (lista.indexOf(v) < 0 && v ? [v].concat(lista) : lista).map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
+    const clasif = d.clasificacionDisponible
+      ? '<label>Pertenencia (Worship / área)</label><select data-gu="worship">' + opt(d.listas.worship, u.worship) + '</select>' +
+        '<label>Función musical</label><select data-gu="parte">' + opt(d.listas.partes, u.parte) + '</select>'
+      : '<div class="aviso">La hoja Usuarios no tiene las columnas «Worship» y «Parte Usuario».</div>';
     if (!u.editable) return '<div class="aviso">' + (u.correo === d.yo.correo ? 'No puede modificar su propia cuenta.' : 'Solo un administrador puede modificar a un administrador.') + '</div>';
     const cargos = d.modoRol === 'unico'
       ? '<label>Nivel</label><select data-gu="nivel">' + ['Miembro', 'Editor', 'Programador', 'Administrador'].map(n =>
@@ -1077,7 +1633,7 @@
         [['admin', 'Administrador'], ['programador', 'Programador'], ['editor', 'Editor']].map(([k, n]) =>
           '<label class="gu-chk"><input type="checkbox" data-gu="' + k + '"' + (u[k] ? ' checked' : '') + (k === 'admin' && !d.yo.esAdmin ? ' disabled' : '') + '> ' + n + '</label>').join('') + '</div>';
     return '<label>Estado</label><select data-gu="estado">' + (d.estados.indexOf(u.estado) < 0 ? [u.estado].concat(d.estados) : d.estados).map(e => '<option' + (e === u.estado ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>' +
-      cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>';
+      clasif + cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>';
   }
   function pintarGestion() {
     const d = guDatos; if (!d) return;
@@ -1090,7 +1646,7 @@
       (!f || (f === '__cargo' ? guCargos(u).length > 0 : u.estado === f)));
     $('gu-lista').innerHTML = lista.length ? lista.map(u =>
       '<details class="gu-fila" data-correo="' + esc(u.correo) + '"' + (abiertos.has(u.correo) ? ' open' : '') + '><summary><span class="gu-quien">' +
-      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
+      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + ' · ' + esc(u.worship || 'sin Worship') + ' · ' + esc(u.parte || 'sin función') + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
       '<div class="gu-edit">' + guEditor(u, d) + '</div></details>').join('')
       : '<p class="aviso">Ningún usuario coincide con el filtro.</p>';
   }
@@ -1108,6 +1664,9 @@
     const u = guDatos.usuarios.find(x => x.correo === correo); if (!u) return;
     const cambios = {}, g = k => cont.querySelector('[data-gu="' + k + '"]');
     const est = g('estado').value; if (est !== u.estado) cambios.estado = est;
+    const gw = g('worship'), gp = g('parte');
+    if (gw && gw.value !== (u.worship || '')) cambios.worship = gw.value;
+    if (gp && gp.value !== (u.parte || '')) cambios.parte = gp.value;
     if (guDatos.modoRol === 'unico') { const nv = g('nivel').value; if (nv !== u.nivel) cambios.nivel = nv; }
     else ['admin', 'programador', 'editor'].forEach(k => { const c = g(k); if (c && !c.disabled && c.checked !== !!u[k]) cambios[k] = c.checked; });
     if (!Object.keys(cambios).length) { log('No hay cambios que guardar.'); return; }
@@ -1574,9 +2133,23 @@
     if (!b) return;
     const d = b.dataset;
     if (b.id === 'btn-compartir') { conOcupado(compartirPrograma); return; }
+    if (b.id === 'btn-informe') { conOcupado(generarInforme); return; }
     if (b.id === 'btn-reordenar') { iniciarReorden(); return; }
     if (b.id === 'btn-cancelar-orden') { verEvento(vistaEv.idEvento, vistaEv.nombre); return; }
     if (b.id === 'btn-guardar-orden') { conOcupado(guardarOrden); return; }
+    if (d.part) { conOcupado(() => accionParticipacion(d.part)); return; }
+    if (b.id === 'btn-rem-asignar') { conOcupado(asignarReemplazoUI); return; }
+    if (d.remRetirar) { conOcupado(() => retirarReemplazoUI(d.remRetirar)); return; }
+    if (d.pres) {
+      if (d.pres === 'vacios') conOcupado(() => sortearUI(true));
+      else if (d.pres === 'todos') conOcupado(() => sortearUI(false));
+      else if (d.pres === 'editar') conOcupado(editarPresentadoresUI);
+      else if (d.pres === 'guardar') conOcupado(guardarPresentadoresUI);
+      else if (d.pres === 'cancelar') conOcupado(() => verEvento(vistaEv.idEvento, vistaEv.nombre));
+      return;
+    }
+    if (d.frQuitar !== undefined) { funcReq.splice(Number(d.frQuitar), 1); pintarFuncReq(); return; }
+    if (d.volverGestion) { conOcupado(cargarGestion); return; }
     if (d.ensayo) conOcupado(() => abrirEnsayo(d.ensayo, d.titulo));
     else if (d.evento) conOcupado(() => verEvento(d.evento, d.nombre));
     else if (d.archivar) conOcupado(() => archivarEvento(d.archivar));
