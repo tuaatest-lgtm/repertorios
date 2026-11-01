@@ -107,6 +107,17 @@
     .fr-fila { display:flex; gap:6px; align-items:center; } .fr-fila select { flex:1; margin:0 0 6px; } .fr-fila input { width:70px; margin:0 0 6px; } .fr-fila button { width:40px; margin:0 0 6px; padding:8px 0; }
     .pos-lista { display:inline-block; width:22px; color:var(--accent); font-weight:bold; }
     .oculto { display:none !important; }
+    table.fq { border-collapse:separate; border-spacing:0; font-size:13px; }
+    table.fq th, table.fq td { border-bottom:1px solid #EDF2F7; border-right:1px solid #EDF2F7; padding:4px 6px; text-align:center; background:#fff; }
+    table.fq thead th { position:sticky; top:0; z-index:2; background:#F4F6FA; }
+    table.fq .fq-c1 { position:sticky; left:0; z-index:1; text-align:left; min-width:150px; max-width:190px; white-space:normal; background:#fff; font-weight:600; }
+    table.fq thead .fq-c1 { z-index:3; background:#F4F6FA; }
+    table.fq th.fq-ev { height:74px; min-width:26px; padding:2px; } table.fq th.fq-ev span { writing-mode:vertical-rl; transform:rotate(180deg); font-size:12px; white-space:nowrap; }
+    table.fq .fq-prox { background:#FFF3CF !important; }
+    table.fq td.fq-si { background:#DCEBFA; color:#1F4E9C; font-weight:700; }
+    table.fq .fq-0 { color:#888; } table.fq .fq-1 { background:#E3F4E8; font-weight:700; } table.fq .fq-2 { background:#FFF0C8; font-weight:700; } table.fq .fq-3 { background:#F8D6D6; font-weight:700; }
+    :focus-visible { outline:3px solid #C9A24B; outline-offset:2px; }
+    .lista-sel .item:focus { background:#FFF3CF; outline:2px solid #C9A24B; outline-offset:-2px; }
     details summary { cursor:pointer; font-size:12px; color:#718096; margin-bottom:6px; }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -138,7 +149,9 @@
   <div class="card oculto" id="menu">
     <button class="btn-accent" id="btn-biblioteca">🎧 Material de ensayo</button>
     <button class="btn-primary" id="btn-eventos">📅 Eventos Programados y Repertorio</button>
+    <button class="btn-secondary oculto" id="btn-ensambles" data-rol="montaje">🎼 Ensambles (esquemas de montaje)</button>
     <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">➕ Programar Eventos</button>
+    <button class="btn-secondary oculto" id="btn-frecuencia" data-rol="programa">📊 Frecuencia de cantos (historial)</button>
     <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar Catálogo de Recursos</button>
     <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="sync">🔎 Vista previa de la sincronización (no cambia nada)</button>
     <button class="btn-secondary oculto" id="btn-publicidad" data-rol="publicidad">🖼️ Subir publicidad</button>
@@ -178,11 +191,15 @@
     <input type="date" id="in-fecha">
     <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
     <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
+    <label for="in-ensamble"><b>Ensamble (esquema de montaje)</b></label>
+    <select id="in-ensamble"><option value="">— Sin ensamble (definir a mano) —</option></select>
+    <div class="aviso" id="aviso-ensamble"></div>
     <label for="in-alcance"><b>Alcance del evento (quiénes registran su asistencia)</b></label>
     <select id="in-alcance">
       <option value="Todos">Todos (Worship 1 y Worship 2)</option>
       <option value="Worship 1">Worship 1</option>
       <option value="Worship 2">Worship 2</option>
+      <option value="Worship 3">Worship 3</option>
     </select>
     <div class="aviso">Los instrumentistas, las voces líderes y el Departamento pueden confirmar en cualquiera de las tres opciones. Al programar los cantos podrá asignar a un cantante de otro Worship si hace falta.</div>
     <div class="grupo">
@@ -269,6 +286,34 @@
   </div>
 
   <!-- Gestión de usuarios (administrador y programador) -->
+  <div class="card oculto" id="vista-frecuencia">
+    <h3>Frecuencia de cantos</h3>
+    <div class="aviso" id="fq-resumen"></div>
+    <div class="botones" style="margin:6px 0;"><input type="search" id="fq-buscar" placeholder="Buscar canto…" aria-label="Buscar canto" style="margin:0;">
+      <select id="fq-filtro" aria-label="Filtro" style="margin:0;"><option value="todos">Todos los cantos</option><option value="usados">Solo los programados</option><option value="sinusar">Nunca programados</option></select></div>
+    <div class="botones"><button class="btn-accent btn-small" id="fq-csv" type="button">⬇ Descargar para Excel (CSV)</button></div>
+    <div class="aviso">Cada columna es un evento, de la fecha más antigua (izquierda) a la más reciente (derecha). ● = el canto se programó ese día. Las columnas de fecha futura aparecen en dorado.</div>
+    <div id="fq-tabla" tabindex="0" aria-label="Tabla de frecuencia de cantos" style="overflow:auto;max-height:70vh;border:1px solid #ddd;border-radius:6px;"></div>
+  </div>
+
+  <div class="card oculto" id="vista-ensambles">
+    <h3>Ensambles (esquemas de montaje)</h3>
+    <div class="aviso">Un ensamble define a qué Worship va dirigido un evento y qué funciones se necesitan (puede combinar varias, con su cantidad). Se aplica al programar un evento y se puede reutilizar, duplicar y modificar. Al aplicarlo, el evento guarda su propia copia.</div>
+    <div id="ens-lista"></div>
+    <div class="botones"><button class="btn-accent" id="ens-nuevo" type="button">➕ Nuevo ensamble</button></div>
+    <div id="ens-form" class="oculto" style="margin-top:12px;border-top:1px solid #ddd;padding-top:10px;">
+      <h3 id="ens-form-titulo">Nuevo ensamble</h3>
+      <label for="ens-nombre"><b>Nombre</b></label><input type="text" id="ens-nombre" maxlength="80" placeholder="Ej.: Sábado W1 completo">
+      <label for="ens-desc">Descripción (opcional)</label><input type="text" id="ens-desc" maxlength="300">
+      <label for="ens-alcance"><b>Dirigido a</b> (quiénes confirman; instrumentistas, voces líderes y Departamento siempre pueden)</label><select id="ens-alcance"></select>
+      <label><b>Funciones requeridas</b> (agregue todas las que necesite)</label>
+      <div id="ens-funciones"></div>
+      <button class="btn-secondary btn-small" id="ens-add-funcion" type="button">➕ Agregar función</button>
+      <div class="botones" style="margin-top:10px;"><button class="btn-accent" id="ens-guardar" type="button">💾 Guardar ensamble</button><button class="btn-secondary" id="ens-cancelar" type="button">Cancelar</button></div>
+      <div class="aviso" id="ens-aviso"></div>
+    </div>
+  </div>
+
   <div class="card oculto" id="vista-correo">
     <h3>Correo remitente de los informes</h3>
     <div class="aviso">Elija desde qué cuenta se envían los informes por correo. Puede cambiarlo cuando quiera.</div>
@@ -394,6 +439,21 @@
     <option value="Lectura bíblica"><option value="Bienvenida"><option value="Himno de apertura"><option value="Cena del Señor"><option value="Bendición final">
   </datalist>
 
+  <!-- ¿Participa en el próximo evento? -->
+  <div id="vista-pendiente" class="oculto" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:75;display:flex;align-items:center;justify-content:center;padding:14px;">
+    <div style="max-width:460px;width:100%;background:#fff;border-radius:12px;padding:16px;">
+      <h3 style="margin-top:0;">¿Participa en este evento?</h3>
+      <div id="pen-cuerpo"></div>
+      <div class="aviso oculto" id="pen-oblig"><b>Debe responder para continuar.</b> Mientras no lo haga no podrá abrir el material de ensayo ni el repertorio. Si no puede asistir, elija «No podré asistir».</div>
+      <div class="botones" style="margin-top:12px;flex-direction:column;">
+        <button class="btn-accent" id="pen-si" type="button">✔ Confirmar mi asistencia</button>
+        <button class="btn-secondary" id="pen-no" type="button">✖ No podré asistir</button>
+        <button class="btn-secondary" id="pen-luego" type="button">Decidir después</button>
+      </div>
+      <div class="aviso" id="pen-aviso"></div>
+    </div>
+  </div>
+
   <!-- Informe oficial -->
   <div id="vista-informe" class="oculto" style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:61;align-items:flex-start;justify-content:center;padding:12px;overflow:auto;">
     <div style="max-width:680px;width:100%;background:#fff;border-radius:10px;padding:12px;">
@@ -402,6 +462,8 @@
         <button class="btn-primary" id="btn-inf-pdf" type="button">📄 Guardar PDF</button>
         <button class="btn-secondary" id="btn-inf-png" type="button">🖼️ Guardar imagen</button>
         <button class="btn-accent" id="btn-inf-correo" type="button">✉️ Enviar por correo…</button>
+        <button class="btn-primary" id="btn-inf-comp-pdf" type="button">📤 Compartir PDF</button>
+        <button class="btn-primary" id="btn-inf-comp-png" type="button">📤 Compartir imagen</button>
       </div>
       <div id="inf-correo" class="oculto" style="margin-top:8px;">
         <label for="inf-para">Para (separe con comas)</label>
@@ -452,9 +514,9 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzX0Vqh4duaE9DIHne_9W2DRdgPuPo0GSQBdAcsjkINEFK24LROI920uI1ke6ga4WzDVQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v3.14.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v3.16.0';
   let ID_TOKEN = null;
   /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -552,6 +614,7 @@
   Object.assign(ERRORES, { DESTINATARIO_INVALIDO: 'Hay correos con formato no válido.', SIN_DESTINATARIOS: 'Falta al menos un destinatario.',
     DEMASIADOS_DESTINATARIOS: 'Máximo 10 destinatarios por envío.', PDF_INVALIDO: 'El PDF generado no es válido. Vuelva a generar el informe.',
     PDF_MUY_GRANDE: 'El PDF es demasiado grande para enviarlo.', CUOTA_DIARIA_INSUFICIENTE: 'Se agotó la cuota diaria de correos de la cuenta remitente. Intente mañana o cambie de remitente.',
+    PARTICIPACION_PENDIENTE: 'Antes de ensayar debe responder si participará en el próximo evento.', EVENTO_NO_CUMPLIDO: 'Solo se pueden eliminar eventos cuya fecha ya pasó. Use «Archivar» para los demás.',
     ENVIO_FALLIDO: 'El servicio de correo rechazó el envío.',
     CUENTA_NO_CONECTADA: 'Aún no hay una cuenta conectada.', FALTA_SECRETO_OAUTH: 'Falta guardar OAUTH_CLIENT_SECRET en las propiedades del script.',
     MODO_INVALIDO: 'Modo de remitente no válido.', SIN_PERMISO: 'No tiene permiso para esta acción.' });
@@ -583,6 +646,7 @@
         SESION = null; lsDel('pm_sesion');
         if (ID_TOKEN && !reintento) return api(accion, extra, true);     // aún hay credencial de Google en memoria
       }
+      if (!r.ok && r.error === 'PARTICIPACION_PENDIENTE' && r.evento) exigirParticipacion(r.evento);
       if (!r.ok && /TOKEN_|SIN_TOKEN|SESION_/.test(String(r.error))) {
         ID_TOKEN = null; SESION = null; lsDel('pm_sesion');
         $('menu').classList.add('oculto');
@@ -608,7 +672,7 @@
     }
   }
 
-  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo'];
+  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
@@ -648,10 +712,10 @@
       document.querySelectorAll('[data-rol]').forEach(b => {
         const need = b.dataset.rol;
         const ok = (need === 'admin' && permisos.usuarios) || (need === 'programa' && permisos.programar) || (need === 'sync' && permisos.sincronizar) ||
-          (need === 'gestionar' && permisos.gestionar) || (need === 'publicidad' && permisos.publicidad);
+          (need === 'montaje' && permisos.reordenar) || (need === 'gestionar' && permisos.gestionar) || (need === 'publicidad' && permisos.publicidad);
         b.classList.toggle('oculto', !ok);
       });
-      mostrarPopupInicio();
+      mostrarPopupInicio(); revisarPendientes();
       $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
       if (!String(r.version || '').startsWith(VERSION_SERVIDOR_ESPERADA)) {
@@ -754,7 +818,8 @@
     $('lista-eventos').innerHTML = r.eventos.length
       ? r.eventos.map(e => '<div class="fila"><span class="nombre"><b>' + esc(e.nombre) + '</b>' +
           '<span class="meta">' + esc(e.fecha) + (e.alcance && e.alcance !== 'Todos' ? ' · ' + esc(e.alcance) : '') + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
-          '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">Ver repertorio</button></div>').join('')
+          '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">Ver repertorio</button>' +
+          (permisos.reordenar && e.fecha < hoyLocal() ? '<button class="btn-danger btn-small" data-eliminar="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '" data-fecha="' + esc(e.fecha) + '" type="button" aria-label="Eliminar evento cumplido">🗑 Eliminar</button>' : '') + '</div>').join('')
       : '<p class="aviso">No hay eventos programados.</p>';
     mostrarVista('vista-eventos');
   }
@@ -783,7 +848,8 @@
     }
     $('acciones-evento').innerHTML = programa()
       ? '<button class="btn-accent" id="btn-compartir" style="margin-bottom:8px;">📤 Compartir programa (imagen)</button>' + (permisos.reordenar ? '<button class="btn-primary" id="btn-informe" style="margin-bottom:8px;">📄 Informe oficial (PDF / correo)</button>' : '') + '<div class="botones">' + (permisos.reordenar && sets.length ? '<button class="btn-primary btn-small" id="btn-reordenar">↕ Cambiar el orden de los cantos</button>' : '') + '<button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
-        '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button></div>' : '';
+        '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button>' +
+        (permisos.reordenar && ev && ev.fecha < hoyLocal() ? '<button class="btn-danger btn-small" data-eliminar="' + esc(idEvento) + '" data-nombre="' + esc(nombre) + '" data-fecha="' + esc(ev.fecha) + '" type="button">🗑 Eliminar (conserva historial)</button>' : '') + '</div>' : '';
     estadoGuardar({ evento: { id: idEvento, nombre: nombre } });
     $('panel-participacion').innerHTML = '';
     mostrarVista('vista-repertorio');
@@ -899,7 +965,7 @@
     nuevoConstructor(); claveEvento = '';
     $('in-nombre').value = ''; $('in-fecha').value = ''; $('in-mensaje').value = '';
     $('in-alcance').value = 'Todos'; $('in-publicidad').value = ''; $('in-espiritual').value = '';
-    await cargarFuncionesKnown(); pintarFuncReq();
+    await cargarFuncionesKnown(); pintarFuncReq(); await poblarEnsambles('');
     configurarFormulario();
     mostrarVista('vista-formulario');
     if (await cargarCatalogo()) { pintarConstructor(); log('Agregue cantos a cada set, ordénelos automáticamente o con ▲ ▼.'); }
@@ -920,7 +986,7 @@
     eventoEditando = { idEvento: r.evento.idEvento, estado: r.evento.estado || '' };
     $('in-nombre').value = r.evento.nombre || ''; $('in-fecha').value = r.evento.fecha || ''; $('in-mensaje').value = r.evento.mensaje || '';
     $('in-alcance').value = r.evento.alcance || 'Todos'; $('in-publicidad').value = r.evento.publicidad || ''; $('in-espiritual').value = r.evento.infoEspiritual || '';
-    await cargarFuncionesKnown();
+    await cargarFuncionesKnown(); await poblarEnsambles(r.evento.idEnsamble || '');
     funcReq = (r.evento.funcionesRequeridas || '').split(';').map(x => { const i = x.lastIndexOf(':'); return i > 0 ? { funcion: x.slice(0, i).trim(), cantidad: parseInt(x.slice(i + 1), 10) || 1 } : null; }).filter(Boolean);
     pintarFuncReq();
     configurarFormulario(); mostrarVista('vista-formulario'); pintarConstructor();
@@ -972,7 +1038,7 @@
     const vacios = setsEv.length - sets.length;
     if (sets.length && vacios > 0 && !confirm(vacios + ' set(s) sin cantos no se guardarán. ¿Continuar?')) return;
     const comun = { nombreEvento: nombre, fechaEvento: fecha, mensajeGeneral: $('in-mensaje').value.trim(), sets: sets,
-      alcance: $('in-alcance').value, funcionesRequeridas: funcReq.filter(f => f.funcion), publicidad: $('in-publicidad').value.trim(), infoEspiritual: $('in-espiritual').value.trim() };
+      alcance: $('in-alcance').value, idEnsamble: $('in-ensamble').value, funcionesRequeridas: funcReq.filter(f => f.funcion), publicidad: $('in-publicidad').value.trim(), infoEspiritual: $('in-espiritual').value.trim() };
     let r;
     if (eventoEditando) {
       r = await api('actualizar_evento', Object.assign({ idEvento: eventoEditando.idEvento, estado: eventoEditando.estado || 'Programado' }, comun));
@@ -1017,6 +1083,8 @@
   /* ---------------- v3.13.0: participación, reemplazos y presentadores ---------------- */
   let part = null;
   const MOTIVOS = {
+    FUNCION_NO_REQUERIDA: 'Su función no es una de las requeridas para este evento. Si debe participar, un programador puede asignarlo.',
+    NOMBRE_DUPLICADO: 'Ya existe un ensamble activo con ese nombre.', FALTAN_FUNCIONES: 'Agregue al menos una función requerida.', ENSAMBLE_NO_ENCONTRADO: 'No se encontró el ensamble.', ENSAMBLE_ARCHIVADO: 'Ese ensamble está archivado.', DEMASIADOS_ENSAMBLES: 'Se alcanzó el máximo de ensambles.',
     FUERA_DE_ALCANCE: 'Este evento es de otro Worship: usted no necesita confirmar.',
     EVENTO_NO_PUBLICADO: 'La confirmación se abre cuando el evento esté publicado.',
     SIN_WORSHIP: 'Su perfil aún no tiene Worship asignado. Avise al administrador.',
@@ -1284,113 +1352,145 @@
       im.src = LOGOS[0];
     });
   }
+  const INF_SERV = ['PROGRAMA DE SERVICIO', 'SEGUNDO SERVICIO', 'CULTO JOVEN'];
+  const INF_ORDEN = ['soprano', 'contralto', 'tenor', 'bajo', 'l'];
   async function dibujarInforme(ev, sets, part) {
     try { await Promise.all([document.fonts.load('400 20px CarlitoPM'), document.fonts.load('700 20px CarlitoPM')]); } catch (e) {}
     const logo = await cargarLogoInforme();
-    const F = 'CarlitoPM, Calibri, Arial, sans-serif', W = 1024, SC = 2, M = 16, WL = 660, XR = M + WL + 24, WR = W - M - XR;
+    const F = 'CarlitoPM, Calibri, Arial, sans-serif', DW = 1224, OUT = 2048, K = OUT / DW;
+    const LX = 35, LW = 735, RX = 792, RW = 410;
     const cv0 = document.createElement('canvas'), x0 = cv0.getContext('2d');
     const medir = (t, sz, bold) => { x0.font = (bold ? '700 ' : '400 ') + sz + 'px ' + F; return x0.measureText(t).width; };
-    const envolver = (t, sz, ancho, bold) => {
-      const out = []; let lin = '';
-      String(t || '').split(/\n/).forEach(par => { lin = '';
-        par.split(/\s+/).filter(Boolean).forEach(p => { const prueba = lin ? lin + ' ' + p : p;
-          if (medir(prueba, sz, bold) > ancho && lin) { out.push(lin); lin = p; } else lin = prueba; });
-        out.push(lin); });
-      return out;
-    };
-    // colores por persona (misma persona = mismo color en todo el documento)
+    const envolver = (t, sz, ancho, bold) => { const out = [];
+      String(t || '').split(/\n/).forEach(par => { let lin = '';
+        par.split(/\s+/).filter(Boolean).forEach(p => { const pr = lin ? lin + ' ' + p : p; if (medir(pr, sz, bold) > ancho && lin) { out.push(lin); lin = p; } else lin = pr; });
+        out.push(lin); }); return out; };
     const colorDe = {}; let ncol = 0;
-    const col = n => { const k = String(n || '').toLowerCase(); if (!k) return '#222'; if (!(k in colorDe)) colorDe[k] = INF.personas[ncol++ % INF.personas.length]; return colorDe[k]; };
-    // ----- medidas -----
+    const col = n => { const k = String(n || '').toLowerCase(); if (!k) return '#1b2a4e'; if (!(k in colorDe)) colorDe[k] = INF.personas[ncol++ % INF.personas.length]; return colorDe[k]; };
+    // ----- datos -----
+    const clave = f => { const s = String(f || '').toLowerCase().replace(/[íi]/g, 'i'); const i = INF_ORDEN.findIndex(o => s.indexOf(o) === 0); return i < 0 ? 9 : i; };
+    const vac = (part && part.vacantes) || [];
+    const esVoz = f => /soprano|contralto|tenor|bajo|l[ií]der|voz/i.test(f) && !/instrumento/i.test(f);
+    const filaDe = p => ({ rol: String(p.funcion || ''), nombre: p.nombre, reemplazo: p.condicion === 'Reemplazo' });
+    const pendDe = v => Array.from({ length: v.pendientes }, () => ({ rol: String(v.funcion), pend: true }));
+    const vacVoz = vac.filter(v => esVoz(v.funcion)), vacIns = vac.filter(v => !esVoz(v.funcion));
+    let filasVoz = ((part && part.cantantes) || []).map(filaDe).concat([].concat.apply([], vacVoz.map(pendDe)));
+    let filasIns = ((part && part.instrumentistas) || []).map(filaDe).concat([].concat.apply([], vacIns.map(pendDe)));
+    filasVoz.sort((a, b) => clave(a.rol) - clave(b.rol));
+    if (!filasVoz.length) filasVoz = ['Soprano', 'Soprano', 'Contralto', 'Contralto', 'Tenor', 'Tenor', 'Bajo', 'Bajo', 'Líder', 'Líder'].map(r => ({ rol: r, vacio: true }));
+    if (!filasIns.length) filasIns = ['Piano', 'Violín I', 'Violín II', 'Guitarra', 'Percusión'].map(r => ({ rol: r, vacio: true }));
     const objetivo = (ev.mensaje || '').trim();
-    const HH = 150, WOBJ = 300;
-    const lineasObj = objetivo ? envolver(objetivo, 15, WOBJ - 28, false).slice(0, 6) : [];
-    const RH = 40, CAB = 38, SUB = 30;
-    let altoIzq = 0;
+    const CAB = 58, SUB = 36, RH = 34, PR = 34, GAP = 22;
     const bloques = sets.map((s, i) => {
       const propio = (s.nombreSet || '').trim(), esDef = !propio || /^set\s*\d+$/i.test(propio);
-      const nombre = esDef ? (PROG_SERVICIOS[i] || (propio || 'SET ' + (i + 1)).toUpperCase()) : propio.toUpperCase();
-      const conNota = s.canciones.some(c => (c.nota || '').trim());
-      const msg = (s.mensajeSet || '').trim();
-      const msgL = msg ? envolver(msg, 14, WL - 24, false).slice(0, 2) : [];
-      const h = CAB + (msgL.length ? msgL.length * 18 + 8 : 0) + SUB + s.canciones.length * RH;
-      altoIzq += h + 18; return { s, nombre, conNota, msgL, h, color: INF.servicios[i % INF.servicios.length] };
+      const nombre = esDef ? (INF_SERV[i] || (propio || 'SET ' + (i + 1)).toUpperCase()) : propio.toUpperCase();
+      const msgL = (s.mensajeSet || '').trim() ? envolver(s.mensajeSet.trim(), 16, LW - 30, false).slice(0, 2) : [];
+      const h = CAB + (msgL.length ? msgL.length * 22 + 8 : 0) + SUB + s.canciones.length * RH;
+      return { s, nombre, msgL, h, color: INF.servicios[i % INF.servicios.length], icono: i % 3 };
     });
-    const voces = (part && part.cantantes) || [], instr = (part && part.instrumentistas) || [];
-    const vac = ((part && part.vacantes) || []);
-    const vacVoz = vac.filter(v => /soprano|contralto|tenor|bajo$|bajo \(|l[ií]der|voz/i.test(v.funcion) && !/instrumento/i.test(v.funcion));
-    const vacIns = vac.filter(v => vacVoz.indexOf(v) < 0);
-    const filasVoz = voces.length + vacVoz.reduce((n, v) => n + v.pendientes, 0), filasIns = instr.length + vacIns.reduce((n, v) => n + v.pendientes, 0);
-    const PH = 34, PR = 34;
-    const altoDer = (filasVoz ? PH + 30 + filasVoz * PR + 18 : 0) + (filasIns ? PH + filasIns * PR + 18 : 0);
-    const Y0 = HH + 18, FOOT = 46, H = Y0 + Math.max(altoIzq, altoDer) + FOOT + 4;
+    const altoIzq = bloques.reduce((a, b) => a + b.h + GAP, 0);
+    const altoDer = (CAB + filasVoz.length * PR + GAP) + (CAB + filasIns.length * PR + GAP);
+    const HH = 205, Y0 = HH + 14, YB = Y0 + Math.max(altoIzq, altoDer) + 6, BH = 142, FOOT = 92, H = YB + BH + 22 + FOOT;
     // ----- dibujo -----
-    const cv = document.createElement('canvas'); cv.width = W * SC; cv.height = H * SC;
-    const x = cv.getContext('2d'); x.scale(SC, SC); x.textBaseline = 'middle';
-    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
-    const T = (t, px, py, o) => { o = o || {}; let sz = o.size || 18; t = String(t || ''); const mw = o.max || 9999;
-      const set = () => { x.font = (o.italic ? 'italic ' : '') + (o.bold ? '700 ' : '400 ') + sz + 'px ' + F; };
+    const cv = document.createElement('canvas'); cv.width = OUT; cv.height = Math.round(H * K);
+    const x = cv.getContext('2d'); x.scale(K, K); x.textBaseline = 'middle';
+    const fondo = x.createLinearGradient(0, 0, 0, H); fondo.addColorStop(0, '#ffffff'); fondo.addColorStop(1, '#eef3fb'); x.fillStyle = fondo; x.fillRect(0, 0, DW, H);
+    const T = (t, px, py, o) => { o = o || {}; let sz = o.size || 20; t = String(t || ''); const mw = o.max || 9999;
+      const set = () => { x.font = (o.italic ? 'italic ' : '') + (o.bold ? '700 ' : '400 ') + sz + 'px ' + (o.fam || F); };
       set(); while (x.measureText(t).width > mw && sz > 11) { sz--; set(); }
       while (x.measureText(t).width > mw && t.length > 3) t = t.slice(0, -2).trimEnd() + '…';
-      x.fillStyle = o.color || '#111'; x.textAlign = o.align || 'left'; x.fillText(t, px, py); };
-    const caja = (cx, cy, cw, ch, relleno, borde, r) => { x.beginPath(); x.roundRect ? x.roundRect(cx, cy, cw, ch, r || 0) : x.rect(cx, cy, cw, ch);
-      if (relleno) { x.fillStyle = relleno; x.fill(); } if (borde) { x.strokeStyle = borde; x.lineWidth = 1; x.stroke(); } };
+      x.fillStyle = o.color || '#14213d'; x.textAlign = o.align || 'left'; x.fillText(t, px, py); };
+    const rr = (cx, cy, cw, ch, r) => { x.beginPath(); if (x.roundRect) x.roundRect(cx, cy, cw, ch, r); else x.rect(cx, cy, cw, ch); };
+    const circulo = (cx, cy, r, color) => { x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fillStyle = color; x.fill(); x.lineWidth = 3; x.strokeStyle = '#fff'; x.stroke(); };
+    const gente = (cx, cy, s, c) => { x.fillStyle = c; [[-s * .55, 0.1], [s * .55, 0.1], [0, -0.1]].forEach(p => { x.beginPath(); x.arc(cx + p[0], cy - s * .45 + p[1] * s, s * .26, 0, 7); x.fill();
+      x.beginPath(); x.ellipse(cx + p[0], cy + s * .45 + p[1] * s, s * .4, s * .3, 0, Math.PI, 0); x.fill(); }); };
+    const icono = (tipo, cx, cy, color) => { circulo(cx, cy, 30, color); x.fillStyle = '#fff'; x.strokeStyle = '#fff'; x.lineWidth = 3;
+      if (tipo === 0) { x.beginPath(); x.moveTo(cx, cy - 12); x.lineTo(cx, cy + 14); x.moveTo(cx, cy - 12); x.quadraticCurveTo(cx - 12, cy - 16, cx - 20, cy - 10); x.lineTo(cx - 20, cy + 12); x.quadraticCurveTo(cx - 12, cy + 7, cx, cy + 14);
+        x.quadraticCurveTo(cx + 12, cy + 7, cx + 20, cy + 12); x.lineTo(cx + 20, cy - 10); x.quadraticCurveTo(cx + 12, cy - 16, cx, cy - 12); x.stroke(); }
+      else if (tipo === 1) { x.beginPath(); x.ellipse(cx - 7, cy + 11, 7, 5, -0.3, 0, 7); x.fill(); x.fillRect(cx - 1, cy - 14, 3.5, 25); x.beginPath(); x.moveTo(cx + 2, cy - 14); x.quadraticCurveTo(cx + 14, cy - 10, cx + 12, cy + 2); x.lineTo(cx + 2, cy - 5); x.fill(); }
+      else gente(cx, cy + 1, 15, '#fff'); };
     // encabezado
-    x.fillStyle = INF.azul; x.fillRect(0, 0, W, HH);
-    let xt = M + 6;
-    if (logo) { const lh = 112, lw = Math.min(150, lh * logo.naturalWidth / logo.naturalHeight);
-      x.save(); x.globalCompositeOperation = 'lighten'; x.drawImage(logo, M, (HH - lh) / 2, lw, lh); x.restore(); xt = M + lw + 20; }
-    const wTit = (objetivo ? W - WOBJ - 32 : W - M) - xt - 10;
-    T('PROGRAMA WORSHIP', xt, 42, { size: 30, bold: true, color: '#fff', max: wTit });
-    T(String(ev.nombre || '').toUpperCase(), xt, 84, { size: 40, bold: true, color: INF.oro, max: wTit });
-    T(fechaLarga(ev.fecha) + (ev.alcance && ev.alcance !== 'Todos' ? '  ·  ' + String(ev.alcance).toUpperCase() : ''), xt, 122, { size: 20, bold: false, color: '#fff', max: wTit });
-    if (objetivo) {
-      caja(W - WOBJ - 14, 14, WOBJ, HH - 28, null, INF.oro, 14); x.lineWidth = 1.5; x.strokeStyle = INF.oro; x.stroke();
-      T('MENSAJE GENERAL', W - WOBJ / 2 - 14, 34, { size: 17, bold: true, color: INF.oro, align: 'center' });
-      lineasObj.forEach((l, i) => T(l, W - WOBJ / 2 - 14, 58 + i * 17, { size: 15, color: '#fff', align: 'center', max: WOBJ - 20 }));
-    }
-    // servicios (sets)
+    const g = x.createLinearGradient(0, 0, DW, HH); g.addColorStop(0, '#08153b'); g.addColorStop(.55, '#102b6b'); g.addColorStop(1, '#0a1c4d'); x.fillStyle = g; x.fillRect(0, 0, DW, HH);
+    [[700, 40, 190, 'rgba(120,170,255,.28)'], [980, 30, 150, 'rgba(160,200,255,.22)'], [420, 150, 160, 'rgba(90,140,230,.16)']].forEach(l => { const rg = x.createRadialGradient(l[0], l[1], 0, l[0], l[1], l[2]); rg.addColorStop(0, l[3]); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = rg; x.fillRect(0, 0, DW, HH); });
+    if (logo) { const lh = 150, lw = Math.min(205, lh * logo.naturalWidth / logo.naturalHeight); x.save(); x.globalCompositeOperation = 'lighten'; x.drawImage(logo, 28, (HH - lh) / 2 - 4, lw, lh); x.restore(); }
+    else { T('PALERMO', 35, 90, { size: 44, bold: true, color: '#fff' }); T('CENTRO DE INFLUENCIA', 35, 126, { size: 17, color: '#e8b830' }); T('IGLESIA ADVENTISTA DEL SÉPTIMO DÍA', 35, 150, { size: 11, color: '#fff' }); }
+    x.fillStyle = 'rgba(255,255,255,.55)'; x.fillRect(236, 38, 2, 140);
+    T('SERVICIO DE ADORACIÓN', 275, 68, { size: 64, bold: true, color: '#fff', max: 660 });
+    T('Adoramos juntos a Dios que transforma y nos llama.', 275, 124, { size: 30, color: '#fff', max: 640 });
+    x.beginPath(); x.moveTo(330, 186); x.quadraticCurveTo(600, 140, 860, 170); x.lineWidth = 4; x.strokeStyle = INF.oro; x.stroke();
+    const dm = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ev.fecha || '')); const DIAS = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'], MES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const dd = dm ? new Date(+dm[1], +dm[2] - 1, +dm[3]) : null;
+    rr(962, 62, 240, 96, 22); x.fillStyle = 'rgba(255,255,255,.96)'; x.fill();
+    rr(980, 82, 40, 40, 6); x.fillStyle = '#12306e'; x.fill(); x.fillStyle = '#fff'; x.fillRect(984, 96, 32, 22); x.fillStyle = '#12306e'; for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) x.fillRect(987 + b * 10, 99 + a * 7, 7, 4);
+    T(dd ? DIAS[dd.getDay()] : '', 1032, 90, { size: 28, bold: true, color: '#0f2a5e', max: 160 });
+    T(dd ? dd.getDate() + ' ' + MES[dd.getMonth()] + ' ' + dd.getFullYear() : String(ev.fecha || ''), 1032, 118, { size: 21, bold: true, color: '#27408b', max: 160 });
+    T(String(ev.nombre || ''), 1082 + 0, 144, { size: 14, color: '#5a6b94', align: 'center', max: 200 });
+    // sets
     let y = Y0;
     bloques.forEach(b => {
-      caja(M, y, WL, CAB, b.color, null, 6); T(b.nombre, M + 14, y + CAB / 2 + 1, { size: 21, bold: true, color: '#fff', max: WL - 28 }); y += CAB;
-      if (b.msgL.length) { b.msgL.forEach((l, i) => T(l, M + 12, y + 14 + i * 18, { size: 14, italic: true, color: '#444', max: WL - 24 })); y += b.msgL.length * 18 + 8; }
-      const cN = 44, cA = 210, cC = b.conNota ? 250 : WL - cN - cA, cT = WL - cN - cC - cA;
-      caja(M, y, WL, SUB, '#eef1f8', '#c9d0e0'); const hy = y + SUB / 2 + 1;
-      T('#', M + cN / 2, hy, { size: 14, bold: true, color: '#333', align: 'center' });
-      T('CANTO', M + cN + 10, hy, { size: 14, bold: true, color: '#333' });
-      if (b.conNota) T('NOTA', M + cN + cC + 10, hy, { size: 14, bold: true, color: '#333' });
-      T('ANUNCIA (VOCALISTA)', M + WL - cA / 2, hy, { size: 14, bold: true, color: '#333', align: 'center' }); y += SUB;
+      const c1 = 120, c3 = 204, c2 = LW - c1 - c3;
+      rr(LX, y, LW, b.h, 14); x.fillStyle = '#fff'; x.fill();
+      const gc = x.createLinearGradient(LX, 0, LX + LW, 0); gc.addColorStop(0, b.color); gc.addColorStop(1, '#0b1f55');
+      x.save(); rr(LX, y, LW, b.h, 14); x.clip(); x.fillStyle = gc; x.fillRect(LX, y, LW, CAB); x.restore();
+      T(b.nombre, LX + 112, y + CAB / 2 + 1, { size: 29, bold: true, color: '#fff', max: LW - 112 - 190 });
+      x.beginPath(); x.arc(LX + LW - 168, y + CAB / 2, 11, 0, 7); x.lineWidth = 2; x.strokeStyle = '#fff'; x.stroke(); x.beginPath(); x.moveTo(LX + LW - 168, y + CAB / 2 - 6); x.lineTo(LX + LW - 168, y + CAB / 2); x.lineTo(LX + LW - 162, y + CAB / 2 + 3); x.stroke();
+      T((b.s.hora || '').trim() || 'Hora por definir', LX + LW - 148, y + CAB / 2 + 1, { size: 18, color: '#fff', max: 140 });
+      let yy = y + CAB;
+      if (b.msgL.length) { b.msgL.forEach((l, i) => T(l, LX + 16, yy + 16 + i * 22, { size: 16, italic: true, color: '#44507a', max: LW - 30 })); yy += b.msgL.length * 22 + 8; }
+      x.fillStyle = '#eaf0fb'; x.fillRect(LX, yy, LW, SUB); const hy = yy + SUB / 2 + 1;
+      T('No.', LX + c1 / 2, hy, { size: 21, bold: true, align: 'center', color: '#0f2a5e' }); T('Canto / Himno', LX + c1 + c2 / 2, hy, { size: 22, bold: true, align: 'center', color: '#0f2a5e' }); T('Presenta', LX + c1 + c2 + c3 / 2, hy, { size: 21, bold: true, align: 'center', color: '#0f2a5e' });
+      yy += SUB; let n = 0;
       b.s.canciones.forEach((c, i) => {
-        caja(M, y, WL, RH, i % 2 ? '#f8f9fc' : '#fff', '#dde2ee'); const cy = y + RH / 2 + 1;
-        T(String(i + 1), M + cN / 2, cy, { size: 18, bold: true, color: '#222', align: 'center' });
-        T(c.titulo, M + cN + 10, cy, { size: 19, bold: true, color: '#111', max: cC - 16 });
-        if (b.conNota) T((c.nota || '').trim(), M + cN + cC + 10, cy, { size: 15, color: '#444', max: cT - 16 });
-        const pr = (c.presentadores || []);
-        if (pr.length === 1) T(pr[0].nombre, M + WL - cA / 2, cy, { size: 18, bold: true, color: col(pr[0].nombre), align: 'center', max: cA - 14 });
-        else pr.slice(0, 2).forEach((p, k) => T(p.nombre, M + WL - cA / 2, y + 12 + k * 17 + 1, { size: 15, bold: true, color: col(p.nombre), align: 'center', max: cA - 14 }));
-        y += RH;
-      });
-      y += 18;
-    });
-    // equipos (columna derecha)
+        x.fillStyle = i % 2 ? '#f5f8fe' : '#fff'; x.fillRect(LX, yy, LW, RH); x.fillStyle = '#c3d0ea'; x.fillRect(LX, yy, LW, 1);
+        const cy = yy + RH / 2 + 1, ley = (c.nota || '').trim();
+        if (ley) T(ley, LX + c1 / 2, cy, { size: 19, bold: true, align: 'center', color: '#0f2a5e', max: c1 - 8 }); else { n++; T(String(n), LX + c1 / 2, cy, { size: 22, bold: true, align: 'center', color: '#0f2a5e' }); }
+        T(c.titulo, LX + c1 + 16, cy, { size: 23, color: '#14213d', max: c2 - 28 });
+        const pr = (c.presentadores || []).slice(0, 2).map(p => p.nombre);
+        if (pr.length) { let sz = 19; const total = () => pr.reduce((a, nm) => a + medir(nm, sz, true), 0) + (pr.length > 1 ? medir(' / ', sz, false) : 0);
+          while (total() > c3 - 14 && sz > 11) sz--; let px = LX + c1 + c2 + c3 / 2 - total() / 2;
+          pr.forEach((nm, k) => { if (k) { T(' / ', px, cy, { size: sz, color: '#8791ad' }); px += medir(' / ', sz, false); } T(nm, px, cy, { size: sz, bold: true, color: col(nm) }); px += medir(nm, sz, true); }); }
+        yy += RH; });
+      x.fillStyle = '#c3d0ea'; x.fillRect(LX + c1, y + CAB + (b.msgL.length ? b.msgL.length * 22 + 8 : 0) + SUB, 1, b.s.canciones.length * RH); x.fillRect(LX + c1 + c2, y + CAB + (b.msgL.length ? b.msgL.length * 22 + 8 : 0) + SUB, 1, b.s.canciones.length * RH);
+      rr(LX, y, LW, b.h, 14); x.lineWidth = 1.6; x.strokeStyle = b.color; x.stroke();
+      icono(b.icono, LX + 48, y + CAB / 2, b.color);
+      y += b.h + GAP; });
+    // paneles derechos
     let yr = Y0;
-    const panel = (tit, filas) => {
-      caja(XR, yr, WR, PH, INF.azul, null, 6); T(tit, XR + WR / 2, yr + PH / 2 + 1, { size: 18, bold: true, color: INF.oro, align: 'center' }); yr += PH;
-      filas.forEach((f, i) => { caja(XR, yr, WR, PR, i % 2 ? '#f8f9fc' : '#fff', '#dde2ee');
-        T(f.rol, XR + 10, yr + PR / 2 + 1, { size: 14, bold: true, color: '#222', max: WR * 0.42 });
-        if (f.pend) T('Por confirmar', XR + WR * 0.46, yr + PR / 2 + 1, { size: 15, italic: true, color: '#999', max: WR * 0.52 });
-        else T(f.nombre + (f.reemplazo ? ' (reemplazo)' : ''), XR + WR * 0.46, yr + PR / 2 + 1, { size: 17, bold: true, color: col(f.nombre), max: WR * 0.52 });
-        yr += PR; });
-      yr += 18;
-    };
-    const filaDe = p => ({ rol: String(p.funcion || '').toUpperCase(), nombre: p.nombre, reemplazo: p.condicion === 'Reemplazo' });
-    const pendDe = v => Array.from({ length: v.pendientes }, () => ({ rol: String(v.funcion).toUpperCase(), pend: true }));
-    if (filasVoz) { panel('EQUIPO DE VOCES', voces.map(filaDe).concat([].concat.apply([], vacVoz.map(pendDe)))); }
-    if (filasIns) { panel('EQUIPO DE INSTRUMENTISTAS', instr.map(filaDe).concat([].concat.apply([], vacIns.map(pendDe)))); }
+    const panel = (tit, filas, tipo) => { const h = CAB + filas.length * PR, lc = 160;
+      rr(RX, yr, RW, h, 14); x.fillStyle = '#fff'; x.fill();
+      x.save(); rr(RX, yr, RW, h, 14); x.clip(); const gp = x.createLinearGradient(RX, 0, RX + RW, 0); gp.addColorStop(0, '#12306e'); gp.addColorStop(1, '#0a1c4d'); x.fillStyle = gp; x.fillRect(RX, yr, RW, CAB); x.restore();
+      T(tit, RX + 108, yr + CAB / 2 + 1, { size: 29, bold: true, color: '#fff', max: RW - 120 });
+      filas.forEach((f, i) => { const ry = yr + CAB + i * PR; x.fillStyle = i % 2 ? '#f5f8fe' : '#fff'; x.fillRect(RX, ry, RW, PR); x.fillStyle = '#c3d0ea'; x.fillRect(RX, ry, RW, 1);
+        x.fillStyle = '#eaf0fb'; x.fillRect(RX, ry, lc, PR); x.fillStyle = '#c3d0ea'; x.fillRect(RX + lc, ry, 1, PR);
+        T(f.rol, RX + 14, ry + PR / 2 + 1, { size: 22, bold: true, color: '#0f2a5e', max: lc - 20 });
+        if (f.pend) T('Por confirmar', RX + lc + 12, ry + PR / 2 + 1, { size: 18, italic: true, color: '#8a93ad', max: RW - lc - 20 });
+        else if (!f.vacio) T(f.nombre + (f.reemplazo ? ' (reemp.)' : ''), RX + lc + 12, ry + PR / 2 + 1, { size: 21, bold: true, color: col(f.nombre), max: RW - lc - 20 }); });
+      rr(RX, yr, RW, h, 14); x.lineWidth = 1.6; x.strokeStyle = '#12306e'; x.stroke();
+      circulo(RX + 48, yr + CAB / 2, 30, '#12306e'); if (tipo === 'v') gente(RX + 48, yr + CAB / 2 + 1, 15, '#fff'); else { x.fillStyle = '#fff'; rr(RX + 30, yr + CAB / 2 - 15, 36, 30, 3); x.fill(); x.fillStyle = '#12306e'; for (let k = 0; k < 4; k++) x.fillRect(RX + 38 + k * 8, yr + CAB / 2 - 15, 3, 18); }
+      yr += h + GAP; };
+    panel('CANTANTES', filasVoz, 'v'); panel('INSTRUMENTOS', filasIns, 'i');
+    // pie informativo
+    rr(LX, YB, LW, BH, 16); const cr = x.createLinearGradient(0, YB, 0, YB + BH); cr.addColorStop(0, '#fffaf0'); cr.addColorStop(1, '#fbf0d4'); x.fillStyle = cr; x.fill(); x.lineWidth = 1.5; x.strokeStyle = '#ecd9a0'; x.stroke();
+    gente(LX + 62, YB + BH / 2, 22, '#12306e');
+    T('EQUIPO DE WORSHIP', LX + 118, YB + 34, { size: 24, bold: true, color: '#0f2a5e', max: 230 }); T('Dirigido a:', LX + 118, YB + 66, { size: 20, color: '#33415f' });
+    T(ev.alcance && ev.alcance !== 'Todos' ? String(ev.alcance) : 'Todos los equipos', LX + 118, YB + 98, { size: 26, bold: true, color: '#12306e', max: 240 });
+    x.fillStyle = '#e1c985'; x.fillRect(LX + 378, YB + 18, 2, BH - 36);
+    x.fillStyle = '#12306e'; rr(LX + 408, YB + 30, 40, 52, 5); x.fill(); x.fillStyle = '#fff'; for (let k = 0; k < 3; k++) { x.fillRect(LX + 416, YB + 42 + k * 12, 5, 4); x.fillRect(LX + 425, YB + 43 + k * 12, 16, 2.5); }
+    T('TIPO DE SERVICIO', LX + 464, YB + 34, { size: 24, bold: true, color: '#0f2a5e', max: 260 }); T('Servicio:', LX + 464, YB + 66, { size: 20, color: '#33415f' });
+    T(bloques.map(b => b.nombre.charAt(0) + b.nombre.slice(1).toLowerCase()).join(' / '), LX + 464, YB + 98, { size: 22, bold: true, color: '#12306e', max: LW - 464 - 14 });
+    rr(RX - 2, YB, RW + 2, BH, 16); const am = x.createLinearGradient(0, YB, 0, YB + BH); am.addColorStop(0, '#fbd45a'); am.addColorStop(1, '#f3b92a'); x.fillStyle = am; x.fill();
+    circulo(RX + 36, YB + 30, 22, '#12306e'); T('i', RX + 36, YB + 31, { size: 30, bold: true, color: '#fff', align: 'center' });
+    T('NOTAS IMPORTANTES', RX + 70, YB + 30, { size: 23, bold: true, color: '#0f2a5e', max: RW - 80 });
+    const notas = ['Preparar y confirmar participación.', 'Revisar tiempos y transiciones.', 'Trabajar en unidad y oración.'];
+    if (objetivo) notas.unshift(envolver(objetivo, 17, RW - 62, false)[0] + (envolver(objetivo, 17, RW - 62, false).length > 1 ? '…' : ''));
+    notas.slice(0, 4).forEach((nt, i) => { const ny = YB + 64 + i * (notas.length > 3 ? 22 : 26); x.fillStyle = '#0f2a5e'; x.beginPath(); x.arc(RX + 24, ny, 3.5, 0, 7); x.fill(); T(nt, RX + 38, ny, { size: 18, color: '#1c2747', max: RW - 52 }); });
     // pie
-    x.fillStyle = INF.azul; x.fillRect(0, H - FOOT, W, FOOT);
-    T('PALERMO · CENTRO DE INFLUENCIA · IGLESIA ADVENTISTA DEL SÉPTIMO DÍA', W / 2, H - FOOT / 2 - 7, { size: 15, bold: true, color: '#fff', align: 'center' });
-    T('Departamento de Música · Palermo Music', W / 2, H - FOOT / 2 + 11, { size: 13, color: INF.oro, align: 'center' });
+    const FY = H - FOOT, gf = x.createLinearGradient(0, FY, DW, H); gf.addColorStop(0, '#0a1c4d'); gf.addColorStop(1, '#12306e');
+    x.fillStyle = gf; x.beginPath(); x.moveTo(0, FY + 30); x.quadraticCurveTo(300, FY - 10, DW * .6, FY + 20); x.quadraticCurveTo(DW * .85, FY + 40, DW, FY + 8); x.lineTo(DW, H); x.lineTo(0, H); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(0, FY + 24); x.quadraticCurveTo(300, FY - 18, DW * .6, FY + 12); x.quadraticCurveTo(DW * .85, FY + 32, DW, FY); x.lineWidth = 4; x.strokeStyle = INF.oro; x.stroke();
+    const SF = 'Georgia, "Times New Roman", serif', t1 = 'Adoración que conecta, servicio que ', t2 = 'bendice';
+    x.font = 'italic 38px ' + SF; const w1 = x.measureText(t1).width; x.font = 'italic 700 38px ' + SF; const w2 = x.measureText(t2).width; const sx = DW / 2 - (w1 + w2) / 2;
+    x.textAlign = 'left'; x.font = 'italic 38px ' + SF; x.fillStyle = '#fff'; x.fillText(t1, sx, H - 38); x.font = 'italic 700 38px ' + SF; x.fillStyle = INF.oro; x.fillText(t2, sx + w1, H - 38);
     return cv;
   }
   function pdfDeJpeg(jpeg, wPx, hPx) {
@@ -1502,6 +1602,220 @@
     });
   });
   $('btn-correo').onclick = () => conOcupado(async () => { cerrarPanel(); await cargarCorreo(); });
+
+  /* ---------------- v3.15.0: Ensambles (esquemas de montaje) ---------------- */
+  let ensambles = [], ensForm = null;
+  const textoFunciones = fs => (fs || []).map(f => f.funcion + ' ×' + f.cantidad).join(' · ') || 'sin funciones';
+  async function cargarEnsambles() {
+    const r = await api('ensambles_listar', {});
+    if (r && r.ok) ensambles = r.ensambles || []; else { ensambles = []; log('No se pudieron cargar los ensambles: ' + textoError(r && r.error)); }
+    return ensambles;
+  }
+  async function poblarEnsambles(seleccion) {
+    await cargarEnsambles();
+    const sel = $('in-ensamble'), activos = ensambles.filter(e => e.estado === 'Activo');
+    const extra = seleccion && !activos.some(e => e.idEnsamble === seleccion) ? ensambles.filter(e => e.idEnsamble === seleccion) : [];
+    sel.innerHTML = '<option value="">— Sin ensamble (definir a mano) —</option>' + activos.concat(extra).map(e =>
+      '<option value="' + esc(e.idEnsamble) + '">' + esc(e.nombre) + (e.estado === 'Archivado' ? ' (archivado)' : '') + ' · ' + esc(e.alcance) + '</option>').join('');
+    sel.value = seleccion || '';
+    $('aviso-ensamble').textContent = activos.length ? '' : 'Aún no hay ensambles. Cree uno en el menú «Ensambles» para reutilizarlo en varios eventos.';
+  }
+  $('in-ensamble').onchange = () => {
+    const e = ensambles.find(x => x.idEnsamble === $('in-ensamble').value);
+    if (!e) { $('aviso-ensamble').textContent = ''; return; }
+    $('in-alcance').value = e.alcance; funcReq = e.funciones.map(f => ({ funcion: f.funcion, cantidad: f.cantidad })); pintarFuncReq();
+    $('aviso-ensamble').textContent = 'Ensamble aplicado: ' + e.alcance + ' · ' + textoFunciones(e.funciones) + '. Puede ajustar el alcance o las funciones solo para este evento.';
+  };
+  function pintarListaEnsambles() {
+    const lista = $('ens-lista');
+    if (!ensambles.length) { lista.innerHTML = '<div class="aviso">Todavía no hay ensambles. Pulse «Nuevo ensamble».</div>'; return; }
+    lista.innerHTML = ensambles.map(e => '<div class="set-card' + (e.estado === 'Archivado' ? '' : '') + '" style="' + (e.estado === 'Archivado' ? 'opacity:.6;' : '') + '">' +
+      '<div><b>' + esc(e.nombre) + '</b> <span class="ins ' + (e.estado === 'Activo' ? 'ok' : '') + '">' + esc(e.estado) + '</span></div>' +
+      '<div class="meta">Dirigido a: <b>' + esc(e.alcance) + '</b></div>' +
+      '<div class="meta">' + esc(textoFunciones(e.funciones)) + '</div>' + (e.descripcion ? '<div class="meta"><i>' + esc(e.descripcion) + '</i></div>' : '') +
+      '<div class="botones" style="margin-top:6px;"><button class="btn-primary btn-small" data-ens-editar="' + esc(e.idEnsamble) + '" type="button">✏️ Editar</button>' +
+      '<button class="btn-secondary btn-small" data-ens-dup="' + esc(e.idEnsamble) + '" type="button">📑 Duplicar</button>' +
+      '<button class="btn-secondary btn-small" data-ens-arch="' + esc(e.idEnsamble) + '" data-a="' + (e.estado === 'Activo' ? '1' : '0') + '" type="button">' + (e.estado === 'Activo' ? '🗄 Archivar' : '♻ Reactivar') + '</button></div></div>').join('');
+  }
+  function pintarFormEnsamble() {
+    const f = ensForm; if (!f) { $('ens-form').classList.add('oculto'); return; }
+    $('ens-form').classList.remove('oculto');
+    $('ens-form-titulo').textContent = f.id ? 'Editar ensamble' : 'Nuevo ensamble';
+    $('ens-nombre').value = f.nombre; $('ens-desc').value = f.descripcion;
+    $('ens-alcance').innerHTML = ['Todos', 'Worship 1', 'Worship 2', 'Worship 3'].map(a => '<option' + (a === f.alcance ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
+    $('ens-funciones').innerHTML = f.funciones.map((x, i) =>
+      '<div class="fr-fila"><select data-ef-f="' + i + '" aria-label="Función">' + (funcionesKnown.indexOf(x.funcion) < 0 && x.funcion ? [x.funcion].concat(funcionesKnown) : funcionesKnown).map(n => '<option' + (n === x.funcion ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
+      '</select><input type="number" min="1" max="20" value="' + esc(x.cantidad) + '" data-ef-n="' + i + '" aria-label="Cantidad"><button class="btn-danger" data-ef-quitar="' + i + '" type="button" aria-label="Quitar">✕</button></div>').join('');
+    $('ens-aviso').textContent = '';
+  }
+  function sincronizarFormEnsamble() { if (!ensForm) return; ensForm.nombre = $('ens-nombre').value; ensForm.descripcion = $('ens-desc').value; ensForm.alcance = $('ens-alcance').value; }
+  function abrirFormEnsamble(e) {
+    ensForm = e ? { id: e.idEnsamble, nombre: e.nombre, descripcion: e.descripcion, alcance: e.alcance, funciones: e.funciones.map(f => ({ funcion: f.funcion, cantidad: f.cantidad })) }
+      : { id: '', nombre: '', descripcion: '', alcance: 'Todos', funciones: [] };
+    pintarFormEnsamble(); $('ens-form').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  async function abrirEnsambles() {
+    cerrarPanel(); if (!funcionesKnown.length) await cargarFuncionesKnown();
+    await cargarEnsambles(); ensForm = null; pintarListaEnsambles(); pintarFormEnsamble(); mostrarVista('vista-ensambles');
+  }
+  $('btn-ensambles').onclick = () => conOcupado(abrirEnsambles);
+  $('ens-nuevo').onclick = () => abrirFormEnsamble(null);
+  $('ens-cancelar').onclick = () => { ensForm = null; pintarFormEnsamble(); };
+  $('ens-add-funcion').onclick = () => {
+    if (!ensForm) return; sincronizarFormEnsamble(); const usadas = ensForm.funciones.map(f => f.funcion), libre = funcionesKnown.find(n => usadas.indexOf(n) < 0);
+    if (!libre) { $('ens-aviso').textContent = 'Ya agregó todas las funciones disponibles.'; return; }
+    ensForm.funciones.push({ funcion: libre, cantidad: 1 }); pintarFormEnsamble();
+  };
+  $('ens-guardar').onclick = () => conOcupado(async () => {
+    if (!ensForm) return;
+    ensForm.nombre = $('ens-nombre').value.trim(); ensForm.descripcion = $('ens-desc').value.trim(); ensForm.alcance = $('ens-alcance').value;
+    if (!ensForm.nombre) { $('ens-aviso').textContent = 'Escriba un nombre para el ensamble.'; return; }
+    if (!ensForm.funciones.length) { $('ens-aviso').textContent = 'Agregue al menos una función requerida.'; return; }
+    const r = await api('ensamble_guardar', { idEnsamble: ensForm.id, nombre: ensForm.nombre, descripcion: ensForm.descripcion, alcance: ensForm.alcance, funciones: ensForm.funciones });
+    if (r && r.ok) { log(r.mensaje || 'Ensamble guardado.'); await cargarEnsambles(); ensForm = null; pintarListaEnsambles(); pintarFormEnsamble(); }
+    else $('ens-aviso').textContent = '✖ ' + textoError(r && r.error);
+  });
+  $('vista-ensambles').addEventListener('change', e => {
+    const t = e.target; if (!ensForm || !t.dataset) return;
+    if (t.dataset.efF !== undefined) ensForm.funciones[Number(t.dataset.efF)].funcion = t.value;
+    if (t.dataset.efN !== undefined) ensForm.funciones[Number(t.dataset.efN)].cantidad = Math.max(1, Math.min(20, parseInt(t.value, 10) || 1));
+  });
+  $('vista-ensambles').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    if (d.efQuitar !== undefined && ensForm) { sincronizarFormEnsamble(); ensForm.funciones.splice(Number(d.efQuitar), 1); pintarFormEnsamble(); }
+    if (d.ensEditar) abrirFormEnsamble(ensambles.find(x => x.idEnsamble === d.ensEditar));
+    if (d.ensDup) conOcupado(async () => { const r = await api('ensamble_duplicar', { idEnsamble: d.ensDup }); if (r && r.ok) { await cargarEnsambles(); pintarListaEnsambles(); log('Ensamble duplicado. Edite la copia para ajustarla.'); } else log('No se pudo duplicar: ' + textoError(r && r.error)); });
+    if (d.ensArch) conOcupado(async () => { const r = await api('ensamble_archivar', { idEnsamble: d.ensArch, archivar: d.a === '1' }); if (r && r.ok) { await cargarEnsambles(); pintarListaEnsambles(); } else log('No se pudo cambiar el estado: ' + textoError(r && r.error)); });
+  });
+
+  /* ---- Vía 1: al ingresar, preguntar la asistencia a quien cumple las condiciones ---- */
+  let pendientesRevisados = false, colaPend = [];
+  const pospuestos = () => { try { return JSON.parse(sessionStorage.getItem('pm_pen_luego') || '[]'); } catch (e) { return []; } };
+  const posponer = id => { try { sessionStorage.setItem('pm_pen_luego', JSON.stringify(pospuestos().concat([id]))); } catch (e) {} };
+  async function revisarPendientes() {
+    if (pendientesRevisados) return; pendientesRevisados = true;
+    try {
+      const r = await api('participacion_pendiente', {});
+      if (!r || !r.ok) return;
+      const omit = pospuestos(); colaPend = (r.pendientes || []).filter(p => omit.indexOf(p.idEvento) < 0);
+      mostrarSiguientePendiente();
+    } catch (e) {}
+  }
+  function mostrarSiguientePendiente() {
+    const p = colaPend[0]; const m = $('vista-pendiente');
+    if (!p) { m.classList.add('oculto'); return; }
+    $('pen-cuerpo').innerHTML = 'Para el evento <b>' + esc(p.nombre) + '</b> (' + esc(p.fecha) + ' · ' + esc(p.alcance) + ') usted cumple las condiciones para participar como <b>' + esc(p.funcion) + '</b>.<br>¿Podrá asistir?';
+    $('pen-aviso').textContent = ''; m.classList.remove('oculto');
+    $('pen-luego').classList.toggle('oculto', !!p.obligatorio);
+    $('pen-oblig').classList.toggle('oculto', !p.obligatorio);
+    setTimeout(() => $('pen-si').focus(), 30);
+  }
+  function exigirParticipacion(ev) {           // el servidor negó un ensayo: hay que responder primero
+    if (!$('vista-pendiente').classList.contains('oculto') && colaPend[0] && colaPend[0].idEvento === ev.idEvento) return;
+    colaPend = [Object.assign({}, ev, { obligatorio: true })].concat(colaPend.filter(x => x.idEvento !== ev.idEvento)); mostrarSiguientePendiente();
+  }
+  async function responderPendiente(accion) {
+    const p = colaPend[0]; if (!p) return;
+    if (accion === 'luego') { if (p.obligatorio) return; posponer(p.idEvento); colaPend.shift(); mostrarSiguientePendiente(); return; }
+    $('pen-aviso').textContent = 'Guardando…';
+    const r = await api(accion === 'si' ? 'participacion_confirmar' : 'participacion_declinar', { idEvento: p.idEvento });
+    if (r && r.ok) { log((p.obligatorio ? 'Listo: ya puede continuar con el ensayo. ' : '') + (accion === 'si' ? 'Asistencia confirmada para «' + p.nombre + '».' : 'Registrado: no podrá asistir a «' + p.nombre + '».')); colaPend.shift(); mostrarSiguientePendiente(); }
+    else $('pen-aviso').textContent = '✖ ' + textoError((r && (r.motivo || r.error)) || '');
+  }
+  $('pen-si').onclick = () => responderPendiente('si'); $('pen-no').onclick = () => responderPendiente('no'); $('pen-luego').onclick = () => responderPendiente('luego');
+
+  /* ---- Compartir el informe (imagen o PDF) ---- */
+  async function compartirInforme(tipo) {
+    if (!archivoInforme) return;
+    const file = tipo === 'pdf' ? new File([bytesInforme], archivoInforme.pdfNombre, { type: 'application/pdf' }) : archivoInforme.png;
+    const datos = { files: [file], title: 'Programa ' + (archivoInforme.nombre || '') };
+    if (navigator.canShare && navigator.canShare(datos) && navigator.share) {
+      try { await navigator.share(datos); $('inf-aviso').textContent = ''; } catch (e) { if (e && e.name !== 'AbortError') $('inf-aviso').textContent = 'No se pudo abrir el menú de compartir. Use «Guardar» y adjunte el archivo.'; }
+    } else $('inf-aviso').textContent = 'Este navegador no permite compartir archivos directamente. Use «Guardar PDF» o «Guardar imagen» y adjúntelo en WhatsApp o en un correo.';
+  }
+  $('btn-inf-comp-pdf').onclick = () => compartirInforme('pdf'); $('btn-inf-comp-png').onclick = () => compartirInforme('png');
+
+  /* ---------------- v3.16.0: teclado (Tab) ---------------- */
+  // 1) Si un repintado hace perder el foco a quien navega con teclado, se devuelve al mismo control.
+  let ultimaTecla = 0, claveFocoPrev = null;
+  const cssAttr = k => 'data-' + k.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+  function claveFoco(el) {
+    if (!el || el === document.body || !el.tagName) return null;
+    if (el.id) return '#' + el.id;
+    let sel = el.tagName.toLowerCase();
+    Object.keys(el.dataset || {}).forEach(k => { sel += '[' + cssAttr(k) + '="' + String(el.dataset[k]).replace(/"/g, '\\"') + '"]'; });
+    const cont = el.parentElement && el.parentElement.closest('[id]');
+    return (cont ? '#' + cont.id + ' ' : '') + sel;
+  }
+  document.addEventListener('keydown', () => { ultimaTecla = Date.now(); }, true);
+  document.addEventListener('focusin', e => { claveFocoPrev = claveFoco(e.target); }, true);
+  let obsPendiente = false;
+  new MutationObserver(() => {
+    if (obsPendiente) return; obsPendiente = true;
+    requestAnimationFrame(() => {
+      obsPendiente = false;
+      const a = document.activeElement;
+      if ((a && a !== document.body) || !claveFocoPrev || Date.now() - ultimaTecla > 4000) return;
+      let el = null; try { el = document.querySelector(claveFocoPrev); } catch (e) {}
+      if (el && !el.disabled && el.getBoundingClientRect().width > 0) el.focus({ preventScroll: false });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+  // 2) Los diálogos (aviso de asistencia, informe, vista del programa, popup) retienen el foco: Tab y Shift+Tab giran dentro de ellos.
+  function dialogoActivo() {
+    return ['vista-pendiente', 'vista-informe', 'vista-programa', 'popup-inicio'].map($).filter(e => e && !e.classList.contains('oculto') && getComputedStyle(e).display !== 'none').pop() || null;
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const d = dialogoActivo(); if (!d) return;
+    const f = Array.from(d.querySelectorAll('button,input,select,textarea,a[href],[tabindex]')).filter(x => !x.disabled && x.tabIndex >= 0 && x.getBoundingClientRect().width > 0);
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement);
+    if (e.shiftKey && (i <= 0)) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+  });
+  new MutationObserver(() => { const d = dialogoActivo(); if (d && !d.contains(document.activeElement)) { const b = d.querySelector('button:not([disabled]),input,select,textarea'); if (b) b.focus(); } })
+    .observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+  /* ---------------- v3.16.0: frecuencia de cantos y eliminación de eventos cumplidos ---------------- */
+  const hoyLocal = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  let fq = null;
+  const fechaCorta = f => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f || ''); return m ? m[3] + '/' + m[2] + '/' + m[1].slice(2) : (f || ''); };
+  function pintarFrecuencia() {
+    if (!fq) return;
+    const filtro = $('fq-filtro').value, q = clv($('fq-buscar').value);
+    const filas = fq.cantos.filter(c => (filtro === 'usados' ? c.veces > 0 : filtro === 'sinusar' ? c.veces === 0 : true) && (!q || clv(c.titulo + ' ' + c.idCancion).indexOf(q) >= 0));
+    const claseVeces = n => n === 0 ? 'fq-0' : n === 1 ? 'fq-1' : n === 2 ? 'fq-2' : 'fq-3';
+    let h = '<table class="fq"><thead><tr><th class="fq-c1">Canto</th><th>Veces</th><th>Última vez</th>' +
+      fq.eventos.map(e => '<th class="fq-ev' + (e.proximo ? ' fq-prox' : '') + '" title="' + esc(e.nombre + ' · ' + e.fecha + (e.origen === 'Historial' ? ' (evento ya eliminado)' : '')) + '"><span>' + esc(fechaCorta(e.fecha)) + '</span></th>').join('') + '</tr></thead><tbody>';
+    filas.forEach(c => {
+      h += '<tr><th class="fq-c1" scope="row">' + esc(c.titulo) + '</th><td class="' + claseVeces(c.veces) + '">' + c.veces + '</td><td>' + (c.ultima ? esc(fechaCorta(c.ultima)) : '—') + '</td>' +
+        c.marcas.map((m, i) => '<td class="fq-m' + (m ? ' fq-si' + (fq.eventos[i].proximo ? ' fq-prox' : '') : '') + '">' + (m ? '●' : '') + '</td>').join('') + '</tr>';
+    });
+    $('fq-tabla').innerHTML = h + '</tbody></table>' + (filas.length ? '' : '<p class="aviso">Ningún canto coincide con el filtro.</p>');
+  }
+  async function abrirFrecuencia() {
+    cerrarPanel(); log('Calculando la frecuencia de cantos…');
+    const r = await api('informe_frecuencia', {});
+    if (!r || !r.ok) { log('No se pudo generar el informe: ' + textoError(r && r.error)); return; }
+    fq = r; const s = r.resumen;
+    $('fq-resumen').innerHTML = 'Eventos considerados: <b>' + s.eventos + '</b> (' + s.eliminados + ' ya eliminados, conservados en el historial) · Cantos usados: <b>' + s.cantosUsados + '</b> · Sin programar nunca: <b>' + s.sinUsar + '</b>' +
+      (s.masRepetidos.length ? '<br>Más repetidos: ' + s.masRepetidos.map(esc).join(', ') : '');
+    pintarFrecuencia(); mostrarVista('vista-frecuencia');
+  }
+  $('btn-frecuencia').onclick = () => conOcupado(abrirFrecuencia);
+  $('fq-filtro').onchange = pintarFrecuencia; $('fq-buscar').oninput = pintarFrecuencia;
+  $('fq-csv').onclick = () => {
+    if (!fq) return; const c = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const filas = [['Canto', 'ID', 'Veces', 'Primera vez', 'Última vez'].concat(fq.eventos.map(e => e.fecha + ' · ' + e.nombre)).map(c).join(';')];
+    fq.cantos.forEach(k => filas.push([k.titulo, k.idCancion, k.veces, k.primera, k.ultima].concat(k.marcas.map(m => m ? 'X' : '')).map(c).join(';')));
+    const blob = new Blob(['﻿' + filas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    descargarBlob(blob, 'Frecuencia_de_cantos_' + hoyLocal() + '.csv'); log('Informe de frecuencia descargado (se abre con Excel).');
+  };
+  async function eliminarEventoUI(id, nombre, fecha) {
+    if (!confirm('¿Eliminar definitivamente «' + nombre + '» (' + fecha + ')?\n\n• Se borran el evento, sus sets y su lista de cantos.\n• Los cantos programados QUEDAN en el historial y seguirán contando en el informe de frecuencia.\n• La asistencia registrada se conserva.\n\nEsta acción no se puede deshacer.')) return;
+    const r = await api('evento_eliminar', { idEvento: id });
+    if (r && r.ok) { log(r.mensaje); await cargarEventos(); } else log('No se pudo eliminar: ' + textoError(r && r.error));
+  }
 
   async function compartirPrograma() {
     if (!vistaEv || !vistaEv.r || !vistaEv.r.evento) { log('Abra un evento primero.'); return; }
@@ -1825,13 +2139,25 @@
       panel.innerHTML = '';
       Array.from(sel.options).filter(o => o.value).forEach(o => {
         const it = document.createElement('div'); it.className = 'item' + (o.value === sel.value ? ' sel' : ''); it.textContent = o.text; it.title = o.text;
-        it.onclick = () => { sel.value = o.value; panel.classList.add('oculto'); refrescar(); sel.dispatchEvent(new Event('change')); };
+        it.tabIndex = -1; it.setAttribute('role', 'option'); it.setAttribute('aria-selected', o.value === sel.value ? 'true' : 'false');
+        it.onclick = () => { sel.value = o.value; panel.classList.add('oculto'); refrescar(); sel.dispatchEvent(new Event('change')); caja.focus(); };
         panel.appendChild(it);
       });
     };
     const ajustar = () => { ajustarUnaLinea(caja, 14, 9); panel.querySelectorAll('.item').forEach(it => ajustarUnaLinea(it, 14, 8)); };
-    caja.onclick = () => { if (!panel.classList.contains('oculto')) { panel.classList.add('oculto'); return; }
-      Object.values(listas).forEach(l => l.cerrar()); if (panel.children.length) { panel.classList.remove('oculto'); ajustar(); } };
+    const abrir = () => { Object.values(listas).forEach(l => l.cerrar()); if (panel.children.length) { panel.classList.remove('oculto'); ajustar(); const s = panel.querySelector('.item.sel') || panel.querySelector('.item'); if (s) s.focus(); } };
+    caja.setAttribute('aria-haspopup', 'listbox'); panel.setAttribute('role', 'listbox');
+    caja.onclick = () => { if (!panel.classList.contains('oculto')) { panel.classList.add('oculto'); return; } abrir(); };
+    caja.addEventListener('keydown', e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (panel.classList.contains('oculto')) abrir(); } });
+    panel.addEventListener('keydown', e => {
+      const its = Array.from(panel.querySelectorAll('.item')), i = its.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); (its[i + 1] || its[0]).focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); (its[i - 1] || its[its.length - 1]).focus(); }
+      else if (e.key === 'Home') { e.preventDefault(); its[0].focus(); } else if (e.key === 'End') { e.preventDefault(); its[its.length - 1].focus(); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (i >= 0) its[i].click(); }
+      else if (e.key === 'Escape') { e.preventDefault(); panel.classList.add('oculto'); caja.focus(); }
+      else if (e.key === 'Tab') { panel.classList.add('oculto'); }
+    });
     listas[id] = { refrescar: refrescar, cerrar: () => panel.classList.add('oculto'), ajustar: ajustar };
     refrescar();
   }
@@ -2134,6 +2460,7 @@
     const d = b.dataset;
     if (b.id === 'btn-compartir') { conOcupado(compartirPrograma); return; }
     if (b.id === 'btn-informe') { conOcupado(generarInforme); return; }
+    if (d.eliminar) { conOcupado(() => eliminarEventoUI(d.eliminar, d.nombre, d.fecha)); return; }
     if (b.id === 'btn-reordenar') { iniciarReorden(); return; }
     if (b.id === 'btn-cancelar-orden') { verEvento(vistaEv.idEvento, vistaEv.nombre); return; }
     if (b.id === 'btn-guardar-orden') { conOcupado(guardarOrden); return; }
