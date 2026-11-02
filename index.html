@@ -174,6 +174,7 @@
     .as-fila .seg { margin:6px 0 0; }
     .seg button.on.a { background:#065f46; color:#d1fae5; } .seg button.on.f { background:#9f1239; color:#ffe4e6; } .seg button.on.e { background:#92400e; color:#fef3c7; }
     .dis { opacity:.55; pointer-events:none; }
+    .cal-video { width:100%; aspect-ratio:16/9; border:0; border-radius:var(--r); margin-top:8px; background:#000; display:block; }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -181,7 +182,7 @@
 <body>
 
   <div class="header-container">
-    <img id="logo" src="logo-palermo.png" alt="" style="height:56px;width:auto;object-fit:contain;" onerror="window.logoSiguiente?logoSiguiente(this):(this.style.display='none')">
+    <img id="logo" src="logo-palermo.png" alt="" style="height:112px;max-width:45vw;width:auto;object-fit:contain;" onerror="window.logoSiguiente?logoSiguiente(this):(this.style.display='none')">
     <div>
       <h2 style="margin:0;font-size:20px;">Palermo Music</h2>
       <span style="font-size:13px;color:var(--accent);">Sistema de Repertorios y Ensayo</span>
@@ -202,14 +203,14 @@
 
   <!-- Inicio / menú principal -->
   <div class="oculto" id="menu">
-    <div class="inicio-hola"><div><small>Bienvenido</small><b id="ini-nombre"></b></div><div class="avatar" id="ini-avatar" aria-hidden="true"></div></div>
+    <div class="inicio-hola oculto"><div><small>Bienvenido</small><b id="ini-nombre"></b></div><div class="avatar" id="ini-avatar" aria-hidden="true"></div></div>
     <div class="hero" id="ini-hero">
       <small>Próximo evento</small>
       <h4 id="ini-ev-nombre">Buscando…</h4>
       <p id="ini-ev-detalle"></p>
       <div class="botones">
         <button class="btn-accent oculto" id="ini-confirmar" type="button">✔ Confirmar mi participación</button>
-        <button class="btn-secondary oculto" id="ini-ver" type="button">Ver repertorio</button>
+        <button class="btn-secondary oculto" id="ini-ver" type="button">Ver repertorio y voces del ensamble</button>
       </div>
     </div>
     <button class="tiles" id="btn-stats" type="button" aria-label="Ver mis estadísticas">
@@ -217,8 +218,8 @@
       <span class="tile"><small>Tiempo de estudio</small><b id="t-est">–</b></span>
       <span class="tile"><small>Participaciones</small><b id="t-par">–</b></span>
     </button>
-    <div class="menu-tit">Accesos</div>
-    <div class="menu-grid">
+    <div class="menu-tit oculto">Accesos</div>
+    <div class="menu-grid oculto">
       <button class="btn-accent" id="btn-biblioteca">🎧 Material de ensayo</button>
       <button class="btn-primary" id="btn-eventos">📅 Eventos Programados y Repertorio</button>
     </div>
@@ -246,12 +247,20 @@
   <!-- Calentamientos (gestión) -->
   <div class="card oculto" id="vista-calent">
     <h3>🎙 Calentamientos vocales</h3>
-    <div class="aviso">Suba los MP3 (máximo 8 MB cada uno) a la carpeta de Drive, dentro de la subcarpeta de cada grupo, y pulse «Sincronizar».</div>
+    <div class="aviso">Suba los <b>MP3</b> (máximo 8 MB) o los <b>videos</b> (MP4, MOV o WEBM, de cualquier tamaño) a la carpeta de Drive, dentro de la subcarpeta de cada grupo, y pulse «Sincronizar». Los videos se comparten con «cualquier persona con el enlace»; el enlace solo se entrega a quien confirmó su participación.</div>
     <div class="botones" id="cal-admin-btns">
       <button class="btn-secondary btn-small" id="cal-preparar" type="button">📁 Crear / abrir carpeta</button>
       <button class="btn-primary btn-small" id="cal-sincronizar" type="button">🔄 Sincronizar calentamientos</button>
     </div>
     <div class="aviso" id="cal-aviso"></div>
+    <div class="grupo" id="cal-enlace-bloque">
+      <label for="cal-en-titulo"><b>Agregar un video por enlace</b></label>
+      <input type="text" id="cal-en-titulo" maxlength="80" placeholder="Título del ejercicio">
+      <select id="cal-en-grupo"><option>Mujeres agudas</option><option>Mujeres graves</option><option>Hombres agudos</option><option>Hombres graves</option><option>Todos</option></select>
+      <input type="url" id="cal-en-url" maxlength="300" placeholder="Enlace de YouTube (video «no listado») o de Drive">
+      <button class="btn-secondary btn-small" id="cal-en-add" type="button">➕ Agregar video</button>
+      <div class="aviso">Solo se admiten enlaces de YouTube o de Google Drive. Un video «no listado» no aparece en búsquedas, pero quien tenga el enlace puede verlo.</div>
+    </div>
     <div id="cal-lista"></div>
   </div>
 
@@ -666,7 +675,7 @@
 <script>
   try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) { /* sin visor de PDF, pero la app sigue funcionando */ }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzdMP-T6_ufEDeN0zeUlZUFTM0MDqTr29IOnYqMhCbaVpYG2f0DLBeEW8KhFuADqu8G-w/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwVXjSAwOHs-jxeNLLcrqnxtThGyzNVF40voxFhhV6-Q5jrWEVvfiGwkezEVb0DLHACmQ/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v4.0.0';
   let ID_TOKEN = null;
@@ -770,7 +779,7 @@
     ENVIO_FALLIDO: 'El servicio de correo rechazó el envío.',
     CUENTA_NO_CONECTADA: 'Aún no hay una cuenta conectada.', FALTA_SECRETO_OAUTH: 'Falta guardar OAUTH_CLIENT_SECRET en las propiedades del script.',
     MODO_INVALIDO: 'Modo de remitente no válido.', SIN_PERMISO: 'No tiene permiso para esta acción.' });
-  Object.assign(ERRORES, { SESION_NO_ENCONTRADA: 'No se encontró esa sesión.', SESION_FUTURA: 'Todavía no se puede marcar: la asistencia se abre el día de la sesión.', SESION_CANCELADA: 'Esa sesión está cancelada.',
+  Object.assign(ERRORES, { VIDEO_NO_DISPONIBLE: 'El video no está disponible.', TITULO_INVALIDO: 'Escriba un título de al menos 3 letras.', GRUPO_INVALIDO: 'Elija un grupo de la lista.', ENLACE_NO_ADMITIDO: 'Solo se admiten enlaces de YouTube o de Google Drive.', ENLACE_REPETIDO: 'Ese enlace ya está en la lista.', SESION_NO_ENCONTRADA: 'No se encontró esa sesión.', SESION_FUTURA: 'Todavía no se puede marcar: la asistencia se abre el día de la sesión.', SESION_CANCELADA: 'Esa sesión está cancelada.',
     HORA_INVALIDA: 'La hora no es válida (use el formato 19:00).', ENSAYO_REPETIDO: 'Ya hay un ensayo en esa fecha y hora.', DEMASIADOS_ENSAYOS: 'Se alcanzó el máximo de ensayos por evento.',
     SIN_MARCAS: 'No hay marcas para guardar.', DEMASIADAS_MARCAS: 'Demasiadas marcas en un solo envío.', FUERA_DE_LISTA: 'Esa persona no estaba convocada a esta sesión.', MARCA_REPETIDA: 'Una persona aparece dos veces.',
     SEGUNDOS_INVALIDOS: 'Tiempo de estudio no válido.', CARPETA_CALENTAMIENTOS_NO_PREPARADA: 'Primero cree la carpeta de calentamientos.', CALENTAMIENTO_NO_APLICA: 'El calentamiento vocal no aplica a su función.',
@@ -837,6 +846,8 @@
       $(v).classList.toggle('oculto', v !== id));
     estadoGuardar({ vista: id });
     marcarTab(id);
+    if (id !== 'vista-repertorio' && $('cal-video')) { $('cal-video').src = 'about:blank'; $('cal-video').dataset.emb = ''; }     // un video no sigue sonando fuera de su pantalla
+    if (typeof ajustarHero === 'function') ajustarHero();
     irAVista(id, estabaOculta);
   }
   // Lleva la pantalla al submenú abierto: si queda por debajo del menú principal, el usuario no se entera de que se abrió
@@ -1260,14 +1271,15 @@
       pintarParticipacion();
     } catch (e) { part = null; }
   }
+  const marcaCondicion = (p) => (p.worship === 'W1' || p.worship === 'W2') ? (p.condicion === 'Reemplazo' ? '<span class="ins reemplazo">Reemplazo' + (p.fueraAlcance ? ' · otro Worship' : '') + '</span>' : '<span class="ins ok">Titular</span>') : '';   // solo las voces de W1 y W2 llevan marca
   function filaPersona(p) {
     return '<div class="fila"><span class="nombre">' + esc(p.nombre) + '<span class="meta">' + esc(p.funcion) + ' · ' + esc(p.worship || 'sin Worship') + '</span></span>' +
-      '<span>' + (p.condicion === 'Reemplazo' ? '<span class="ins reemplazo">Reemplazo' + (p.fueraAlcance ? ' · otro Worship' : '') + '</span>' : '<span class="ins ok">Titular</span>') +
+      '<span>' + marcaCondicion(p) +
       (programa() && p.idReemplazo ? ' <button class="btn-secondary btn-small" data-rem-retirar="' + esc(p.idReemplazo) + '" type="button">Retirar</button>' : '') + '</span></div>';
   }
   function pintarParticipacion() {
     const p = part; if (!p) { $('panel-participacion').innerHTML = ''; return; }
-    let h = '<div class="grupo"><label>Participación en este evento</label>' +
+    let h = '<div class="grupo"><label>Voces del ensamble</label>' +
       '<div class="aviso">Alcance: <b>' + esc(p.evento.alcance) + '</b>. Abrir el repertorio o una partitura <b>no</b> confirma su asistencia: debe pulsar «Confirmar».</div>';
     if (p.puedoConfirmar) {
       h += '<div class="fila"><span class="nombre">Mi participación: <b>' + esc(p.miEstado) + '</b></span>' +
@@ -1280,7 +1292,7 @@
     h += '<div class="set-titulo">Instrumentistas (' + p.instrumentistas.length + ')</div>' + (p.instrumentistas.map(filaPersona).join('') || '<div class="aviso">Nadie ha confirmado todavía.</div>');
     if (p.otros.length) h += '<div class="set-titulo">Dirección y otros</div>' + p.otros.map(filaPersona).join('');
     if (p.requeridas.length) {
-      h += '<div class="set-titulo">Funciones requeridas</div><div class="tabla-scroll"><table class="tabla-mini"><tr><th>Función</th><th class="num">Requeridas</th><th class="num">Cubiertas</th><th>Estado</th></tr>' +
+      h += '<div class="set-titulo">Voces requeridas del ensamble</div><div class="tabla-scroll"><table class="tabla-mini"><tr><th>Voz</th><th class="num">Requeridas</th><th class="num">Cubiertas</th><th>Estado</th></tr>' +
         p.requeridas.map(r => '<tr><td>' + esc(r.funcion) + '</td><td class="num">' + r.requeridas + '</td><td class="num">' + r.cubiertas + '</td><td>' +
           (r.pendientes ? '<span class="ins alerta">Faltan ' + r.pendientes + '</span>' : '<span class="ins ok">Cubierta</span>') + '</td></tr>').join('') + '</table></div>';
     }
@@ -1924,7 +1936,7 @@
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   }
   function ocultarVistas() { VISTAS.forEach(v => $(v).classList.add('oculto')); }
-  function irInicio() { ocultarVistas(); marcarTab(''); estadoGuardar({ vista: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); cargarInicio(); }
+  function irInicio() { ocultarVistas(); setTimeout(ajustarHero, 0); marcarTab(''); estadoGuardar({ vista: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); cargarInicio(); }
   document.querySelectorAll('#tabbar .tab').forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.tab;
     if (t === 'inicio') irInicio();
@@ -1952,6 +1964,11 @@
     $('ini-avatar').textContent = ((partes[0] || '?').charAt(0) + (partes[1] || '').charAt(0)).toUpperCase();
     ajustarBloques(); cargarInicio(); estudioEnviarPendiente();
   }
+  function ajustarHero() {      // si ese mismo evento ya está abierto, el botón sobra
+    if (!iniEvento) return;
+    const abierto = typeof vistaEv !== 'undefined' && vistaEv && vistaEv.idEvento === iniEvento.idEvento && !$('vista-repertorio').classList.contains('oculto');
+    $('ini-ver').classList.toggle('oculto', abierto);
+  }
   async function cargarInicio() {
     try {
       const [re, rs] = await Promise.all([api('listar_eventos'), api('mis_estadisticas', {})]);
@@ -1964,7 +1981,7 @@
       iniEvento = prox || null;
       $('ini-confirmar').classList.add('oculto'); $('ini-ver').classList.add('oculto');
       if (!prox) { $('ini-ev-nombre').textContent = 'Sin eventos próximos'; $('ini-ev-detalle').textContent = 'Cuando se programe uno, aparecerá aquí.'; return; }
-      $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto');
+      $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto'); ajustarHero();
       let det = fmtFechaHora(prox.fecha) + (prox.alcance && prox.alcance !== 'Todos' ? ' · ' + prox.alcance : '');
       const p = await api('participacion_evento', { idEvento: prox.idEvento });
       if (p && p.ok && (p.puedoConfirmar || p.miEstado === 'Confirmado')) {
@@ -2045,7 +2062,7 @@
   $('st-sig').onclick = () => { if (stMes && stMes < stHoy) conOcupado(() => cargarStats(mesMas(stMes, 1))); };
 
   /* ---- Calentamiento vocal (cantantes) ---- */
-  const calBlobs = {};
+  const calBlobs = {}, calEmbeds = {};
   let calEstado = null;      // { idEvento, r, grupo, id }
   async function cargarCalentEvento(idEvento) {
     $('rep-calent').innerHTML = ''; $('rep-calent-admin').innerHTML = ''; calEstado = null;
@@ -2061,6 +2078,7 @@
         '<div class="calent-player"><div class="info"><b id="cal-titulo">—</b><span id="cal-grupo"></span></div>' +
         '<button class="btn-accent" id="cal-play" type="button">▶ Reproducir</button></div>' +
         '<audio id="cal-audio" controls controlsList="nodownload"></audio>' +
+        '<iframe id="cal-video" class="cal-video oculto" title="Video de calentamiento" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>' +
         '<div class="botones" style="margin-top:8px;"><button class="btn-secondary btn-small" id="cal-otro" type="button">🔀 Otro ejercicio</button></div>' +
         '<div class="aviso" id="cal-msg"></div><div class="calent-lista" id="cal-lista-ej"></div></div>';
       const a = $('cal-audio');
@@ -2076,16 +2094,31 @@
     const r = calEstado.r, grupos = Array.from(new Set(r.ejercicios.map(x => x.grupo)));
     $('cal-sub').textContent = (r.ambito.grupoPropio ? 'Tu grupo: ' + r.ambito.grupoPropio + '. ' : '') + (r.origen === 'asignado' ? 'Elegido por quien programa el evento.' : 'Selección rotativa automática.');
     $('cal-seg').innerHTML = grupos.length > 1 ? grupos.map(g => '<button type="button" data-cal-grupo="' + esc(g) + '" class="' + (g === calEstado.grupo ? 'on' : '') + '">' + esc(g) + '</button>').join('') : '';
-    $('cal-lista-ej').innerHTML = ejerciciosGrupo().map(x => '<button type="button" data-cal-ej="' + esc(x.idCalentamiento) + '" class="' + (x.idCalentamiento === calEstado.id ? 'on' : '') + '">' + esc(x.titulo) + (x.enfoque ? ' · ' + esc(x.enfoque) : '') + '</button>').join('');
+    $('cal-lista-ej').innerHTML = ejerciciosGrupo().map(x => '<button type="button" data-cal-ej="' + esc(x.idCalentamiento) + '" class="' + (x.idCalentamiento === calEstado.id ? 'on' : '') + '">' + (x.tipo === 'Video' ? '🎬 ' : '🎧 ') + esc(x.titulo) + (x.enfoque ? ' · ' + esc(x.enfoque) : '') + '</button>').join('');
   }
   function elegirCalent(id) {
     const ex = calEstado && calEstado.r.ejercicios.find(x => x.idCalentamiento === id); if (!ex) return;
-    calEstado.id = id; $('cal-titulo').textContent = ex.titulo; $('cal-grupo').textContent = ex.grupo + (ex.enfoque ? ' · ' + ex.enfoque : ''); pintarCalent();
+    calEstado.id = id; $('cal-titulo').textContent = ex.titulo; $('cal-grupo').textContent = (ex.tipo === 'Video' ? 'Video · ' : 'Audio · ') + ex.grupo + (ex.enfoque ? ' · ' + ex.enfoque : ''); pintarCalent();
   }
   async function reproducirCalent() {
     if (!calEstado || !calEstado.id) return;
     const id = calEstado.id; let url = calBlobs[id];
+    const ex = calEstado.r.ejercicios.find(x => x.idCalentamiento === id);
     $('cal-msg').textContent = '';
+    if (ex && ex.tipo === 'Video') {          // video: se reproduce incrustado; la dirección solo se entrega a quien tiene derecho
+      try { $('cal-audio').pause(); $('audio').pause(); } catch (e) {}
+      let emb = calEmbeds[id];
+      if (!emb) {
+        $('cal-msg').textContent = 'Cargando video…';
+        const r = await api('calentamiento_audio', { idCalentamiento: id });
+        if (!r || !r.ok) { $('cal-msg').textContent = '✖ ' + textoError(r && r.error); return; }
+        emb = calEmbeds[id] = r.embed; $('cal-msg').textContent = '';
+      }
+      $('cal-audio').classList.add('oculto'); $('cal-video').classList.remove('oculto');
+      if ($('cal-video').dataset.emb !== emb) { $('cal-video').dataset.emb = emb; $('cal-video').src = emb; }
+      return;
+    }
+    $('cal-video').classList.add('oculto'); $('cal-video').src = 'about:blank'; $('cal-video').dataset.emb = ''; $('cal-audio').classList.remove('oculto');
     if (!url) {
       $('cal-msg').textContent = 'Cargando audio…';
       const r = await api('calentamiento_audio', { idCalentamiento: id });
@@ -2109,7 +2142,7 @@
     const marcados = {}; (calEstado.r.origen === 'asignado' ? (calEstado.r.asignados || []) : calEstado.r.ejercicios.map(x => x.idCalentamiento)).forEach(id => { marcados[id] = true; });
     cont.innerHTML = '<details class="calent"><summary><b>🎙 Calentamiento de este evento (asignar)</b></summary>' +
       '<div class="aviso">Ahora: <b>' + (calEstado.r.origen === 'asignado' ? 'asignación manual' : 'rotación automática') + '</b>. Cada cantante verá solo los ejercicios de su grupo.</div>' +
-      (calTodos.length ? l.grupos.map(g => { const ex = calTodos.filter(x => x.grupo === g); return ex.length ? '<div class="set-titulo">' + esc(g) + '</div>' + ex.map(x => '<label class="cal-chk"><input type="checkbox" data-cal-chk="' + esc(x.idCalentamiento) + '"' + (marcados[x.idCalentamiento] ? ' checked' : '') + '> ' + esc(x.titulo) + '</label>').join('') : ''; }).join('')
+      (calTodos.length ? l.grupos.map(g => { const ex = calTodos.filter(x => x.grupo === g); return ex.length ? '<div class="set-titulo">' + esc(g) + '</div>' + ex.map(x => '<label class="cal-chk"><input type="checkbox" data-cal-chk="' + esc(x.idCalentamiento) + '"' + (marcados[x.idCalentamiento] ? ' checked' : '') + '> ' + (x.tipo === 'Video' ? '🎬 ' : '🎧 ') + esc(x.titulo) + '</label>').join('') : ''; }).join('')
         : '<div class="aviso">No hay ejercicios activos. Cárguelos en «Calentamientos vocales».</div>') +
       '<div class="botones" style="flex-wrap:wrap;"><button class="btn-secondary btn-small" id="cal-rotar" type="button">🎲 Proponer rotación</button>' +
       '<button class="btn-primary btn-small" id="cal-guardar" type="button">Guardar asignación</button>' +
@@ -2125,14 +2158,18 @@
   async function cargarGestionCalent() {
     const l = await api('calentamientos_listar');
     if (!l || !l.ok) { log('No se pudo cargar los calentamientos: ' + textoError(l && l.error)); return; }
-    $('cal-admin-btns').classList.toggle('oculto', !permisos.reordenar);
+    $('cal-admin-btns').classList.toggle('oculto', !permisos.reordenar); $('cal-enlace-bloque').classList.toggle('oculto', !permisos.reordenar);
     $('cal-aviso').innerHTML = l.carpeta && l.carpeta.lista ? 'Carpeta lista' + (l.carpeta.url ? ': <a href="' + esc(l.carpeta.url) + '" target="_blank" rel="noopener" style="color:var(--a);">abrir en Drive</a>' : '') + '.' : 'La carpeta aún no está creada' + (permisos.reordenar ? ': pulse «Crear / abrir carpeta».' : '; pida a un administrador que la cree.');
     $('cal-lista').innerHTML = l.grupos.map(g => { const ex = l.ejercicios.filter(x => x.grupo === g);
-      return '<div class="set-titulo">' + esc(g) + ' (' + ex.filter(x => x.estado === 'Activo').length + ')</div>' + (ex.map(x => '<div class="fila"><span class="nombre">' + esc(x.titulo) + '<span class="meta">' + esc(x.estado) + ' · usado en ' + x.usos + ' evento(s)</span></span>' +
+      return '<div class="set-titulo">' + esc(g) + ' (' + ex.filter(x => x.estado === 'Activo').length + ')</div>' + (ex.map(x => '<div class="fila"><span class="nombre">' + (x.tipo === 'Video' ? '🎬 ' : '🎧 ') + esc(x.titulo) + '<span class="meta">' + esc(x.estado) + ' · usado en ' + x.usos + ' evento(s)</span></span>' +
         (x.estado === 'Ausente' ? '' : '<button class="btn-secondary btn-small" data-cal-estado="' + esc(x.idCalentamiento) + '" data-a="' + (x.estado === 'Activo' ? '1' : '0') + '" type="button">' + (x.estado === 'Activo' ? 'Archivar' : 'Reactivar') + '</button>') + '</div>').join('') || '<div class="aviso">Sin ejercicios.</div>'); }).join('');
     mostrarVista('vista-calent');
   }
   $('btn-calent').onclick = () => conOcupado(cargarGestionCalent);
+  $('cal-en-add').onclick = () => conOcupado(async () => {
+    const r = await api('calentamiento_enlace', { titulo: $('cal-en-titulo').value, grupo: $('cal-en-grupo').value, enlace: $('cal-en-url').value });
+    if (r && r.ok) { $('cal-en-titulo').value = ''; $('cal-en-url').value = ''; await cargarGestionCalent(); $('cal-aviso').textContent = '✔ ' + r.mensaje; } else $('cal-aviso').textContent = '✖ ' + textoError(r && r.error);
+  });
   $('cal-preparar').onclick = () => conOcupado(async () => { const r = await api('calentamientos_preparar'); $('cal-aviso').textContent = r && r.ok ? r.mensaje : '✖ ' + textoError(r && r.error); if (r && r.ok) await cargarGestionCalent(); });
   $('cal-sincronizar').onclick = () => conOcupado(async () => { const r = await api('calentamientos_sincronizar'); const m = r && r.ok ? '✔ ' + r.mensaje : '✖ ' + textoError(r && r.error); await cargarGestionCalent(); $('cal-aviso').textContent = m; });
 
@@ -2162,7 +2199,7 @@
   }
   function pintarAsistencia() {
     if (!asCtx) return;
-    $('as-lista').innerHTML = asCtx.personas.map((p, i) => '<div class="as-fila"><b>' + esc(p.nombre) + '</b><span class="meta" style="font-size:12px;color:var(--mu);"> ' + esc(p.funcion) + ' · ' + esc(p.condicion) + '</span>' +
+    $('as-lista').innerHTML = asCtx.personas.map((p, i) => '<div class="as-fila"><b>' + esc(p.nombre) + '</b><span class="meta" style="font-size:12px;color:var(--mu);"> ' + esc(p.funcion) + (p.worship === 'W1' || p.worship === 'W2' ? ' · ' + esc(p.condicion) : '') + '</span>' +
       '<div class="seg ' + (asCtx.puede ? '' : 'dis') + '">' + [['Asistió', 'a'], ['Faltó', 'f'], ['Excusado', 'e']].map(x => '<button type="button" data-as-i="' + i + '" data-as-e="' + x[0] + '" class="' + (p.estado === x[0] ? 'on ' + x[1] : '') + '">' + x[0] + '</button>').join('') + '</div></div>').join('') || '<div class="aviso">Nadie estaba convocado: confirme participantes primero.</div>';
     const c = e => asCtx.personas.filter(p => p.estado === e).length;
     $('as-resumen').textContent = 'Asistió ' + c('Asistió') + ' · Faltó ' + c('Faltó') + ' · Excusado ' + c('Excusado') + ' · Sin marcar ' + asCtx.personas.filter(p => !p.estado).length;
