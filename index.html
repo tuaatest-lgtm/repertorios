@@ -230,6 +230,7 @@
       <div class="menu-tit">Programación</div>
       <div class="menu-grid" id="grid-prog">
         <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">➕ Programar Eventos</button>
+        <button class="btn-secondary oculto" id="btn-nuevo-ensayo" data-rol="programa">➕ Programar Ensayos</button>
         <button class="btn-secondary oculto" id="btn-ensambles" data-rol="montaje">🎼 Ensambles (esquemas de montaje)</button>
         <button class="btn-secondary oculto" id="btn-calent" data-rol="programa">🎙 Gestionar calentamientos (cargar y archivar)</button>
         <button class="btn-secondary oculto" id="btn-asistencia" data-rol="programa">✅ Informe de asistencia</button>
@@ -356,7 +357,8 @@
 
   <!-- Eventos -->
   <div class="card oculto" id="vista-eventos">
-    <h3>Eventos Programados y Repertorio</h3>
+    <h3 id="titulo-eventos">Eventos Programados y Repertorio</h3>
+    <div class="seg" id="ev-seg"><button type="button" data-ev-clase="Evento" class="on">📅 Eventos</button><button type="button" data-ev-clase="Ensayo">🎼 Ensayos</button></div>
     <div id="lista-eventos"></div>
   </div>
 
@@ -381,6 +383,10 @@
     <input type="text" id="in-nombre" maxlength="120" placeholder="Ej: Culto dominical">
     <label for="in-fecha"><b>Fecha</b></label>
     <input type="date" id="in-fecha">
+    <div id="bloque-ens-hora" class="oculto">
+      <div class="botones" style="flex-wrap:wrap;align-items:flex-end;"><div><label for="in-hora" style="font-size:12px;"><b>Inicia</b></label><input type="time" id="in-hora"></div><div><label for="in-hora-fin" style="font-size:12px;"><b>Termina</b></label><input type="time" id="in-hora-fin"></div><div style="flex:1;min-width:150px;"><label for="in-lugar" style="font-size:12px;"><b>Lugar</b></label><input type="text" id="in-lugar" maxlength="80" placeholder="Opcional"></div></div>
+      <div class="aviso">Las personas convocadas confirman su asistencia y la registran desde 1 hora antes de que empiece hasta 30 minutos después de que termine. Los cantos que agregue serán el repertorio de estudio de este ensayo.</div>
+    </div>
     <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
     <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
     <label for="in-ensamble"><b>Ensamble (esquema de montaje)</b></label>
@@ -722,9 +728,9 @@
 <script>
   try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) { /* sin visor de PDF, pero la app sigue funcionando */ }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbz_MX3KbkGAKPK-ZJjtPWj4orbv5TohkJmLTYUCfoKhdo6ZmFmQfVuHOLaLki9Rt1K-yQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyWAfTZcfVGwnhtSOQz7xJgBVEVbTZnsklUbnccu6OGIW95nzl7wp_oUwRg11heJdsJxw/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.1.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v4.2.0';
   let ID_TOKEN = null;
   /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -1035,19 +1041,26 @@
   $('buscar-biblioteca').oninput = pintarBiblioteca;
 
   /* ---------------- Eventos ---------------- */
-  $('btn-eventos').onclick = () => conOcupado(cargarEventos);
+  let claseVista = 'Evento', claseForm = 'Evento';
+  const esEnsVista = () => !!(vistaEv && vistaEv.r && vistaEv.r.evento && vistaEv.r.evento.clase === 'Ensayo');
+  $('btn-eventos').onclick = () => conOcupado(() => cargarEventos('Evento'));
+  $('ev-seg').addEventListener('click', e => { const b = e.target.closest('button[data-ev-clase]'); if (b) conOcupado(() => cargarEventos(b.dataset.evClase)); });
 
-  async function cargarEventos() {
-    log('Consultando eventos…');
+  async function cargarEventos(clase) {
+    if (clase === 'Evento' || clase === 'Ensayo') claseVista = clase;
+    const ens = claseVista === 'Ensayo';
+    log(ens ? 'Consultando ensayos…' : 'Consultando eventos…');
     cerrarPanel();
-    const r = await api('listar_eventos');
+    $('titulo-eventos').textContent = ens ? 'Ensayos Programados y Repertorio de estudio' : 'Eventos Programados y Repertorio';
+    document.querySelectorAll('#ev-seg button').forEach(b => b.classList.toggle('on', b.dataset.evClase === claseVista));
+    const r = await api('listar_eventos', { clase: claseVista });
     if (!r || !r.ok) { log('No se pudieron cargar los eventos: ' + textoError(r && r.error)); return; }
     $('lista-eventos').innerHTML = r.eventos.length
       ? r.eventos.map(e => '<div class="fila"><span class="nombre"><b>' + esc(e.nombre) + '</b>' +
-          '<span class="meta">' + esc(e.fecha) + (e.alcance && e.alcance !== 'Todos' ? ' · ' + esc(e.alcance) : '') + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
-          '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">Ver repertorio</button>' +
+          '<span class="meta">' + esc(ens ? fmtFechaHora(e.fecha, (e.hora || '') + (e.horaFin ? '–' + e.horaFin : '')) + (e.lugar ? ' · ' + e.lugar : '') : e.fecha) + (e.alcance && e.alcance !== 'Todos' ? ' · ' + esc(e.alcance) : '') + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
+          '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">' + (ens ? 'Ver ensayo' : 'Ver repertorio') + '</button>' +
           (permisos.reordenar && e.fecha < hoyLocal() ? '<button class="btn-danger btn-small" data-eliminar="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '" data-fecha="' + esc(e.fecha) + '" type="button" aria-label="Eliminar evento cumplido">🗑 Eliminar</button>' : '') + '</div>').join('')
-      : '<p class="aviso">No hay eventos programados.</p>';
+      : '<p class="aviso">' + (ens ? 'No hay ensayos programados.' : 'No hay eventos programados.') + '</p>';
     mostrarVista('vista-eventos');
   }
 
@@ -1058,7 +1071,8 @@
     if (!r || !r.ok) { log('No se pudo cargar el repertorio: ' + textoError(r && r.error)); return; }
     $('titulo-evento').textContent = nombre;
     const ev = r.evento; vistaEv = { idEvento: idEvento, nombre: nombre, r: r };
-    $('mensaje-evento').textContent = ev ? ((ev.fecha || '') + (ev.alcance ? ' · ' + ev.alcance : '') + (ev.mensaje ? ' · ' + ev.mensaje : '')) : '';
+    const esEns = !!(ev && ev.clase === 'Ensayo');
+    $('mensaje-evento').textContent = ev ? ((esEns ? '🎼 Ensayo · ' + fmtFechaHora(ev.fecha, (ev.hora || '') + (ev.horaFin ? '–' + ev.horaFin : '')) + (ev.lugar ? ' · ' + ev.lugar : '') : (ev.fecha || '')) + (ev.alcance ? ' · ' + ev.alcance : '') + (ev.mensaje ? ' · ' + ev.mensaje : '')) : '';
     let html = '';
     const sets = (r.sets || []).filter(s => s.canciones.length);
     sets.forEach(s => {
@@ -1069,13 +1083,13 @@
           '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '">▶ Ensayar</button></div>';
       });
     });
-    $('lista-repertorio').innerHTML = html || '<p class="aviso">Este evento no tiene canciones con recursos disponibles.</p>';
+    $('lista-repertorio').innerHTML = html || '<p class="aviso">Este ' + (esEns ? 'ensayo' : 'evento') + ' no tiene canciones con recursos disponibles.</p>';
     if (programa() && r.ocultas > 0) {
       $('lista-repertorio').innerHTML += '<p class="aviso">⚠ ' + r.ocultas + ' canción(es) del evento no tienen recursos y no se muestran.</p>';
     }
     $('acciones-evento').innerHTML = programa()
-      ? '<button class="btn-accent" id="btn-compartir" style="margin-bottom:8px;">📤 Compartir programa (imagen)</button>' + (permisos.reordenar ? '<button class="btn-primary" id="btn-informe" style="margin-bottom:8px;">📄 Informe oficial (PDF / correo)</button>' : '') + '<div class="botones">' + (permisos.reordenar && sets.length ? '<button class="btn-primary btn-small" id="btn-reordenar">↕ Cambiar el orden de los cantos</button>' : '') + '<button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
-        '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar evento</button>' +
+      ? (esEns ? '' : '<button class="btn-accent" id="btn-compartir" style="margin-bottom:8px;">📤 Compartir programa (imagen)</button>' + (permisos.reordenar ? '<button class="btn-primary" id="btn-informe" style="margin-bottom:8px;">📄 Informe oficial (PDF / correo)</button>' : '')) + '<div class="botones">' + (permisos.reordenar && sets.length ? '<button class="btn-primary btn-small" id="btn-reordenar">↕ Cambiar el orden de los cantos</button>' : '') + '<button class="btn-accent btn-small" data-editar="' + esc(idEvento) + '">✏️ Editar orden y sets</button>' +
+        '<button class="btn-danger btn-small" data-archivar="' + esc(idEvento) + '">🗂 Archivar ' + (esEns ? 'ensayo' : 'evento') + '</button>' +
         (permisos.reordenar && ev && ev.fecha < hoyLocal() ? '<button class="btn-danger btn-small" data-eliminar="' + esc(idEvento) + '" data-nombre="' + esc(nombre) + '" data-fecha="' + esc(ev.fecha) + '" type="button">🗑 Eliminar (conserva historial)</button>' : '') + '</div>' : '';
     estadoGuardar({ evento: { id: idEvento, nombre: nombre } });
     $('panel-participacion').innerHTML = '';
@@ -1085,7 +1099,7 @@
   }
 
   async function archivarEvento(id) {
-    if (!confirm('¿Archivar este evento? Dejará de mostrarse en la lista (los datos se conservan).')) return;
+    if (!confirm('¿Archivar? Dejará de mostrarse en la lista (los datos se conservan).')) return;
     const r = await api('borrar_evento', { idEvento: id });
     if (r && r.ok) { log(r.mensaje); await cargarEventos(); }
     else log('No se pudo archivar: ' + textoError(r && r.error));
@@ -1183,21 +1197,25 @@
     $('buscar-selector').value = '';
   }
   function configurarFormulario() {
-    $('titulo-formulario').textContent = eventoEditando ? 'Editar repertorio del evento' : 'Programar nuevo evento';
-    $('btn-guardar-evento').textContent = eventoEditando ? '💾 Guardar cambios' : '💾 Guardar evento';
+    const ens = claseForm === 'Ensayo';
+    $('titulo-formulario').textContent = eventoEditando ? (ens ? 'Editar el ensayo' : 'Editar repertorio del evento') : (ens ? 'Programar nuevo ensayo' : 'Programar nuevo evento');
+    $('btn-guardar-evento').textContent = eventoEditando ? '💾 Guardar cambios' : (ens ? '💾 Guardar ensayo' : '💾 Guardar evento');
+    $('bloque-ens-hora').classList.toggle('oculto', !ens);
     $('btn-cancelar-edicion').classList.toggle('oculto', !eventoEditando);
   }
 
-  $('btn-nuevo-evento').onclick = () => conOcupado(async () => {
-    cerrarPanel();
+  $('btn-nuevo-evento').onclick = () => conOcupado(() => abrirNuevo('Evento'));
+  $('btn-nuevo-ensayo').onclick = () => conOcupado(() => abrirNuevo('Ensayo'));
+  async function abrirNuevo(clase) {
+    cerrarPanel(); claseForm = clase;
     nuevoConstructor(); claveEvento = '';
-    $('in-nombre').value = ''; $('in-fecha').value = ''; $('in-mensaje').value = '';
+    $('in-nombre').value = ''; $('in-fecha').value = ''; $('in-mensaje').value = ''; $('in-hora').value = ''; $('in-hora-fin').value = ''; $('in-lugar').value = '';
     $('in-alcance').value = 'Todos'; $('in-publicidad').value = ''; $('in-espiritual').value = '';
     await cargarFuncionesKnown(); pintarFuncReq(); await poblarEnsambles('');
     configurarFormulario();
     mostrarVista('vista-formulario');
     if (await cargarCatalogo()) { pintarConstructor(); log('Agregue cantos a cada set, ordénelos automáticamente o con ▲ ▼.'); }
-  });
+  }
 
   async function editarEvento(idEvento) {
     log('Cargando el evento para editar…');
@@ -1213,6 +1231,7 @@
       notas: Object.fromEntries(s.canciones.filter(c => c.nota && infoCancion(c.idCancion)).map(c => [c.idCancion, c.nota])) })) : setsEv;
     setsEv.forEach(x => { x.metaSug = x.canciones.length || undefined; });
     eventoEditando = { idEvento: r.evento.idEvento, estado: r.evento.estado || '' };
+    claseForm = r.evento.clase === 'Ensayo' ? 'Ensayo' : 'Evento'; $('in-hora').value = r.evento.hora || ''; $('in-hora-fin').value = r.evento.horaFin || ''; $('in-lugar').value = r.evento.lugar || '';
     $('in-nombre').value = r.evento.nombre || ''; $('in-fecha').value = r.evento.fecha || ''; $('in-mensaje').value = r.evento.mensaje || '';
     $('in-alcance').value = r.evento.alcance || 'Todos'; $('in-publicidad').value = r.evento.publicidad || ''; $('in-espiritual').value = r.evento.infoEspiritual || '';
     await cargarFuncionesKnown(); await poblarEnsambles(r.evento.idEnsamble || '');
@@ -1252,7 +1271,7 @@
     if (faltan <= 0) { log('«' + s.nombre + '» ya tiene sus ' + s.canciones.length + ' canciones. Quite las que no le gusten y vuelva a pulsar para completarlo.'); return; }
     const excluir = Object.keys(sugeridas); setsEv.forEach(x => x.canciones.forEach(id => excluir.push(id)));     // todo lo de ESTE evento (otros sets incluidos) y lo ya propuesto
     const r = await api('sugerir_canciones', { funcion: $('sug-funcion').value, energia: Number($('sug-energia').value), cantidad: faltan, excluir: excluir,
-      idEvento: eventoEditando ? eventoEditando.idEvento : '', fecha: $('in-fecha').value });
+      idEvento: eventoEditando ? eventoEditando.idEvento : '', fecha: $('in-fecha').value, clase: claseForm });
     if (r && r.ok && r.sugerencias) {
       let n = 0;
       r.sugerencias.forEach(x => { sugeridas[x.idCancion] = true; if (!enSetActivo(x.idCancion) && s.canciones.length < MAX_CANC_UI) { s.canciones.push(x.idCancion); n++; } });
@@ -1266,7 +1285,9 @@
 
   $('btn-guardar-evento').onclick = () => conOcupado(async () => {
     const nombre = $('in-nombre').value.trim(), fecha = $('in-fecha').value;
-    if (!nombre || !fecha) { alert('Ingrese el nombre y la fecha del evento.'); return; }
+    const esE = claseForm === 'Ensayo';
+    if (!nombre || !fecha) { alert('Ingrese el nombre y la fecha ' + (esE ? 'del ensayo.' : 'del evento.')); return; }
+    if (esE && (!$('in-hora').value || !$('in-hora-fin').value || $('in-hora-fin').value <= $('in-hora').value)) { alert('Indique la hora de inicio y una hora de fin posterior.'); return; }
     const sets = setsEv.filter(s => s.canciones.length).map((s, i) => ({
       idSet: s.idSet, numeroSet: i + 1, nombreSet: (s.nombre || '').trim() || ('Set ' + (i + 1)), mensajeSet: s.mensaje || '', canciones: s.canciones.slice(), notas: notasDe(s) }));
     if (!sets.length && !confirm('No eligió canciones. ¿Guardar el evento vacío?')) return;
@@ -1274,6 +1295,7 @@
     if (sets.length && vacios > 0 && !confirm(vacios + ' set(s) sin cantos no se guardarán. ¿Continuar?')) return;
     const comun = { nombreEvento: nombre, fechaEvento: fecha, mensajeGeneral: $('in-mensaje').value.trim(), sets: sets,
       alcance: $('in-alcance').value, idEnsamble: $('in-ensamble').value, funcionesRequeridas: funcReq.filter(f => f.funcion), publicidad: $('in-publicidad').value.trim(), infoEspiritual: $('in-espiritual').value.trim() };
+    if (esE) Object.assign(comun, { clase: 'Ensayo', hora: $('in-hora').value, horaFin: $('in-hora-fin').value, lugar: $('in-lugar').value.trim() });
     let r;
     if (eventoEditando) {
       r = await api('actualizar_evento', Object.assign({ idEvento: eventoEditando.idEvento, estado: eventoEditando.estado || 'Programado' }, comun));
@@ -1284,7 +1306,7 @@
     if (r && r.ok) {
       claveEvento = ''; eventoEditando = null;
       log(eventoEditando === null && r.repetido ? 'El evento ya estaba guardado (reintento detectado): ' + r.idEvento : (r.mensaje || 'Evento guardado.') + ' ' + r.idEvento);
-      alert('Evento guardado.'); await cargarEventos();
+      alert(esE ? 'Ensayo guardado.' : 'Evento guardado.'); await cargarEventos(claseForm);
     } else { log('No se guardó el evento: ' + textoError(r && r.error)); alert('No se pudo guardar: ' + textoError(r && r.error)); }
   });
 
@@ -1371,7 +1393,7 @@
     }
     if (programa()) {
       if (p.pendientes && p.pendientes.length) h += '<details><summary>Habilitados sin confirmar (' + p.pendientes.length + ')</summary><div class="aviso">' + p.pendientes.map(x => esc(x.nombre) + ' (' + esc(x.funcion) + ')').join(' · ') + '</div></details>';
-      h += '<div class="set-titulo">Presentadores de los cantos</div>' +
+      if (!esEnsVista()) h += '<div class="set-titulo">Presentadores de los cantos</div>' +
         '<div class="botones" style="flex-wrap:wrap;"><button class="btn-primary btn-small" data-pres="vacios" type="button">🎲 Sortear los que faltan</button>' +
         '<button class="btn-secondary btn-small" data-pres="todos" type="button">🎲 Volver a sortear todos</button>' +
         '<button class="btn-secondary btn-small" data-pres="editar" type="button">✏️ Editar presentadores</button></div>' +
@@ -2279,14 +2301,14 @@
   async function cargarSesiones(idEvento) {
     const cont = $('panel-sesiones'); cont.innerHTML = ''; if (!programa()) return;
     const r = await api('sesiones_evento', { idEvento: idEvento }); if (!r || !r.ok) return;
-    cont.innerHTML = '<div class="grupo"><label>Ensayos y asistencia</label><div class="aviso">Marque quién asistió al evento y a cada ensayo. Solo se puede marcar desde el día de la sesión.</div>' +
-      r.sesiones.map(s => '<div class="fila"><span class="nombre"><b>' + (s.idSesion === 'EVENTO' ? 'Evento' : 'Ensayo') + '</b> · ' + esc(fmtFechaHora(s.fecha, s.hora + (s.horaFin ? '–' + s.horaFin : ''))) +
+    cont.innerHTML = '<div class="grupo"><label>Ensayos y asistencia</label><div class="aviso">Marque quién asistió. Las personas también pueden registrarse solas dentro de la ventana de cada ensayo. Solo se puede marcar desde el día de la sesión.</div>' +
+      r.sesiones.map(s => '<div class="fila"><span class="nombre"><b>' + (s.tipo === 'Evento' ? 'Evento' : 'Ensayo') + '</b> · ' + esc(fmtFechaHora(s.fecha, s.hora + (s.horaFin ? '–' + s.horaFin : ''))) +
         '<span class="meta">' + (s.lugar ? esc(s.lugar) + ' · ' : '') + 'marcados ' + s.marcados + ' de ' + s.esperados + (s.estado !== 'Activa' ? ' · CANCELADO' : '') + (s.nota ? ' · ' + esc(s.nota) : '') + '</span></span><span>' +
         (s.estado === 'Activa' ? (s.puedeMarcar ? '<button class="btn-accent btn-small" data-asis-ev="' + esc(idEvento) + '" data-asis-ses="' + esc(s.idSesion) + '" type="button">Tomar asistencia</button>' : '<span class="chip">Aún no</span>') : '') +
         (s.idSesion !== 'EVENTO' ? ' <button class="btn-secondary btn-small" data-ens-cancel="' + esc(s.idSesion) + '" data-a="' + (s.estado === 'Activa' ? '1' : '0') + '" type="button">' + (s.estado === 'Activa' ? 'Cancelar' : 'Reactivar') + '</button>' : '') + '</span></div>').join('') +
-      '<div class="set-titulo">Programar un ensayo</div><div class="botones" style="flex-wrap:wrap;align-items:flex-end;"><div><label for="ens-fecha" style="font-size:12px;">Fecha</label><input type="date" id="ens-fecha"></div>' +
+      (esEnsVista() ? '' : '<div class="set-titulo">Ensayo adicional dentro de este evento (opcional; para ensayos independientes use «Programar Ensayos»)</div><div class="botones" style="flex-wrap:wrap;align-items:flex-end;"><div><label for="ens-fecha" style="font-size:12px;">Fecha</label><input type="date" id="ens-fecha"></div>' +
       '<div><label for="ens-hora" style="font-size:12px;">Inicia</label><input type="time" id="ens-hora"></div><div><label for="ens-hora-fin" style="font-size:12px;">Termina</label><input type="time" id="ens-hora-fin"></div><div style="flex:1;min-width:150px;"><label for="ens-lugar" style="font-size:12px;">Lugar</label><input type="text" id="ens-lugar" maxlength="80" placeholder="Opcional"></div>' +
-      '<button class="btn-primary btn-small" id="ens-crear" type="button" data-ev="' + esc(idEvento) + '">➕ Agregar ensayo</button></div><div class="aviso">Los convocados podrán registrar su asistencia desde 1 hora antes de que empiece hasta 30 minutos después de que termine. Quien programa puede corregir lo registrado.</div><div class="aviso" id="ens-msg"></div></div>';
+      '<button class="btn-primary btn-small" id="ens-crear" type="button" data-ev="' + esc(idEvento) + '">➕ Agregar ensayo</button></div><div class="aviso">Los convocados podrán registrar su asistencia desde 1 hora antes de que empiece hasta 30 minutos después de que termine. Quien programa puede corregir lo registrado.</div><div class="aviso" id="ens-msg"></div>') + '</div>';
   }
   let asCtx = null;
   async function abrirAsistencia(idEvento, idSesion, origen) {
@@ -2294,7 +2316,7 @@
     if (!r || !r.ok) { log('No se pudo abrir la asistencia: ' + textoError(r && r.error)); return; }
     asCtx = { idEvento: idEvento, idSesion: idSesion, origen: origen || 'evento', nombre: r.evento.nombre, sesion: r.datosSesion, puede: r.puedeMarcar,
       personas: r.personas.map(p => Object.assign({ original: p.estado }, p)) };
-    $('as-titulo').textContent = (r.datosSesion.idSesion === 'EVENTO' ? 'Asistencia al evento' : 'Asistencia al ensayo');
+    $('as-titulo').textContent = (r.datosSesion.tipo === 'Evento' ? 'Asistencia al evento' : 'Asistencia al ensayo');
     $('as-sub').textContent = r.evento.nombre + ' · ' + fmtFechaHora(r.datosSesion.fecha, r.datosSesion.hora + (r.datosSesion.horaFin ? '–' + r.datosSesion.horaFin : '')) + (r.datosSesion.lugar ? ' · ' + r.datosSesion.lugar : '') + (r.puedeMarcar ? '' : ' · aún no se puede marcar');
     ['as-todos', 'as-limpiar', 'as-guardar'].forEach(i => $(i).classList.toggle('dis', !r.puedeMarcar));
     pintarAsistencia(); mostrarVista('vista-asistencia');
@@ -2358,6 +2380,16 @@
     else if (t.closest('#btn-calent-lib')) conOcupado(async () => { const r = await cargarCalentBiblioteca('lib-calent'); if (!r || !r.ok) log('No se pudieron cargar los calentamientos: ' + textoError(r && r.error)); mostrarVista('vista-calent-lib'); });
     else if (t.closest('#rp-enviar')) conOcupado(enviarReporte);
     else if ((b = t.closest('button[data-rp-guardar]'))) conOcupado(() => guardarReporteAdmin(b.dataset.rpGuardar));
+    else if ((b = t.closest('button[data-ens-conf]'))) conOcupado(async () => {
+      const r = await api('participacion_confirmar', { idEvento: b.dataset.ensConf });
+      if (r && r.ok) log('Asistencia confirmada.'); else { alert(textoError(r && (r.motivo || r.error))); }
+      await cargarInicio(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) { await cargarEnsayosMios(vistaEv.idEvento); await cargarParticipacion(vistaEv.idEvento); }
+    });
+    else if ((b = t.closest('button[data-ens-canc]'))) conOcupado(async () => {
+      const r = await api('participacion_cancelar', { idEvento: b.dataset.ensCanc });
+      if (r && r.ok) log('Confirmación cancelada.'); else alert(textoError(r && r.error));
+      await cargarInicio(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) { await cargarEnsayosMios(vistaEv.idEvento); await cargarParticipacion(vistaEv.idEvento); }
+    });
     else if ((b = t.closest('button[data-ens-checkin]'))) conOcupado(async () => {
       const r = await api('asistencia_confirmar', { idEvento: b.dataset.ev, idSesion: b.dataset.ensCheckin });
       if (r && r.ok) log(r.mensaje || 'Asistencia registrada.'); else { alert(textoError(r && r.error)); log('No se registró la asistencia: ' + textoError(r && r.error)); }
@@ -2381,18 +2413,22 @@
   function filaEnsayo(e, hoy, conEvento) {
     const cuando = fmtFechaHora(e.fecha, e.hora + (e.horaFin ? '–' + e.horaFin : ''));
     let acc;
+    const abre = e.abre ? (e.abre.slice(0, 10) === e.fecha ? e.abre.slice(11) : fmtFechaHora(e.abre.slice(0, 10), e.abre.slice(11))) : '';
+    const btnConf = '<button class="btn-accent btn-small" data-ens-conf="' + esc(e.idEvento) + '" type="button">✔ Confirmar mi asistencia</button>';
+    const btnCanc = ' <button class="btn-secondary btn-small" data-ens-canc="' + esc(e.idEvento) + '" type="button">Cancelar</button>';
     if (e.miEstado) acc = '<span class="chip ' + (e.miEstado === 'Asistió' ? 'ok' : e.miEstado === 'Faltó' ? 'no' : 'pend') + '">' + esc(e.miEstado) + '</span>';
-    else if (!e.convocado) acc = '<span class="meta" style="font-size:12px;color:var(--mu);">Confirma tu participación en el evento para registrar tu asistencia</span>';
+    else if (!e.convocado) acc = e.actividad && e.puedeConfirmar ? btnConf : '<span class="meta" style="font-size:12px;color:var(--mu);">' + (e.actividad ? 'No estás convocado a este ensayo' : 'Confirma tu participación en el evento para registrar tu asistencia') + '</span>';
     else if (e.ventana === 'abierta') acc = '<button class="btn-accent btn-small" data-ens-checkin="' + esc(e.idSesion) + '" data-ev="' + esc(e.idEvento) + '" type="button">📍 Registrar mi asistencia</button>';
-    else if (e.ventana === 'antes') acc = '<span class="chip">Abre ' + esc(e.abre.slice(0, 10) === e.fecha ? e.abre.slice(11) : fmtFechaHora(e.abre.slice(0, 10), e.abre.slice(11))) + '</span>';
+    else if (e.ventana === 'antes') acc = (e.actividad ? '<span class="chip ok">Confirmada</span> ' : '') + '<span class="chip">Registro abre ' + esc(abre) + '</span>' + (e.actividad ? btnCanc : '');
     else if (e.ventana === 'cerrada') acc = '<span class="chip pend">Registro cerrado</span>';
     else acc = '<span class="chip">Lo marca quien programa</span>';
-    return '<div class="fila"><span class="nombre">' + (conEvento ? esc(e.nombreEvento) + ' · ' : '') + 'Ensayo · ' + esc(cuando) + (e.lugar || e.nota ? '<span class="meta">' + esc([e.lugar, e.nota].filter(Boolean).join(' · ')) + '</span>' : '') + '</span><span>' + acc + '</span></div>';
+    const titulo = e.actividad ? '🎼 ' + esc(e.nombreEvento) : (conEvento ? esc(e.nombreEvento) + ' · ' : '') + 'Ensayo';
+    return '<div class="fila" style="display:block;"><span class="nombre" style="display:block;">' + titulo + ' · ' + esc(cuando) + (e.lugar || e.nota ? '<span class="meta">' + esc([e.lugar, e.nota].filter(Boolean).join(' · ')) + '</span>' : '') + '</span><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + acc + '</div></div>';
   }
   async function cargarEnsayosMios(idEvento) {
     const cont = $('panel-ensayos-mios'); cont.innerHTML = '';
     const r = await api('mis_ensayos', { idEvento: idEvento }); if (!r || !r.ok || !r.ensayos.length) return;
-    cont.innerHTML = '<div class="grupo"><label>Ensayos programados</label>' + r.ensayos.map(e => filaEnsayo(e, r.hoy, false)).join('') +
+    cont.innerHTML = '<div class="grupo"><label>' + (esEnsVista() ? 'Mi asistencia al ensayo' : 'Ensayos programados') + '</label>' + r.ensayos.map(e => filaEnsayo(e, r.hoy, false)).join('') +
       '<div class="aviso">Registra tu asistencia desde ' + (r.minAntes / 60) + ' hora antes de que empiece el ensayo hasta ' + r.minDespues + ' minutos después de que termine.</div></div>';
   }
   function pintarEnsayosInicio(r) {
