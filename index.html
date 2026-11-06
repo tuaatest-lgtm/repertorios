@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Palermo Music – Sistema de Repertorios</title>
   <style>
-  body[data-modulo="Coro"] #estado-sesion { border-left: 4px solid #B7791F; }
-  .chip-modulo { display:inline-block; padding:1px 9px; border-radius:10px; font-size:12px; font-weight:700; background:#12306e; color:#fff; }
-  body[data-modulo="Coro"] .chip-modulo { background:#B7791F; }
     /* ===== Palermo Music v4.0 · tema «Escenario Oscuro» (todas las apariencias salen de estas variables) ===== */
     :root { --bg:#0d0f1a; --s:#171a2b; --s2:#20243a; --s3:#2a2f4a; --tx:#f2f3fb; --mu:#9aa1c4; --bd:#2f3556;
             --p:#7c5cff; --onp:#fff; --a:#22d3ee; --ona:#04222a; --ok:#34d399; --warn:#fbbf24; --err:#fb7185; --r:14px; --r2:10px;
@@ -205,15 +202,7 @@
          data-callback="manejarCredencial" data-auto_select="false"></div>
     <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
     <div id="estado-sesion" class="aviso">Inicie sesión con su cuenta de Google.</div>
-    <button class="btn-secondary btn-small oculto" id="btn-modulo" style="margin-top:8px;">🔀 Cambiar de módulo</button>
     <button class="btn-secondary btn-small oculto" id="btn-salir" style="margin-top:8px;">Cerrar sesión</button>
-  </div>
-
-  <!-- Selector de módulos (solo si la persona pertenece a más de uno) -->
-  <div class="card oculto" id="vista-modulos" style="text-align:center;">
-    <h3>¿A qué módulo desea entrar?</h3>
-    <div class="aviso">Cada módulo tiene sus propios repertorios, materiales, eventos, ensayos y registros. Puede cambiar de módulo cuando quiera.</div>
-    <div id="mod-botones" class="botones" style="justify-content:center;"></div>
   </div>
 
   <div id="aviso-usuario" class="card oculto" style="color:var(--err);font-size:14px;"></div>
@@ -570,13 +559,6 @@
   <div class="card oculto" id="vista-gestion">
     <h3>Gestión de usuarios</h3>
     <div id="gu-resumen" class="aviso"></div>
-    <details class="gu-fila" id="gu-nuevo"><summary><b>➕ Agregar integrante a este módulo</b></summary><div class="gu-edit">
-      <label for="gu-n-correo">Correo de Google</label><input type="email" id="gu-n-correo" placeholder="nombre@gmail.com" autocomplete="off">
-      <label for="gu-n-nombre">Nombre (solo si es una persona nueva)</label><input type="text" id="gu-n-nombre" maxlength="80">
-      <label for="gu-n-parte">Función / categoría en este módulo</label><select id="gu-n-parte"></select>
-      <button class="btn-accent" id="btn-gu-agregar" type="button">Agregar a este módulo</button>
-      <div class="aviso">Si la persona ya tiene cuenta (por ejemplo en el otro módulo), se le añade este módulo <b>sin duplicar su cuenta</b> y sin cambiar nada de su otro módulo.</div>
-    </div></details>
     <div class="botones" style="margin:6px 0 10px;">
       <button class="btn-primary btn-small" id="btn-tablero" type="button">📊 Tablero del equipo</button>
       <button class="btn-primary btn-small" id="btn-actividad" type="button">📈 Actividad de uso</button>
@@ -775,11 +757,9 @@
 <script>
   try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) { /* sin visor de PDF, pero la app sigue funcionando */ }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwoju1FFc_FeCzbBONRgrQ5ntLvXwAaygpABX21_kNxrgH2Kv_XVLP8JIYNmDXSdtnW/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxgS8rdtr-YZwSRpK1xg5HL7aUrfk-rNFzo9hHuS3cwp7EsSFTfZ2Ql-KIJPcUqg4-I3w/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.4.0';
-  let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
-  const NOMBRE_MOD = { Worship: '🎸 Worship', Coro: '🎶 Coro' };
+  const VERSION_SERVIDOR_ESPERADA = 'v4.3.0';
   let ID_TOKEN = null;
   /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -825,12 +805,6 @@
   }
 
   const ERRORES = {
-    MODULO_NO_AUTORIZADO: 'Su cuenta no pertenece a este módulo o está inactiva en él.',
-    MODULO_INVALIDO: 'El módulo indicado no existe.',
-    WORSHIP_NO_APLICA_AL_CORO: 'La pertenencia a Worship no se usa en el Coro.',
-    SOLO_ADMIN_GENERAL_TOCA_ADMIN_GENERAL: 'Solo un administrador general puede modificar a otro administrador general.',
-    SIN_MODULOS: 'La persona quedaría sin ningún módulo. Use «Inactivo» en su lugar.',
-    CORREO_INVALIDO: 'El correo no es válido.',
     NO_AUTORIZADO: 'Su cuenta no está autorizada o está inactiva. Si cree que es un error, comuníquese con el administrador.',
     USUARIO_PENDIENTE: 'Su registro está PENDIENTE: un administrador debe activar su cuenta. Vuelva a entrar cuando se lo indiquen.',
     REGISTRO_RECIBIDO: 'Su solicitud quedó registrada como PENDIENTE. Avise al administrador para que active su cuenta y vuelva a entrar después.',
@@ -918,7 +892,7 @@
       const res = await fetch(API_URL, {
         method: 'POST', redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ accion: accion }, cred, MODULO ? { modulo: MODULO } : {}, extra || {}))
+        body: JSON.stringify(Object.assign({ accion: accion }, cred, extra || {}))
       });
       const txt = await res.text();
       let r;
@@ -988,56 +962,13 @@
   }
 
   /* ---------------- Sesión ---------------- */
-  /* ---------------- Módulos (Worship / Coro) ---------------- */
-  async function resolverModulo() {
-    if (!MODULO) {
-      let m = '';
-      try { const q = (new URLSearchParams(location.search).get('m') || '').toLowerCase(); if (q === 'coro') m = 'Coro'; if (q === 'worship') m = 'Worship'; } catch (e) {}
-      MODULO = m || lsGet('pm_modulo') || '';
-    }
-    let r = await api('quien');
-    if (r && !r.ok && r.error === 'MODULO_NO_AUTORIZADO' && MODULO) { MODULO = ''; lsDel('pm_modulo'); r = await api('quien'); }   // el módulo guardado ya no le corresponde
-    if (!(r && r.ok)) return r;
-    const disp = Array.isArray(r.modulos) && r.modulos.length ? r.modulos : [r.modulo || 'Worship'];
-    r.modulos = disp;
-    if (disp.length > 1 && disp.indexOf(MODULO) < 0) { mostrarSelectorModulos(r, disp); return { selector: true }; }
-    const elegido = disp.indexOf(MODULO) >= 0 ? MODULO : disp[0];
-    MODULO = elegido; lsSet('pm_modulo', elegido);
-    if (r.modulo !== elegido) { r = await api('quien'); if (r && r.ok) r.modulos = disp; }
-    return r;
-  }
-  function mostrarSelectorModulos(r, disp) {
-    $('menu').classList.add('oculto'); VISTAS.forEach(v => $(v).classList.add('oculto')); $('card-log').classList.add('oculto');
-    $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · elija el módulo.';
-    $('mod-botones').innerHTML = disp.map(m => '<button class="btn-primary" type="button" data-mod="' + esc(m) + '" style="min-width:140px;">' + esc(NOMBRE_MOD[m] || m) + '</button>').join('');
-    $('vista-modulos').classList.remove('oculto'); $('btn-salir').classList.remove('oculto'); $('btn-modulo').classList.add('oculto');
-  }
-  function cambiarModulo(m) {
-    lsSet('pm_modulo', m || ''); if (!m) lsDel('pm_modulo');
-    lsDel(ESTADO_CLAVE);                       // la pantalla guardada pertenecía al otro módulo
-    location.reload();                         // recarga limpia: ningún dato de un módulo queda en pantalla en el otro
-  }
-  $('mod-botones').addEventListener('click', ev => { const b = ev.target.closest('[data-mod]'); if (b) cambiarModulo(b.dataset.mod); });
-  $('btn-modulo').onclick = () => { lsDel('pm_modulo'); lsDel(ESTADO_CLAVE); location.href = location.pathname; };
-  function ajustarModuloUI(r) {
-    document.body.dataset.modulo = r.modulo || 'Worship';
-    if (r.modulo === 'Coro') {
-      $('in-alcance').innerHTML = '<option value="Todos">Todos (integrantes del Coro)</option>';
-      document.title = 'Palermo Coro';
-    }
-    $('btn-modulo').classList.toggle('oculto', !(r.modulos && r.modulos.length > 1));
-    $('vista-modulos').classList.add('oculto');
-  }
-
   async function quien() {
-    const r = await resolverModulo();
-    if (r && r.selector) return;
+    const r = await api('quien');
     if (r && r.ok) {
-      ajustarModuloUI(r);
       rol = r.rol;
       permisos = r.permisos || { programar: false, reordenar: false, sincronizar: false, usuarios: false };
       $('card-log').classList.toggle('oculto', !permisos.programar);   // usuarios sin cargo no ven el estado del sistema
-      $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · <span class="chip-modulo">' + esc(NOMBRE_MOD[r.modulo] || r.modulo || '') + '</span> · rol: <b>' + esc(r.rol) + '</b>' + (r.adminGeneral ? ' (administrador general)' : '');
+      $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · rol: <b>' + esc(r.rol) + '</b>';
       $('menu').classList.remove('oculto');
       document.querySelectorAll('[data-rol]').forEach(b => {
         const need = b.dataset.rol;
@@ -1098,7 +1029,7 @@
 
   $('btn-salir').onclick = () => {
     SESION = null; ID_TOKEN = null; lsDel('pm_sesion'); lsDel(ESTADO_CLAVE); est = {}; restaurado = false;   // las secuencias (seq_*) se conservan
-    cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto'); $('btn-modulo').classList.add('oculto'); $('vista-modulos').classList.add('oculto'); MODULO = ''; lsDel('pm_modulo');
+    cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto');
     VISTAS.forEach(v => $(v).classList.add('oculto'));
     try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     $('estado-sesion').textContent = 'Sesión cerrada. Inicie sesión con su cuenta de Google.';
@@ -1478,7 +1409,7 @@
   }
   const marcaCondicion = (p) => (p.worship === 'W1' || p.worship === 'W2') ? (p.condicion === 'Reemplazo' ? '<span class="ins reemplazo">Reemplazo' + (p.fueraAlcance ? ' · otro Worship' : '') + '</span>' : '<span class="ins ok">Titular</span>') : '';   // solo las voces de W1 y W2 llevan marca
   function filaPersona(p) {
-    return '<div class="fila"><span class="nombre">' + esc(p.nombre) + '<span class="meta">' + esc(p.funcion) + (MODULO === 'Coro' ? '' : ' · ' + esc(p.worship || 'sin Worship')) + '</span></span>' +
+    return '<div class="fila"><span class="nombre">' + esc(p.nombre) + '<span class="meta">' + esc(p.funcion) + ' · ' + esc(p.worship || 'sin Worship') + '</span></span>' +
       '<span>' + marcaCondicion(p) +
       (permisos.reordenar && p.idReemplazo ? ' <button class="btn-secondary btn-small" data-rem-retirar="' + esc(p.idReemplazo) + '" type="button">Retirar</button>' : '') + '</span></div>';
   }
@@ -1533,7 +1464,7 @@
     if (!$('rem-persona')) return;
     if (!r || !r.ok) { $('rem-persona').innerHTML = '<option value="">No se pudo cargar</option>'; return; }
     $('rem-persona').innerHTML = '<option value="">— Elija una persona —</option>' + r.candidatos.map(c =>
-      '<option value="' + esc(c.correo) + '"' + (c.yaEnEvento ? ' disabled' : '') + '>' + esc(c.nombre || c.correo) + ' · ' + esc(c.funcion) + (MODULO === 'Coro' ? '' : ' · ' + esc(c.worship || 'sin Worship')) +
+      '<option value="' + esc(c.correo) + '"' + (c.yaEnEvento ? ' disabled' : '') + '>' + esc(c.nombre || c.correo) + ' · ' + esc(c.funcion) + ' · ' + esc(c.worship || 'sin Worship') +
       (c.fueraAlcance ? ' (otro Worship)' : '') + (c.yaEnEvento ? ' — ' + esc(c.yaEnEvento) : '') + '</option>').join('');
     candidatosCache = r.candidatos;
   }
@@ -2025,7 +1956,7 @@
     $('ens-form').classList.remove('oculto');
     $('ens-form-titulo').textContent = f.id ? 'Editar ensamble' : 'Nuevo ensamble';
     $('ens-nombre').value = f.nombre; $('ens-desc').value = f.descripcion;
-    $('ens-alcance').innerHTML = (MODULO === 'Coro' ? ['Todos'] : ['Todos', 'Worship 1', 'Worship 2', 'Worship 3']).map(a => '<option' + (a === f.alcance ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
+    $('ens-alcance').innerHTML = ['Todos', 'Worship 1', 'Worship 2', 'Worship 3'].map(a => '<option' + (a === f.alcance ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
     $('ens-funciones').innerHTML = f.funciones.map((x, i) =>
       '<div class="fr-fila"><select data-ef-f="' + i + '" aria-label="Función">' + (funcionesKnown.indexOf(x.funcion) < 0 && x.funcion ? [x.funcion].concat(funcionesKnown) : funcionesKnown).map(n => '<option' + (n === x.funcion ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
       '</select><input type="number" min="1" max="20" value="' + esc(x.cantidad) + '" data-ef-n="' + i + '" aria-label="Cantidad"><button class="btn-danger" data-ef-quitar="' + i + '" type="button" aria-label="Quitar">✕</button></div>').join('');
@@ -2886,7 +2817,7 @@
 
   /* ---------------- Gestión de usuarios (administrador y programador) ---------------- */
   let guDatos = null;
-  const guCargos = u => [u.adminGeneral && 'Admin. general', u.admin && 'Administrador', u.programador && 'Programador', u.editor && 'Editor'].filter(Boolean);
+  const guCargos = u => [u.admin && 'Administrador', u.programador && 'Programador', u.editor && 'Editor'].filter(Boolean);
   function guInsignia(u) {
     const col = u.estado === 'Activo' ? '#276749' : u.estado === 'Pendiente' ? '#B7791F' : '#9B2C2C';
     return '<span class="gu-ins" style="background:' + col + '">' + esc(u.estado) + '</span>' +
@@ -2894,9 +2825,7 @@
   }
   function guEditor(u, d) {
     const opt = (lista, v) => (lista.indexOf(v) < 0 && v ? [v].concat(lista) : lista).map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
-    const clasif = MODULO === 'Coro'
-      ? '<label>Categoría vocal / función en el Coro</label><select data-gu="parte">' + opt(d.listas.partes, u.parte) + '</select>'
-      : d.clasificacionDisponible
+    const clasif = d.clasificacionDisponible
       ? '<label>Pertenencia (Worship / área)</label><select data-gu="worship">' + opt(d.listas.worship, u.worship) + '</select>' +
         '<label>Función musical</label><select data-gu="parte">' + opt(d.listas.partes, u.parte) + '</select>'
       : '<div class="aviso">La hoja Usuarios no tiene las columnas «Worship» y «Parte Usuario».</div>';
@@ -2908,8 +2837,7 @@
         [['admin', 'Administrador'], ['programador', 'Programador'], ['editor', 'Editor']].map(([k, n]) =>
           '<label class="gu-chk"><input type="checkbox" data-gu="' + k + '"' + (u[k] ? ' checked' : '') + (k === 'admin' && !d.yo.esAdmin ? ' disabled' : '') + '> ' + n + '</label>').join('') + '</div>';
     return '<label>Estado</label><select data-gu="estado">' + (d.estados.indexOf(u.estado) < 0 ? [u.estado].concat(d.estados) : d.estados).map(e => '<option' + (e === u.estado ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>' +
-      clasif + cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>' +
-      '<button class="btn-secondary btn-small" data-gu-quitar="' + esc(u.correo) + '" style="margin-top:6px;">Quitar de ' + esc(MODULO || 'este módulo') + '</button>';
+      clasif + cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>';
   }
   function pintarGestion() {
     const d = guDatos; if (!d) return;
@@ -2920,10 +2848,9 @@
     const lista = d.usuarios.filter(u =>
       (!q || (u.nombre + ' ' + u.correo).toLowerCase().includes(q)) &&
       (!f || (f === '__cargo' ? guCargos(u).length > 0 : u.estado === f)));
-    $('gu-n-parte').innerHTML = '<option value="">(sin definir)</option>' + (d.listas.partes || []).map(x => '<option>' + esc(x) + '</option>').join('');
     $('gu-lista').innerHTML = lista.length ? lista.map(u =>
       '<details class="gu-fila" data-correo="' + esc(u.correo) + '"' + (abiertos.has(u.correo) ? ' open' : '') + '><summary><span class="gu-quien">' +
-      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + ' · ' + (MODULO === 'Coro' ? '' : esc(u.worship || 'sin Worship') + ' · ') + esc(u.parte || 'sin función') + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
+      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + ' · ' + esc(u.worship || 'sin Worship') + ' · ' + esc(u.parte || 'sin función') + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
       '<div class="gu-edit">' + guEditor(u, d) + '</div></details>').join('')
       : '<p class="aviso">Ningún usuario coincide con el filtro.</p>';
   }
@@ -2958,18 +2885,9 @@
   $('gu-buscar').addEventListener('input', pintarGestion);
   $('gu-filtro').addEventListener('change', pintarGestion);
   $('gu-lista').addEventListener('click', ev => {
-    const q = ev.target.closest('[data-gu-quitar]');
-    if (q) { conOcupado(() => cambiarMembresia(q.dataset.guQuitar, false)); return; }
     const b = ev.target.closest('[data-gu-guardar]'); if (!b) return;
     conOcupado(() => guardarUsuario(b.dataset.guGuardar, b.closest('.gu-edit')));
   });
-  async function cambiarMembresia(correo, pertenece, extra) {
-    if (!pertenece && !confirm('¿Quitar a ' + correo + ' del módulo ' + MODULO + '?\nSu cuenta y su otro módulo no se tocan.')) return;
-    const r = await api('usuarios_modulo', Object.assign({ correo: correo, pertenece: pertenece }, extra || {}));
-    if (r && r.ok) { log(r.mensaje || 'Listo.'); if ($('gu-n-correo')) $('gu-n-correo').value = ''; await cargarGestion(); }
-    else { const m = ERRORES[r && r.error] || String((r && r.mensaje) || (r && r.error) || 'Sin respuesta del servidor.'); log('No se pudo: ' + m); alert('No se pudo: ' + m); }
-  }
-  $('btn-gu-agregar').onclick = () => conOcupado(() => cambiarMembresia(($('gu-n-correo').value || '').trim().toLowerCase(), true, { nombre: $('gu-n-nombre').value.trim(), parte: $('gu-n-parte').value }));
 
   /* ---------------- Publicidad: subir imágenes (arrastrar en PC; galería o archivos en celular y tableta) ---------------- */
   const PUB = { maxLado: 1600, tipos: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'], directoHasta: 1.5 * 1024 * 1024, tope: 2.4 * 1024 * 1024, maxCola: 10 };
