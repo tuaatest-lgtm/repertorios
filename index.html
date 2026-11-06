@@ -176,6 +176,10 @@
     .as-fila .seg { margin:6px 0 0; }
     .seg button.on.a { background:#065f46; color:#d1fae5; } .seg button.on.f { background:#9f1239; color:#ffe4e6; } .seg button.on.e { background:#92400e; color:#fef3c7; }
     .dis { opacity:.55; pointer-events:none; }
+    .cal-vwrap { position:relative; margin-top:8px; }
+    .cal-vwrap .cal-video { margin-top:0; }
+    .cal-cargando { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px; border-radius:var(--r); background:#000 center/cover no-repeat; color:#fff; font-size:14px; font-weight:700; text-shadow:0 1px 4px #000; z-index:2; pointer-events:none; }
+    .cal-vwrap .oculto { display:none; }
     .cal-video { width:100%; aspect-ratio:16/9; border:0; border-radius:var(--r); margin-top:8px; background:#000; display:block; }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -245,6 +249,10 @@
         <button class="btn-primary oculto" id="btn-gestion" data-rol="gestionar">🛠️ Gestión de usuarios</button>
         <button class="btn-secondary oculto" id="btn-correo" data-rol="admin">✉️ Correo remitente</button>
       </div>
+      <div class="menu-tit">Red Wi-Fi</div>
+      <div class="menu-grid" id="grid-red">
+        <button class="btn-secondary" id="btn-qr" type="button">📶 QR de la red Wi-Fi</button>
+      </div>
       <div class="menu-tit">Tu opinión</div>
       <div class="menu-grid" id="grid-opinion">
         <button class="btn-secondary" id="btn-reportes" type="button">💬 Reportes e ideas</button>
@@ -280,6 +288,25 @@
   </div>
 
   <!-- Reportes, ideas y solicitudes -->
+  <div class="card oculto" id="vista-qr">
+    <h3>📶 QR de la red Wi-Fi</h3>
+    <div id="qr-visor"></div>
+    <div class="aviso"><b>Cómo conectarte:</b> con la cámara de <b>otro</b> celular, apunta al QR y toca el aviso que aparece. Si el QR está en <b>este mismo</b> celular: toca la imagen para ampliarla, mantenla presionada para guardarla y ábrela con Google Lens (Android) o con la app Fotos (iPhone); según el modelo, el celular ofrecerá conectarse a la red.</div>
+    <div id="qr-admin" class="oculto">
+      <div class="set-titulo">Administrador: publicar un QR nuevo</div>
+      <label for="qr-archivo"><b>Imagen del QR</b> (PNG o JPG)</label>
+      <input type="file" id="qr-archivo" accept="image/*">
+      <label for="qr-red"><b>Nombre de la red</b> (opcional)</label>
+      <input type="text" id="qr-red" maxlength="60" placeholder="Ej: Palermo_Músicos">
+      <label for="qr-nota"><b>Nota para los integrantes</b> (opcional)</label>
+      <textarea id="qr-nota" rows="2" maxlength="300" placeholder="Ej: Solo para el equipo de alabanza"></textarea>
+      <div class="botones"><button class="btn-primary" id="qr-subir" type="button">📤 Publicar / reemplazar QR</button><button class="btn-secondary" id="qr-quitar" type="button">🗑 Retirar QR</button></div>
+      <div class="aviso" id="qr-msg"></div>
+    </div>
+  </div>
+
+  <div id="qr-zoom" class="oculto" style="position:fixed;inset:0;z-index:50;background:#fff;display:flex;align-items:center;justify-content:center;padding:12px;"><img id="qr-zoom-img" alt="QR de la red Wi-Fi" style="max-width:100%;max-height:100%;"></div>
+
   <div class="card oculto" id="vista-reportes">
     <h3>💬 Reportes e ideas</h3>
     <div class="aviso">Cuéntanos una falla o error, una idea o una solicitud. La revisa el administrador y aquí verás su respuesta.</div>
@@ -385,11 +412,12 @@
     <input type="date" id="in-fecha">
     <div id="bloque-ens-hora" class="oculto">
       <div class="botones" style="flex-wrap:wrap;align-items:flex-end;"><div><label for="in-hora" style="font-size:12px;"><b>Inicia</b></label><input type="time" id="in-hora"></div><div><label for="in-hora-fin" style="font-size:12px;"><b>Termina</b></label><input type="time" id="in-hora-fin"></div><div style="flex:1;min-width:150px;"><label for="in-lugar" style="font-size:12px;"><b>Lugar</b></label><input type="text" id="in-lugar" maxlength="80" placeholder="Opcional"></div></div>
-      <div class="aviso">Las personas convocadas confirman su asistencia y la registran desde 1 hora antes de que empiece hasta 30 minutos después de que termine. Los cantos que agregue serán el repertorio de estudio de este ensayo.</div>
+      <div class="grupo" id="bloque-copiar"><label for="in-copiar"><b>Usar el repertorio de un evento</b></label><select id="in-copiar"><option value="">— Elegir un evento —</option></select><button class="btn-secondary btn-small" id="btn-copiar" type="button">📋 Copiar sus sets y cantos</button><div class="aviso">Copia los sets y cantos del evento elegido (con sus recursos de estudio); después puede quitar o agregar cantos. No se copian personas ni presentadores.</div></div>
+      <div class="aviso">Cualquier persona activa puede confirmar y registrar su asistencia, o puede marcarla quien programa. Se registra desde 1 hora antes de que empiece hasta 30 minutos después de que termine; no se programan personas ni presentadores. Los cantos que agregue serán el repertorio de estudio de este ensayo.</div>
     </div>
     <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
     <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
-    <label for="in-ensamble"><b>Ensamble (esquema de montaje)</b></label>
+    <div class="solo-evento"><label for="in-ensamble"><b>Ensamble (esquema de montaje)</b></label>
     <select id="in-ensamble"><option value="">— Sin ensamble (definir a mano) —</option></select>
     <div class="aviso" id="aviso-ensamble"></div>
     <label for="in-alcance"><b>Alcance del evento (quiénes registran su asistencia)</b></label>
@@ -400,13 +428,14 @@
       <option value="Worship 3">Worship 3</option>
     </select>
     <div class="aviso">Los instrumentistas, las voces líderes y el Departamento pueden confirmar en cualquiera de las tres opciones. Al programar los cantos podrá asignar a un cantante de otro Worship si hace falta.</div>
-    <div class="grupo">
+    </div>
+    <div class="grupo solo-evento">
       <label><b>Funciones requeridas</b> (opcional)</label>
       <div id="funciones-req"></div>
       <button class="btn-secondary btn-small" id="btn-add-funcion" type="button">➕ Agregar función requerida</button>
       <div class="aviso">Solo las funciones que agregue se consideran requeridas. Si no agrega ninguna, no se declara ninguna vacante.</div>
     </div>
-    <div class="grupo">
+    <div class="grupo solo-evento">
       <label for="in-publicidad"><b>Publicidad o anuncios</b> (opcional)</label>
       <textarea id="in-publicidad" rows="2" maxlength="1000" placeholder="Solo si hay contenido para el informe"></textarea>
       <label for="in-espiritual"><b>Información espiritual</b> (opcional)</label>
@@ -728,9 +757,9 @@
 <script>
   try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) { /* sin visor de PDF, pero la app sigue funcionando */ }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyWAfTZcfVGwnhtSOQz7xJgBVEVbTZnsklUbnccu6OGIW95nzl7wp_oUwRg11heJdsJxw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyW9hOnORbH7ecmgWNQPqKjNtKr2FUm2WUNy2oSwBCKdAPuBwtvMi2CX04cicvusncDug/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.2.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v4.3.0';
   let ID_TOKEN = null;
   /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -789,6 +818,7 @@
     RECURSO_NO_REGISTRADO: 'El archivo ya no está en la carpeta de esta canción. Cierre y vuelva a abrir el panel.',
     CANCION_NO_DISPONIBLE: 'La canción no está disponible (sin MP3/PDF o inactiva).',
     SOLO_ADMIN: 'Solo un administrador puede hacer esto.',
+    QR_NO_DISPONIBLE: 'El QR publicado ya no está disponible.',
     SOLO_IMAGENES: 'El archivo no es una imagen válida (JPG, PNG, WEBP o GIF).',
     IMAGEN_MUY_GRANDE: 'La imagen pesa más de 3 MB.',
     CARPETA_NO_ACCESIBLE: 'El servidor no puede abrir la carpeta de publicidad en Drive.',
@@ -900,14 +930,14 @@
     }
   }
 
-  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes'];
+  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
       $(v).classList.toggle('oculto', v !== id));
     estadoGuardar({ vista: id });
     marcarTab(id);
-    if ($('cal-video') && !(calEstado && CONT_CALENT[calEstado.cont] === id)) { $('cal-video').src = 'about:blank'; $('cal-video').dataset.emb = ''; }     // un video no sigue sonando fuera de su pantalla
+    if ($('cal-video') && !(calEstado && CONT_CALENT[calEstado.cont] === id)) detenerVideoCalent();     // un video no sigue sonando fuera de su pantalla
     if (typeof ajustarHero === 'function') ajustarHero();
     irAVista(id, estabaOculta);
   }
@@ -1201,11 +1231,28 @@
     $('titulo-formulario').textContent = eventoEditando ? (ens ? 'Editar el ensayo' : 'Editar repertorio del evento') : (ens ? 'Programar nuevo ensayo' : 'Programar nuevo evento');
     $('btn-guardar-evento').textContent = eventoEditando ? '💾 Guardar cambios' : (ens ? '💾 Guardar ensayo' : '💾 Guardar evento');
     $('bloque-ens-hora').classList.toggle('oculto', !ens);
+    $('bloque-copiar').classList.toggle('oculto', !ens);
+    document.querySelectorAll('#vista-formulario .solo-evento').forEach(e => e.classList.toggle('oculto', ens));
     $('btn-cancelar-edicion').classList.toggle('oculto', !eventoEditando);
   }
 
   $('btn-nuevo-evento').onclick = () => conOcupado(() => abrirNuevo('Evento'));
   $('btn-nuevo-ensayo').onclick = () => conOcupado(() => abrirNuevo('Ensayo'));
+  async function poblarCopiar() {
+    const r = await api('listar_eventos', { clase: 'Evento' });
+    $('in-copiar').innerHTML = '<option value="">— Elegir un evento —</option>' + (r && r.ok ? r.eventos.map(e => '<option value="' + esc(e.idEvento) + '">' + esc(e.fecha + ' · ' + e.nombre) + '</option>').join('') : '');
+  }
+  $('btn-copiar').onclick = () => conOcupado(async () => {
+    const id = $('in-copiar').value; if (!id) { alert('Elija primero un evento.'); return; }
+    if (setsEv.some(x => x.canciones.length) && !confirm('Se reemplazarán los sets y cantos actuales por los del evento. ¿Continuar?')) return;
+    const r = await api('evento_activo', { idEvento: id });
+    if (!r || !r.ok || !r.evento) { alert(textoError(r && r.error)); return; }
+    const sets = (r.sets || []).slice().sort((a, b) => a.numeroSet - b.numeroSet).filter(x => x.canciones.length);
+    if (!sets.length) { alert('Ese evento no tiene cantos.'); return; }
+    setsEv = sets.map(x => ({ nombre: x.nombreSet || ('Set ' + x.numeroSet), mensaje: '', canciones: x.canciones.map(c => c.idCancion).filter(i => infoCancion(i)), notas: {} }));
+    setActivo = 0; setsEv.forEach(x => { x.metaSug = x.canciones.length || undefined; });
+    pintarConstructor(); log('Se copiaron ' + setsEv.length + ' set(s) del evento «' + r.evento.nombre + '». Ajuste lo que necesite y guarde el ensayo.');
+  });
   async function abrirNuevo(clase) {
     cerrarPanel(); claseForm = clase;
     nuevoConstructor(); claveEvento = '';
@@ -1214,6 +1261,7 @@
     await cargarFuncionesKnown(); pintarFuncReq(); await poblarEnsambles('');
     configurarFormulario();
     mostrarVista('vista-formulario');
+    if (clase === 'Ensayo') await poblarCopiar();
     if (await cargarCatalogo()) { pintarConstructor(); log('Agregue cantos a cada set, ordénelos automáticamente o con ▲ ▼.'); }
   }
 
@@ -1237,7 +1285,7 @@
     await cargarFuncionesKnown(); await poblarEnsambles(r.evento.idEnsamble || '');
     funcReq = (r.evento.funcionesRequeridas || '').split(';').map(x => { const i = x.lastIndexOf(':'); return i > 0 ? { funcion: x.slice(0, i).trim(), cantidad: parseInt(x.slice(i + 1), 10) || 1 } : null; }).filter(Boolean);
     pintarFuncReq();
-    configurarFormulario(); mostrarVista('vista-formulario'); pintarConstructor();
+    configurarFormulario(); mostrarVista('vista-formulario'); if (claseForm === 'Ensayo') await poblarCopiar(); pintarConstructor();
     log('Edite el orden y guarde los cambios.');
   }
 
@@ -1295,6 +1343,7 @@
     if (sets.length && vacios > 0 && !confirm(vacios + ' set(s) sin cantos no se guardarán. ¿Continuar?')) return;
     const comun = { nombreEvento: nombre, fechaEvento: fecha, mensajeGeneral: $('in-mensaje').value.trim(), sets: sets,
       alcance: $('in-alcance').value, idEnsamble: $('in-ensamble').value, funcionesRequeridas: funcReq.filter(f => f.funcion), publicidad: $('in-publicidad').value.trim(), infoEspiritual: $('in-espiritual').value.trim() };
+    if (esE) { delete comun.funcionesRequeridas; delete comun.idEnsamble; delete comun.publicidad; delete comun.infoEspiritual; delete comun.alcance; }
     if (esE) Object.assign(comun, { clase: 'Ensayo', hora: $('in-hora').value, horaFin: $('in-hora-fin').value, lugar: $('in-lugar').value.trim() });
     let r;
     if (eventoEditando) {
@@ -1366,6 +1415,11 @@
   }
   function pintarParticipacion() {
     const p = part; if (!p) { $('panel-participacion').innerHTML = ''; return; }
+    if (esEnsVista()) {          // un ensayo no programa personas: solo se muestran quienes ya confirmaron
+      const conf = p.cantantes.concat(p.instrumentistas, p.otros);
+      $('panel-participacion').innerHTML = programa() ? '<div class="grupo"><label>Confirmaron su asistencia (' + conf.length + ')</label>' + (conf.map(x => '<div class="fila"><span class="nombre">' + esc(x.nombre) + '<span class="meta">' + esc(x.funcion) + '</span></span></div>').join('') || '<div class="aviso">Nadie ha confirmado todavía. La asistencia también se puede marcar al tomar lista.</div>') + '</div>' : '';
+      return;
+    }
     let h = '<div class="grupo"><label>Voces del ensamble</label>' +
       '<div class="aviso">Alcance: <b>' + esc(p.evento.alcance) + '</b>. Abrir el repertorio o una partitura <b>no</b> confirma su asistencia: debe pulsar «Confirmar».</div>';
     if (p.puedoConfirmar) {
@@ -2163,6 +2217,53 @@
 
   /* ---- Calentamiento vocal (cantantes) ---- */
   const calBlobs = {}, calEmbeds = {};
+  let calTimer = 0;
+  function detenerVideoCalent() {          // un video no sigue sonando fuera de su pantalla
+    clearTimeout(calTimer);
+    const v = $('cal-vid'), f = $('cal-video'); if (!v || !f) return;
+    try { v.pause(); } catch (e) {} v.removeAttribute('src'); v.dataset.src = ''; try { v.load(); } catch (e) {}
+    f.src = 'about:blank'; f.dataset.emb = '';
+    ['cal-vid', 'cal-video', 'cal-cargando', 'cal-vwrap'].forEach(i => $(i) && $(i).classList.add('oculto'));
+  }
+  function cargandoVideo(on, miniatura) {
+    const c = $('cal-cargando'); if (!c) return;
+    c.classList.toggle('oculto', !on);
+    c.style.backgroundImage = on && miniatura ? 'linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url("' + miniatura + '")' : '';
+  }
+  function videoIframe(info, mY) {         // visor incrustado (YouTube o Drive)
+    const f = $('cal-video'), v = $('cal-vid');
+    try { v.pause(); } catch (e) {} v.classList.add('oculto');
+    const src = calEstado.repetir && mY ? info.embed + '&loop=1&playlist=' + mY[1] : info.embed;
+    f.classList.remove('oculto');
+    if (f.dataset.emb !== src) { cargandoVideo(true, info.miniatura); f.onload = () => { clearTimeout(calTimer); calTimer = setTimeout(() => cargandoVideo(false), mY ? 800 : 3500); }; f.dataset.emb = src; f.src = src; }
+    $('cal-msg').textContent = calEstado.repetir && !mY ? 'ℹ Este video se muestra con el visor de Google Drive, que no lo repite solo. Para repetirlo sin parar, pida que lo suban a YouTube («no listado»).' : '';
+  }
+  function videoNativo(info) {             // reproductor propio: arranca antes que el visor de Drive y SÍ repite
+    const v = $('cal-vid'), f = $('cal-video');
+    f.src = 'about:blank'; f.dataset.emb = ''; f.classList.add('oculto');
+    v.classList.remove('oculto'); v.loop = !!calEstado.repetir; v.poster = info.miniatura || '';
+    if (v.dataset.src === info.directo && v.readyState >= 2) { if (v.paused) v.play().catch(() => {}); return; }
+    v.dataset.src = info.directo; cargandoVideo(true, info.miniatura);
+    const caer = () => { clearTimeout(calTimer); if (v.dataset.src !== info.directo) return; v.removeAttribute('src'); v.dataset.src = ''; try { v.load(); } catch (e) {} v.classList.add('oculto'); videoIframe(info, null); };
+    const mostrar = () => { clearTimeout(calTimer); cargandoVideo(false); };       // se quita el aviso solo cuando ya hay imagen
+    v.onerror = caer;
+    v.onloadedmetadata = () => {
+      if (v.videoWidth === 0) { $('cal-msg').textContent = 'Este video tiene un formato que su teléfono no puede dibujar (se oiría pero no se vería). Pida exportarlo en MP4 H.264 de 720p.'; caer(); }
+    };
+    v.onloadeddata = () => {
+      v.play().catch(() => { $('cal-msg').textContent = 'Pulse ▶ en el video para verlo.'; mostrar(); });
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(mostrar);
+      else { v.addEventListener('playing', () => setTimeout(mostrar, 300), { once: true }); }
+      setTimeout(mostrar, 4000);                                                      // tope: nunca dejar el aviso tapando el video
+    };
+    v.onended = () => {                                                               // repetir continuo aunque el navegador ignore el atributo loop
+      if (!calEstado || !calEstado.repetir) return;
+      try { v.currentTime = 0; } catch (e) {}
+      v.play().catch(() => { const s0 = v.src; v.src = ''; v.src = s0; v.play().catch(() => {}); });
+    };
+    clearTimeout(calTimer); calTimer = setTimeout(() => { if (v.readyState < 2) caer(); }, 12000);
+    v.src = info.directo;
+  }
   let calEstado = null;      // { idEvento, r, grupo, id }
   const CONT_CALENT = { 'rep-calent': 'vista-repertorio', 'ens-calent': 'vista-biblioteca', 'lib-calent': 'vista-calent-lib' };
   function limpiarCalent() { Object.keys(CONT_CALENT).forEach(c => { if ($(c)) $(c).innerHTML = ''; }); if ($('rep-calent-admin')) $('rep-calent-admin').innerHTML = ''; calEstado = null; }
@@ -2179,7 +2280,8 @@
       '<div class="calent-player"><div class="info"><b id="cal-titulo">—</b><span id="cal-grupo"></span></div>' +
       '<button class="btn-accent" id="cal-play" type="button">▶ Reproducir</button></div>' +
       '<audio id="cal-audio" controls controlsList="nodownload"></audio>' +
-      '<iframe id="cal-video" class="cal-video oculto" title="Video de calentamiento" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>' +
+      '<div class="cal-vwrap oculto" id="cal-vwrap"><video id="cal-vid" class="cal-video oculto" controls playsinline preload="auto" controlsList="nodownload"></video>' +
+      '<iframe id="cal-video" class="cal-video oculto" title="Video de calentamiento" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe><div class="cal-cargando oculto" id="cal-cargando">Cargando video…</div></div>' +
       '<div class="botones" style="margin-top:8px;"><button class="btn-secondary btn-small" id="cal-otro" type="button">🔀 Otro ejercicio</button>' +
       '<button class="btn-secondary btn-small" id="cal-loop" type="button">🔁 Repetir: NO</button></div>' +
       '<div class="aviso" id="cal-msg"></div><div class="calent-lista" id="cal-lista-ej"></div></div>';
@@ -2229,20 +2331,19 @@
     $('cal-msg').textContent = '';
     if (ex && ex.tipo === 'Video') {          // video: se reproduce incrustado; la dirección solo se entrega a quien tiene derecho
       try { $('cal-audio').pause(); $('audio').pause(); } catch (e) {}
-      let emb = calEmbeds[id];
-      if (!emb) {
+      let info = calEmbeds[id];
+      if (!info) {
         $('cal-msg').textContent = 'Cargando video…';
         const r = await api('calentamiento_audio', { idCalentamiento: id });
         if (!r || !r.ok) { $('cal-msg').textContent = '✖ ' + textoError(r && r.error); return; }
-        emb = calEmbeds[id] = r.embed; $('cal-msg').textContent = '';
+        info = calEmbeds[id] = { embed: r.embed, directo: r.directo || '', miniatura: r.miniatura || '' }; $('cal-msg').textContent = '';
       }
-      $('cal-audio').classList.add('oculto'); $('cal-video').classList.remove('oculto');
-      const mY = /youtube-nocookie\.com\/embed\/([\w-]{11})/.exec(emb), src = calEstado.repetir && mY ? emb + '&loop=1&playlist=' + mY[1] : emb;   // YouTube sí admite repetición continua
-      if ($('cal-video').dataset.emb !== src) { $('cal-video').dataset.emb = src; $('cal-video').src = src; }
-      $('cal-msg').textContent = calEstado.repetir && !mY ? 'ℹ Este video está en Google Drive y Drive no lo repite solo: vuelve a pulsar ▶ en el video, o pide que lo suban a YouTube («no listado») para repetirlo sin parar.' : '';
+      $('cal-audio').classList.add('oculto'); $('cal-vwrap').classList.remove('oculto');
+      const mY = /youtube-nocookie\.com\/embed\/([\w-]{11})/.exec(info.embed);
+      if (!mY && info.directo) { $('cal-msg').textContent = ''; videoNativo(info); } else videoIframe(info, mY);
       return;
     }
-    $('cal-video').classList.add('oculto'); $('cal-video').src = 'about:blank'; $('cal-video').dataset.emb = ''; $('cal-audio').classList.remove('oculto');
+    detenerVideoCalent(); $('cal-audio').classList.remove('oculto');
     if (!url) {
       $('cal-msg').textContent = 'Cargando audio…';
       const r = await api('calentamiento_audio', { idCalentamiento: id });
@@ -2323,7 +2424,7 @@
   }
   function pintarAsistencia() {
     if (!asCtx) return;
-    $('as-lista').innerHTML = asCtx.personas.map((p, i) => '<div class="as-fila"><b>' + esc(p.nombre) + '</b><span class="meta" style="font-size:12px;color:var(--mu);"> ' + esc(p.funcion) + (p.worship === 'W1' || p.worship === 'W2' ? ' · ' + esc(p.condicion) : '') + (p.auto ? ' · lo registró la persona' : '') + '</span>' +
+    $('as-lista').innerHTML = asCtx.personas.map((p, i) => '<div class="as-fila"><b>' + esc(p.nombre) + '</b><span class="meta" style="font-size:12px;color:var(--mu);"> ' + esc(p.funcion) + (p.worship === 'W1' || p.worship === 'W2' ? ' · ' + esc(p.condicion) : '') + (p.auto ? ' · lo registró la persona' : '') + (p.condicion === 'Sin confirmar' ? ' · no confirmó' : '') + '</span>' +
       '<div class="seg ' + (asCtx.puede ? '' : 'dis') + '">' + [['Asistió', 'a'], ['Faltó', 'f'], ['Excusado', 'e']].map(x => '<button type="button" data-as-i="' + i + '" data-as-e="' + x[0] + '" class="' + (p.estado === x[0] ? 'on ' + x[1] : '') + '">' + x[0] + '</button>').join('') + '</div></div>').join('') || '<div class="aviso">Nadie estaba convocado: confirme participantes primero.</div>';
     const c = e => asCtx.personas.filter(p => p.estado === e).length;
     $('as-resumen').textContent = 'Asistió ' + c('Asistió') + ' · Faltó ' + c('Faltó') + ' · Excusado ' + c('Excusado') + ' · Sin marcar ' + asCtx.personas.filter(p => !p.estado).length;
@@ -2373,10 +2474,16 @@
       if (!calEstado) return; calEstado.repetir = !calEstado.repetir;
       $('cal-loop').textContent = '🔁 Repetir: ' + (calEstado.repetir ? 'SÍ' : 'NO'); $('cal-loop').classList.toggle('on', calEstado.repetir);
       if ($('cal-audio')) $('cal-audio').loop = calEstado.repetir;
-      if (!$('cal-video').classList.contains('oculto')) conOcupado(reproducirCalent);
+      const vn = $('cal-vid'); if (vn && !vn.classList.contains('oculto')) vn.loop = calEstado.repetir;                       // video propio: cambia al instante
+      else if (!$('cal-video').classList.contains('oculto')) conOcupado(reproducirCalent);
     }
     else if ((b = t.closest('button[data-ens-sec]'))) ensSec(b.dataset.ensSec);
     else if (t.closest('#btn-reportes')) conOcupado(cargarReportes);
+    else if (t.closest('#btn-qr')) conOcupado(cargarQR);
+    else if (t.closest('#qr-subir')) conOcupado(subirQR);
+    else if (t.closest('#qr-quitar')) conOcupado(quitarQR);
+    else if (t.closest('#qr-img')) { $('qr-zoom-img').src = $('qr-img').src; $('qr-zoom').classList.remove('oculto'); }
+    else if (t.closest('#qr-zoom')) $('qr-zoom').classList.add('oculto');
     else if (t.closest('#btn-calent-lib')) conOcupado(async () => { const r = await cargarCalentBiblioteca('lib-calent'); if (!r || !r.ok) log('No se pudieron cargar los calentamientos: ' + textoError(r && r.error)); mostrarVista('vista-calent-lib'); });
     else if (t.closest('#rp-enviar')) conOcupado(enviarReporte);
     else if ((b = t.closest('button[data-rp-guardar]'))) conOcupado(() => guardarReporteAdmin(b.dataset.rpGuardar));
@@ -2417,6 +2524,7 @@
     const btnConf = '<button class="btn-accent btn-small" data-ens-conf="' + esc(e.idEvento) + '" type="button">✔ Confirmar mi asistencia</button>';
     const btnCanc = ' <button class="btn-secondary btn-small" data-ens-canc="' + esc(e.idEvento) + '" type="button">Cancelar</button>';
     if (e.miEstado) acc = '<span class="chip ' + (e.miEstado === 'Asistió' ? 'ok' : e.miEstado === 'Faltó' ? 'no' : 'pend') + '">' + esc(e.miEstado) + '</span>';
+    else if (!e.convocado && e.actividad && e.puedeConfirmar && e.ventana === 'abierta') acc = '<button class="btn-accent btn-small" data-ens-checkin="' + esc(e.idSesion) + '" data-ev="' + esc(e.idEvento) + '" type="button">📍 Registrar mi asistencia</button>';
     else if (!e.convocado) acc = e.actividad && e.puedeConfirmar ? btnConf : '<span class="meta" style="font-size:12px;color:var(--mu);">' + (e.actividad ? 'No estás convocado a este ensayo' : 'Confirma tu participación en el evento para registrar tu asistencia') + '</span>';
     else if (e.ventana === 'abierta') acc = '<button class="btn-accent btn-small" data-ens-checkin="' + esc(e.idSesion) + '" data-ev="' + esc(e.idEvento) + '" type="button">📍 Registrar mi asistencia</button>';
     else if (e.ventana === 'antes') acc = (e.actividad ? '<span class="chip ok">Confirmada</span> ' : '') + '<span class="chip">Registro abre ' + esc(abre) + '</span>' + (e.actividad ? btnCanc : '');
@@ -2436,6 +2544,40 @@
     const lista = r && r.ok ? r.ensayos.filter(e => e.ventana !== 'cerrada' || e.fecha >= r.hoy).slice(0, 3) : [];
     c.classList.toggle('oculto', !lista.length);
     c.innerHTML = lista.length ? '<b>Próximos ensayos</b>' + lista.map(e => filaEnsayo(e, r.hoy, true)).join('') : '';
+  }
+
+  /* ---------------- v4.3.0: QR de la red Wi-Fi ---------------- */
+  let qrUrl = '';
+  async function cargarQR() {
+    const r = await api('qr_red_obtener');
+    $('qr-admin').classList.toggle('oculto', !permisos.usuarios);
+    $('qr-msg').textContent = '';
+    if (qrUrl) { try { URL.revokeObjectURL(qrUrl); } catch (e) { } qrUrl = ''; }
+    if (!r || !r.ok) $('qr-visor').innerHTML = '<div class="aviso">✖ ' + esc(textoError(r && r.error)) + '</div>';
+    else if (!r.hay) $('qr-visor').innerHTML = '<div class="aviso">' + (r.error ? 'El QR publicado ya no está disponible en Drive. ' : 'Todavía no hay un QR publicado. ') + (permisos.usuarios ? 'Publica uno abajo.' : 'El administrador lo publicará aquí.') + '</div>';
+    else {
+      qrUrl = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'image/png' }));
+      $('qr-visor').innerHTML = (r.red ? '<div style="font-size:18px;font-weight:700;margin:6px 0;">Red: ' + esc(r.red) + '</div>' : '') +
+        '<img id="qr-img" src="' + qrUrl + '" alt="QR de la red Wi-Fi" style="display:block;width:min(100%,380px);margin:8px auto;background:#fff;padding:10px;border-radius:12px;cursor:zoom-in;">' +
+        (r.nota ? '<div class="aviso">' + esc(r.nota) + '</div>' : '') +
+        '<div class="meta" style="font-size:12px;color:var(--mu);text-align:center;">Publicado el ' + esc(String(r.actualizado).slice(0, 10)) + '</div>';
+    }
+    mostrarVista('vista-qr');
+  }
+  async function subirQR() {
+    const f = $('qr-archivo').files && $('qr-archivo').files[0];
+    if (!f) { $('qr-msg').textContent = 'Elige primero la imagen del QR.'; return; }
+    $('qr-msg').textContent = 'Preparando imagen…';
+    let p; try { p = await prepararImagen(f); } catch (e) { $('qr-msg').textContent = '✖ ' + e.message; return; }
+    $('qr-msg').textContent = 'Publicando…';
+    const r = await api('qr_red_subir', { base64: await blobBase64(p.blob), red: $('qr-red').value.trim(), nota: $('qr-nota').value.trim() });
+    if (r && r.ok) { $('qr-archivo').value = ''; $('qr-red').value = ''; $('qr-nota').value = ''; await cargarQR(); $('qr-msg').textContent = '✅ ' + r.mensaje; }
+    else $('qr-msg').textContent = '✖ ' + textoError(r && r.error);
+  }
+  async function quitarQR() {
+    if (!confirm('¿Retirar el QR actual? Los integrantes dejarán de verlo.')) return;
+    const r = await api('qr_red_quitar');
+    if (r && r.ok) { await cargarQR(); $('qr-msg').textContent = '✅ ' + r.mensaje; } else $('qr-msg').textContent = '✖ ' + textoError(r && r.error);
   }
 
   /* ---------------- v4.1.0: reportes, ideas y solicitudes ---------------- */
