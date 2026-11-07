@@ -255,6 +255,7 @@
       <div class="menu-grid" id="grid-admin">
         <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar Catálogo de Recursos</button>
         <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="sync">🔎 Vista previa de la sincronización (no cambia nada)</button>
+        <button class="btn-secondary oculto" id="btn-sync-diag" data-rol="sync">🩺 Diagnóstico del catálogo (pestañas, columnas y carpeta de Drive)</button>
         <button class="btn-secondary oculto" id="btn-publicidad" data-rol="publicidad">🖼️ Subir publicidad</button>
         <button class="btn-primary oculto" id="btn-usuarios" data-rol="admin">👥 Registro de usuarios</button>
         <button class="btn-primary oculto" id="btn-gestion" data-rol="gestionar">🛠️ Gestión de usuarios</button>
@@ -570,6 +571,7 @@
   <div class="card oculto" id="vista-gestion">
     <h3>Gestión de usuarios</h3>
     <div id="gu-resumen" class="aviso"></div>
+    <div id="gu-modulos" class="card oculto" style="margin:0 0 8px;"></div>
     <details class="gu-fila" id="gu-nuevo"><summary><b>➕ Agregar integrante a este módulo</b></summary><div class="gu-edit">
       <label for="gu-n-correo">Correo de Google</label><input type="email" id="gu-n-correo" placeholder="nombre@gmail.com" autocomplete="off">
       <label for="gu-n-nombre">Nombre (solo si es una persona nueva)</label><input type="text" id="gu-n-nombre" maxlength="80">
@@ -775,11 +777,15 @@
 <script>
   try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) { /* sin visor de PDF, pero la app sigue funcionando */ }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzBPOGBDGqLLOVGP1PI3KZzL9JcKp5zUbYwUz3l7nnk92r-0qymIVRpD-xWgtduAZ2xCw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.4.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v4.4.3';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
-  const NOMBRE_MOD = { Worship: '🎸 Worship', Coro: '🎶 Coro' };
+  let ICONOS_MOD = { Worship: '🎸' };
+  const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + m).trim();
+  const esGrupo = () => !!MODULO && MODULO !== 'Worship';          // «agrupación adicional» (Coro u otra): no usa Worship 1/2/3
+  // contexto del ensayo que se está viendo: permite abrir el material de SUS cantos sin responder antes el próximo evento
+  const ctxEns = () => (esEnsVista() && vistaEv ? { ctxEvento: vistaEv.idEvento } : {});
   let ID_TOKEN = null;
   /* ---- Persistencia local (sesión propia y estado de trabajo) ---- */
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -825,6 +831,8 @@
   }
 
   const ERRORES = {
+    FUNCION_INVALIDA: 'Esa voz o función no existe.', PERSONA_NO_EN_EVENTO: 'Esa persona no figura como participante de este evento.', ENSAYO_SIN_PERSONAS: 'Un ensayo no programa personas.',
+    SOLO_ADMIN_GENERAL: 'Solo un administrador general puede hacer esto.',
     MODULO_NO_AUTORIZADO: 'Su cuenta no pertenece a este módulo o está inactiva en él.',
     MODULO_INVALIDO: 'El módulo indicado no existe.',
     WORSHIP_NO_APLICA_AL_CORO: 'La pertenencia a Worship no se usa en el Coro.',
@@ -999,7 +1007,7 @@
     if (r && !r.ok && r.error === 'MODULO_NO_AUTORIZADO' && MODULO) { MODULO = ''; lsDel('pm_modulo'); r = await api('quien'); }   // el módulo guardado ya no le corresponde
     if (!(r && r.ok)) return r;
     const disp = Array.isArray(r.modulos) && r.modulos.length ? r.modulos : [r.modulo || 'Worship'];
-    r.modulos = disp;
+    r.modulos = disp; if (r.iconos) ICONOS_MOD = r.iconos;
     if (disp.length > 1 && disp.indexOf(MODULO) < 0) { mostrarSelectorModulos(r, disp); return { selector: true }; }
     const elegido = disp.indexOf(MODULO) >= 0 ? MODULO : disp[0];
     MODULO = elegido; lsSet('pm_modulo', elegido);
@@ -1009,7 +1017,7 @@
   function mostrarSelectorModulos(r, disp) {
     $('menu').classList.add('oculto'); VISTAS.forEach(v => $(v).classList.add('oculto')); $('card-log').classList.add('oculto');
     $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · elija el módulo.';
-    $('mod-botones').innerHTML = disp.map(m => '<button class="btn-primary" type="button" data-mod="' + esc(m) + '" style="min-width:140px;">' + esc(NOMBRE_MOD[m] || m) + '</button>').join('');
+    $('mod-botones').innerHTML = disp.map(m => '<button class="btn-primary" type="button" data-mod="' + esc(m) + '" style="min-width:140px;">' + esc(nombreMod(m)) + '</button>').join('');
     $('vista-modulos').classList.remove('oculto'); $('btn-salir').classList.remove('oculto'); $('btn-modulo').classList.add('oculto');
   }
   function cambiarModulo(m) {
@@ -1021,9 +1029,9 @@
   $('btn-modulo').onclick = () => { lsDel('pm_modulo'); lsDel(ESTADO_CLAVE); location.href = location.pathname; };
   function ajustarModuloUI(r) {
     document.body.dataset.modulo = r.modulo || 'Worship';
-    if (r.modulo === 'Coro') {
+    if ((r.modulo && r.modulo !== 'Worship')) {
       $('in-alcance').innerHTML = '<option value="Todos">Todos (integrantes del Coro)</option>';
-      document.title = 'Palermo Coro';
+      document.title = 'Palermo ' + r.modulo;
     }
     $('btn-modulo').classList.toggle('oculto', !(r.modulos && r.modulos.length > 1));
     $('vista-modulos').classList.add('oculto');
@@ -1037,7 +1045,7 @@
       rol = r.rol;
       permisos = r.permisos || { programar: false, reordenar: false, sincronizar: false, usuarios: false };
       $('card-log').classList.toggle('oculto', !permisos.programar);   // usuarios sin cargo no ven el estado del sistema
-      $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · <span class="chip-modulo">' + esc(NOMBRE_MOD[r.modulo] || r.modulo || '') + '</span> · rol: <b>' + esc(r.rol) + '</b>' + (r.adminGeneral ? ' (administrador general)' : '');
+      $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b>' + (r.modulos && r.modulos.length > 1 ? ' · <span class="chip-modulo">' + esc(nombreMod(r.modulo || 'Worship')) + '</span>' : '') + ' · rol: <b>' + esc(r.rol) + '</b>' + (r.adminGeneral ? ' (administrador general)' : '');
       $('menu').classList.remove('oculto');
       document.querySelectorAll('[data-rol]').forEach(b => {
         const need = b.dataset.rol;
@@ -1452,6 +1460,7 @@
   document.addEventListener('change', e => {
     const t = e.target; if (!t.dataset) return;
     if (t.id === 'rem-funcion') { cargarCandidatosRem(); return; }
+    if (t.dataset.persFn !== undefined) { const c = t.dataset.persFn, nueva = t.value, ant = t.dataset.actual; conOcupado(() => editarParticipanteUI(c, nueva, ant, t)); return; }
     if (t.dataset.frF !== undefined) funcReq[Number(t.dataset.frF)].funcion = t.value;
     if (t.dataset.frN !== undefined) funcReq[Number(t.dataset.frN)].cantidad = Math.max(1, Math.min(20, parseInt(t.value, 10) || 1));
   });
@@ -1478,8 +1487,12 @@
   }
   const marcaCondicion = (p) => (p.worship === 'W1' || p.worship === 'W2') ? (p.condicion === 'Reemplazo' ? '<span class="ins reemplazo">Reemplazo' + (p.fueraAlcance ? ' · otro Worship' : '') + '</span>' : '<span class="ins ok">Titular</span>') : '';   // solo las voces de W1 y W2 llevan marca
   function filaPersona(p) {
-    return '<div class="fila"><span class="nombre">' + esc(p.nombre) + '<span class="meta">' + esc(p.funcion) + (MODULO === 'Coro' ? '' : ' · ' + esc(p.worship || 'sin Worship')) + '</span></span>' +
+    const editable = !!(permisos.reordenar && p.correo && part && part.funciones && part.funciones.length);
+    const selFn = editable ? '<select class="sel-pers-fn" data-pers-fn="' + esc(p.correo) + '" data-actual="' + esc(p.funcion) + '" aria-label="Voz o función de ' + esc(p.nombre) + '" style="max-width:150px;font-size:13px;">' +
+      (part.funciones.indexOf(p.funcion) < 0 ? [p.funcion].concat(part.funciones) : part.funciones).map(f => '<option' + (f === p.funcion ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' : '';
+    return '<div class="fila"><span class="nombre">' + esc(p.nombre) + '<span class="meta">' + (editable ? '' : esc(p.funcion)) + (esGrupo() ? '' : (editable ? '' : ' · ') + esc(p.worship || 'sin Worship')) + '</span>' + (editable ? selFn : '') + '</span>' +
       '<span>' + marcaCondicion(p) +
+      (editable && !p.idReemplazo ? ' <button class="btn-secondary btn-small" data-pers-quitar="' + esc(p.correo) + '" type="button">Quitar</button>' : '') +
       (permisos.reordenar && p.idReemplazo ? ' <button class="btn-secondary btn-small" data-rem-retirar="' + esc(p.idReemplazo) + '" type="button">Retirar</button>' : '') + '</span></div>';
   }
   function pintarParticipacion() {
@@ -1533,7 +1546,7 @@
     if (!$('rem-persona')) return;
     if (!r || !r.ok) { $('rem-persona').innerHTML = '<option value="">No se pudo cargar</option>'; return; }
     $('rem-persona').innerHTML = '<option value="">— Elija una persona —</option>' + r.candidatos.map(c =>
-      '<option value="' + esc(c.correo) + '"' + (c.yaEnEvento ? ' disabled' : '') + '>' + esc(c.nombre || c.correo) + ' · ' + esc(c.funcion) + (MODULO === 'Coro' ? '' : ' · ' + esc(c.worship || 'sin Worship')) +
+      '<option value="' + esc(c.correo) + '"' + (c.yaEnEvento ? ' disabled' : '') + '>' + esc(c.nombre || c.correo) + ' · ' + esc(c.funcion) + (esGrupo() ? '' : ' · ' + esc(c.worship || 'sin Worship')) +
       (c.fueraAlcance ? ' (otro Worship)' : '') + (c.yaEnEvento ? ' — ' + esc(c.yaEnEvento) : '') + '</option>').join('');
     candidatosCache = r.candidatos;
   }
@@ -1550,6 +1563,15 @@
     if (c && c.fueraAlcance && !confirm((c.nombre || correo) + ' pertenece a otro Worship (' + (c.worship || 'sin Worship') + '). ¿Asignarlo de todas formas?')) return;
     const r = await api('reemplazo_asignar', { idEvento: part.evento.idEvento, funcion: funcion, correo: correo });
     if (r && r.ok) log(r.mensaje || 'Reemplazo asignado.'); else { alert(textoError(r && r.error)); log('No se asignó el reemplazo: ' + textoError(r && r.error)); }
+    await cargarParticipacion(part.evento.idEvento);
+  }
+  async function editarParticipanteUI(correo, funcion, anterior, sel, quitar) {
+    const nom = (part.cantantes.concat(part.instrumentistas, part.otros).find(x => x.correo === correo) || {}).nombre || correo;
+    if (quitar ? !confirm('¿Quitar a ' + nom + ' de este evento?') : !confirm('¿Cambiar a ' + nom + ' de «' + anterior + '» a «' + funcion + '» solo en este evento?\n(Su perfil no se modifica.)')) {
+      if (sel) sel.value = anterior; return;
+    }
+    const r = await api('participacion_editar', quitar ? { idEvento: part.evento.idEvento, correo: correo, quitar: true } : { idEvento: part.evento.idEvento, correo: correo, funcion: funcion });
+    if (r && r.ok) log(r.mensaje || 'Listo.'); else { const m = ERRORES[r && r.error] || textoError(r && r.error); alert('No se pudo: ' + m); log('No se pudo: ' + m); }
     await cargarParticipacion(part.evento.idEvento);
   }
   async function retirarReemplazoUI(id) {
@@ -2025,7 +2047,7 @@
     $('ens-form').classList.remove('oculto');
     $('ens-form-titulo').textContent = f.id ? 'Editar ensamble' : 'Nuevo ensamble';
     $('ens-nombre').value = f.nombre; $('ens-desc').value = f.descripcion;
-    $('ens-alcance').innerHTML = (MODULO === 'Coro' ? ['Todos'] : ['Todos', 'Worship 1', 'Worship 2', 'Worship 3']).map(a => '<option' + (a === f.alcance ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
+    $('ens-alcance').innerHTML = (esGrupo() ? ['Todos'] : ['Todos', 'Worship 1', 'Worship 2', 'Worship 3']).map(a => '<option' + (a === f.alcance ? ' selected' : '') + '>' + esc(a) + '</option>').join('');
     $('ens-funciones').innerHTML = f.funciones.map((x, i) =>
       '<div class="fr-fila"><select data-ef-f="' + i + '" aria-label="Función">' + (funcionesKnown.indexOf(x.funcion) < 0 && x.funcion ? [x.funcion].concat(funcionesKnown) : funcionesKnown).map(n => '<option' + (n === x.funcion ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
       '</select><input type="number" min="1" max="20" value="' + esc(x.cantidad) + '" data-ef-n="' + i + '" aria-label="Cantidad"><button class="btn-danger" data-ef-quitar="' + i + '" type="button" aria-label="Quitar">✕</button></div>').join('');
@@ -2403,7 +2425,7 @@
       let info = calEmbeds[id];
       if (!info) {
         $('cal-msg').textContent = 'Cargando video…';
-        const r = await api('calentamiento_audio', { idCalentamiento: id });
+        const r = await api('calentamiento_audio', Object.assign({ idCalentamiento: id }, ctxEns()));
         if (!r || !r.ok) { $('cal-msg').textContent = '✖ ' + textoError(r && r.error); return; }
         info = calEmbeds[id] = { embed: r.embed, directo: r.directo || '', miniatura: r.miniatura || '' }; $('cal-msg').textContent = '';
       }
@@ -2415,7 +2437,7 @@
     detenerVideoCalent(); $('cal-audio').classList.remove('oculto');
     if (!url) {
       $('cal-msg').textContent = 'Cargando audio…';
-      const r = await api('calentamiento_audio', { idCalentamiento: id });
+      const r = await api('calentamiento_audio', Object.assign({ idCalentamiento: id }, ctxEns()));
       if (!r || !r.ok) { $('cal-msg').textContent = '✖ ' + textoError(r && r.error); return; }
       url = calBlobs[id] = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' }));
       $('cal-msg').textContent = '';
@@ -2894,7 +2916,7 @@
   }
   function guEditor(u, d) {
     const opt = (lista, v) => (lista.indexOf(v) < 0 && v ? [v].concat(lista) : lista).map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
-    const clasif = MODULO === 'Coro'
+    const clasif = esGrupo()
       ? '<label>Categoría vocal / función en el Coro</label><select data-gu="parte">' + opt(d.listas.partes, u.parte) + '</select>'
       : d.clasificacionDisponible
       ? '<label>Pertenencia (Worship / área)</label><select data-gu="worship">' + opt(d.listas.worship, u.worship) + '</select>' +
@@ -2909,6 +2931,8 @@
           '<label class="gu-chk"><input type="checkbox" data-gu="' + k + '"' + (u[k] ? ' checked' : '') + (k === 'admin' && !d.yo.esAdmin ? ' disabled' : '') + '> ' + n + '</label>').join('') + '</div>';
     return '<label>Estado</label><select data-gu="estado">' + (d.estados.indexOf(u.estado) < 0 ? [u.estado].concat(d.estados) : d.estados).map(e => '<option' + (e === u.estado ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>' +
       clasif + cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>' +
+      (d.puedeConmutar ? (d.grupos || []).map(g => { const tiene = (u.modulos || []).indexOf(g.id) >= 0;
+        return '<button class="btn-secondary btn-small" data-gu-acceso="' + esc(u.correo) + '" data-grupo="' + esc(g.id) + '" data-on="' + (tiene ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (tiene ? 'Quitar acceso a ' : 'Dar acceso a ') + esc((g.icono || '') + ' ' + g.id) + '</button>'; }).join('') : '') +
       '<button class="btn-secondary btn-small" data-gu-quitar="' + esc(u.correo) + '" style="margin-top:6px;">Quitar de ' + esc(MODULO || 'este módulo') + '</button>';
   }
   function pintarGestion() {
@@ -2917,13 +2941,19 @@
     const abiertos = new Set([...document.querySelectorAll('#gu-lista details[open]')].map(x => x.dataset.correo));
     const n = e => d.usuarios.filter(u => u.estado === e).length;
     $('gu-resumen').innerHTML = 'Usuarios: <b>' + d.usuarios.length + '</b> · Activos <b>' + n('Activo') + '</b> · Pendientes <b>' + n('Pendiente') + '</b> · Inactivos <b>' + n('Inactivo') + '</b>';
+    $('gu-modulos').classList.toggle('oculto', !(d.puedeConmutar && d.grupos && d.grupos.length));
+    $('gu-nuevo').classList.toggle('oculto', MODULO === 'Worship' && !(d.grupos || []).some(g => g.encendido));     // con el Coro apagado, Worship se ve exactamente como antes
+    $('gu-modulos').innerHTML = d.puedeConmutar && d.grupos ? '<b>Módulos adicionales</b>' + d.grupos.map(g =>
+      '<div class="fila"><span class="nombre">' + esc((g.icono || '') + ' ' + g.id) + '<span class="meta">' + (g.encendido ? '🟢 Encendido: lo ven solo las personas habilitadas' : '🔴 Apagado: nadie lo ve') + '</span></span>' +
+      '<button class="' + (g.encendido ? 'btn-danger' : 'btn-accent') + ' btn-small" data-mod-sw="' + esc(g.id) + '" data-on="' + (g.encendido ? '0' : '1') + '" type="button">' + (g.encendido ? 'Apagar' : 'Encender') + '</button></div>').join('') +
+      '<div class="aviso">Con un módulo apagado, la aplicación funciona como siempre. Para encenderlo para todos, habilite antes a las personas (en cada usuario: «Dar acceso a …»).</div>' : '';
     const lista = d.usuarios.filter(u =>
       (!q || (u.nombre + ' ' + u.correo).toLowerCase().includes(q)) &&
       (!f || (f === '__cargo' ? guCargos(u).length > 0 : u.estado === f)));
     $('gu-n-parte').innerHTML = '<option value="">(sin definir)</option>' + (d.listas.partes || []).map(x => '<option>' + esc(x) + '</option>').join('');
     $('gu-lista').innerHTML = lista.length ? lista.map(u =>
       '<details class="gu-fila" data-correo="' + esc(u.correo) + '"' + (abiertos.has(u.correo) ? ' open' : '') + '><summary><span class="gu-quien">' +
-      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + ' · ' + (MODULO === 'Coro' ? '' : esc(u.worship || 'sin Worship') + ' · ') + esc(u.parte || 'sin función') + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
+      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + ' · ' + (esGrupo() ? '' : esc(u.worship || 'sin Worship') + ' · ') + esc(u.parte || 'sin función') + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
       '<div class="gu-edit">' + guEditor(u, d) + '</div></details>').join('')
       : '<p class="aviso">Ningún usuario coincide con el filtro.</p>';
   }
@@ -2957,7 +2987,20 @@
   $('btn-gu-actualizar').onclick = () => conOcupado(cargarGestion);
   $('gu-buscar').addEventListener('input', pintarGestion);
   $('gu-filtro').addEventListener('change', pintarGestion);
+  $('gu-modulos').addEventListener('click', ev => {
+    const sw = ev.target.closest('[data-mod-sw]');
+    if (sw) { conOcupado(async () => {
+      const on = sw.dataset.on === '1';
+      if (!confirm(on ? '¿Encender ' + sw.dataset.modSw + '? Solo lo verán las personas habilitadas.' : '¿Apagar ' + sw.dataset.modSw + '? Nadie lo verá; sus datos se conservan.')) return;
+      const r = await api(on ? 'modulo_encender' : 'modulo_apagar', { grupo: sw.dataset.modSw });
+      log(r && r.ok ? r.mensaje : 'No se pudo: ' + (ERRORES[r && r.error] || textoError(r && r.error))); await cargarGestion(); }); return; }
+  });
   $('gu-lista').addEventListener('click', ev => {
+    const ac = ev.target.closest('[data-gu-acceso]');
+    if (ac) { conOcupado(async () => {
+      const on = ac.dataset.on === '1', parte = on ? (prompt('Categoría o función en ' + ac.dataset.grupo + ' (opcional; ej. Soprano, Tenor, Pianista):', '') || '') : '';
+      const r = await api('modulo_acceso', { grupo: ac.dataset.grupo, correo: ac.dataset.guAcceso, pertenece: on, parte: parte });
+      log(r && r.ok ? (r.mensaje || 'Listo.') : 'No se pudo: ' + (ERRORES[r && r.error] || String((r && r.mensaje) || (r && r.error) || ''))); await cargarGestion(); }); return; }
     const q = ev.target.closest('[data-gu-quitar]');
     if (q) { conOcupado(() => cambiarMembresia(q.dataset.guQuitar, false)); return; }
     const b = ev.target.closest('[data-gu-guardar]'); if (!b) return;
@@ -3090,6 +3133,12 @@
   }
   $('btn-sync').onclick = () => conOcupado(() => sincronizar(false));
   $('btn-sync-previa').onclick = () => conOcupado(() => sincronizar(true));
+  $('btn-sync-diag').onclick = () => conOcupado(async () => {
+    const r = await api('catalogo_diagnostico');
+    if (!r || !r.ok) { alert('No se pudo hacer el diagnóstico: ' + ((r && (r.mensaje || textoError(r.error))) || 'sin respuesta')); return; }
+    const txt = (r.correcto ? 'Catálogo de ' + (r.modulo || '') + ': TODO EN ORDEN' : 'Catálogo de ' + (r.modulo || '') + ': HAY PROBLEMAS') + '\n\n' + r.checks.map(c => (c.ok ? '✔ ' : '✖ ') + c.texto).join('\n');
+    log(txt.replace(/\n+/g, ' · ')); alert(txt);
+  });
 
   /* ---------------- Panel de ensayo ---------------- */
   /* Lista desplegable propia (el selector nativo del celular no permite cambiar la letra de sus opciones) */
@@ -3161,7 +3210,7 @@
   async function abrirEnsayo(idCancion, titulo) {
     cerrarAudio(); cerrarPdf();
     log('Buscando recursos de «' + titulo + '»…');
-    const r = await api('recursos_cancion', { idCancion: idCancion });
+    const r = await api('recursos_cancion', Object.assign({ idCancion: idCancion }, ctxEns()));
     if (!r || !r.ok) { log('No se pudieron obtener los recursos: ' + textoError(r && r.error)); return; }
     recursos = r.recursos || []; cancionAbierta = idCancion;
     $('titulo-ensayo').textContent = titulo;
@@ -3193,7 +3242,7 @@
     if (!id) { log('Seleccione un audio.'); return; }
     seqDetener();
     log('Cargando audio…');
-    const r = await api('mp3', { idCancion: cancionAbierta, idArchivo: id });
+    const r = await api('mp3', Object.assign({ idCancion: cancionAbierta, idArchivo: id }, ctxEns()));
     if (!r || !r.ok) { log('No se pudo cargar el audio: ' + textoError(r && r.error)); return; }
     const a = $('audio'), loop = a.loop;
     a.pause();
@@ -3255,7 +3304,7 @@
     if (seq.cargando.has(id)) return seq.cargando.get(id);
     const gen = seq.gen, cancion = cancionAbierta;
     const p = (async () => {
-      const r = await api('mp3', { idCancion: cancion, idArchivo: id });
+      const r = await api('mp3', Object.assign({ idCancion: cancion, idArchivo: id }, ctxEns()));
       if (!r || !r.ok) throw new Error(textoError(r && r.error));
       const u = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' }));
       if (gen !== seq.gen) { URL.revokeObjectURL(u); throw new Error('cancelado'); }
@@ -3372,7 +3421,7 @@
     if (!id) { log('Seleccione un documento.'); return; }
     cerrarPdf();
     log('Cargando documento…');
-    const r = await api('pdf', { idCancion: cancionAbierta, idArchivo: id });
+    const r = await api('pdf', Object.assign({ idCancion: cancionAbierta, idArchivo: id }, ctxEns()));
     if (!r || !r.ok) { log('No se pudo cargar el documento: ' + textoError(r && r.error)); return; }
     $('sel-pdf').value = id; refrescarListas();
     const mio = ++idRender;
@@ -3439,6 +3488,7 @@
     if (d.part) { conOcupado(() => accionParticipacion(d.part)); return; }
     if (b.id === 'btn-rem-asignar') { conOcupado(asignarReemplazoUI); return; }
     if (d.remRetirar) { conOcupado(() => retirarReemplazoUI(d.remRetirar)); return; }
+    if (d.persQuitar) { conOcupado(() => editarParticipanteUI(d.persQuitar, '', '', null, true)); return; }
     if (d.pres) {
       if (d.pres === 'vacios') conOcupado(() => sortearUI(true));
       else if (d.pres === 'todos') conOcupado(() => sortearUI(false));
