@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'none'">
   <title>Palermo Music – Sistema de Repertorios</title>
   <style>
   body[data-modulo="Coro"] #estado-sesion { border-left: 4px solid #B7791F; }
@@ -186,7 +187,6 @@
     .cal-video { width:100%; aspect-ratio:16/9; border:0; border-radius:var(--r); margin-top:8px; background:#000; display:block; }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -204,7 +204,7 @@
          data-client_id="397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com"
          data-callback="manejarCredencial" data-auto_select="false"></div>
     <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
-    <div id="estado-sesion" class="aviso">Inicie sesión con su cuenta de Google.</div>
+    <div id="estado-sesion" class="aviso" role="status" aria-live="polite">Inicie sesión con su cuenta de Google.</div>
     <button class="btn-secondary btn-small oculto" id="btn-modulo" style="margin-top:8px;">🔀 Cambiar de módulo</button>
     <button class="btn-secondary btn-small oculto" id="btn-salir" style="margin-top:8px;">Cerrar sesión</button>
   </div>
@@ -216,7 +216,7 @@
     <div id="mod-botones" class="botones" style="justify-content:center;"></div>
   </div>
 
-  <div id="aviso-usuario" class="card oculto" style="color:var(--err);font-size:14px;"></div>
+  <div id="aviso-usuario" role="alert" class="card oculto" style="color:var(--err);font-size:14px;"></div>
 
   <!-- Inicio / menú principal -->
   <div class="oculto" id="menu">
@@ -547,7 +547,7 @@
       <label for="fn-nombre"><b>Nueva función</b></label>
       <input type="text" id="fn-nombre" maxlength="40" placeholder="Ej.: Trombonista" autocomplete="off">
       <div class="botones"><button class="btn-accent" id="fn-crear" type="button">➕ Crear función</button></div>
-      <div class="aviso" id="fn-aviso"></div>
+      <div class="aviso" id="fn-aviso" aria-live="polite"></div>
     </div>
     <div id="ens-form" class="oculto" style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px;">
       <h3 id="ens-form-titulo">Nuevo ensamble</h3>
@@ -775,11 +775,24 @@
   </div></nav>
 
 <script>
-  try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) { /* sin visor de PDF, pero la app sigue funcionando */ }
+  // v4.5.0: el visor de PDF (≈300 KB) se descarga solo la primera vez que se abre un PDF, no al arrancar.
+  let _pdfjsPromesa = null;
+  function cargarPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (_pdfjsPromesa) return _pdfjsPromesa;
+    _pdfjsPromesa = new Promise((ok, mal) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) {} ok(window.pdfjsLib); };
+      s.onerror = () => { _pdfjsPromesa = null; mal(new Error('No se pudo cargar el visor de PDF. Revise la conexión e intente de nuevo.')); };
+      document.head.appendChild(s);
+    });
+    return _pdfjsPromesa;
+  }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzwggan-8JZ1z48c54JnnP1F1YeIWU39Wf6JHvMrTLMMGXJ1bd1tnFj7YKoBltjy7g8VQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxtXcNlUe44P0hD6XuBtJX3DWjFLXfNa7Ov1B8Zn6wgTgCjWdodXvSBtZnhUwgKLJSAUw/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.4.3';
+  const VERSION_SERVIDOR_ESPERADA = 'v4.5.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + m).trim();
@@ -3428,7 +3441,7 @@
     const cont = $('visor-pdf'); cont.innerHTML = ''; cont.classList.remove('oculto');
     try {
       const sil = await prepararMarca();
-      const pdf = await pdfjsLib.getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise;
+      const pdf = await (await cargarPdfJs()).getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise;
       if (mio !== idRender) { pdf.destroy(); return; }
       pdfActual = pdf; estadoGuardar({ pdf: id });
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
