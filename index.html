@@ -9,6 +9,10 @@
   body[data-modulo="Coro"] #estado-sesion { border-left: 4px solid #B7791F; }
   .chip-modulo { display:inline-block; padding:1px 9px; border-radius:10px; font-size:12px; font-weight:700; background:#12306e; color:#fff; }
   body[data-modulo="Coro"] .chip-modulo { background:#B7791F; }
+  body[data-modulo="Nex"] #estado-sesion { border-left: 4px solid #2B6CB0; } body[data-modulo="Nex"] .chip-modulo { background:#2B6CB0; }
+  body[data-modulo="Inf"] #estado-sesion { border-left: 4px solid #2F855A; } body[data-modulo="Inf"] .chip-modulo { background:#2F855A; }
+  .insignia { display:inline-block; min-width:20px; padding:1px 7px; border-radius:999px; background:var(--err); color:#fff; font-size:12px; font-weight:700; margin-left:6px; line-height:1.5; }
+  #tabbar button.tab { position:relative; } #tabbar .tab .punto { position:absolute; top:6px; right:calc(50% - 22px); width:10px; height:10px; border-radius:50%; background:var(--err); }
     /* ===== Palermo Music v4.0 · tema «Escenario Oscuro» (todas las apariencias salen de estas variables) ===== */
     :root { --bg:#0d0f1a; --s:#171a2b; --s2:#20243a; --s3:#2a2f4a; --tx:#f2f3fb; --mu:#9aa1c4; --bd:#2f3556;
             --p:#7c5cff; --onp:#fff; --a:#22d3ee; --ona:#04222a; --ok:#34d399; --warn:#fbbf24; --err:#fb7185; --r:14px; --r2:10px;
@@ -231,15 +235,21 @@
       </div>
     </div>
     <div class="aviso oculto" id="ini-ensayos"></div>
-    <button class="btn-primary" id="btn-stats" type="button" style="margin:0 0 12px;">📈 Mis estadísticas personales</button>
     <div class="menu-tit oculto">Accesos</div>
     <div class="menu-grid oculto">
       <button class="btn-accent" id="btn-biblioteca">🎧 Material de ensayo</button>
       <button class="btn-primary" id="btn-eventos">📅 Eventos Programados y Repertorio</button>
     </div>
     <div id="bloque-mas">
-      <div class="menu-tit">Entrenamiento vocal</div>
-      <div class="menu-grid" id="grid-entren">
+      <div class="menu-tit">Para ti</div>
+      <div class="menu-grid" id="grid-parati">
+        <button class="btn-primary" id="btn-stats" type="button">📈 Mi estadística personal</button>
+        <button class="btn-secondary" id="btn-frecuencia" type="button">📊 Frecuencia de cantos e histórico</button>
+        <button class="btn-secondary" id="btn-qr" type="button">📶 QR de la red Wi-Fi</button>
+        <button class="btn-secondary" id="btn-reportes" type="button">💬 Tu opinión <span id="ins-opinion" class="insignia oculto" aria-live="polite"></span></button>
+      </div>
+      <div class="menu-tit oculto">Entrenamiento vocal</div>
+      <div class="menu-grid oculto" id="grid-entren">
         <button class="btn-accent" id="btn-calent-lib" type="button">🎙 Calentamientos</button>
       </div>
       <div class="menu-tit">Programación</div>
@@ -249,7 +259,6 @@
         <button class="btn-secondary oculto" id="btn-ensambles" data-rol="montaje">🎼 Ensambles (esquemas de montaje)</button>
         <button class="btn-secondary oculto" id="btn-calent" data-rol="programa">🎙 Gestionar calentamientos (cargar y archivar)</button>
         <button class="btn-secondary oculto" id="btn-asistencia" data-rol="programa">✅ Informe de asistencia</button>
-        <button class="btn-secondary oculto" id="btn-frecuencia" data-rol="programa">📊 Frecuencia de cantos (historial)</button>
       </div>
       <div class="menu-tit">Administración</div>
       <div class="menu-grid" id="grid-admin">
@@ -260,14 +269,6 @@
         <button class="btn-primary oculto" id="btn-usuarios" data-rol="admin">👥 Registro de usuarios</button>
         <button class="btn-primary oculto" id="btn-gestion" data-rol="gestionar">🛠️ Gestión de usuarios</button>
         <button class="btn-secondary oculto" id="btn-correo" data-rol="admin">✉️ Correo remitente</button>
-      </div>
-      <div class="menu-tit">Red Wi-Fi</div>
-      <div class="menu-grid" id="grid-red">
-        <button class="btn-secondary" id="btn-qr" type="button">📶 QR de la red Wi-Fi</button>
-      </div>
-      <div class="menu-tit">Tu opinión</div>
-      <div class="menu-grid" id="grid-opinion">
-        <button class="btn-secondary" id="btn-reportes" type="button">💬 Reportes e ideas</button>
       </div>
     </div>
   </div>
@@ -320,10 +321,10 @@
   <div id="qr-zoom" class="oculto" style="position:fixed;inset:0;z-index:50;background:#fff;display:flex;align-items:center;justify-content:center;padding:12px;"><img id="qr-zoom-img" alt="QR de la red Wi-Fi" style="max-width:100%;max-height:100%;"></div>
 
   <div class="card oculto" id="vista-reportes">
-    <h3>💬 Reportes e ideas</h3>
-    <div class="aviso">Cuéntanos una falla o error, una idea o una solicitud. La revisa el administrador y aquí verás su respuesta.</div>
+    <h3>💬 Tu opinión</h3>
+    <div class="aviso">Cuéntanos un <b>fallo</b> que encontraste o una <b>sugerencia</b> para mejorar la app. La revisan los administradores y aquí verás en qué estado va tu reporte.</div>
     <label for="rp-tipo">¿Qué quieres enviar?</label>
-    <select id="rp-tipo"><option>Falla o error</option><option>Idea</option><option>Solicitud</option></select>
+    <select id="rp-tipo"><option value="Falla o error">Fallo (algo no funciona o es confuso)</option><option value="Sugerencia">Sugerencia (una mejora o idea)</option></select>
     <label for="rp-seccion">¿En qué parte de la app?</label>
     <select id="rp-seccion"><option>Inicio</option><option>Eventos</option><option>Repertorio</option><option>Ensayo</option><option>Calentamientos</option><option>Estadísticas</option><option>Asistencia</option><option>Usuarios</option><option selected>Otra</option></select>
     <label for="rp-asunto">Asunto</label>
@@ -335,8 +336,8 @@
     <div class="set-titulo">Mis reportes</div>
     <div id="rp-mios"></div>
     <div id="rp-admin" class="oculto">
-      <div class="set-titulo">Reportes recibidos (administrador)</div>
-      <select id="rp-filtro"><option value="">Todos los estados</option><option>Nuevo</option><option>En revisión</option><option>Resuelto</option><option>Descartado</option></select>
+      <div class="set-titulo">Reportes recibidos (administradores y programadores)</div>
+      <select id="rp-filtro"><option value="">Todos los estados</option><option>Nuevo</option><option>Recibido</option><option>En revisión</option><option>Resuelto</option><option>Descartado</option></select>
       <div id="rp-lista"></div>
     </div>
   </div>
@@ -422,10 +423,11 @@
     <input type="text" id="in-nombre" maxlength="120" placeholder="Ej: Culto dominical">
     <label for="in-fecha"><b>Fecha</b></label>
     <input type="date" id="in-fecha">
-    <div id="bloque-ens-hora" class="oculto">
+    <div id="bloque-ens-hora">
+      <div class="aviso" id="hora-ayuda">Hora de inicio (opcional): si la indica, las personas podrán <b>marcar su asistencia</b> durante los primeros 30 minutos.</div>
       <div class="botones" style="flex-wrap:wrap;align-items:flex-end;"><div><label for="in-hora" style="font-size:12px;"><b>Inicia</b></label><input type="time" id="in-hora"></div><div><label for="in-hora-fin" style="font-size:12px;"><b>Termina</b></label><input type="time" id="in-hora-fin"></div><div style="flex:1;min-width:150px;"><label for="in-lugar" style="font-size:12px;"><b>Lugar</b></label><input type="text" id="in-lugar" maxlength="80" placeholder="Opcional"></div></div>
       <div class="grupo" id="bloque-copiar"><label for="in-copiar"><b>Usar el repertorio de un evento</b></label><select id="in-copiar"><option value="">— Elegir un evento —</option></select><button class="btn-secondary btn-small" id="btn-copiar" type="button">📋 Copiar sus sets y cantos</button><div class="aviso">Copia los sets y cantos del evento elegido (con sus recursos de estudio); después puede quitar o agregar cantos. No se copian personas ni presentadores.</div></div>
-      <div class="aviso">Cualquier persona activa puede confirmar y registrar su asistencia, o puede marcarla quien programa. Se registra desde 1 hora antes de que empiece hasta 30 minutos después de que termine; no se programan personas ni presentadores. Los cantos que agregue serán el repertorio de estudio de este ensayo.</div>
+      <div class="aviso">Cualquier persona activa puede confirmar y registrar su asistencia, o puede marcarla quien programa. Se registra solo durante los primeros 30 minutos desde la hora de inicio; no se programan personas ni presentadores. Los cantos que agregue serán el repertorio de estudio de este ensayo.</div>
     </div>
     <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
     <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
@@ -661,6 +663,7 @@
       <div id="zona-audio" class="oculto" style="margin-top:8px;">
         <audio id="audio" controls controlsList="nodownload" style="width:100%;"></audio>
         <button class="btn-secondary" id="btn-loop" style="margin-top:6px;">🔁 Repetir: NO</button>
+        <button class="btn-secondary oculto" id="btn-desc-audio" data-desc="1" style="margin-top:6px;">⬇ Descargar audio (con marca)</button>
       </div>
       <div id="bloque-secuencia" style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--bd);">
         <label>🎼 Secuencia de ensayo</label>
@@ -685,6 +688,7 @@
       <div class="botones">
         <button class="btn-primary" id="btn-abrir-pdf">📖 Abrir documento</button>
         <button class="btn-secondary" id="btn-cerrar-pdf">✕ Cerrar documento</button>
+        <button class="btn-secondary oculto" id="btn-desc-pdf" data-desc="1">⬇ Descargar PDF (con marca)</button>
       </div>
       <div id="visor-pdf" class="oculto" style="margin-top:10px;"></div>
     </div>
@@ -771,6 +775,7 @@
     <button class="tab on" data-tab="inicio" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Inicio</span></button>
     <button class="tab" data-tab="eventos" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Eventos</span></button>
     <button class="tab" data-tab="ensayo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="5" height="7" rx="2"/><rect x="16" y="14" width="5" height="7" rx="2"/></svg><span>Ensayo</span></button>
+    <button class="tab" data-tab="calentar" type="button" aria-label="Calentamientos vocales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Calentar</span></button>
     <button class="tab" data-tab="mas" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg><span>Más</span></button>
   </div></nav>
 
@@ -790,12 +795,13 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxtXcNlUe44P0hD6XuBtJX3DWjFLXfNa7Ov1B8Zn6wgTgCjWdodXvSBtZnhUwgKLJSAUw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.5.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v4.6.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
-  let ICONOS_MOD = { Worship: '🎸' };
-  const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + m).trim();
+  let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
+  const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
+  let PUEDE_DESCARGAR = false;
   const esGrupo = () => !!MODULO && MODULO !== 'Worship';          // «agrupación adicional» (Coro u otra): no usa Worship 1/2/3
   // contexto del ensayo que se está viendo: permite abrir el material de SUS cantos sin responder antes el próximo evento
   const ctxEns = () => (esEnsVista() && vistaEv ? { ctxEvento: vistaEv.idEvento } : {});
@@ -918,7 +924,7 @@
     CALENTAMIENTO_NO_DISPONIBLE: 'Ese ejercicio ya no está disponible.', SIN_PERMISO_GRUPO: 'Ese ejercicio es de otro grupo de voces.', CALENTAMIENTO_NO_ENCONTRADO: 'No se encontró el ejercicio.',
     IDS_INVALIDOS: 'La selección no es válida.', IDS_REPETIDOS: 'Hay ejercicios repetidos en la selección.', DEMASIADOS_CALENTAMIENTOS: 'Máximo 30 ejercicios por evento.' });
   Object.assign(ERRORES, { HORA_REQUERIDA: 'Indique la hora de inicio del ensayo.', HORA_FIN_REQUERIDA: 'Indique la hora en que termina el ensayo.', HORA_FIN_INVALIDA: 'La hora de fin debe ser posterior a la de inicio.',
-    VENTANA_NO_ABIERTA: 'Aún no se abre el registro: se abre 1 hora antes de que empiece el ensayo.', VENTANA_CERRADA: 'El registro ya cerró (30 minutos después de terminar el ensayo). Avise a quien programa.',
+    VENTANA_NO_ABIERTA: 'Aún no se abre el registro: se habilita a la hora de inicio y dura 30 minutos.', VENTANA_CERRADA: 'El registro ya cerró (dura 30 minutos desde la hora de inicio). Avise a quien programa.', DESCARGA_NO_AUTORIZADA: 'No tienes autorización para descargar. Solicítala al administrador.',
     NO_CONVOCADO: 'Para registrar tu asistencia primero debes confirmar tu participación en el evento.', YA_MARCADA: 'Tu asistencia ya fue marcada por quien programa.', SOLO_ENSAYOS: 'El registro propio es solo para ensayos.',
     ENSAYO_SIN_HORARIO: 'Este ensayo no tiene horario: lo marca quien programa.', SESION_CANCELADA: 'Este ensayo fue cancelado.', SESION_NO_ENCONTRADA: 'No se encontró el ensayo.',
     TIPO_REPORTE_INVALIDO: 'Elige qué quieres enviar.', ASUNTO_INVALIDO: 'Escribe un asunto de al menos 4 letras.', DETALLE_INVALIDO: 'Cuéntanos un poco más (mínimo 10 caracteres).',
@@ -1013,14 +1019,14 @@
   async function resolverModulo() {
     if (!MODULO) {
       let m = '';
-      try { const q = (new URLSearchParams(location.search).get('m') || '').toLowerCase(); if (q === 'coro') m = 'Coro'; if (q === 'worship') m = 'Worship'; } catch (e) {}
+      try { const q = (new URLSearchParams(location.search).get('m') || '').toLowerCase(); m = ({ coro: 'Coro', adu: 'Coro', nex: 'Nex', inf: 'Inf', worship: 'Worship' })[q] || ''; } catch (e) {}
       MODULO = m || lsGet('pm_modulo') || '';
     }
     let r = await api('quien');
     if (r && !r.ok && r.error === 'MODULO_NO_AUTORIZADO' && MODULO) { MODULO = ''; lsDel('pm_modulo'); r = await api('quien'); }   // el módulo guardado ya no le corresponde
     if (!(r && r.ok)) return r;
     const disp = Array.isArray(r.modulos) && r.modulos.length ? r.modulos : [r.modulo || 'Worship'];
-    r.modulos = disp; if (r.iconos) ICONOS_MOD = r.iconos;
+    r.modulos = disp; if (r.iconos) ICONOS_MOD = r.iconos; if (r.nombresModulo) NOMBRES_MOD = r.nombresModulo;
     if (disp.length > 1 && disp.indexOf(MODULO) < 0) { mostrarSelectorModulos(r, disp); return { selector: true }; }
     const elegido = disp.indexOf(MODULO) >= 0 ? MODULO : disp[0];
     MODULO = elegido; lsSet('pm_modulo', elegido);
@@ -1043,8 +1049,8 @@
   function ajustarModuloUI(r) {
     document.body.dataset.modulo = r.modulo || 'Worship';
     if ((r.modulo && r.modulo !== 'Worship')) {
-      $('in-alcance').innerHTML = '<option value="Todos">Todos (integrantes del Coro)</option>';
-      document.title = 'Palermo ' + r.modulo;
+      $('in-alcance').innerHTML = '<option value="Todos">Todos (integrantes de ' + esc(NOMBRES_MOD[r.modulo] || r.modulo) + ')</option>';
+      document.title = 'Palermo · ' + (NOMBRES_MOD[r.modulo] || r.modulo);
     }
     $('btn-modulo').classList.toggle('oculto', !(r.modulos && r.modulos.length > 1));
     $('vista-modulos').classList.add('oculto');
@@ -1067,7 +1073,8 @@
         b.classList.toggle('oculto', !ok);
       });
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
-      $('grid-entren').classList.toggle('oculto', !!sinCalent); $('grid-entren').previousElementSibling.classList.toggle('oculto', !!sinCalent);
+      document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);       // v4.6.0: Calentamientos vive en la barra inferior, junto a Ensayo
+      PUEDE_DESCARGAR = !!r.puedeDescargar; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
@@ -1178,7 +1185,9 @@
     $('lista-eventos').innerHTML = r.eventos.length
       ? r.eventos.map(e => '<div class="fila"><span class="nombre"><b>' + esc(e.nombre) + '</b>' +
           '<span class="meta">' + esc(ens ? fmtFechaHora(e.fecha, (e.hora || '') + (e.horaFin ? '–' + e.horaFin : '')) + (e.lugar ? ' · ' + e.lugar : '') : e.fecha) + (e.alcance && e.alcance !== 'Todos' ? ' · ' + esc(e.alcance) : '') + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
-          '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">' + (ens ? 'Ver ensayo' : 'Ver repertorio') + '</button>' +
+          '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">' + (ens ? 'Ver ensayo' : 'Ver evento') + '</button>' +
+          '<button class="btn-secondary btn-small" data-ev-conf="' + esc(e.idEvento) + '" type="button">✔ Confirmar asistencia</button>' +
+          (e.hora ? '<button class="btn-secondary btn-small" data-ev-marcar="' + esc(e.idEvento) + '" type="button">🕘 Marcar asistencia</button>' : '') +
           (permisos.reordenar && e.fecha < hoyLocal() ? '<button class="btn-danger btn-small" data-eliminar="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '" data-fecha="' + esc(e.fecha) + '" type="button" aria-label="Eliminar evento cumplido">🗑 Eliminar</button>' : '') + '</div>').join('')
       : '<p class="aviso">' + (ens ? 'No hay ensayos programados.' : 'No hay eventos programados.') + '</p>';
     mostrarVista('vista-eventos');
@@ -1320,7 +1329,7 @@
     const ens = claseForm === 'Ensayo';
     $('titulo-formulario').textContent = eventoEditando ? (ens ? 'Editar el ensayo' : 'Editar repertorio del evento') : (ens ? 'Programar nuevo ensayo' : 'Programar nuevo evento');
     $('btn-guardar-evento').textContent = eventoEditando ? '💾 Guardar cambios' : (ens ? '💾 Guardar ensayo' : '💾 Guardar evento');
-    $('bloque-ens-hora').classList.toggle('oculto', !ens);
+    $('bloque-ens-hora').classList.remove('oculto'); $('hora-ayuda').classList.toggle('oculto', ens);   // v4.6.0: los eventos también pueden tener hora de inicio (opcional)
     $('bloque-copiar').classList.toggle('oculto', !ens);
     document.querySelectorAll('#vista-formulario .solo-evento').forEach(e => e.classList.toggle('oculto', ens));
     $('btn-cancelar-edicion').classList.toggle('oculto', !eventoEditando);
@@ -1435,6 +1444,7 @@
       alcance: $('in-alcance').value, idEnsamble: $('in-ensamble').value, funcionesRequeridas: funcReq.filter(f => f.funcion), publicidad: $('in-publicidad').value.trim(), infoEspiritual: $('in-espiritual').value.trim() };
     if (esE) { delete comun.funcionesRequeridas; delete comun.idEnsamble; delete comun.publicidad; delete comun.infoEspiritual; delete comun.alcance; }
     if (esE) Object.assign(comun, { clase: 'Ensayo', hora: $('in-hora').value, horaFin: $('in-hora-fin').value, lugar: $('in-lugar').value.trim() });
+    else Object.assign(comun, { hora: $('in-hora').value, horaFin: $('in-hora-fin').value, lugar: $('in-lugar').value.trim() });
     let r;
     if (eventoEditando) {
       r = await api('actualizar_evento', Object.assign({ idEvento: eventoEditando.idEvento, estado: eventoEditando.estado || 'Programado' }, comun));
@@ -2176,7 +2186,7 @@
   const pctTxt = v => (v == null ? '—' : v + ' %');
 
   /* ---- Barra inferior ---- */
-  const TAB_DE_VISTA = { 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-stats': 'inicio' };
+  const TAB_DE_VISTA = { 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas' };
   function marcarTab(vista) {
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
@@ -2188,6 +2198,7 @@
     if (t === 'inicio') irInicio();
     else if (t === 'eventos') conOcupado(cargarEventos);
     else if (t === 'ensayo') $('btn-biblioteca').click();
+    else if (t === 'calentar') $('btn-calent-lib').click();
     else {
       ocultarVistas(); marcarTab('mas'); $('bloque-mas').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -2583,6 +2594,8 @@
     }
     else if ((b = t.closest('button[data-ens-sec]'))) ensSec(b.dataset.ensSec);
     else if (t.closest('#btn-reportes')) conOcupado(cargarReportes);
+    else if ((b = t.closest('button[data-ev-conf]'))) conOcupado(async () => { const r = await api('participacion_confirmar', { idEvento: b.dataset.evConf }); alert(r && r.ok ? '✔ ' + (r.mensaje || 'Tu asistencia quedó confirmada.') : 'No se pudo confirmar: ' + textoError(r && r.error)); });
+    else if ((b = t.closest('button[data-ev-marcar]'))) conOcupado(async () => { const r = await api('asistencia_confirmar', { idEvento: b.dataset.evMarcar, idSesion: 'EVENTO' }); alert(r && r.ok ? '✔ ' + (r.mensaje || 'Asistencia registrada.') : 'No se pudo marcar: ' + textoError(r && r.error)); });
     else if (t.closest('#btn-qr')) conOcupado(cargarQR);
     else if (t.closest('#qr-subir')) conOcupado(subirQR);
     else if (t.closest('#qr-quitar')) conOcupado(quitarQR);
@@ -2641,7 +2654,7 @@
     const cont = $('panel-ensayos-mios'); cont.innerHTML = '';
     const r = await api('mis_ensayos', { idEvento: idEvento }); if (!r || !r.ok || !r.ensayos.length) return;
     cont.innerHTML = '<div class="grupo"><label>' + (esEnsVista() ? 'Mi asistencia al ensayo' : 'Ensayos programados') + '</label>' + r.ensayos.map(e => filaEnsayo(e, r.hoy, false)).join('') +
-      '<div class="aviso">Registra tu asistencia desde ' + (r.minAntes / 60) + ' hora antes de que empiece el ensayo hasta ' + r.minDespues + ' minutos después de que termine.</div></div>';
+      '<div class="aviso">Marca tu asistencia durante los primeros ' + r.minDespues + ' minutos desde la hora de inicio.</div></div>';
   }
   function pintarEnsayosInicio(r) {
     const c = $('ini-ensayos'); if (!c) return;
@@ -2685,13 +2698,20 @@
   }
 
   /* ---------------- v4.1.0: reportes, ideas y solicitudes ---------------- */
-  const ESTADOS_REP = ['Nuevo', 'En revisión', 'Resuelto', 'Descartado'];
+  const ESTADOS_REP = ['Nuevo', 'Recibido', 'En revisión', 'Resuelto', 'Descartado'];
+  async function actualizarInsigniaOpinion() {          // señal visible mientras haya reportes sin atender (solo administradores y programadores)
+    const ins = $('ins-opinion'), tab = document.querySelector('#tabbar .tab[data-tab="mas"]');
+    let n = 0;
+    if (permisos.reportes) { const r = await api('reportes_pendientes'); n = r && r.ok ? r.pendientes : 0; }
+    ins.textContent = n; ins.classList.toggle('oculto', !n); ins.setAttribute('aria-label', n + ' reportes sin atender');
+    let pt = tab.querySelector('.punto'); if (n && !pt) { pt = document.createElement('i'); pt.className = 'punto'; tab.appendChild(pt); } if (!n && pt) pt.remove();
+  }
   async function cargarReportes() {
     const m = await api('reportes_mios');
-    $('rp-mios').innerHTML = m && m.ok ? (m.reportes.length ? m.reportes.map(x => '<div class="fila" style="display:block;"><b>' + esc(x.tipo) + ' · ' + esc(x.asunto) + '</b> <span class="chip">' + esc(x.estado) + '</span>' +
+    $('rp-mios').innerHTML = m && m.ok ? (m.reportes.length ? m.reportes.map(x => '<div class="fila" style="display:block;"><b>' + esc(x.tipo === 'Falla o error' ? 'Fallo' : x.tipo) + ' · ' + esc(x.asunto) + '</b> <span class="chip">' + esc(x.estado) + '</span>' +
       '<div class="meta" style="font-size:12px;color:var(--mu);">' + esc(String(x.fecha).slice(0, 10)) + ' · ' + esc(x.seccion) + '</div>' + (x.respuesta ? '<div class="aviso">Respuesta: ' + esc(x.respuesta) + '</div>' : '') + '</div>').join('') : '<div class="aviso">Aún no has enviado reportes.</div>') : '<div class="aviso">No se pudieron cargar tus reportes.</div>';
-    $('rp-admin').classList.toggle('oculto', !permisos.usuarios);
-    if (permisos.usuarios) await cargarReportesAdmin();
+    $('rp-admin').classList.toggle('oculto', !permisos.reportes);
+    if (permisos.reportes) await cargarReportesAdmin();
     mostrarVista('vista-reportes');
   }
   async function cargarReportesAdmin() {
@@ -2700,7 +2720,7 @@
     $('rp-lista').innerHTML = '<div class="aviso">Total ' + r.total + ' · ' + ESTADOS_REP.map(e => e + ': ' + (r.cuenta[e] || 0)).join(' · ') + '</div>' +
       (r.reportes.map(x => '<div class="grupo"><b>' + esc(x.tipo) + ' · ' + esc(x.asunto) + '</b>' +
         '<div class="meta" style="font-size:12px;color:var(--mu);">' + esc(x.nombre) + ' · ' + esc(x.correo) + ' · ' + esc(String(x.fecha).slice(0, 16)) + ' · ' + esc(x.seccion) + (x.contexto ? ' · ' + esc(x.contexto) : '') + '</div>' +
-        '<div style="white-space:pre-wrap;margin:6px 0;">' + esc(x.detalle) + '</div>' +
+        '<div style="white-space:pre-wrap;margin:6px 0;">' + esc(x.detalle) + '</div>' + (x.historial ? '<details><summary>Historial de atención</summary><div class="meta" style="white-space:pre-wrap;font-size:12px;color:var(--mu);">' + esc(x.historial) + '</div></details>' : '') +
         '<select data-rp-est="' + esc(x.idReporte) + '">' + ESTADOS_REP.map(e => '<option' + (e === x.estado ? ' selected' : '') + '>' + e + '</option>').join('') + '</select>' +
         '<input type="text" data-rp-resp="' + esc(x.idReporte) + '" maxlength="600" placeholder="Respuesta para la persona (opcional)" value="' + esc(x.respuesta) + '">' +
         '<button class="btn-secondary btn-small" data-rp-guardar="' + esc(x.idReporte) + '" type="button">Guardar</button></div>').join('') || '<div class="aviso">No hay reportes.</div>');
@@ -2708,7 +2728,7 @@
   async function guardarReporteAdmin(id) {
     const est = document.querySelector('select[data-rp-est="' + id + '"]'), resp = document.querySelector('input[data-rp-resp="' + id + '"]');
     const r = await api('reporte_gestionar', { idReporte: id, estado: est.value, respuesta: resp.value });
-    if (r && r.ok) { await cargarReportesAdmin(); $('rp-msg').textContent = '✔ Reporte actualizado.'; } else $('rp-msg').textContent = '✖ ' + textoError(r && r.error);
+    if (r && r.ok) { await cargarReportesAdmin(); actualizarInsigniaOpinion(); $('rp-msg').textContent = '✔ Reporte actualizado.'; } else $('rp-msg').textContent = '✖ ' + textoError(r && r.error);
   }
   async function enviarReporte() {
     const r = await api('reporte_enviar', { tipo: $('rp-tipo').value, seccion: $('rp-seccion').value, asunto: $('rp-asunto').value, detalle: $('rp-detalle').value,
@@ -2920,7 +2940,7 @@
   });
 
   /* ---------------- Gestión de usuarios (administrador y programador) ---------------- */
-  let guDatos = null;
+  let guDatos = null, guDescarga = [];
   const guCargos = u => [u.adminGeneral && 'Admin. general', u.admin && 'Administrador', u.programador && 'Programador', u.editor && 'Editor'].filter(Boolean);
   function guInsignia(u) {
     const col = u.estado === 'Activo' ? '#276749' : u.estado === 'Pendiente' ? '#B7791F' : '#9B2C2C';
@@ -2930,7 +2950,7 @@
   function guEditor(u, d) {
     const opt = (lista, v) => (lista.indexOf(v) < 0 && v ? [v].concat(lista) : lista).map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
     const clasif = esGrupo()
-      ? '<label>Categoría vocal / función en el Coro</label><select data-gu="parte">' + opt(d.listas.partes, u.parte) + '</select>'
+      ? '<label>Categoría vocal / función en este grupo</label><select data-gu="parte">' + opt(d.listas.partes, u.parte) + '</select>'
       : d.clasificacionDisponible
       ? '<label>Pertenencia (Worship / área)</label><select data-gu="worship">' + opt(d.listas.worship, u.worship) + '</select>' +
         '<label>Función musical</label><select data-gu="parte">' + opt(d.listas.partes, u.parte) + '</select>'
@@ -2945,7 +2965,8 @@
     return '<label>Estado</label><select data-gu="estado">' + (d.estados.indexOf(u.estado) < 0 ? [u.estado].concat(d.estados) : d.estados).map(e => '<option' + (e === u.estado ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>' +
       clasif + cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>' +
       (d.puedeConmutar ? (d.grupos || []).map(g => { const tiene = (u.modulos || []).indexOf(g.id) >= 0;
-        return '<button class="btn-secondary btn-small" data-gu-acceso="' + esc(u.correo) + '" data-grupo="' + esc(g.id) + '" data-on="' + (tiene ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (tiene ? 'Quitar acceso a ' : 'Dar acceso a ') + esc((g.icono || '') + ' ' + g.id) + '</button>'; }).join('') : '') +
+        return '<button class="btn-secondary btn-small" data-gu-acceso="' + esc(u.correo) + '" data-grupo="' + esc(g.id) + '" data-on="' + (tiene ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (tiene ? 'Quitar acceso a ' : 'Dar acceso a ') + esc((g.icono || '') + ' ' + (g.nombre || g.id)) + '</button>'; }).join('') : '') +
+      (permisos.usuarios ? '<button class="btn-secondary btn-small" data-gu-desc="' + esc(u.correo) + '" data-on="' + (guDescarga.indexOf(String(u.correo).toLowerCase()) >= 0 ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (guDescarga.indexOf(String(u.correo).toLowerCase()) >= 0 ? '⛔ Retirar permiso de descarga' : '⬇ Permitir descargar partituras y audios (con marca)') + '</button>' : '') +
       '<button class="btn-secondary btn-small" data-gu-quitar="' + esc(u.correo) + '" style="margin-top:6px;">Quitar de ' + esc(MODULO || 'este módulo') + '</button>';
   }
   function pintarGestion() {
@@ -2957,7 +2978,7 @@
     $('gu-modulos').classList.toggle('oculto', !(d.puedeConmutar && d.grupos && d.grupos.length));
     $('gu-nuevo').classList.toggle('oculto', MODULO === 'Worship' && !(d.grupos || []).some(g => g.encendido));     // con el Coro apagado, Worship se ve exactamente como antes
     $('gu-modulos').innerHTML = d.puedeConmutar && d.grupos ? '<b>Módulos adicionales</b>' + d.grupos.map(g =>
-      '<div class="fila"><span class="nombre">' + esc((g.icono || '') + ' ' + g.id) + '<span class="meta">' + (g.encendido ? '🟢 Encendido: lo ven solo las personas habilitadas' : '🔴 Apagado: nadie lo ve') + '</span></span>' +
+      '<div class="fila"><span class="nombre">' + esc((g.icono || '') + ' ' + (g.nombre || g.id)) + '<span class="meta">' + (g.encendido ? '🟢 Encendido: lo ven solo las personas habilitadas' : '🔴 Apagado: nadie lo ve') + (g.pref ? ' · prefijo de carpetas: ' + esc(g.pref) + ' - ' : '') + (g.carpetaConfigurada ? '' : ' · ⚠ falta la carpeta de Drive (propiedad CARPETA_CATALOGO_…)') + '</span></span>' +
       '<button class="' + (g.encendido ? 'btn-danger' : 'btn-accent') + ' btn-small" data-mod-sw="' + esc(g.id) + '" data-on="' + (g.encendido ? '0' : '1') + '" type="button">' + (g.encendido ? 'Apagar' : 'Encender') + '</button></div>').join('') +
       '<div class="aviso">Con un módulo apagado, la aplicación funciona como siempre. Para encenderlo para todos, habilite antes a las personas (en cada usuario: «Dar acceso a …»).</div>' : '';
     const lista = d.usuarios.filter(u =>
@@ -2978,6 +2999,7 @@
         : (ERRORES[e] || (e ? 'El servidor respondió «' + e + '». Si el módulo no está instalado en el servidor, publique UsuariosAdmin.gs.' : 'Sin respuesta del servidor.'));
       log('No se pudo cargar la gestión de usuarios: ' + m); alert('No se pudo cargar la gestión de usuarios:\n' + m); return;
     }
+    if (permisos.usuarios) { const dl = await api('descarga_lista'); guDescarga = dl && dl.ok ? dl.autorizados : []; }
     guDatos = r; pintarGestion(); mostrarVista('vista-gestion');
   }
   async function guardarUsuario(correo, cont) {
@@ -3014,6 +3036,8 @@
       const on = ac.dataset.on === '1', parte = on ? (prompt('Categoría o función en ' + ac.dataset.grupo + ' (opcional; ej. Soprano, Tenor, Pianista):', '') || '') : '';
       const r = await api('modulo_acceso', { grupo: ac.dataset.grupo, correo: ac.dataset.guAcceso, pertenece: on, parte: parte });
       log(r && r.ok ? (r.mensaje || 'Listo.') : 'No se pudo: ' + (ERRORES[r && r.error] || String((r && r.mensaje) || (r && r.error) || ''))); await cargarGestion(); }); return; }
+    const dsc = ev.target.closest('[data-gu-desc]');
+    if (dsc) { conOcupado(async () => { const r = await api('descarga_autorizar', { correo: dsc.dataset.guDesc, autorizado: dsc.dataset.on === '1' }); log(r && r.ok ? (r.autorizado ? 'Descarga autorizada.' : 'Permiso de descarga retirado.') : 'No se pudo: ' + textoError(r && r.error)); await cargarGestion(); }); return; }
     const q = ev.target.closest('[data-gu-quitar]');
     if (q) { conOcupado(() => cambiarMembresia(q.dataset.guQuitar, false)); return; }
     const b = ev.target.closest('[data-gu-guardar]'); if (!b) return;
@@ -3249,6 +3273,67 @@
     return arr;
   }
 
+  /* ---------------- v4.6.0: descarga autorizada con marca de agua ---------------- */
+  let ultimoPdf = null, ultimoAudio = null;
+  const soloLatin = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '').trim();
+  function textoMarca(email, nombre) { return 'PALERMO MUSIC - ' + soloLatin(nombre || '') + ' - ' + soloLatin(email || '') + ' - ' + new Date().toISOString().slice(0, 10); }
+  let _pdfLibPromesa = null;
+  function cargarPdfLib() {
+    if (window.PDFLib) return Promise.resolve(window.PDFLib);
+    if (_pdfLibPromesa) return _pdfLibPromesa;
+    _pdfLibPromesa = new Promise((ok, mal) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+      s.onload = () => ok(window.PDFLib); s.onerror = () => { _pdfLibPromesa = null; mal(new Error('No se pudo cargar el generador de PDF. Revise la conexión.')); }; document.head.appendChild(s); });
+    return _pdfLibPromesa;
+  }
+  // PDF: texto diagonal repetido en cada página + datos de quien descarga en el pie y en las propiedades del documento
+  async function estamparPdf(PDFLib, bytes, texto) {
+    const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true }), fuente = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    doc.setSubject(texto); doc.setKeywords(['PalermoMusic']);
+    doc.getPages().forEach(pg => {
+      const w = pg.getWidth(), h = pg.getHeight(), tam = Math.max(14, Math.min(w, h) / 22), ancho = fuente.widthOfTextAtSize(texto, tam);
+      for (let y = -h; y < h * 1.6; y += tam * 7) for (let x = -w * 0.6; x < w * 1.2; x += ancho * 0.8)
+        pg.drawText(texto, { x: x, y: y, size: tam, font: fuente, color: PDFLib.rgb(0.55, 0.55, 0.6), opacity: 0.16, rotate: PDFLib.degrees(35) });
+      pg.drawText(texto, { x: 18, y: 10, size: 8, font: fuente, color: PDFLib.rgb(0.3, 0.3, 0.35), opacity: 0.8 });
+    });
+    return await doc.save();
+  }
+  // Audio: etiqueta ID3v2 (comentario) con los datos de quien descarga. Es trazabilidad en metadatos, no una marca audible.
+  function etiquetarMp3(bytes, texto) {
+    const enc = s => { const a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) & 0x7F; return a; };
+    const cuerpo = enc(texto), comm = new Uint8Array(1 + 3 + 1 + cuerpo.length); comm[0] = 0; comm.set(enc('eng'), 1); comm.set(cuerpo, 5);
+    let ver = 3, marcos = new Uint8Array(0), inicioAudio = 0;
+    if (bytes.length > 10 && bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) {
+      const tam = (bytes[6] << 21) | (bytes[7] << 14) | (bytes[8] << 7) | bytes[9]; inicioAudio = 10 + tam;
+      if ((bytes[3] === 3 || bytes[3] === 4) && !(bytes[5] & 0xC0)) {            // se conservan los marcos originales (sin extensión ni desincronización)
+        ver = bytes[3]; let i = 10; const fin = 10 + tam;
+        while (i + 10 <= fin && bytes[i] !== 0) { const t4 = ver === 4 ? ((bytes[i + 4] << 21) | (bytes[i + 5] << 14) | (bytes[i + 6] << 7) | bytes[i + 7]) : ((bytes[i + 4] * 16777216) + (bytes[i + 5] << 16) + (bytes[i + 6] << 8) + bytes[i + 7]); if (i + 10 + t4 > fin) break; i += 10 + t4; }
+        marcos = bytes.subarray(10, i);
+      }
+    }
+    const t = comm.length, cab = new Uint8Array(10);
+    cab.set(enc('COMM'), 0);
+    if (ver === 4) { cab[4] = (t >> 21) & 0x7F; cab[5] = (t >> 14) & 0x7F; cab[6] = (t >> 7) & 0x7F; cab[7] = t & 0x7F; } else { cab[4] = (t >>> 24) & 255; cab[5] = (t >> 16) & 255; cab[6] = (t >> 8) & 255; cab[7] = t & 255; }
+    const total = marcos.length + 10 + t, tag = new Uint8Array(10 + total);
+    tag.set(enc('ID3'), 0); tag[3] = ver; tag[4] = 0; tag[5] = 0; tag[6] = (total >> 21) & 0x7F; tag[7] = (total >> 14) & 0x7F; tag[8] = (total >> 7) & 0x7F; tag[9] = total & 0x7F;
+    tag.set(marcos, 10); tag.set(cab, 10 + marcos.length); tag.set(comm, 20 + marcos.length);
+    const sal = new Uint8Array(tag.length + bytes.length - inicioAudio); sal.set(tag, 0); sal.set(bytes.subarray(inicioAudio), tag.length); return sal;
+  }
+  function refrescarBotonesDescarga() { document.querySelectorAll('[data-desc]').forEach(b => b.classList.toggle('oculto', !PUEDE_DESCARGAR)); }
+  async function descargarConMarca(tipo) {
+    const f = tipo === 'pdf' ? ultimoPdf : ultimoAudio;
+    if (!f) { alert('Primero abre el ' + (tipo === 'pdf' ? 'documento' : 'audio') + '.'); return; }
+    const ok = await api('descarga_registrar', { tipo: tipo, idCancion: f.idCancion });
+    if (!ok || !ok.ok) { alert('No se pudo autorizar la descarga: ' + textoError(ok && ok.error)); return; }
+    const quien = ((document.querySelector('#estado-sesion b') || {}).textContent || ''), correo = (window.__correoActual || ''), texto = textoMarca(correo, quien);
+    const base = soloLatin(f.nombre).replace(/[^A-Za-z0-9._ -]+/g, '_').slice(0, 60) || 'archivo';
+    try {
+      if (tipo === 'pdf') descargarBlob(new Blob([await estamparPdf(await cargarPdfLib(), f.bytes, texto)], { type: 'application/pdf' }), base.replace(/\.pdf$/i, '') + ' (Palermo).pdf');
+      else descargarBlob(new Blob([etiquetarMp3(f.bytes, texto)], { type: 'audio/mpeg' }), base.replace(/\.mp3$/i, '') + ' (Palermo).mp3');
+      log('Descarga lista con marca de agua.');
+    } catch (e) { alert('No se pudo preparar la descarga: ' + e.message); }
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('#btn-desc-pdf,#btn-desc-audio'); if (b) conOcupado(() => descargarConMarca(b.id === 'btn-desc-pdf' ? 'pdf' : 'audio')); });
+
   async function cargarAudioSel(opc) {
     opc = opc || {};
     const id = $('sel-audio').value;
@@ -3261,7 +3346,7 @@
     a.pause();
     if (urlAudio) URL.revokeObjectURL(urlAudio);
     urlAudio = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' }));
-    a.src = urlAudio; a.loop = loop;
+    a.src = urlAudio; a.loop = loop; ultimoAudio = { bytes: aBytes(r.base64), idCancion: cancionAbierta, id: id, nombre: ($('sel-audio').selectedOptions[0] || {}).textContent || id };
     $('zona-audio').classList.remove('oculto');
     estadoGuardar({ audio: id, t: opc.t || 0 });
     if (opc.t) a.addEventListener('loadedmetadata', () => { try { a.currentTime = Math.min(opc.t, Math.max(0, (a.duration || opc.t) - 1)); } catch (e) {} }, { once: true });
@@ -3443,7 +3528,7 @@
       const sil = await prepararMarca();
       const pdf = await (await cargarPdfJs()).getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise;
       if (mio !== idRender) { pdf.destroy(); return; }
-      pdfActual = pdf; estadoGuardar({ pdf: id });
+      pdfActual = pdf; ultimoPdf = { bytes: aBytes(r.base64), idCancion: cancionAbierta, id: id, nombre: ($('sel-pdf').selectedOptions[0] || {}).textContent || id }; estadoGuardar({ pdf: id });
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       for (let n = 1; n <= pdf.numPages; n++) {
         if (mio !== idRender) return;
