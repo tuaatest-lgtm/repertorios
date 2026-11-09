@@ -66,6 +66,11 @@
     .gu-chk input { width:auto; margin:0; min-height:0; }
     .fila .nombre { flex:1; font-size:15px; }
     .fila .meta { font-size:12px; color:var(--mu); display:block; margin-top:2px; }
+    .hero.ens { background:radial-gradient(circle at 85% 0%, #10b981 0%, #065f46 48%, #0b1f1a 100%); margin-top:10px; }
+    .hero.ens small, .hero.ens p { color:#d1fae5; } .hero.ens h4 { font-size:22px; }
+    .fila-ens { border-left:4px solid #34d399; } .acc-ens { display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex:1 1 100%; margin-top:4px; }
+    .ens-verde #mensaje-evento { border-left:4px solid #34d399; }
+    .sg-pers { display:flex; justify-content:space-between; gap:8px; border-top:1px solid var(--bd); padding:6px 0; font-size:13.5px; } .sg-pers .meta { display:block; font-size:12px; color:var(--mu); }
     .ga-fila { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--bd); border-radius:var(--r2); padding:8px 10px; margin:6px 0; background:var(--s); }
     .ga-fila .nombre { flex:1 1 100%; } .ga-fila .nombre b { display:block; } .ga-fila.cumplida { opacity:.75; border-style:dashed; }
     .ga-est { display:inline-block; font-size:11px; font-weight:bold; padding:1px 8px; border-radius:10px; background:var(--s3); }
@@ -249,6 +254,12 @@
         <button class="btn-accent oculto" id="ini-confirmar" type="button">✔ Confirmar mi participación</button>
         <button class="btn-secondary oculto" id="ini-ver" type="button">Ver repertorio y voces del ensamble</button>
       </div>
+    </div>
+    <div class="hero ens oculto" id="ini-hero-ens">
+      <small>Próximo ensayo</small>
+      <h4 id="ini-en-nombre"></h4>
+      <p id="ini-en-detalle"></p>
+      <div class="botones" id="ini-en-botones"></div>
     </div>
     <div class="aviso oculto" id="ini-ensayos"></div>
     <div class="menu-tit oculto">Accesos</div>
@@ -459,10 +470,10 @@
     <label for="in-fecha"><b>Fecha</b></label>
     <input type="date" id="in-fecha">
     <div id="bloque-ens-hora">
-      <div class="aviso" id="hora-ayuda">Hora de inicio (opcional): si la indica, las personas podrán <b>marcar su asistencia</b> durante los primeros 30 minutos.</div>
+      <div class="aviso" id="hora-ayuda">Hora de inicio (opcional): si la indica, las personas podrán <b>registrar su asistencia al evento</b> durante los primeros 30 minutos desde esa hora.</div>
       <div class="botones" style="flex-wrap:wrap;align-items:flex-end;"><div><label for="in-hora" style="font-size:12px;"><b>Inicia</b></label><input type="time" id="in-hora"></div><div><label for="in-hora-fin" style="font-size:12px;"><b>Termina</b></label><input type="time" id="in-hora-fin"></div><div style="flex:1;min-width:150px;"><label for="in-lugar" style="font-size:12px;"><b>Lugar</b></label><input type="text" id="in-lugar" maxlength="80" placeholder="Opcional"></div></div>
       <div class="grupo" id="bloque-copiar"><label for="in-copiar"><b>Usar el repertorio de un evento</b></label><select id="in-copiar"><option value="">— Elegir un evento —</option></select><button class="btn-secondary btn-small" id="btn-copiar" type="button">📋 Copiar sus sets y cantos</button><div class="aviso">Copia los sets y cantos del evento elegido (con sus recursos de estudio); después puede quitar o agregar cantos. No se copian personas ni presentadores.</div></div>
-      <div class="aviso">Cualquier persona activa puede confirmar y registrar su asistencia, o puede marcarla quien programa. Se registra solo durante los primeros 30 minutos desde la hora de inicio; no se programan personas ni presentadores. Los cantos que agregue serán el repertorio de estudio de este ensayo.</div>
+      <div class="aviso">Antes del ensayo, cada persona puede <b>confirmar o cancelar su asistencia previa</b>. A la hora de inicio se abre el <b>registro de asistencia</b> (cada persona marca que está participando en el ensayo) y permanece abierto 30 minutos; también puede marcarla quien programa. No se programan personas ni presentadores. Los cantos que agregue serán el repertorio de estudio de este ensayo.</div>
     </div>
     <label for="in-mensaje"><b>Mensaje general para el equipo</b></label>
     <textarea id="in-mensaje" rows="2" maxlength="1000" placeholder="Indicaciones o notas generales"></textarea>
@@ -832,9 +843,9 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwV_ZN-E4NxGD7R7miK5UEOaZO2hu3MtyusX_805GfBjz5G7uCBTA4fqWT1_mf5TVL0FA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.8.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v4.9.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -961,7 +972,7 @@
     CALENTAMIENTO_NO_DISPONIBLE: 'Ese ejercicio ya no está disponible.', SIN_PERMISO_GRUPO: 'Ese ejercicio es de otro grupo de voces.', CALENTAMIENTO_NO_ENCONTRADO: 'No se encontró el ejercicio.',
     IDS_INVALIDOS: 'La selección no es válida.', IDS_REPETIDOS: 'Hay ejercicios repetidos en la selección.', DEMASIADOS_CALENTAMIENTOS: 'Máximo 30 ejercicios por evento.' });
   Object.assign(ERRORES, { HORA_REQUERIDA: 'Indique la hora de inicio del ensayo.', HORA_FIN_REQUERIDA: 'Indique la hora en que termina el ensayo.', HORA_FIN_INVALIDA: 'La hora de fin debe ser posterior a la de inicio.',
-    VENTANA_NO_ABIERTA: 'Aún no se abre el registro: se habilita a la hora de inicio y dura 30 minutos.', VENTANA_CERRADA: 'El registro ya cerró (dura 30 minutos desde la hora de inicio). Avise a quien programa.', DESCARGA_NO_AUTORIZADA: 'No tienes autorización para descargar. Solicítala al administrador.',
+    VENTANA_NO_ABIERTA: 'Aún no se abre el registro de asistencia: se habilita a la hora de inicio y dura 30 minutos.', ENSAYO_CERRADO: 'El registro de este ensayo ya cerró (30 minutos desde la hora de inicio). Para confirmar o cancelar ahora, hable con quien programa.', YA_REGISTRO_ASISTENCIA: 'Ya registraste tu asistencia a este ensayo, por eso no se puede cancelar. Si fue un error, avise a quien programa.', NO_ES_ENSAYO: 'Esta actividad no es un ensayo.', VENTANA_CERRADA: 'El registro ya cerró (dura 30 minutos desde la hora de inicio). Avise a quien programa.', DESCARGA_NO_AUTORIZADA: 'No tienes autorización para descargar. Solicítala al administrador.',
     NO_CONVOCADO: 'Para registrar tu asistencia primero debes confirmar tu participación en el evento.', YA_MARCADA: 'Tu asistencia ya fue marcada por quien programa.', SOLO_ENSAYOS: 'El registro propio es solo para ensayos.',
     ENSAYO_SIN_HORARIO: 'Este ensayo no tiene horario: lo marca quien programa.', SESION_CANCELADA: 'Este ensayo fue cancelado.', SESION_NO_ENCONTRADA: 'No se encontró el ensayo.',
     TIPO_REPORTE_INVALIDO: 'Elige qué quieres enviar.', ASUNTO_INVALIDO: 'Escribe un asunto de al menos 4 letras.', DETALLE_INVALIDO: 'Cuéntanos un poco más (mínimo 10 caracteres).',
@@ -1219,12 +1230,14 @@
     document.querySelectorAll('#ev-seg button').forEach(b => b.classList.toggle('on', b.dataset.evClase === claseVista));
     const r = await api('listar_eventos', { clase: claseVista });
     if (!r || !r.ok) { log('No se pudieron cargar los eventos: ' + textoError(r && r.error)); return; }
+    const mapaEns = {}; if (ens) { const rm = await api('mis_ensayos', {}); if (rm && rm.ok) rm.ensayos.filter(x => x.actividad).forEach(x => { mapaEns[x.idEvento] = x; }); }
     $('lista-eventos').innerHTML = r.eventos.length
-      ? r.eventos.map(e => '<div class="fila"><span class="nombre"><b>' + esc(e.nombre) + '</b>' +
+      ? r.eventos.map(e => '<div class="fila' + (ens ? ' fila-ens' : '') + '"><span class="nombre"><b>' + (ens ? '🎼 ' : '') + esc(e.nombre) + '</b>' +
           '<span class="meta">' + esc(ens ? fmtFechaHora(e.fecha, (e.hora || '') + (e.horaFin ? '–' + e.horaFin : '')) + (e.lugar ? ' · ' + e.lugar : '') : e.fecha) + (e.alcance && e.alcance !== 'Todos' ? ' · ' + esc(e.alcance) : '') + (programa() && e.estado ? ' · ' + esc(e.estado) : '') + '</span></span>' +
           '<button class="btn-accent btn-small" data-evento="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '">' + (ens ? 'Ver ensayo' : 'Ver evento') + '</button>' +
-          '<button class="btn-secondary btn-small" data-ev-conf="' + esc(e.idEvento) + '" type="button">✔ Confirmar asistencia</button>' +
-          (e.hora ? '<button class="btn-secondary btn-small" data-ev-marcar="' + esc(e.idEvento) + '" type="button">🕘 Marcar asistencia</button>' : '') +
+          (ens && mapaEns[e.idEvento] ? '<div class="acc-ens"><span class="meta">' + esc(textoEstadoEnsayo(mapaEns[e.idEvento])) + ' · ' + esc(textoRegistro(mapaEns[e.idEvento])) + '</span>' + accionesEnsayo(mapaEns[e.idEvento]) + '</div>' :
+            '<button class="btn-secondary btn-small" data-ev-conf="' + esc(e.idEvento) + '" type="button">✔ Confirmar asistencia</button>' +
+            (e.hora ? '<button class="btn-secondary btn-small" data-ev-marcar="' + esc(e.idEvento) + '" type="button">🕘 Registrar asistencia</button>' : '')) +
           (permisos.reordenar && e.fecha < hoyLocal() ? '<button class="btn-danger btn-small" data-eliminar="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '" data-fecha="' + esc(e.fecha) + '" type="button" aria-label="Eliminar evento cumplido">🗑 Eliminar</button>' : '') + '</div>').join('')
       : '<p class="aviso">' + (ens ? 'No hay ensayos programados.' : 'No hay eventos programados.') + '</p>';
     mostrarVista('vista-eventos');
@@ -1237,7 +1250,7 @@
     if (!r || !r.ok) { log('No se pudo cargar el repertorio: ' + textoError(r && r.error)); return; }
     $('titulo-evento').textContent = nombre;
     const ev = r.evento; vistaEv = { idEvento: idEvento, nombre: nombre, r: r };
-    const esEns = !!(ev && ev.clase === 'Ensayo');
+    const esEns = !!(ev && ev.clase === 'Ensayo'); $('vista-repertorio').classList.toggle('ens-verde', esEns);
     $('mensaje-evento').textContent = ev ? ((esEns ? '🎼 Ensayo · ' + fmtFechaHora(ev.fecha, (ev.hora || '') + (ev.horaFin ? '–' + ev.horaFin : '')) + (ev.lugar ? ' · ' + ev.lugar : '') : (ev.fecha || '')) + (ev.alcance ? ' · ' + ev.alcance : '') + (ev.mensaje ? ' · ' + ev.mensaje : '')) : '';
     let html = '';
     const sets = (r.sets || []).filter(s => s.canciones.length);
@@ -1570,11 +1583,26 @@
     SIN_FUNCION_MUSICAL: 'Su perfil no tiene una función musical que confirmar.',
     INACTIVO: 'Su cuenta no está activa.'
   };
+  let segEns = null;
+  function pintarSeguimientoEns(sg) {
+    const R = sg.resumen, tile = (a, b, c) => '<div class="tile"><small>' + a + '</small><b>' + b + '</b>' + (c ? '<i>' + c + '</i>' : '') + '</div>';
+    const fila = x => '<div class="sg-pers"><span>' + esc(x.nombre) + '<span class="meta">' + esc([x.funcion, x.worship].filter(Boolean).join(' · ')) + '</span>' +
+      (x.respuesta !== 'Sin respuesta' ? '<span class="meta">' + esc(x.respuesta) + (x.respondioEn ? ' el ' + esc(fmtCorto(x.respondioEn)) : '') + ' · ' + esc(x.via) + '</span>' : '') + '</span>' +
+      '<span style="text-align:right;">' + (x.asistencia ? '<span class="chip ' + (x.asistencia === 'Asistió' ? 'ok' : x.asistencia === 'Faltó' ? 'no' : 'pend') + '">' + esc(x.asistencia) + '</span><span class="meta">' + esc(x.marcadoPor) + (x.marcadoEn ? ' · ' + esc(hhmm(x.marcadoEn)) : '') + '</span>' : '<span class="meta">Sin registro</span>') + '</span></div>';
+    const grupo = (tit, f, abierto) => { const l = sg.personas.filter(f); return '<details' + (abierto ? ' open' : '') + '><summary><b>' + tit + ' (' + l.length + ')</b></summary>' + (l.map(fila).join('') || '<div class="meta">Nadie.</div>') + '</details>'; };
+    return '<div class="grupo"><label>Seguimiento de asistencia al ensayo</label>' +
+      '<div class="aviso">Asistencia previa = confirmación o cancelación en la app antes del ensayo. Registro de asistencia = marca de participación (' + esc(textoRegistro(sg)) + '). El detalle muestra cuándo y cómo se hizo cada cosa.</div>' +
+      '<div class="tiles2">' + tile('Confirmaron', R.confirmaron + ' / ' + R.habilitados, 'asistencia previa') + tile('Cancelaron', R.cancelaron) + tile('Sin respuesta', R.sinRespuesta) +
+      tile('Asistieron', R.asistieron, 'por sí mismos ' + R.registroPropio + ' · marcados por quien programa ' + R.marcadosPorPrograma) + '</div>' +
+      (R.asistieronSinConfirmar ? '<div class="meta">' + R.asistieronSinConfirmar + ' persona(s) asistieron sin haber confirmado antes.</div>' : '') +
+      grupo('Confirmaron', x => x.respuesta === 'Confirmó', true) + grupo('Cancelaron', x => x.respuesta === 'Canceló', false) + grupo('Sin respuesta', x => x.respuesta === 'Sin respuesta', false) + '</div>';
+  }
   async function cargarParticipacion(idEvento) {
     try {
       const r = await api('participacion_evento', { idEvento: idEvento });
       if (!r || !r.ok) { part = null; $('panel-participacion').innerHTML = '<div class="aviso">No se pudo cargar la participación: ' + esc(textoError(r && r.error)) + '</div>'; return; }
-      part = r;
+      part = r; segEns = null;
+      if (esEnsVista() && programa()) { const sg = await api('ensayo_seguimiento', { idEvento: idEvento }); if (sg && sg.ok) segEns = sg; }
       if (programa() && !funcionesKnown.length) await cargarFuncionesKnown();
       pintarParticipacion();
     } catch (e) { part = null; }
@@ -1591,6 +1619,7 @@
   }
   function pintarParticipacion() {
     const p = part; if (!p) { $('panel-participacion').innerHTML = ''; return; }
+    if (esEnsVista() && programa() && segEns) { $('panel-participacion').innerHTML = pintarSeguimientoEns(segEns); return; }
     if (esEnsVista()) {          // un ensayo no programa personas: solo se muestran quienes ya confirmaron
       const conf = p.cantantes.concat(p.instrumentistas, p.otros);
       $('panel-participacion').innerHTML = programa() ? '<div class="grupo"><label>Confirmaron su asistencia (' + conf.length + ')</label>' + (conf.map(x => '<div class="fila"><span class="nombre">' + esc(x.nombre) + '<span class="meta">' + esc(x.funcion) + '</span></span></div>').join('') || '<div class="aviso">Nadie ha confirmado todavía. La asistencia también se puede marcar al tomar lista.</div>') + '</div>' : '';
@@ -2730,20 +2759,21 @@
     else if (t.closest('#btn-calent-lib')) conOcupado(async () => { const r = await cargarCalentBiblioteca('lib-calent'); if (!r || !r.ok) log('No se pudieron cargar los calentamientos: ' + textoError(r && r.error)); mostrarVista('vista-calent-lib'); });
     else if (t.closest('#rp-enviar')) conOcupado(enviarReporte);
     else if ((b = t.closest('button[data-rp-guardar]'))) conOcupado(() => guardarReporteAdmin(b.dataset.rpGuardar));
+    else if ((b = t.closest('button[data-ens-ver]'))) conOcupado(() => verEvento(b.dataset.ensVer, b.dataset.nombre));
     else if ((b = t.closest('button[data-ens-conf]'))) conOcupado(async () => {
       const r = await api('participacion_confirmar', { idEvento: b.dataset.ensConf });
       if (r && r.ok) log('Asistencia confirmada.'); else { alert(textoError(r && (r.motivo || r.error))); }
-      await cargarInicio(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) { await cargarEnsayosMios(vistaEv.idEvento); await cargarParticipacion(vistaEv.idEvento); }
+      await cargarInicio(); await refrescarListaEnsayos(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) { await cargarEnsayosMios(vistaEv.idEvento); await cargarParticipacion(vistaEv.idEvento); }
     });
     else if ((b = t.closest('button[data-ens-canc]'))) conOcupado(async () => {
       const r = await api('participacion_cancelar', { idEvento: b.dataset.ensCanc });
       if (r && r.ok) log('Confirmación cancelada.'); else alert(textoError(r && r.error));
-      await cargarInicio(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) { await cargarEnsayosMios(vistaEv.idEvento); await cargarParticipacion(vistaEv.idEvento); }
+      await cargarInicio(); await refrescarListaEnsayos(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) { await cargarEnsayosMios(vistaEv.idEvento); await cargarParticipacion(vistaEv.idEvento); }
     });
     else if ((b = t.closest('button[data-ens-checkin]'))) conOcupado(async () => {
       const r = await api('asistencia_confirmar', { idEvento: b.dataset.ev, idSesion: b.dataset.ensCheckin });
       if (r && r.ok) log(r.mensaje || 'Asistencia registrada.'); else { alert(textoError(r && r.error)); log('No se registró la asistencia: ' + textoError(r && r.error)); }
-      await cargarInicio(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) await cargarEnsayosMios(vistaEv.idEvento);
+      await cargarInicio(); await refrescarListaEnsayos(); if (vistaEv && !$('vista-repertorio').classList.contains('oculto')) await cargarEnsayosMios(vistaEv.idEvento);
     });
     else if (t.closest('#cal-otro')) conOcupado(otroCalent);
     else if (t.closest('#cal-rotar')) conOcupado(async () => { const r = await api('calentamiento_rotacion', { idEvento: calEstado.idEvento }); if (r && r.ok) { document.querySelectorAll('#rep-calent-admin input[data-cal-chk]').forEach(c => { c.checked = r.ids.indexOf(c.dataset.calChk) >= 0; }); $('cal-admin-msg').textContent = 'Propuesta cargada: revise y pulse «Guardar asignación».'; } });
@@ -2760,7 +2790,48 @@
 
 
   /* ---------------- v4.1.0: registro de asistencia a ensayos (por la propia persona) ---------------- */
+  /* ---- v4.9.0: el ensayo se maneja con la misma figura que un evento, en verde y con acceso a su material ---- */
+  const hhmm = x => { x = String(x || ''); return x.length > 10 ? x.slice(11, 16) : x; };
+  const fmtCorto = x => { x = String(x || ''); return x.length >= 16 ? fmtFechaHora(x.slice(0, 10), x.slice(11, 16)) : x; };
+  function textoRegistro(e) {
+    if (e.ventana === 'abierta') return 'Registro de asistencia ABIERTO hasta las ' + hhmm(e.cierra);
+    if (e.ventana === 'antes') return 'Registro de asistencia (marcar que participas): abre a las ' + hhmm(e.abre) + ' y cierra a las ' + hhmm(e.cierra);
+    if (e.ventana === 'cerrada') return 'Registro de asistencia cerrado';
+    return 'La asistencia la marca quien programa';
+  }
+  function textoEstadoEnsayo(e) {
+    if (e.miEstado) return 'Tu asistencia quedó registrada: ' + e.miEstado;
+    if (e.convocado) return 'Asistencia previa confirmada' + (e.respondioEn ? ' el ' + fmtCorto(e.respondioEn) : '');
+    if (e.miRespuesta === 'Cancelado') return 'Cancelaste tu asistencia' + (e.respondioEn ? ' el ' + fmtCorto(e.respondioEn) : '');
+    return e.puedeConfirmar ? 'Falta tu confirmación de asistencia' : 'No estás convocado a este ensayo';
+  }
+  function accionesEnsayo(e) {
+    const id = esc(e.idEvento), partes = [];
+    if (e.miEstado) return '<span class="chip ' + (e.miEstado === 'Asistió' ? 'ok' : e.miEstado === 'Faltó' ? 'no' : 'pend') + '">Asistencia: ' + esc(e.miEstado) + '</span>';
+    if (e.convocado) partes.push('<span class="chip ok">✔ Confirmada' + (e.respondioEn ? ' · ' + esc(fmtCorto(e.respondioEn)) : '') + '</span>');
+    else if (e.miRespuesta === 'Cancelado') partes.push('<span class="chip no">Cancelaste' + (e.respondioEn ? ' · ' + esc(fmtCorto(e.respondioEn)) : '') + '</span>');
+    if (e.ventana === 'abierta' && (e.convocado || e.puedeConfirmar)) partes.push('<button class="btn-accent btn-small" data-ens-checkin="' + esc(e.idSesion) + '" data-ev="' + id + '" type="button">📍 Registrar mi asistencia</button>');
+    if (e.ventana !== 'cerrada') {
+      if (e.convocado) partes.push('<button class="btn-secondary btn-small" data-ens-canc="' + id + '" type="button">Cancelar mi asistencia</button>');
+      else if (e.puedeConfirmar) partes.push('<button class="btn-accent btn-small" data-ens-conf="' + id + '" type="button">✔ Confirmar mi asistencia</button>');
+    }
+    return partes.join(' ');
+  }
   function filaEnsayo(e, hoy, conEvento) {
+    if (!e.actividad) return filaEnsayoSesion(e, hoy, conEvento);
+    const cuando = fmtFechaHora(e.fecha, e.hora + (e.horaFin ? '–' + e.horaFin : ''));
+    const ver = conEvento ? '<button class="btn-secondary btn-small" data-ens-ver="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombreEvento) + '" type="button">Ver ensayo y material</button>' : '';
+    return '<div class="fila fila-ens" style="display:block;"><span class="nombre" style="display:block;">🎼 ' + esc(e.nombreEvento) + ' · ' + esc(cuando) + (e.lugar ? '<span class="meta">' + esc(e.lugar) + '</span>' : '') +
+      '<span class="meta">' + esc(textoRegistro(e)) + '</span></span><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + accionesEnsayo(e) + ver + '</div></div>';
+  }
+  function pintarHeroEnsayo(e) {
+    const h = $('ini-hero-ens'); if (!h) return; h.classList.toggle('oculto', !e); if (!e) return;
+    $('ini-en-nombre').textContent = e.nombreEvento;
+    $('ini-en-detalle').innerHTML = esc(fmtFechaHora(e.fecha, e.hora + (e.horaFin ? '–' + e.horaFin : '')) + (e.lugar ? ' · ' + e.lugar : '')) + '<br>' + esc(textoEstadoEnsayo(e)) + '<br><span style="font-size:12.5px;">' + esc(textoRegistro(e)) + '</span>';
+    $('ini-en-botones').innerHTML = '<button class="btn-secondary" data-ens-ver="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombreEvento) + '" type="button">📖 Ver ensayo y material</button>' + accionesEnsayo(e);
+  }
+  async function refrescarListaEnsayos() { if (!$('vista-eventos').classList.contains('oculto') && claseVista === 'Ensayo') await cargarEventos('Ensayo'); }
+  function filaEnsayoSesion(e, hoy, conEvento) {
     const cuando = fmtFechaHora(e.fecha, e.hora + (e.horaFin ? '–' + e.horaFin : ''));
     let acc;
     const abre = e.abre ? (e.abre.slice(0, 10) === e.fecha ? e.abre.slice(11) : fmtFechaHora(e.abre.slice(0, 10), e.abre.slice(11))) : '';
@@ -2780,13 +2851,15 @@
     const cont = $('panel-ensayos-mios'); cont.innerHTML = '';
     const r = await api('mis_ensayos', { idEvento: idEvento }); if (!r || !r.ok || !r.ensayos.length) return;
     cont.innerHTML = '<div class="grupo"><label>' + (esEnsVista() ? 'Mi asistencia al ensayo' : 'Ensayos programados') + '</label>' + r.ensayos.map(e => filaEnsayo(e, r.hoy, false)).join('') +
-      '<div class="aviso">Marca tu asistencia durante los primeros ' + r.minDespues + ' minutos desde la hora de inicio.</div></div>';
+      '<div class="aviso">El <b>registro de asistencia</b> (marcar que participas) se abre a la hora de inicio y dura ' + r.minDespues + ' minutos.</div></div>';
   }
   function pintarEnsayosInicio(r) {
     const c = $('ini-ensayos'); if (!c) return;
-    const lista = r && r.ok ? r.ensayos.filter(e => e.ventana !== 'cerrada' || e.fecha >= r.hoy).slice(0, 3) : [];
+    const todos = r && r.ok ? r.ensayos.filter(e => e.ventana !== 'cerrada' || e.fecha >= r.hoy) : [];
+    const heroE = todos.filter(e => e.actividad && e.ventana !== 'cerrada')[0] || null; pintarHeroEnsayo(heroE);
+    const lista = todos.filter(e => e !== heroE).slice(0, 3);
     c.classList.toggle('oculto', !lista.length);
-    c.innerHTML = lista.length ? '<b>Próximos ensayos</b>' + lista.map(e => filaEnsayo(e, r.hoy, true)).join('') : '';
+    c.innerHTML = lista.length ? '<b>' + (heroE ? 'Otros ensayos' : 'Próximos ensayos') + '</b>' + lista.map(e => filaEnsayo(e, r.hoy, true)).join('') : '';
   }
 
   /* ---------------- v4.3.0: QR de la red Wi-Fi ---------------- */
