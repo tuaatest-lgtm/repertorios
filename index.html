@@ -66,6 +66,22 @@
     .gu-chk input { width:auto; margin:0; min-height:0; }
     .fila .nombre { flex:1; font-size:15px; }
     .fila .meta { font-size:12px; color:var(--mu); display:block; margin-top:2px; }
+    .ga-fila { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--bd); border-radius:var(--r2); padding:8px 10px; margin:6px 0; background:var(--s); }
+    .ga-fila .nombre { flex:1 1 100%; } .ga-fila .nombre b { display:block; } .ga-fila.cumplida { opacity:.75; border-style:dashed; }
+    .ga-est { display:inline-block; font-size:11px; font-weight:bold; padding:1px 8px; border-radius:10px; background:var(--s3); }
+    .gu-acc { display:inline-flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+    .gu-acc button { min-height:30px; padding:2px 9px; font-size:12px; border-radius:14px; border:1px solid var(--bd); background:var(--s3); color:var(--tx); }
+    .gu-acc button.si { background:#065f46; color:#d1fae5; border-color:#34d399; } .gu-acc button[disabled] { opacity:.5; }
+    .tb { margin:8px 0 12px; border:1px solid var(--bd); border-radius:var(--r); padding:8px 10px; background:var(--s2); }
+    .tb h4 { margin:0 0 4px; font-size:15px; } .tb .tb-per { font-size:12px; color:var(--mu); margin-bottom:6px; }
+    .tb .tile.tb-ok { border-left:4px solid var(--ok); } .tb .tile.tb-aviso { border-left:4px solid var(--warn); } .tb .tile.tb-alerta { border-left:4px solid var(--err); }
+    .tb .tile small { display:block; } .tb .tile .tb-est { font-size:11px; font-weight:bold; color:var(--mu); }
+    .tb-fila { display:grid; grid-template-columns:minmax(70px,34%) 1fr auto; gap:8px; align-items:center; font-size:13px; margin:5px 0; }
+    .tb-pista { background:var(--s3); border-radius:6px; height:10px; overflow:hidden; } .tb-relleno { background:var(--a); height:100%; border-radius:6px; }
+    .tb-hall { list-style:none; margin:4px 0; padding:0; } .tb-hall li { display:flex; gap:8px; margin:5px 0; font-size:13.5px; line-height:1.35; }
+    .tb-hall .tb-ico { flex:0 0 auto; font-weight:bold; min-width:1.3em; text-align:center; }
+    .tb-hip { display:inline-block; font-size:11px; font-weight:bold; padding:1px 7px; border-radius:10px; background:var(--s3); color:var(--tx); border:1px dashed var(--mu); margin-right:4px; }
+    .tb .meta { font-size:12px; color:var(--mu); }
     .set-titulo { margin:14px 0 2px; font-size:13px; font-weight:bold; color:var(--a); text-transform:uppercase; letter-spacing:.6px; }
     .aviso { font-size:13px; color:var(--mu); margin:6px 0; }
     .estado-ok { color:var(--ok); font-weight:bold; }
@@ -254,11 +270,12 @@
       </div>
       <div class="menu-tit">Programación</div>
       <div class="menu-grid" id="grid-prog">
-        <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">➕ Programar Eventos</button>
-        <button class="btn-secondary oculto" id="btn-nuevo-ensayo" data-rol="programa">➕ Programar Ensayos</button>
+        <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">🗓 Eventos: crear, modificar y eliminar</button>
+        <button class="btn-secondary oculto" id="btn-nuevo-ensayo" data-rol="programa">🗓 Ensayos: crear, modificar y eliminar</button>
         <button class="btn-secondary oculto" id="btn-ensambles" data-rol="montaje">🎼 Ensambles (esquemas de montaje)</button>
         <button class="btn-secondary oculto" id="btn-calent" data-rol="programa">🎙 Gestionar calentamientos (cargar y archivar)</button>
         <button class="btn-secondary oculto" id="btn-asistencia" data-rol="programa">✅ Informe de asistencia</button>
+        <button class="btn-secondary oculto" id="btn-tabgrupo" data-rol="programa">📊 Tablero de la agrupación y de cada integrante</button>
       </div>
       <div class="menu-tit">Administración</div>
       <div class="menu-grid" id="grid-admin">
@@ -338,6 +355,7 @@
     <div id="rp-admin" class="oculto">
       <div class="set-titulo">Reportes recibidos (administradores y programadores)</div>
       <select id="rp-filtro"><option value="">Todos los estados</option><option>Nuevo</option><option>Recibido</option><option>En revisión</option><option>Resuelto</option><option>Descartado</option></select>
+      <div id="tb-opinion"></div>
       <div id="rp-lista"></div>
     </div>
   </div>
@@ -350,6 +368,7 @@
       <b id="st-mes" style="flex:1;text-align:center;"></b>
       <button class="btn-secondary btn-small" id="st-sig" type="button" aria-label="Mes siguiente">›</button>
     </div>
+    <div id="tb-persona"></div>
     <div id="st-contenido"></div>
   </div>
 
@@ -370,6 +389,21 @@
   </div>
 
   <!-- Informe de asistencia -->
+  <div class="card oculto" id="vista-gestor-act">
+    <h3 id="ga-titulo">Eventos</h3>
+    <div class="aviso" id="ga-aviso"></div>
+    <button class="btn-primary" id="ga-crear" type="button">➕ Crear</button>
+    <div id="ga-lista"></div>
+  </div>
+
+  <div class="card oculto" id="vista-tabgrupo">
+    <h3>📊 Tablero de la agrupación</h3>
+    <div class="aviso">Resumen y análisis de la agrupación activa. Para ver otra agrupación use el selector de la cabecera. Elija un integrante para ver su tablero individual.</div>
+    <label for="tg-persona">Ver</label>
+    <select id="tg-persona"><option value="">Toda la agrupación</option></select>
+    <div id="tg-contenido"></div>
+  </div>
+
   <div class="card oculto" id="vista-asist-informe">
     <h3>✅ Informe de asistencia</h3>
     <div class="botones" style="align-items:flex-end;flex-wrap:wrap;">
@@ -377,6 +411,7 @@
       <div><label for="ai-hasta" style="font-size:12px;">Hasta</label><input type="date" id="ai-hasta"></div>
       <button class="btn-primary btn-small" id="ai-generar" type="button">Generar</button>
     </div>
+    <div id="tb-asistencia"></div>
     <div id="ai-contenido"></div>
   </div>
 
@@ -529,6 +564,7 @@
   <!-- Gestión de usuarios (administrador y programador) -->
   <div class="card oculto" id="vista-frecuencia">
     <h3>Frecuencia de cantos</h3>
+    <div id="tb-frecuencia"></div>
     <div class="aviso" id="fq-resumen"></div>
     <div class="botones" style="margin:6px 0;"><input type="search" id="fq-buscar" placeholder="Buscar canto…" aria-label="Buscar canto" style="margin:0;">
       <select id="fq-filtro" aria-label="Filtro" style="margin:0;"><option value="todos">Todos los cantos</option><option value="usados">Solo los programados</option><option value="sinusar">Nunca programados</option></select></div>
@@ -619,6 +655,7 @@
       <div style="flex:1"><label for="ac-estado" style="font-size:12px;">Estado</label><select id="ac-estado"><option value="">Todos</option><option>Activo</option><option>Inactivo</option></select></div>
     </div>
     <button class="btn-accent" id="btn-ac-consultar" type="button">Consultar</button>
+    <div id="tb-actividad"></div>
     <div id="ac-contenido"></div>
     <button class="btn-secondary" data-volver-gestion="1" type="button">← Volver a Gestión de usuarios</button>
   </div>
@@ -795,9 +832,9 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxptVO-AbYOSLTkPKFCOcKG0h0cEu-6TLkYyYp4-dIP2q0Gqb3oEF5X_MsJPNu7dWPySg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.6.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v4.8.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -975,15 +1012,15 @@
   async function conOcupado(fn) {
     if (ocupado) return;
     ocupado = true;
-    document.querySelectorAll('button').forEach(b => { b.dataset.prev = b.disabled ? '1' : ''; b.disabled = true; });
+    document.querySelectorAll('button').forEach(b => { b.dataset.prev = b.disabled ? '1' : '0'; b.disabled = true; });
     try { await fn(); }
     finally {
-      document.querySelectorAll('button').forEach(b => { b.disabled = b.dataset.prev === '1'; });
+      document.querySelectorAll('button').forEach(b => { if (b.dataset.prev === '1' || b.dataset.prev === '0') { b.disabled = b.dataset.prev === '1'; delete b.dataset.prev; } });   // v4.8.0: los botones creados durante la operación conservan su estado (antes quedaban habilitados)
       ocupado = false;
     }
   }
 
-  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr'];
+  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
@@ -1335,8 +1372,42 @@
     $('btn-cancelar-edicion').classList.toggle('oculto', !eventoEditando);
   }
 
-  $('btn-nuevo-evento').onclick = () => conOcupado(() => abrirNuevo('Evento'));
-  $('btn-nuevo-ensayo').onclick = () => conOcupado(() => abrirNuevo('Ensayo'));
+  /* ---- v4.8.0: administración de eventos y de ensayos con las mismas opciones: crear, modificar, eliminar ---- */
+  let gaClase = 'Evento';
+  async function pintarGestorAct() {
+    const ens = gaClase === 'Ensayo', r = await api('listar_eventos', { clase: gaClase, todos: true });
+    if (!r || !r.ok) { $('ga-lista').innerHTML = '<div class="aviso">No se pudo cargar: ' + esc(textoError(r && r.error)) + '</div>'; return; }
+    const hoy = hoyLocal(), prox = r.eventos.filter(e => e.fecha >= hoy), pas = r.eventos.filter(e => e.fecha < hoy).reverse();
+    const fila = e => '<div class="ga-fila' + (e.fecha < hoy ? ' cumplida' : '') + '"><span class="nombre"><b>' + esc(e.nombre) + '</b><span class="meta">' +
+      esc(ens ? fmtFechaHora(e.fecha, (e.hora || '') + (e.horaFin ? '–' + e.horaFin : '')) + (e.lugar ? ' · ' + e.lugar : '') : (e.hora ? fmtFechaHora(e.fecha, e.hora) : e.fecha)) +
+      (e.alcance && e.alcance !== 'Todos' ? ' · ' + esc(e.alcance) : '') + '</span> ' + (e.fecha < hoy ? '<span class="ga-est">Cumplido · ya no lo ven los usuarios</span>' : '<span class="ga-est">' + esc(e.estado || 'Programado') + '</span>') + '</span>' +
+      '<button class="btn-accent btn-small" data-ga-ver="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '" type="button">Ver</button>' +
+      '<button class="btn-secondary btn-small" data-ga-mod="' + esc(e.idEvento) + '" type="button">✏ Modificar</button>' +
+      '<button class="btn-danger btn-small" data-ga-del="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombre) + '" data-fecha="' + esc(e.fecha) + '" type="button">🗑 Eliminar</button></div>';
+    $('ga-lista').innerHTML = '<div class="set-titulo">Próximos (' + prox.length + ')</div>' + (prox.length ? prox.map(fila).join('') : '<p class="aviso">No hay ' + (ens ? 'ensayos' : 'eventos') + ' próximos.</p>') +
+      '<div class="set-titulo">Cumplidos (' + pas.length + ')</div>' + (pas.length ? pas.map(fila).join('') : '<p class="aviso">Ninguno.</p>');
+  }
+  async function abrirGestorAct(clase) {
+    gaClase = clase; cerrarPanel(); const ens = clase === 'Ensayo';
+    $('ga-titulo').textContent = ens ? '🗓 Ensayos: crear, modificar y eliminar' : '🗓 Eventos: crear, modificar y eliminar';
+    $('ga-crear').textContent = ens ? '➕ Crear ensayo (con horario y lugar)' : '➕ Crear evento';
+    $('ga-aviso').textContent = 'Los usuarios solo ven las actividades próximas: al pasar la fecha dejan de mostrarse. Aquí usted ve todas.';
+    $('ga-lista').innerHTML = ''; mostrarVista('vista-gestor-act'); await pintarGestorAct();
+  }
+  $('btn-nuevo-evento').onclick = () => conOcupado(() => abrirGestorAct('Evento'));
+  $('btn-nuevo-ensayo').onclick = () => conOcupado(() => abrirGestorAct('Ensayo'));
+  $('ga-crear').onclick = () => conOcupado(() => abrirNuevo(gaClase));
+  $('ga-lista').addEventListener('click', ev => {
+    const v = ev.target.closest('[data-ga-ver]'), m = ev.target.closest('[data-ga-mod]'), d = ev.target.closest('[data-ga-del]');
+    if (v) conOcupado(() => verEvento(v.dataset.gaVer, v.dataset.nombre));
+    else if (m) conOcupado(() => editarEvento(m.dataset.gaMod));
+    else if (d) conOcupado(async () => {
+      const pasado = d.dataset.fecha < hoyLocal();
+      if (pasado && permisos.reordenar) { await eliminarEventoUI(d.dataset.gaDel, d.dataset.nombre, d.dataset.fecha); return; }
+      if (!confirm('¿Eliminar «' + d.dataset.nombre + '» (' + d.dataset.fecha + ')?\n\n• Deja de mostrarse a todos.\n• Sus datos y los cantos programados se conservan en el historial (informe de frecuencia).')) return;
+      const r = await api(pasado && permisos.reordenar ? 'evento_eliminar' : 'borrar_evento', { idEvento: d.dataset.gaDel });
+      log(r && r.ok ? (r.mensaje || 'Eliminado.') : 'No se pudo eliminar: ' + textoError(r && r.error)); await pintarGestorAct(); });
+  });
   async function poblarCopiar() {
     const r = await api('listar_eventos', { clase: 'Evento' });
     $('in-copiar').innerHTML = '<option value="">— Elegir un evento —</option>' + (r && r.ok ? r.eventos.map(e => '<option value="' + esc(e.idEvento) + '">' + esc(e.fecha + ' · ' + e.nombre) + '</option>').join('') : '');
@@ -1642,6 +1713,59 @@
     await verEvento(vistaEv.idEvento, vistaEv.nombre);
   }
 
+  /* ---------------- v4.7.0: tableros de resumen y análisis ---------------- */
+  const TB_ICO = { ok: '✔', aviso: '⚠', alerta: '⛔', info: 'ℹ' }, TB_EST = { ok: 'En meta', aviso: 'Atención', alerta: 'Alerta' };
+  const tbTok = {};
+  function tbSvg(s) {
+    const p = ((s && s.puntos) || []).filter(x => x.y != null && x.y !== ''); if (p.length < 2) return '';
+    const W = 300, H = 80, pad = 8, ys = p.map(x => Number(x.y) || 0), mx = Math.max.apply(null, ys.concat([1])), mn = Math.min.apply(null, ys.concat([0]));
+    const X = i => pad + i * (W - 2 * pad) / (p.length - 1), Y = v => H - pad - (v - mn) * (H - 2 * pad) / ((mx - mn) || 1);
+    const pts = p.map((x, i) => X(i).toFixed(1) + ',' + Y(ys[i]).toFixed(1)).join(' ');
+    return '<div class="set-titulo">' + esc(s.titulo) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(s.titulo + ': ' + p.map(x => x.texto || x.y).join('; ')) + '" style="width:100%;max-width:420px;height:auto;">' +
+      '<polyline points="' + pts + '" fill="none" stroke="var(--a)" stroke-width="2"/>' + p.map((x, i) => '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(ys[i]).toFixed(1) + '" r="3" fill="var(--a)"/>').join('') + '</svg>' +
+      '<div class="meta">' + esc(String(p[0].x)) + ' → ' + esc(String(p[p.length - 1].x)) + ' · máximo ' + mx + (s.unidad ? ' ' + esc(s.unidad) : '') + '</div>' +
+      '<details><summary class="meta">Ver valores</summary><ul class="tb-hall">' + p.map(x => '<li>' + esc(x.texto || (x.x + ': ' + x.y)) + '</li>').join('') + '</ul></details>';
+  }
+  function pintarTablero(t) {
+    const per = t.periodo ? (t.periodo.desde ? t.periodo.desde + ' a ' + t.periodo.hasta : (t.periodo.mes ? nombreMes(t.periodo.mes) : '')) : '';
+    let h = '<div class="tb"><h4>' + esc(t.titulo || 'Resumen') + '</h4>' + (per ? '<div class="tb-per">Periodo: ' + esc(per) + '</div>' : '');
+    const kp = (t.kpis || []).filter(Boolean);
+    if (kp.length) h += '<div class="tiles2">' + kp.map(k => '<div class="tile' + (k.tono ? ' tb-' + esc(k.tono) : '') + '"><small>' + esc(k.etiqueta) + '</small><b>' + esc(String(k.valor)) + '</b>' +
+      (k.detalle ? '<i>' + esc(k.detalle) + '</i>' : '') + (TB_EST[k.tono] ? '<span class="tb-est">' + TB_ICO[k.tono] + ' ' + TB_EST[k.tono] + '</span>' : '') + '</div>').join('') + '</div>';
+    if ((t.hallazgos || []).length) h += '<div class="set-titulo">Análisis</div><ul class="tb-hall">' + t.hallazgos.map(x => '<li><span class="tb-ico" aria-hidden="true">' + (TB_ICO[x.nivel] || 'ℹ') + '</span><span>' +
+      (x.tipo === 'hipotesis' ? '<span class="tb-hip">Hipótesis</span>' : '') + esc(x.texto) + '</span></li>').join('') + '</ul>';
+    (t.barras || []).forEach(b => {
+      if (!b.items || !b.items.length) return;
+      const mx = b.unidad === '%' ? 100 : Math.max.apply(null, b.items.map(i => Number(i.valor) || 0).concat([1]));
+      h += '<div class="set-titulo">' + esc(b.titulo) + '</div>' + b.items.map(i => '<div class="tb-fila"><span>' + esc(i.etiqueta) + '</span><span class="tb-pista"><span class="tb-relleno" style="display:block;width:' +
+        Math.max(0, Math.min(100, Math.round(100 * (Number(i.valor) || 0) / mx))) + '%"></span></span><span><b>' + esc(String(i.valor)) + (b.unidad === '%' ? ' %' : '') + '</b>' + (i.texto ? ' <span class="meta">' + esc(i.texto) + '</span>' : '') + '</span></div>').join('');
+    });
+    h += tbSvg(t.serie);
+    if ((t.reconocimiento || []).length) h += '<div class="set-titulo">Constancia destacada</div><ul class="tb-hall">' + t.reconocimiento.map(x => '<li><span class="tb-ico" aria-hidden="true">✔</span><span>' + esc(x) + '</span></li>').join('') + '</ul>';
+    (t.notas || []).filter(Boolean).forEach(n => { h += '<div class="meta" style="margin-top:6px;">' + esc(n) + '</div>'; });
+    return h + '</div>';
+  }
+  async function mostrarTablero(caso, params, idCont) {
+    const c = $(idCont); if (!c) return null; const tok = tbTok[idCont] = (tbTok[idCont] || 0) + 1;
+    c.innerHTML = '<div class="aviso">Calculando resumen y análisis…</div>';
+    let r = null; try { r = await api('tablero', Object.assign({ caso: caso }, params || {})); } catch (e) { r = null; }
+    if (tok !== tbTok[idCont]) return null;
+    if (!r || !r.ok) { c.innerHTML = '<div class="aviso">No se pudo calcular el resumen: ' + esc(textoError(r && r.error)) + '</div>'; return null; }
+    c.innerHTML = pintarTablero(r); return r;
+  }
+  let tgGrupo = null;
+  async function abrirTabGrupo() {
+    cerrarPanel(); mostrarVista('vista-tabgrupo'); $('tg-persona').innerHTML = '<option value="">Toda la agrupación</option>';
+    const r = await mostrarTablero('agrupacion', {}, 'tg-contenido'); tgGrupo = r;
+    if (r) $('tg-persona').innerHTML = '<option value="">Toda la agrupación</option>' + (r.personas || []).map(x => '<option value="' + esc(x.correo) + '">' + esc(x.nombre) + '</option>').join('');
+  }
+  $('btn-tabgrupo').onclick = () => conOcupado(abrirTabGrupo);
+  $('tg-persona').onchange = () => conOcupado(async () => {
+    const c = $('tg-persona').value;
+    if (!c) { if (tgGrupo) { $('tg-contenido').innerHTML = pintarTablero(tgGrupo); } else await mostrarTablero('agrupacion', {}, 'tg-contenido'); }
+    else await mostrarTablero('persona', { correo: c }, 'tg-contenido');
+  });
+
   /* ---------------- v3.13.0: tablero del equipo y actividad de uso ---------------- */
   async function cargarTablero() {
     const r = await api('tablero_usuarios');
@@ -1670,6 +1794,7 @@
     const r = await api('informe_actividad', { desde: $('ac-desde').value, hasta: $('ac-hasta').value, worship: $('ac-worship').value, parte: $('ac-parte').value, estado: $('ac-estado').value });
     if (!r || !r.ok) { alert('No se pudo cargar la actividad: ' + textoError(r && r.error)); return; }
     $('ac-desde').value = r.desde; $('ac-hasta').value = r.hasta;
+    mostrarTablero('actividad', { desde: r.desde, hasta: r.hasta, worship: $('ac-worship').value, parte: $('ac-parte').value, estado: $('ac-estado').value }, 'tb-actividad');
     $('ac-contenido').innerHTML = '<div class="aviso">Periodo ' + esc(r.desde) + ' a ' + esc(r.hasta) + ' · ' + r.usuarios.length + ' usuario(s) · ' +
       (r.registroDesde ? 'registro disponible desde ' + esc(r.registroDesde) : 'todavía no hay registros de actividad') + '</div><div class="aviso">' + esc(r.nota) + '</div>' +
       '<div class="tabla-scroll"><table class="tabla-mini"><tr><th>Nombre</th><th>Worship</th><th>Función</th><th>Último acceso</th><th class="num">Accesos</th><th class="num">Ensayos</th><th class="num">Estudio</th><th>Última actividad</th></tr>' +
@@ -2186,7 +2311,7 @@
   const pctTxt = v => (v == null ? '—' : v + ' %');
 
   /* ---- Barra inferior ---- */
-  const TAB_DE_VISTA = { 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas' };
+  const TAB_DE_VISTA = { 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas' };
   function marcarTab(vista) {
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
@@ -2308,7 +2433,7 @@
   async function cargarStats(mes) {
     const r = await api('mis_estadisticas', mes ? { mes: mes } : {});
     if (!r || !r.ok) { log('No se pudieron cargar las estadísticas: ' + textoError(r && r.error)); return; }
-    stMes = r.mes; stHoy = r.hoy.slice(0, 7); $('st-mes').textContent = nombreMes(r.mes);
+    stMes = r.mes; stHoy = r.hoy.slice(0, 7); $('st-mes').textContent = nombreMes(r.mes); mostrarTablero('persona', { mes: r.mes }, 'tb-persona');
     const e = r.participacion.eventos, n = r.participacion.ensayos;
     const maxE = Math.max.apply(null, r.serie.map(x => x.estudioMin).concat([1]));
     const chip = s => '<span class="chip ' + (s === 'Asistió' ? 'ok' : s === 'Faltó' ? 'no' : s === 'Sin marcar' || s === 'Excusado' ? 'pend' : '') + '">' + esc(s) + '</span>';
@@ -2566,6 +2691,7 @@
     const r = await api('informe_asistencia', { desde: $('ai-desde').value, hasta: $('ai-hasta').value });
     if (!r || !r.ok) { alert('No se pudo generar el informe: ' + textoError(r && r.error)); return; }
     $('ai-desde').value = r.desde; $('ai-hasta').value = r.hasta;
+    mostrarTablero('asistencia', { desde: r.desde, hasta: r.hasta }, 'tb-asistencia');
     const cel = g => g.convocado ? g.asistio + ' / ' + g.convocado : '—';
     $('ai-contenido').innerHTML = '<div class="aviso">' + esc(r.nota) + '</div>' +
       '<div class="set-titulo">Sesiones del periodo (' + r.sesiones.length + ')</div><div class="tabla-scroll"><table class="tabla-mini"><tr><th>Fecha</th><th>Sesión</th><th class="num">Convocados</th><th class="num">Asistió</th><th class="num">Faltó</th><th class="num">Excusado</th><th class="num">Sin marcar</th><th></th></tr>' +
@@ -2717,6 +2843,7 @@
   async function cargarReportesAdmin() {
     const r = await api('reportes_listar', { estado: $('rp-filtro').value });
     if (!r || !r.ok) { $('rp-lista').innerHTML = '<div class="aviso">' + esc(textoError(r && r.error)) + '</div>'; return; }
+    mostrarTablero('opinion', {}, 'tb-opinion');
     $('rp-lista').innerHTML = '<div class="aviso">Total ' + r.total + ' · ' + ESTADOS_REP.map(e => e + ': ' + (r.cuenta[e] || 0)).join(' · ') + '</div>' +
       (r.reportes.map(x => '<div class="grupo"><b>' + esc(x.tipo) + ' · ' + esc(x.asunto) + '</b>' +
         '<div class="meta" style="font-size:12px;color:var(--mu);">' + esc(x.nombre) + ' · ' + esc(x.correo) + ' · ' + esc(String(x.fecha).slice(0, 16)) + ' · ' + esc(x.seccion) + (x.contexto ? ' · ' + esc(x.contexto) : '') + '</div>' +
@@ -2814,7 +2941,7 @@
     fq = r; const s = r.resumen;
     $('fq-resumen').innerHTML = 'Eventos considerados: <b>' + s.eventos + '</b> (' + s.eliminados + ' ya eliminados, conservados en el historial) · Cantos usados: <b>' + s.cantosUsados + '</b> · Sin programar nunca: <b>' + s.sinUsar + '</b>' +
       (s.masRepetidos.length ? '<br>Más repetidos: ' + s.masRepetidos.map(esc).join(', ') : '');
-    pintarFrecuencia(); mostrarVista('vista-frecuencia');
+    pintarFrecuencia(); mostrarVista('vista-frecuencia'); mostrarTablero('frecuencia', {}, 'tb-frecuencia');
   }
   $('btn-frecuencia').onclick = () => conOcupado(abrirFrecuencia);
   $('fq-filtro').onchange = pintarFrecuencia; $('fq-buscar').oninput = pintarFrecuencia;
@@ -2828,7 +2955,7 @@
   async function eliminarEventoUI(id, nombre, fecha) {
     if (!confirm('¿Eliminar definitivamente «' + nombre + '» (' + fecha + ')?\n\n• Se borran el evento, sus sets y su lista de cantos.\n• Los cantos programados QUEDAN en el historial y seguirán contando en el informe de frecuencia.\n• La asistencia registrada se conserva.\n\nEsta acción no se puede deshacer.')) return;
     const r = await api('evento_eliminar', { idEvento: id });
-    if (r && r.ok) { log(r.mensaje); await cargarEventos(); } else log('No se pudo eliminar: ' + textoError(r && r.error));
+    if (r && r.ok) { log(r.mensaje); if (!$('vista-gestor-act').classList.contains('oculto')) await pintarGestorAct(); else await cargarEventos(); } else log('No se pudo eliminar: ' + textoError(r && r.error));
   }
 
   async function compartirPrograma() {
@@ -2964,10 +3091,17 @@
           '<label class="gu-chk"><input type="checkbox" data-gu="' + k + '"' + (u[k] ? ' checked' : '') + (k === 'admin' && !d.yo.esAdmin ? ' disabled' : '') + '> ' + n + '</label>').join('') + '</div>';
     return '<label>Estado</label><select data-gu="estado">' + (d.estados.indexOf(u.estado) < 0 ? [u.estado].concat(d.estados) : d.estados).map(e => '<option' + (e === u.estado ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>' +
       clasif + cargos + '<button class="btn-accent" data-gu-guardar="' + esc(u.correo) + '">💾 Guardar cambios</button>' +
-      (d.puedeConmutar ? (d.grupos || []).map(g => { const tiene = (u.modulos || []).indexOf(g.id) >= 0;
+      ((d.puedeAsignar || d.puedeConmutar) ? (d.grupos || []).filter(g => g.encendido || d.puedeConmutar).map(g => { const tiene = (u.modulos || []).indexOf(g.id) >= 0;
         return '<button class="btn-secondary btn-small" data-gu-acceso="' + esc(u.correo) + '" data-grupo="' + esc(g.id) + '" data-on="' + (tiene ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (tiene ? 'Quitar acceso a ' : 'Dar acceso a ') + esc((g.icono || '') + ' ' + (g.nombre || g.id)) + '</button>'; }).join('') : '') +
       (permisos.usuarios ? '<button class="btn-secondary btn-small" data-gu-desc="' + esc(u.correo) + '" data-on="' + (guDescarga.indexOf(String(u.correo).toLowerCase()) >= 0 ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (guDescarga.indexOf(String(u.correo).toLowerCase()) >= 0 ? '⛔ Retirar permiso de descarga' : '⬇ Permitir descargar partituras y audios (con marca)') + '</button>' : '') +
       '<button class="btn-secondary btn-small" data-gu-quitar="' + esc(u.correo) + '" style="margin-top:6px;">Quitar de ' + esc(MODULO || 'este módulo') + '</button>';
+  }
+  function guAccesos(u, d) {
+    const gr = d.grupos || []; if (!gr.length) return '';
+    const mods = u.modulos || ['Worship'], puede = !!(d.puedeAsignar || d.puedeConmutar), w = mods.indexOf('Worship') >= 0;
+    return '<span class="gu-acc" role="group" aria-label="Accesos a agrupaciones"><button type="button" disabled class="' + (w ? 'si' : '') + '" title="Worship">Worship ' + (w ? '✔' : '—') + '</button>' + gr.map(g => {
+      const t = mods.indexOf(g.id) >= 0, nom = g.pref || g.id, ok = puede && (g.encendido || d.puedeConmutar);
+      return '<button type="button" class="' + (t ? 'si' : '') + '" data-gu-acceso="' + esc(u.correo) + '" data-grupo="' + esc(g.id) + '" data-on="' + (t ? '0' : '1') + '" data-rapido="1"' + (ok ? '' : ' disabled') + ' aria-pressed="' + (t ? 'true' : 'false') + '" title="' + (t ? 'Quitar acceso a ' : 'Dar acceso a ') + esc(g.nombre || g.id) + (g.encendido ? '' : ' (apagado)') + '">' + esc(nom) + ' ' + (t ? '✔' : '＋') + '</button>'; }).join('') + '</span>';
   }
   function pintarGestion() {
     const d = guDatos; if (!d) return;
@@ -2975,19 +3109,21 @@
     const abiertos = new Set([...document.querySelectorAll('#gu-lista details[open]')].map(x => x.dataset.correo));
     const n = e => d.usuarios.filter(u => u.estado === e).length;
     $('gu-resumen').innerHTML = 'Usuarios: <b>' + d.usuarios.length + '</b> · Activos <b>' + n('Activo') + '</b> · Pendientes <b>' + n('Pendiente') + '</b> · Inactivos <b>' + n('Inactivo') + '</b>';
-    $('gu-modulos').classList.toggle('oculto', !(d.puedeConmutar && d.grupos && d.grupos.length));
-    $('gu-nuevo').classList.toggle('oculto', MODULO === 'Worship' && !(d.grupos || []).some(g => g.encendido));     // con el Coro apagado, Worship se ve exactamente como antes
-    $('gu-modulos').innerHTML = d.puedeConmutar && d.grupos ? '<b>Módulos adicionales</b>' + d.grupos.map(g =>
+    const puedeAs = !!(d.puedeAsignar || d.puedeConmutar);
+    $('gu-modulos').classList.toggle('oculto', !(puedeAs && d.grupos && d.grupos.length));
+    $('gu-nuevo').classList.toggle('oculto', esGrupo() || !(d.grupos || []).some(g => g.encendido));     // v4.8.0: las agrupaciones no tienen alta aparte; el acceso se da persona por persona o en bloque desde esta lista     // con el Coro apagado, Worship se ve exactamente como antes
+    $('gu-modulos').innerHTML = puedeAs && d.grupos ? '<b>Agrupaciones (Coros)</b>' + d.grupos.map(g =>
       '<div class="fila"><span class="nombre">' + esc((g.icono || '') + ' ' + (g.nombre || g.id)) + '<span class="meta">' + (g.encendido ? '🟢 Encendido: lo ven solo las personas habilitadas' : '🔴 Apagado: nadie lo ve') + (g.pref ? ' · prefijo de carpetas: ' + esc(g.pref) + ' - ' : '') + (g.carpetaConfigurada ? '' : ' · ⚠ falta la carpeta de Drive (propiedad CARPETA_CATALOGO_…)') + '</span></span>' +
-      '<button class="' + (g.encendido ? 'btn-danger' : 'btn-accent') + ' btn-small" data-mod-sw="' + esc(g.id) + '" data-on="' + (g.encendido ? '0' : '1') + '" type="button">' + (g.encendido ? 'Apagar' : 'Encender') + '</button></div>').join('') +
-      '<div class="aviso">Con un módulo apagado, la aplicación funciona como siempre. Para encenderlo para todos, habilite antes a las personas (en cada usuario: «Dar acceso a …»).</div>' : '';
+      (d.puedeConmutar ? '<button class="' + (g.encendido ? 'btn-danger' : 'btn-accent') + ' btn-small" data-mod-sw="' + esc(g.id) + '" data-on="' + (g.encendido ? '0' : '1') + '" type="button">' + (g.encendido ? 'Apagar' : 'Encender') + '</button>' : '') +
+        (puedeAs && (g.encendido || d.puedeConmutar) ? '<button class="btn-secondary btn-small" data-mod-masivo="' + esc(g.id) + '" type="button">Dar acceso a todos los activos</button>' : '') + '</div>').join('') +
+      '<div class="aviso">Con una agrupación apagada, la aplicación funciona como siempre. El acceso se da solo desde esta lista: con los botones de cada persona (ADU ＋ / ✔) o con «Dar acceso a todos los activos». Una persona puede estar en Worship y en varias agrupaciones. Encender y apagar es exclusivo del administrador general.</div>' : '';
     const lista = d.usuarios.filter(u =>
       (!q || (u.nombre + ' ' + u.correo).toLowerCase().includes(q)) &&
       (!f || (f === '__cargo' ? guCargos(u).length > 0 : u.estado === f)));
     $('gu-n-parte').innerHTML = '<option value="">(sin definir)</option>' + (d.listas.partes || []).map(x => '<option>' + esc(x) + '</option>').join('');
     $('gu-lista').innerHTML = lista.length ? lista.map(u =>
       '<details class="gu-fila" data-correo="' + esc(u.correo) + '"' + (abiertos.has(u.correo) ? ' open' : '') + '><summary><span class="gu-quien">' +
-      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + ' · ' + (esGrupo() ? '' : esc(u.worship || 'sin Worship') + ' · ') + esc(u.parte || 'sin función') + '</span></span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
+      esc(u.nombre || u.correo) + '<span class="meta">' + esc(u.correo) + ' · ' + (esGrupo() ? '' : esc(u.worship || 'sin Worship') + ' · ') + esc(u.parte || 'sin función') + '</span>' + guAccesos(u, d) + '</span><span class="gu-ins-wrap">' + guInsignia(u) + '</span></summary>' +
       '<div class="gu-edit">' + guEditor(u, d) + '</div></details>').join('')
       : '<p class="aviso">Ningún usuario coincide con el filtro.</p>';
   }
@@ -3023,6 +3159,11 @@
   $('gu-buscar').addEventListener('input', pintarGestion);
   $('gu-filtro').addEventListener('change', pintarGestion);
   $('gu-modulos').addEventListener('click', ev => {
+    const ms = ev.target.closest('[data-mod-masivo]');
+    if (ms) { conOcupado(async () => {
+      if (!confirm('¿Dar acceso a ' + ms.dataset.modMasivo + ' a TODAS las personas con estado Activo?\nNo se quita a nadie. Después puede quitar el acceso a quien no corresponda en su fila.')) return;
+      const r = await api('modulo_acceso_masivo', { grupo: ms.dataset.modMasivo });
+      log(r && r.ok ? r.mensaje : 'No se pudo: ' + (ERRORES[r && r.error] || textoError(r && r.error))); if (r && r.ok) alert(r.mensaje); await cargarGestion(); }); return; }
     const sw = ev.target.closest('[data-mod-sw]');
     if (sw) { conOcupado(async () => {
       const on = sw.dataset.on === '1';
@@ -3032,8 +3173,10 @@
   });
   $('gu-lista').addEventListener('click', ev => {
     const ac = ev.target.closest('[data-gu-acceso]');
-    if (ac) { conOcupado(async () => {
-      const on = ac.dataset.on === '1', parte = on ? (prompt('Categoría o función en ' + ac.dataset.grupo + ' (opcional; ej. Soprano, Tenor, Pianista):', '') || '') : '';
+    if (ac) { ev.preventDefault(); conOcupado(async () => {
+      const on = ac.dataset.on === '1', rapido = !!ac.dataset.rapido;
+      if (!on && rapido && !confirm('¿Quitar el acceso a ' + ac.dataset.grupo + ' a ' + ac.dataset.guAcceso + '?\nSu cuenta y sus otros accesos no se tocan.')) return;
+      const parte = on && !rapido ? (prompt('Categoría o función en ' + ac.dataset.grupo + ' (opcional; ej. Soprano, Tenor, Pianista):', '') || '') : '';
       const r = await api('modulo_acceso', { grupo: ac.dataset.grupo, correo: ac.dataset.guAcceso, pertenece: on, parte: parte });
       log(r && r.ok ? (r.mensaje || 'Listo.') : 'No se pudo: ' + (ERRORES[r && r.error] || String((r && r.mensaje) || (r && r.error) || ''))); await cargarGestion(); }); return; }
     const dsc = ev.target.closest('[data-gu-desc]');
