@@ -111,6 +111,7 @@
     .botones button { margin-bottom:0; }
     #visor-pdf canvas { display:block; width:100%; margin:0 0 8px; border:1px solid var(--bd); border-radius:var(--r2); background:#fff; }
     #lista-selector { max-height:220px; overflow-y:auto; border:1px solid var(--bd); border-radius:var(--r2); padding:8px; background:var(--s2); }
+    .badge-uso { display:inline-block; font-size:12px; font-weight:700; padding:1px 7px; border-radius:10px; background:var(--s3,#e8eef5); color:var(--tx); margin-left:4px; white-space:nowrap; }
     #lista-selector label { display:block; font-size:15px; margin-bottom:8px; cursor:pointer; color:var(--tx); }
     #lista-selector input { width:auto; margin:0 6px 0 0; }
     .set-card { border:1px solid var(--bd); border-radius:var(--r); padding:12px; margin:10px 0; background:var(--s2); }
@@ -286,6 +287,7 @@
         <button class="btn-secondary oculto" id="btn-ensambles" data-rol="montaje">🎼 Ensambles (esquemas de montaje)</button>
         <button class="btn-secondary oculto" id="btn-calent" data-rol="programa">🎙 Gestionar calentamientos (cargar y archivar)</button>
         <button class="btn-secondary oculto" id="btn-asistencia" data-rol="programa">✅ Informe de asistencia</button>
+        <button class="btn-secondary oculto" id="btn-clasif" data-rol="programa">🏷️ Clasificar repertorio (propósito y energía)</button>
         <button class="btn-secondary oculto" id="btn-tabgrupo" data-rol="programa">📊 Tablero de la agrupación y de cada integrante</button>
       </div>
       <div class="menu-tit">Administración</div>
@@ -407,6 +409,23 @@
     <div id="ga-lista"></div>
   </div>
 
+  <div class="card oculto" id="vista-clasif">
+    <h3>🏷️ Clasificación del repertorio</h3>
+    <div class="aviso">Asigne a cada canto uno o varios <b>propósitos</b> y su <b>energía</b> (1 muy baja · 2 baja · 3 moderada · 4 alta · 5 muy alta). Se guarda al instante, queda ligado al canto y sirve para todos los eventos. Lo que no se registra aparece como «Sin clasificar»: nada se asume.</div>
+    <div id="cl-resumen" class="aviso"></div>
+    <input type="search" id="cl-buscar" placeholder="Buscar canción…" autocomplete="off">
+    <div class="botones">
+      <select id="cl-f-prop" aria-label="Filtrar por propósito" style="margin:0;"></select>
+      <select id="cl-f-ene" aria-label="Filtrar por energía" style="margin:0;"></select>
+      <select id="cl-orden" aria-label="Ordenar" style="margin:0;">
+        <option value="titulo">Orden: título</option><option value="ene-asc">Energía ↑</option><option value="ene-desc">Energía ↓</option>
+        <option value="uso-asc">Uso 60 días ↑</option><option value="uso-desc">Uso 60 días ↓</option><option value="pend">Pendientes primero</option>
+      </select>
+    </div>
+    <label style="display:block;margin:6px 0;"><input type="checkbox" id="cl-solo-pend" style="width:auto;margin-right:6px;">Solo pendientes de clasificar</label>
+    <div id="cl-lista"></div>
+  </div>
+
   <div class="card oculto" id="vista-tabgrupo">
     <h3>📊 Tablero de la agrupación</h3>
     <div class="aviso">Resumen y análisis de la agrupación activa. Para ver otra agrupación use el selector de la cabecera. Elija un integrante para ver su tablero individual.</div>
@@ -524,21 +543,25 @@
       <label for="sel-set-activo"><b>Agregar cantos al set:</b></label>
       <select id="sel-set-activo"></select>
       <input type="search" id="buscar-selector" placeholder="Buscar canción…" autocomplete="off">
+      <div class="aviso" style="margin:4px 0;">Orden: de menos a más usados en los últimos 60 días (eventos realizados). El número junto al canto son sus usos.</div>
       <div id="lista-selector"></div>
     </div>
 
     <div class="grupo">
-      <label>Sugerencia automática (se agrega al set elegido)</label>
+      <label>Sugerencia de cantos (solo ayuda: usted decide, reemplaza y reordena)</label>
       <div class="botones">
-        <select id="sug-funcion" style="margin:0;">
-          <option>Apertura</option><option selected>Adoración</option><option>Alabanza</option>
-          <option>Transición</option><option>Cierre</option>
+        <select id="sug-proposito" style="margin:0;" aria-label="Propósito del momento">
+          <option value="">Cualquier propósito</option>
+          <option>Doxología</option><option>Oración</option><option>Diezmos y Ofrendas</option><option>Invocación</option>
+          <option>Adoración</option><option>Alabanza</option><option>Juvenil</option><option>Dar Gloria</option>
         </select>
-        <select id="sug-energia" style="margin:0;">
-          <option value="1">Energía 1</option><option value="2">Energía 2</option>
-          <option value="3" selected>Energía 3</option><option value="4">Energía 4</option><option value="5">Energía 5</option>
+        <select id="sug-orden" style="margin:0;" aria-label="Orden por energía">
+          <option value="">Sin ordenar por energía</option>
+          <option value="asc">Energía de menor a mayor</option>
+          <option value="desc">Energía de mayor a menor</option>
         </select>
       </div>
+      <div class="aviso" style="margin-top:6px;">Criterios, en este orden: 1) menos usados en los últimos 60 días en eventos realizados; 2) propósito elegido (solo cantos ya clasificados con él); 3) energía. No se asume ningún dato que no esté registrado.</div>
       <button class="btn-secondary" id="btn-sugerir" style="margin-top:8px;">⚡ Sugerir canciones</button>
     </div>
     <button class="btn-primary" id="btn-guardar-evento">💾 Guardar evento</button>
@@ -843,9 +866,9 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyJF-3jlDf1fKa7L0MO6DIZnlUXZyUV8uHt82vWtRWpQzY4pYUXSAXn1B4pfPJvCxvg8A/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v4.9.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v5.0.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -946,6 +969,9 @@
     EVENTO_NO_PUBLICADO: 'El evento aún no está publicado: la confirmación se abre al publicarlo.',
     EVENTO_PASADO: 'El evento ya pasó: no se puede cambiar la confirmación.',
     EVENTO_NO_ENCONTRADO: 'El evento ya no existe o no está disponible.',
+    CAMBIO_FECHA_CON_REGISTROS: 'El evento tiene confirmaciones o asistencias: confirme el cambio de fecha.',
+    PROPOSITO_INVALIDO: 'Propósito no válido.', ENERGIA_INVALIDA: 'La energía debe ser un número de 1 a 5.', SIN_CAMBIOS: 'No hay cambios que guardar.',
+    CANCION_NO_ENCONTRADA: 'El canto ya no está en el catálogo.',
     ALCANCE_INVALIDO: 'El alcance del evento no es válido.',
     PERSONA_NO_ACTIVA: 'Esa persona no está activa en la aplicación.',
     PERSONA_SIN_FUNCION_MUSICAL: 'Esa persona es administrativa y no tiene función musical.',
@@ -1031,7 +1057,7 @@
     }
   }
 
-  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act'];
+  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
@@ -1312,7 +1338,7 @@
     if (!c) return '';
     const p = [];
     if (c.tipo) p.push(c.tipo);
-    if (c.funcion) p.push(c.funcion);
+    if (c.propositos && c.propositos.length) p.push(c.propositos.join(' / '));
     if (c.energia) p.push('Energía ' + c.energia);
     return p.join(' · ');
   }
@@ -1356,11 +1382,12 @@
 
   function pintarSelector() {
     const q = $('buscar-selector').value.trim().toLowerCase();
-    const lista = catalogo.filter(c => !q || c.titulo.toLowerCase().includes(q));
+    const lista = catalogo.filter(c => !q || c.titulo.toLowerCase().includes(q))
+      .sort((a, b) => (a.usos60 || 0) - (b.usos60 || 0) || a.titulo.localeCompare(b.titulo, 'es'));   // v5.0.0: de menor a mayor uso en 60 días; empate = alfabético
     $('lista-selector').innerHTML = lista.length
       ? lista.map(c => {
           const en = setsDeCancion(c.idCancion), aqui = enSetActivo(c.idCancion);
-          return '<div class="fila' + (en.length ? ' usada' : '') + '"><span class="nombre">' + esc(c.titulo) + '<span class="meta">' + esc(metaCancion(c)) +
+          return '<div class="fila' + (en.length ? ' usada' : '') + '"><span class="nombre">' + esc(c.titulo) + ' <span class="badge-uso" title="Veces en eventos realizados en los últimos 60 días">' + (c.usos60 || 0) + '× / 60 d</span><span class="meta">' + esc(metaCancion(c)) +
             (en.length ? ' <span class="badge-usada">· ✓ Elegido en: ' + en.map(i => esc(setsEv[i].nombre || ('Set ' + (i + 1)))).join(', ') + '</span>' : '') + '</span></span>' +
             '<button class="btn-accent btn-small" data-agregar="' + esc(c.idCancion) + '"' + (aqui ? ' disabled' : '') + '>' + (aqui ? '✓ En este set' : '＋ Agregar') + '</button></div>';
         }).join('')
@@ -1501,15 +1528,15 @@
     const meta = Math.min(MAX_CANC_UI, s.metaSug || SUG_N), faltan = meta - s.canciones.length;
     if (faltan <= 0) { log('«' + s.nombre + '» ya tiene sus ' + s.canciones.length + ' canciones. Quite las que no le gusten y vuelva a pulsar para completarlo.'); return; }
     const excluir = Object.keys(sugeridas); setsEv.forEach(x => x.canciones.forEach(id => excluir.push(id)));     // todo lo de ESTE evento (otros sets incluidos) y lo ya propuesto
-    const r = await api('sugerir_canciones', { funcion: $('sug-funcion').value, energia: Number($('sug-energia').value), cantidad: faltan, excluir: excluir,
+    const r = await api('sugerir_canciones', { proposito: $('sug-proposito').value, orden: $('sug-orden').value, cantidad: faltan, excluir: excluir,
       idEvento: eventoEditando ? eventoEditando.idEvento : '', fecha: $('in-fecha').value, clase: claseForm });
     if (r && r.ok && r.sugerencias) {
       let n = 0;
       r.sugerencias.forEach(x => { sugeridas[x.idCancion] = true; if (!enSetActivo(x.idCancion) && s.canciones.length < MAX_CANC_UI) { s.canciones.push(x.idCancion); n++; } });
       s.metaSug = Math.max(meta, s.canciones.length);
-      s.canciones = ordenarIds(s.canciones, $('sel-orden').value);
       pintarConstructor();
-      log(n ? 'Se agregaron ' + n + ' canción(es) distintas a «' + s.nombre + '» (no están en otros sets, ni en eventos del mismo día o posteriores) y se ordenaron.' : 'No quedan más canciones que cumplan: pruebe con otra función o energía.');
+      if (r.sinClasificar) log('Hay ' + r.sinClasificar + ' canto(s) sin propósito registrado que no se sugirieron: clasifíquelos en «Clasificar repertorio».');
+      log(n ? 'Se agregaron ' + n + ' canción(es) a «' + s.nombre + '» (menos usadas en 60 días' + ($('sug-proposito').value ? ', con propósito ' + $('sug-proposito').value : '') + ($('sug-orden').value ? ', ordenadas por energía' : '') + '). Puede quitarlas, reemplazarlas o reordenarlas.' : 'No hay más cantos que cumplan: pruebe otro propósito o clasifique más cantos.');
       if (r.agotado && n) log('Solo había ' + n + ' disponibles con esas condiciones.');
     } else log('No se pudieron obtener sugerencias: ' + textoError(r && r.error));
   });
@@ -1531,7 +1558,13 @@
     else Object.assign(comun, { hora: $('in-hora').value, horaFin: $('in-hora-fin').value, lugar: $('in-lugar').value.trim() });
     let r;
     if (eventoEditando) {
-      r = await api('actualizar_evento', Object.assign({ idEvento: eventoEditando.idEvento, estado: eventoEditando.estado || 'Programado' }, comun));
+      const baseAct = Object.assign({ idEvento: eventoEditando.idEvento, estado: eventoEditando.estado || 'Programado' }, comun);
+      r = await api('actualizar_evento', baseAct);
+      if (r && !r.ok && r.error === 'CAMBIO_FECHA_CON_REGISTROS') {
+        const im = r.impacto || {};
+        if (!confirm('Va a cambiar la fecha de ' + r.fechaAnterior + ' a ' + r.fechaNueva + '.\n\nEste ' + (esE ? 'ensayo' : 'evento') + ' ya tiene ' + (im.confirmaciones || 0) + ' confirmación(es) y ' + (im.asistencias || 0) + ' registro(s) de asistencia. Se CONSERVAN y quedarán asociados a la nueva fecha; el cambio queda registrado con la fecha anterior.' + (im.sesionesAdicionales ? '\nLas ' + im.sesionesAdicionales + ' sesión(es) adicional(es) tienen fecha propia y no se mueven.' : '') + '\n\n¿Confirmar el cambio de fecha?')) { log('Cambio de fecha cancelado: no se guardó nada.'); return; }
+        r = await api('actualizar_evento', Object.assign({ confirmarCambioFecha: true }, baseAct));
+      }
     } else {
       if (!claveEvento) claveEvento = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
       r = await api('guardar_evento', Object.assign({ idempotencia: claveEvento, estado: 'Programado' }, comun));
@@ -1789,6 +1822,53 @@
     if (r) $('tg-persona').innerHTML = '<option value="">Toda la agrupación</option>' + (r.personas || []).map(x => '<option value="' + esc(x.correo) + '">' + esc(x.nombre) + '</option>').join('');
   }
   $('btn-tabgrupo').onclick = () => conOcupado(abrirTabGrupo);
+
+  /* ---------------- v5.0.0: tablero de clasificación del repertorio ---------------- */
+  let clDatos = [], clProps = [];
+  async function abrirClasif() {
+    cerrarPanel();
+    const r = await api('catalogo_clasificacion');
+    if (!r || !r.ok) { log('No se pudo cargar el repertorio: ' + textoError(r && r.error)); return; }
+    clDatos = r.canciones || []; clProps = r.propositos || [];
+    $('cl-f-prop').innerHTML = '<option value="">Todos los propósitos</option><option value="_sin">Sin propósito</option>' + clProps.map(p => '<option>' + esc(p) + '</option>').join('');
+    $('cl-f-ene').innerHTML = '<option value="">Toda energía</option><option value="0">Sin energía</option>' + [1, 2, 3, 4, 5].map(n => '<option value="' + n + '">Energía ' + n + '</option>').join('');
+    mostrarVista('vista-clasif'); pintarClasif();
+  }
+  function pintarClasif() {
+    const q = $('cl-buscar').value.trim().toLowerCase(), fp = $('cl-f-prop').value, fe = $('cl-f-ene').value, solo = $('cl-solo-pend').checked, ord = $('cl-orden').value;
+    const sin = clDatos.filter(c => !c.clasificada).length;
+    $('cl-resumen').textContent = clDatos.length + ' cantos · ' + sin + ' pendientes de clasificar (' + clDatos.filter(c => !c.propositos.length).length + ' sin propósito, ' + clDatos.filter(c => !c.energia).length + ' sin energía).';
+    let l = clDatos.filter(c => (!q || c.titulo.toLowerCase().includes(q)) && (!solo || !c.clasificada) &&
+      (!fp || (fp === '_sin' ? !c.propositos.length : c.propositos.indexOf(fp) >= 0)) && (fe === '' || c.energia === Number(fe)));
+    const t = (a, b) => a.titulo.localeCompare(b.titulo, 'es');
+    l = l.slice().sort(ord === 'ene-asc' ? (a, b) => (a.energia || 99) - (b.energia || 99) || t(a, b) : ord === 'ene-desc' ? (a, b) => b.energia - a.energia || t(a, b) :
+      ord === 'uso-asc' ? (a, b) => a.usos60 - b.usos60 || t(a, b) : ord === 'uso-desc' ? (a, b) => b.usos60 - a.usos60 || t(a, b) :
+      ord === 'pend' ? (a, b) => (a.clasificada ? 1 : 0) - (b.clasificada ? 1 : 0) || t(a, b) : t);
+    $('cl-lista').innerHTML = l.length ? l.map(c => '<div class="fila" data-cl-fila="' + esc(c.idCancion) + '" style="display:block;">' +
+      '<div><b>' + esc(c.titulo) + '</b> <span class="badge-uso">' + c.usos60 + '× / 60 d</span>' + (c.clasificada ? '' : ' <span class="badge-uso" style="background:#fde9c9;">Sin clasificar</span>') + (c.activa ? '' : ' <span class="meta">(inactivo)</span>') + '</div>' +
+      '<div style="margin:6px 0;">' + clProps.map(p => '<button type="button" class="btn-small ' + (c.propositos.indexOf(p) >= 0 ? 'btn-accent' : 'btn-secondary') + '" data-cl-prop="' + esc(c.idCancion) + '" data-p="' + esc(p) + '" aria-pressed="' + (c.propositos.indexOf(p) >= 0) + '">' + esc(p) + '</button> ').join('') + '</div>' +
+      '<label style="font-size:14px;">Energía <select data-cl-ene="' + esc(c.idCancion) + '" style="width:auto;margin:0 0 0 6px;"><option value="">Sin clasificar</option>' +
+      [1, 2, 3, 4, 5].map(n => '<option value="' + n + '"' + (c.energia === n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label></div>').join('') : '<span class="aviso">Ningún canto cumple el filtro.</span>';
+  }
+  async function guardarClasif(id, cambio) {
+    const c = clDatos.filter(x => x.idCancion === id)[0]; if (!c) return;
+    const r = await api('clasificar_cancion', Object.assign({ idCancion: id }, cambio));
+    if (r && r.ok) { c.propositos = r.propositos || []; c.energia = r.energia || 0; c.clasificada = c.propositos.length > 0 && c.energia > 0; }
+    else log('No se guardó la clasificación: ' + textoError(r && r.error));
+    pintarClasif();
+  }
+  $('btn-clasif').onclick = () => conOcupado(abrirClasif);
+  ['cl-buscar', 'cl-f-prop', 'cl-f-ene', 'cl-orden', 'cl-solo-pend'].forEach(i => { $(i).addEventListener('input', pintarClasif); $(i).addEventListener('change', pintarClasif); });
+  $('cl-lista').addEventListener('click', e => {
+    const b = e.target.closest('[data-cl-prop]'); if (!b) return;
+    const id = b.dataset.clProp, c = clDatos.filter(x => x.idCancion === id)[0]; if (!c) return;
+    const nuevo = c.propositos.indexOf(b.dataset.p) >= 0 ? c.propositos.filter(x => x !== b.dataset.p) : c.propositos.concat([b.dataset.p]);
+    conOcupado(() => guardarClasif(id, { propositos: nuevo }));
+  });
+  $('cl-lista').addEventListener('change', e => {
+    const sel = e.target.closest('[data-cl-ene]'); if (!sel) return;
+    conOcupado(() => guardarClasif(sel.dataset.clEne, { energia: sel.value === '' ? 0 : Number(sel.value) }));
+  });
   $('tg-persona').onchange = () => conOcupado(async () => {
     const c = $('tg-persona').value;
     if (!c) { if (tgGrupo) { $('tg-contenido').innerHTML = pintarTablero(tgGrupo); } else await mostrarTablero('agrupacion', {}, 'tg-contenido'); }
@@ -2340,7 +2420,7 @@
   const pctTxt = v => (v == null ? '—' : v + ' %');
 
   /* ---- Barra inferior ---- */
-  const TAB_DE_VISTA = { 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas' };
+  const TAB_DE_VISTA = { 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
   function marcarTab(vista) {
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
