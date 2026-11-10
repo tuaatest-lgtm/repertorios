@@ -277,6 +277,7 @@
       <div class="menu-tit">Para ti</div>
       <div class="menu-grid" id="grid-parati">
         <button class="btn-primary" id="btn-stats" type="button">📈 Mi estadística personal</button>
+        <button class="btn-primary oculto" id="btn-estudio" type="button">🎼 Estudio Musical</button>
         <button class="btn-secondary" id="btn-frecuencia" type="button">📊 Frecuencia de cantos e histórico</button>
         <button class="btn-secondary" id="btn-qr" type="button">📶 QR de la red Wi-Fi</button>
         <button class="btn-secondary" id="btn-reportes" type="button">💬 Tu opinión <span id="ins-opinion" class="insignia oculto" aria-live="polite"></span></button>
@@ -603,6 +604,61 @@
   </div>
 
   <!-- Gestión de usuarios (administrador y programador) -->
+  <div class="card oculto" id="vista-estudio">
+    <style>
+      .est-claro{background:#fbfaf6;color:#243048;border-radius:14px;padding:12px}
+      .est-claro select,.est-claro input[type=text]{background:#fff;color:#243048;border:1px solid #cfd6e6;border-radius:8px;padding:8px;max-width:100%}
+      .est-claro .eb{background:#fff;color:#243048;border:1px solid #cfd6e6;border-radius:8px;padding:8px 10px;margin:2px;cursor:pointer;font-size:14px}
+      .est-claro .eb.on{background:#dfe9ff;border-color:#4d7cfe}
+      .est-claro h3{margin:10px 0 6px;font-size:15px}
+      .est-item{border:1px solid #e0e4ee;border-radius:10px;padding:8px;margin:6px 0;background:#fff}
+      .est-doc{display:inline-block;margin:2px 10px 2px 0;font-size:13px}
+      #est-area{overflow:auto;max-height:78vh;background:#e8e6df;border-radius:10px;padding:4px}
+      #est-wrap{position:relative;display:inline-block;background:#fff}
+      #est-pdf,#est-ink{display:block}#est-ink{position:absolute;left:0;top:0}
+      #est-visor:fullscreen{background:#fbfaf6;padding:8px;overflow:auto}#est-visor:fullscreen #est-area{max-height:calc(100vh - 110px)}
+    </style>
+    <h2>🎼 Estudio Musical</h2>
+    <div id="est-admin" class="oculto est-claro" style="margin-bottom:10px">
+      <h3>Acceso al módulo (administrador)</h3>
+      <label><input type="checkbox" id="est-global"> Habilitar para todos los usuarios</label><br>
+      <input type="text" id="est-correo" placeholder="correo@ejemplo.com" style="width:230px">
+      <button class="eb" data-est="dar" type="button">Habilitar</button><button class="eb" data-est="quitar" type="button">Retirar</button>
+      <div id="est-autorizados" style="font-size:13px;margin-top:4px"></div>
+    </div>
+    <div class="est-claro">
+      <h3>Mis repertorios</h3>
+      <select id="est-rep"></select>
+      <input type="text" id="est-nombre" placeholder="Nombre del repertorio" maxlength="60">
+      <button class="eb" data-est="nuevo" type="button">Nuevo</button><button class="eb" data-est="guardar" type="button">Guardar</button><button class="eb" data-est="borrar" type="button">Eliminar</button>
+      <button class="eb" data-est="continuar" type="button">Continuar donde quedé</button>
+      <h3>Biblioteca de canciones</h3>
+      <select id="est-cat"></select><button class="eb" data-est="anadir" type="button">Añadir al repertorio</button>
+      <div id="est-items"></div>
+      <h3>Visor de partituras</h3>
+      <select id="est-sel-can"></select> <select id="est-sel-doc"></select>
+      <div id="est-visor">
+        <div id="est-aviso" style="color:#b45309;font-size:13px"></div>
+        <div class="oculto" id="est-barra">
+          <button class="eb" data-est="prev" type="button">◀</button>
+          <input type="text" id="est-pag" size="3" inputmode="numeric"><span id="est-total"></span>
+          <button class="eb" data-est="next" type="button">▶</button>
+          <button class="eb" data-est="zm" type="button">−</button><button class="eb" data-est="zp" type="button">＋</button><button class="eb" data-est="ajuste" type="button">Ajustar</button>
+          <button class="eb" data-est="full" type="button">Pantalla completa</button><br>
+          <button class="eb on" data-est-tool="mano" type="button">✋ Mover</button><button class="eb" data-est-tool="p" type="button">✏️ Lápiz</button>
+          <button class="eb" data-est-tool="h" type="button">🖍 Marcador</button><button class="eb" data-est-tool="b" type="button">🧽 Borrador</button>
+          <input type="color" id="est-color" value="#d62828" title="Color">
+          <input type="range" id="est-grosor" min="1" max="12" value="3" title="Grosor">
+          <input type="range" id="est-op" min="20" max="100" value="100" title="Opacidad">
+          <button class="eb" data-est="undo" type="button">↶</button><button class="eb" data-est="redo" type="button">↷</button>
+          <button class="eb" data-est="limpiar" type="button">Borrar página</button>
+          <span id="est-estado" style="font-size:12px"></span>
+        </div>
+        <div id="est-area" class="oculto"><div id="est-wrap"><canvas id="est-pdf"></canvas><canvas id="est-ink"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
   <div class="card oculto" id="vista-frecuencia">
     <h3>Frecuencia de cantos</h3>
     <div id="tb-frecuencia"></div>
@@ -873,7 +929,7 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycby00qTlhCUA-XsbN1rh29SPIQHfPVjr_kpr1qdS-mdaB-NGV_W8Z6GJ3h6shIt_mFF7oQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzt-gOj6JljSnMIchYzwV1W3s1_CqBcahyIUJM2lFtgOMZQ4fAU5hP6W2lFZjz0dsgn/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v5.1.1';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -1064,7 +1120,7 @@
     }
   }
 
-  const VISTAS = ['vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif'];
+  const VISTAS = ['vista-estudio', 'vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
@@ -1157,7 +1213,7 @@
       });
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
       document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);       // v4.6.0: Calentamientos vive en la barra inferior, junto a Ensayo
-      PUEDE_DESCARGAR = !!r.puedeDescargar; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
+      PUEDE_DESCARGAR = !!r.puedeDescargar; $('btn-estudio').classList.toggle('oculto', !r.estudio); window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
@@ -3949,6 +4005,251 @@
       setsEv.splice(i, 1); if (setActivo >= setsEv.length) setActivo = setsEv.length - 1; pintarConstructor();
     }
   });
+
+  /* ================= ESTUDIO MUSICAL (v5.2.0) =================
+     Repertorios personales: servidor (acciones me_*). Anotaciones y posición: IndexedDB del dispositivo (el PDF nunca se modifica). */
+  const EST = { reps: [], rep: null, cat: {}, catLista: [], rec: {}, pdf: null, ver: '', cancion: '', doc: '', page: 1, zoom: 1, tool: 'mano', anot: { pages: {} }, undo: [], redo: [], idb: null, tmr: null, mio: 0, tarea: null };
+  function estDb() {
+    return EST.idb || (EST.idb = new Promise((ok, mal) => {
+      const q = indexedDB.open('pm_estudio', 1);
+      q.onupgradeneeded = () => { q.result.createObjectStore('anot'); q.result.createObjectStore('pos'); };
+      q.onsuccess = () => ok(q.result); q.onerror = () => mal(q.error);
+    }));
+  }
+  async function estGet(s, k) { const d = await estDb(); return new Promise((ok, mal) => { const r = d.transaction(s).objectStore(s).get(k); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }); }
+  async function estPut(s, k, v) { const d = await estDb(); return new Promise((ok, mal) => { const t = d.transaction(s, 'readwrite'); t.objectStore(s).put(v, k); t.oncomplete = () => ok(); t.onerror = () => mal(t.error); t.onabort = () => mal(t.error); }); }
+  const estU = () => (window.__correoActual || '') + '|' + (MODULO || 'Worship');
+  const estClave = () => estU() + '|' + EST.cancion + '|' + EST.doc;
+  function estEstado(t) { const e = $('est-estado'); if (e) e.textContent = t; }
+
+  async function abrirEstudio() {
+    mostrarVista('vista-estudio');
+    $('est-admin').classList.toggle('oculto', !permisos.usuarios);
+    if (permisos.usuarios) estAdminCargar();
+    const r = await api('me_mis_repertorios');
+    if (!r || !r.ok) { log('Estudio Musical: ' + textoError(r && r.error)); return; }
+    EST.reps = r.repertorios || []; EST.catLista = r.catalogo || []; EST.cat = {};
+    EST.catLista.forEach(c => { EST.cat[c.idCancion] = c.titulo; });
+    $('est-cat').innerHTML = EST.catLista.map(c => '<option value="' + esc(c.idCancion) + '">' + esc(c.titulo) + '</option>').join('');
+    estPintarReps(EST.rep ? EST.rep.idRepertorio : '');
+    $('est-barra').classList.toggle('oculto', !EST.pdf); $('est-area').classList.toggle('oculto', !EST.pdf);
+  }
+  async function estAdminCargar() {
+    const r = await api('me_permiso_listar');
+    if (r && r.ok) { $('est-global').checked = !!r.global; $('est-autorizados').textContent = 'Autorizados individualmente: ' + (r.autorizados.join(', ') || 'ninguno'); }
+  }
+  function estPintarReps(sel) {
+    $('est-rep').innerHTML = '<option value="">— Nuevo repertorio —</option>' + EST.reps.map(r => '<option value="' + esc(r.idRepertorio) + '">' + esc(r.nombre) + '</option>').join('');
+    $('est-rep').value = sel || '';
+    estElegirRep();
+  }
+  function estElegirRep() {
+    const id = $('est-rep').value, r = EST.reps.filter(x => x.idRepertorio === id)[0];
+    EST.rep = r ? JSON.parse(JSON.stringify(r)) : { idRepertorio: '', nombre: '', items: [] };
+    $('est-nombre').value = EST.rep.nombre;
+    EST.rep.items.forEach(it => estCargarRec(it.idCancion, false));
+    estPintarItems();
+  }
+  async function estCargarRec(idCancion, marcarTodos) {
+    if (!EST.rec[idCancion]) {
+      const r = await api('recursos_cancion', { idCancion: idCancion });
+      EST.rec[idCancion] = r && r.ok ? (r.recursos || []).filter(x => x.tipo === 'PDF') : [];
+    }
+    const it = EST.rep && EST.rep.items.filter(x => x.idCancion === idCancion)[0];
+    if (it && marcarTodos) it.docs = EST.rec[idCancion].map(x => x.idArchivo);
+    estPintarItems();
+  }
+  function estPintarItems() {
+    const r = EST.rep, box = $('est-items'), selC = $('est-sel-can').value;
+    box.innerHTML = r.items.map((it, i) => {
+      const p = EST.rec[it.idCancion];
+      const docs = !p ? '<i>Cargando…</i>' : !p.length ? '<i>Sin partituras PDF</i>' : p.map(d => '<label class="est-doc"><input type="checkbox" data-est-doc="' + i + '" value="' + esc(d.idArchivo) + '"' + (it.docs.indexOf(d.idArchivo) >= 0 ? ' checked' : '') + '> ' + esc(d.parte || d.nombreArchivo) + '</label>').join('');
+      return '<div class="est-item"><b>' + (i + 1) + '. ' + esc(EST.cat[it.idCancion] || it.idCancion) + '</b> <button class="eb" data-est="up" data-i="' + i + '" type="button">▲</button><button class="eb" data-est="dn" data-i="' + i + '" type="button">▼</button><button class="eb" data-est="quitar-c" data-i="' + i + '" type="button">Quitar</button><div>' + docs + '</div></div>';
+    }).join('') || '<i style="font-size:13px">Añada canciones a este repertorio.</i>';
+    $('est-sel-can').innerHTML = r.items.map(it => '<option value="' + esc(it.idCancion) + '">' + esc(EST.cat[it.idCancion] || it.idCancion) + '</option>').join('');
+    if (selC && r.items.some(it => it.idCancion === selC)) $('est-sel-can').value = selC;
+    estPintarDocs();
+  }
+  function estPintarDocs() {
+    const id = $('est-sel-can').value, it = EST.rep.items.filter(x => x.idCancion === id)[0], p = EST.rec[id] || [], prev = $('est-sel-doc').value;
+    const lista = it ? it.docs : [];
+    $('est-sel-doc').innerHTML = lista.map(d => { const x = p.filter(y => y.idArchivo === d)[0]; return '<option value="' + esc(d) + '">' + esc(x ? (x.parte || x.nombreArchivo) : 'Documento') + '</option>'; }).join('');
+    if (prev && lista.indexOf(prev) >= 0) $('est-sel-doc').value = prev;
+  }
+
+  /* ---------- Visor ---------- */
+  function estVersion(r) { const b = r.base64 || ''; let h = 2166136261; for (let i = 0; i < b.length; i += 997) { h ^= b.charCodeAt(i); h = (h * 16777619) >>> 0; } return (r.bytes || 0) + '-' + h; }
+  async function estAbrir(idCancion, idArchivo, pagina) {
+    await estFlush();
+    const r = await api('pdf', Object.assign({ idCancion: idCancion, idArchivo: idArchivo }, ctxEns()));
+    if (!r || !r.ok) { log('No se pudo cargar la partitura: ' + textoError(r && r.error)); return; }
+    let pdf;
+    try { pdf = await (await cargarPdfJs()).getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise; }
+    catch (e) { log('No se pudo mostrar la partitura: ' + e.message); return; }
+    if (EST.pdf) { try { EST.pdf.destroy(); } catch (e) { } }
+    EST.pdf = pdf; EST.cancion = idCancion; EST.doc = idArchivo; EST.ver = estVersion(r); EST.zoom = 1; EST.undo = []; EST.redo = [];
+    let g = null; try { g = await estGet('anot', estClave()); } catch (e) { log('Almacenamiento local no disponible: ' + e.message); }
+    EST.anot = { pages: (g && g.pages) || {} };
+    $('est-aviso').textContent = g && g.ver && g.ver !== EST.ver ? '⚠ Esta partitura cambió desde que la anotó: sus anotaciones podrían no coincidir.' : '';
+    if (!pagina) { try { const p = await estGet('pos', 'pg|' + estClave()); pagina = p && p.page; } catch (e) { } }
+    EST.page = Math.min(Math.max(1, pagina || 1), pdf.numPages);
+    $('est-barra').classList.remove('oculto'); $('est-area').classList.remove('oculto');
+    await estRender();
+  }
+  async function estAbrirSel() {
+    const c = $('est-sel-can').value, d = $('est-sel-doc').value;
+    if (!c || !d) { log('Elija una canción con al menos una partitura marcada.'); return; }
+    await estAbrir(c, d, 0);
+  }
+  async function estRender(ajustar) {
+    if (!EST.pdf) return;
+    const mio = ++EST.mio;
+    if (EST.tarea) { try { EST.tarea.cancel(); } catch (e) { } }
+    const page = await EST.pdf.getPage(EST.page); if (mio !== EST.mio) return;
+    const area = $('est-area'), base = page.getViewport({ scale: 1 });
+    if (ajustar) EST.zoom = Math.min(1, (area.clientHeight - 8) / ((area.clientWidth - 12) * base.height / base.width)) || 1;
+    const ancho = Math.max(200, area.clientWidth - 12) * EST.zoom, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const vp = page.getViewport({ scale: (ancho / base.width) * dpr });
+    const cv = $('est-pdf'), ink = $('est-ink');
+    cv.width = ink.width = vp.width; cv.height = ink.height = vp.height;
+    cv.style.width = ink.style.width = ancho + 'px'; cv.style.height = ink.style.height = (vp.height / dpr) + 'px';
+    EST.tarea = page.render({ canvasContext: cv.getContext('2d'), viewport: vp });
+    try { await EST.tarea.promise; } catch (e) { return; }
+    if (mio !== EST.mio) return;
+    try { aplicarMarca(cv, await prepararMarca()); } catch (e) { }
+    estPintar(); $('est-pag').value = EST.page; $('est-total').textContent = ' / ' + EST.pdf.numPages;
+    estPosGuardar();
+  }
+  function estIrPagina(n) { if (!EST.pdf) return; n = Math.min(Math.max(1, n | 0), EST.pdf.numPages); if (n === EST.page) return; EST.page = n; EST.undo = []; EST.redo = []; estRender(); }
+  async function estPosGuardar() {
+    try { await estPut('pos', 'pg|' + estClave(), { page: EST.page }); await estPut('pos', 'ult|' + estU(), { idRep: EST.rep && EST.rep.idRepertorio, cancion: EST.cancion, doc: EST.doc, page: EST.page }); } catch (e) { }
+  }
+
+  /* ---------- Anotaciones (vectoriales, coordenadas normalizadas 0..1 respecto a la página) ---------- */
+  const estTrazos = () => (EST.anot.pages[EST.page] = EST.anot.pages[EST.page] || []);
+  function estDibujar(x, s, W, H) {
+    if (!s.pts.length) return;
+    x.save(); x.globalAlpha = s.o; x.strokeStyle = s.c; x.lineCap = 'round'; x.lineJoin = 'round'; x.lineWidth = s.w * W;
+    if (s.t === 'h') x.globalCompositeOperation = 'multiply';
+    x.beginPath(); s.pts.forEach((p, i) => { if (i) x.lineTo(p[0] * W, p[1] * H); else x.moveTo(p[0] * W, p[1] * H); });
+    if (s.pts.length === 1) x.lineTo(s.pts[0][0] * W + 0.1, s.pts[0][1] * H);
+    x.stroke(); x.restore();
+  }
+  function estPintar(extra) { const c = $('est-ink'), x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); estTrazos().forEach(s => estDibujar(x, s, c.width, c.height)); if (extra) estDibujar(x, extra, c.width, c.height); }
+  function estMarcar() { estEstado('● cambios pendientes'); clearTimeout(EST.tmr); EST.tmr = setTimeout(estFlush, 600); }
+  async function estFlush() {
+    clearTimeout(EST.tmr);
+    if (!EST.pdf || !EST.doc) return;
+    try { await estPut('anot', estClave(), { ver: EST.ver, pages: EST.anot.pages, t: Date.now() }); estEstado('✓ guardado en este dispositivo'); }
+    catch (e) { estEstado('⚠ no se pudo guardar'); log('Error al guardar anotaciones: ' + e.message); }
+  }
+  function estPunto(e) { const r = $('est-ink').getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; }
+  let estActual = null;
+  (function () {
+    const ink = $('est-ink');
+    ink.addEventListener('pointerdown', e => {
+      if (EST.tool === 'mano' || !EST.pdf) return;
+      e.preventDefault(); ink.setPointerCapture(e.pointerId);
+      const gr = Number($('est-grosor').value) / 1000, op = Number($('est-op').value) / 100;
+      if (EST.tool === 'b') { estActual = { borra: true }; estBorrar(e); return; }
+      estActual = { t: EST.tool, c: $('est-color').value, w: EST.tool === 'h' ? gr * 5 : gr, o: EST.tool === 'h' ? Math.min(op, 0.4) : op, pts: [estPunto(e)] };
+      estPintar(estActual);
+    });
+    ink.addEventListener('pointermove', e => {
+      if (!estActual) return; e.preventDefault();
+      if (estActual.borra) { estBorrar(e); return; }
+      const ev = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; (ev.length ? ev : [e]).forEach(q => estActual.pts.push(estPunto(q))); estPintar(estActual);
+    });
+    const fin = e => {
+      if (!estActual) return;
+      if (!estActual.borra) { estTrazos().push(estActual); EST.undo.push({ k: 'add', s: estActual }); EST.redo = []; estMarcar(); }
+      estActual = null; estPintar();
+    };
+    ink.addEventListener('pointerup', fin); ink.addEventListener('pointercancel', fin);
+  })();
+  function estBorrar(e) {
+    const c = $('est-ink'), p = estPunto(e), W = c.width, H = c.height, lim = 14, ts = estTrazos();
+    for (let i = ts.length - 1; i >= 0; i--) {
+      if (ts[i].pts.some(q => Math.hypot((q[0] - p[0]) * W, (q[1] - p[1]) * H) < lim)) { const s = ts.splice(i, 1)[0]; EST.undo.push({ k: 'del', s: s, i: i }); EST.redo = []; estMarcar(); estPintar(); return; }
+    }
+  }
+  function estDeshacer() {
+    const a = EST.undo.pop(); if (!a) return; const ts = estTrazos();
+    if (a.k === 'add') { const i = ts.indexOf(a.s); if (i >= 0) ts.splice(i, 1); } else if (a.k === 'del') ts.splice(a.i, 0, a.s); else if (a.k === 'clr') { ts.length = 0; a.s.forEach(s => ts.push(s)); }
+    EST.redo.push(a); estMarcar(); estPintar();
+  }
+  function estRehacer() {
+    const a = EST.redo.pop(); if (!a) return; const ts = estTrazos();
+    if (a.k === 'add') ts.push(a.s); else if (a.k === 'del') { const i = ts.indexOf(a.s); if (i >= 0) ts.splice(i, 1); } else if (a.k === 'clr') ts.length = 0;
+    EST.undo.push(a); estMarcar(); estPintar();
+  }
+  function estHerramienta(t) {
+    EST.tool = t; $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
+    document.querySelectorAll('[data-est-tool]').forEach(b => b.classList.toggle('on', b.dataset.estTool === t));
+  }
+
+  /* ---------- Eventos de la pantalla ---------- */
+  $('btn-estudio').onclick = () => conOcupado(abrirEstudio);
+  $('est-rep').onchange = estElegirRep;
+  $('est-sel-can').onchange = () => { estPintarDocs(); conOcupado(estAbrirSel); };
+  $('est-sel-doc').onchange = () => conOcupado(estAbrirSel);
+  $('est-global').onchange = () => conOcupado(async () => { const r = await api('me_global_set', { on: $('est-global').checked }); if (!r || !r.ok) log('No se pudo cambiar: ' + textoError(r && r.error)); estAdminCargar(); });
+  $('est-pag').onchange = () => estIrPagina(parseInt($('est-pag').value, 10) || EST.page);
+  $('vista-estudio').addEventListener('change', e => {
+    const i = e.target.dataset && e.target.dataset.estDoc; if (i === undefined) return;
+    const it = EST.rep.items[Number(i)], v = e.target.value, k = it.docs.indexOf(v);
+    if (e.target.checked && k < 0) it.docs.push(v); else if (!e.target.checked && k >= 0) it.docs.splice(k, 1);
+    estPintarDocs();
+  });
+  $('vista-estudio').addEventListener('click', e => {
+    const bt = e.target.closest('[data-est-tool]'); if (bt) { estHerramienta(bt.dataset.estTool); return; }
+    const b = e.target.closest('[data-est]'); if (!b) return;
+    const a = b.dataset.est, i = Number(b.dataset.i), its = EST.rep.items;
+    if (a === 'prev') estIrPagina(EST.page - 1);
+    else if (a === 'next') estIrPagina(EST.page + 1);
+    else if (a === 'zp') { EST.zoom = Math.min(4, EST.zoom * 1.25); estRender(); }
+    else if (a === 'zm') { EST.zoom = Math.max(0.4, EST.zoom / 1.25); estRender(); }
+    else if (a === 'ajuste') estRender(true);
+    else if (a === 'full') { const v = $('est-visor'); if (document.fullscreenElement) document.exitFullscreen(); else if (v.requestFullscreen) v.requestFullscreen().then(() => setTimeout(estRender, 250)); }
+    else if (a === 'undo') estDeshacer();
+    else if (a === 'redo') estRehacer();
+    else if (a === 'limpiar') { const ts = estTrazos(); if (ts.length && confirm('¿Borrar las anotaciones de esta página?')) { EST.undo.push({ k: 'clr', s: ts.slice() }); EST.redo = []; ts.length = 0; estMarcar(); estPintar(); } }
+    else if (a === 'nuevo') { $('est-rep').value = ''; estElegirRep(); }
+    else if (a === 'anadir') { const id = $('est-cat').value; if (!id) return; if (its.some(x => x.idCancion === id)) { log('Esa canción ya está en el repertorio.'); return; } its.push({ idCancion: id, docs: [] }); estCargarRec(id, true); }
+    else if (a === 'up' && i > 0) { its.splice(i - 1, 0, its.splice(i, 1)[0]); estPintarItems(); }
+    else if (a === 'dn' && i < its.length - 1) { its.splice(i + 1, 0, its.splice(i, 1)[0]); estPintarItems(); }
+    else if (a === 'quitar-c') { its.splice(i, 1); estPintarItems(); }
+    else if (a === 'guardar') conOcupado(async () => {
+      const nombre = $('est-nombre').value.trim(); if (!nombre) { log('Escriba un nombre para el repertorio.'); return; }
+      const r = await api('me_guardar_repertorio', { idRepertorio: EST.rep.idRepertorio, nombre: nombre, items: EST.rep.items });
+      if (!r || !r.ok) { log('No se pudo guardar el repertorio: ' + textoError(r && r.error)); return; }
+      const l = await api('me_mis_repertorios'); if (l && l.ok) EST.reps = l.repertorios; estPintarReps(r.idRepertorio); log('Repertorio guardado.');
+    });
+    else if (a === 'borrar') conOcupado(async () => {
+      if (!EST.rep.idRepertorio || !confirm('¿Eliminar este repertorio personal? (No afecta al catálogo ni a los eventos.)')) return;
+      const r = await api('me_eliminar_repertorio', { idRepertorio: EST.rep.idRepertorio });
+      if (!r || !r.ok) { log('No se pudo eliminar: ' + textoError(r && r.error)); return; }
+      EST.reps = EST.reps.filter(x => x.idRepertorio !== EST.rep.idRepertorio); estPintarReps('');
+    });
+    else if (a === 'continuar') conOcupado(async () => {
+      let p = null; try { p = await estGet('pos', 'ult|' + estU()); } catch (e) { }
+      if (!p || !p.cancion) { log('Aún no hay una posición de estudio guardada.'); return; }
+      if (p.idRep && EST.reps.some(x => x.idRepertorio === p.idRep)) { $('est-rep').value = p.idRep; estElegirRep(); }
+      await estCargarRec(p.cancion, false); $('est-sel-can').value = p.cancion; estPintarDocs(); $('est-sel-doc').value = p.doc; await estAbrir(p.cancion, p.doc, p.page);
+    });
+    else if (a === 'dar' || a === 'quitar') conOcupado(async () => {
+      const c = $('est-correo').value.trim(); if (!c) return;
+      const r = await api('me_permiso_set', { correo: c, autorizado: a === 'dar' }); if (!r || !r.ok) log('No se pudo cambiar el permiso: ' + textoError(r && r.error));
+      estAdminCargar();
+    });
+  });
+  document.addEventListener('keydown', e => {
+    if ($('vista-estudio').classList.contains('oculto') || /INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { estIrPagina(EST.page + 1); e.preventDefault(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { estIrPagina(EST.page - 1); e.preventDefault(); }
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) estFlush(); });
+  window.addEventListener('resize', () => { if (EST.pdf && !$('vista-estudio').classList.contains('oculto')) estRender(); });
+  estHerramienta('mano');
 
   // Arranque: si hay una sesión guardada y vigente, entra sin volver a pedir Google
   if (SESION) { $('estado-sesion').textContent = 'Restaurando su sesión…'; quien(); }
