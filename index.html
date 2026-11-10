@@ -873,9 +873,9 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwZjjbuynEgHxyT8gwwT_NP92vh7czSjiThNhpfgAL44Nzo_cncT6I4yJHirXzohtUNYg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycby00qTlhCUA-XsbN1rh29SPIQHfPVjr_kpr1qdS-mdaB-NGV_W8Z6GJ3h6shIt_mFF7oQ/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v5.1.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v5.1.1';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -2743,7 +2743,8 @@
     const l = await api('calentamientos_listar');
     if (!l || !l.ok) { log('No se pudo cargar los calentamientos: ' + textoError(l && l.error)); return; }
     $('cal-admin-btns').classList.toggle('oculto', !permisos.reordenar); $('cal-enlace-bloque').classList.toggle('oculto', !permisos.reordenar);
-    $('cal-aviso').innerHTML = l.carpeta && l.carpeta.lista ? 'Carpeta lista' + (l.carpeta.url ? ': <a href="' + esc(l.carpeta.url) + '" target="_blank" rel="noopener" style="color:var(--a);">abrir en Drive</a>' : '') + '.' : 'La carpeta aún no está creada' + (permisos.reordenar ? ': pulse «Crear / abrir carpeta».' : '; pida a un administrador que la cree.');
+    $('cal-aviso').innerHTML = l.carpeta && l.carpeta.lista ? 'Carpeta lista' + (l.carpeta.url ? ': <a href="' + esc(l.carpeta.url) + '" target="_blank" rel="noopener" style="color:var(--a);">abrir en Drive</a>' : '') + '.' : 'La carpeta aún no está creada' + (permisos.reordenar ? ': pulse «Crear / abrir carpeta».' : '; pida a un administrador que la cree.') +
+      '<br>📚 Gramática musical (común a todos los grupos): ' + (l.gramatica && l.gramatica.lista ? 'carpeta lista' + (l.gramatica.url ? ' — <a href="' + esc(l.gramatica.url) + '" target="_blank" rel="noopener" style="color:var(--a);">abrir en Drive</a>' : '') + '.' : 'no encontrada' + (permisos.reordenar ? ': pulse «Crear / abrir carpeta» para crearla.' : '.'));
     $('cal-lista').innerHTML = l.grupos.map(g => { const ex = l.ejercicios.filter(x => x.grupo === g);
       return '<div class="set-titulo">' + esc(g) + ' (' + ex.filter(x => x.estado === 'Activo').length + ')</div>' + (ex.map(x => '<div class="fila"><span class="nombre">' + (x.tipo === 'Video' ? '🎬 ' : '🎧 ') + esc(x.titulo) + '<span class="meta">' + esc(x.estado) + ' · usado en ' + x.usos + ' evento(s)</span></span>' +
         (x.estado === 'Ausente' ? '' : '<button class="btn-secondary btn-small" data-cal-estado="' + esc(x.idCalentamiento) + '" data-a="' + (x.estado === 'Activo' ? '1' : '0') + '" type="button">' + (x.estado === 'Activo' ? 'Archivar' : 'Reactivar') + '</button>') + '</div>').join('') || '<div class="aviso">Sin ejercicios.</div>'); }).join('');
@@ -2754,7 +2755,7 @@
     const r = await api('calentamiento_enlace', { titulo: $('cal-en-titulo').value, grupo: $('cal-en-grupo').value, enlace: $('cal-en-url').value });
     if (r && r.ok) { $('cal-en-titulo').value = ''; $('cal-en-url').value = ''; await cargarGestionCalent(); $('cal-aviso').textContent = '✔ ' + r.mensaje; } else $('cal-aviso').textContent = '✖ ' + textoError(r && r.error);
   });
-  $('cal-preparar').onclick = () => conOcupado(async () => { const r = await api('calentamientos_preparar'); $('cal-aviso').textContent = r && r.ok ? r.mensaje : '✖ ' + textoError(r && r.error); if (r && r.ok) await cargarGestionCalent(); });
+  $('cal-preparar').onclick = () => conOcupado(async () => { const r = await api('calentamientos_preparar'); const av = $('cal-aviso'); if (r && r.ok) { await cargarGestionCalent(); av.innerHTML = esc(r.mensaje) + '<br>' + av.innerHTML; } else av.textContent = '✖ ' + textoError(r && r.error); });
   $('cal-sincronizar').onclick = () => conOcupado(async () => { const r = await api('calentamientos_sincronizar'); const m = r && r.ok ? '✔ ' + r.mensaje : '✖ ' + textoError(r && r.error); await cargarGestionCalent(); $('cal-aviso').textContent = m; });
 
   /* ---- Ensayos y asistencia (quien programa) ---- */
