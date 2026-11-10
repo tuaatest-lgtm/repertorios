@@ -240,6 +240,11 @@
     <h3>¿A qué módulo desea entrar?</h3>
     <div class="aviso">Cada módulo tiene sus propios repertorios, materiales, eventos, ensayos y registros. Puede cambiar de módulo cuando quiera.</div>
     <div id="mod-botones" class="botones" style="justify-content:center;"></div>
+    <div class="oculto" id="bloque-sync-todo" style="margin-top:14px;">
+      <button class="btn-secondary" type="button" id="btn-sync-todo">🔄 Actualizar contenido de todos los grupos (Drive)</button>
+      <div class="aviso" style="margin-top:6px;">Solo administrador general. Vuelve a leer las carpetas de Drive de Worship y de cada coro encendido (canciones, calentamientos y Gramática musical).</div>
+      <div id="sync-todo-res" class="aviso" style="text-align:left;"></div>
+    </div>
   </div>
 
   <div id="aviso-usuario" role="alert" class="card oculto" style="color:var(--err);font-size:14px;"></div>
@@ -293,6 +298,8 @@
       <div class="menu-tit">Administración</div>
       <div class="menu-grid" id="grid-admin">
         <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar Catálogo de Recursos</button>
+        <button class="btn-secondary oculto" id="btn-sync-todo2">🔄 Actualizar contenido de TODOS los grupos (solo administrador general)</button>
+        <div id="sync-todo-res2" class="aviso oculto" style="text-align:left;"></div>
         <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="sync">🔎 Vista previa de la sincronización (no cambia nada)</button>
         <button class="btn-secondary oculto" id="btn-sync-diag" data-rol="sync">🩺 Diagnóstico del catálogo (pestañas, columnas y carpeta de Drive)</button>
         <button class="btn-secondary oculto" id="btn-publicidad" data-rol="publicidad">🖼️ Subir publicidad</button>
@@ -315,7 +322,7 @@
     <div class="grupo" id="cal-enlace-bloque">
       <label for="cal-en-titulo"><b>Agregar un video por enlace</b></label>
       <input type="text" id="cal-en-titulo" maxlength="80" placeholder="Título del ejercicio">
-      <select id="cal-en-grupo"><option>Sopranos</option><option>Contraltos</option><option>Tenores</option><option>Bajos</option><option>General</option></select>
+      <select id="cal-en-grupo"><option>Sopranos</option><option>Contraltos</option><option>Tenores</option><option>Bajos</option><option>General</option><option>Gramática musical</option></select>
       <input type="url" id="cal-en-url" maxlength="300" placeholder="Enlace de YouTube (video «no listado») o de Drive">
       <button class="btn-secondary btn-small" id="cal-en-add" type="button">➕ Agregar video</button>
       <div class="aviso">Solo se admiten enlaces de YouTube o de Google Drive. Un video «no listado» no aparece en búsquedas, pero quien tenga el enlace puede verlo.</div>
@@ -484,7 +491,7 @@
   <!-- Crear evento -->
   <div class="card oculto" id="vista-formulario">
     <h3 id="titulo-formulario">Programar nuevo evento</h3>
-    <label for="in-nombre"><b>Nombre del evento / culto</b></label>
+    <label for="in-nombre"><b id="lbl-nombre">Nombre del evento / culto</b></label>
     <input type="text" id="in-nombre" maxlength="120" placeholder="Ej: Culto dominical">
     <label for="in-fecha"><b>Fecha</b></label>
     <input type="date" id="in-fecha">
@@ -866,9 +873,9 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxv6GYqgcny9kUlhZQI73DZYukbOAXQlfFUlZEEnEyzpVCZpWnYCOonZENQsfpskckC1Q/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwZjjbuynEgHxyT8gwwT_NP92vh7czSjiThNhpfgAL44Nzo_cncT6I4yJHirXzohtUNYg/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v5.0.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v5.1.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -1100,14 +1107,16 @@
     if (r && !r.ok && r.error === 'MODULO_NO_AUTORIZADO' && MODULO) { MODULO = ''; lsDel('pm_modulo'); r = await api('quien'); }   // el módulo guardado ya no le corresponde
     if (!(r && r.ok)) return r;
     const disp = Array.isArray(r.modulos) && r.modulos.length ? r.modulos : [r.modulo || 'Worship'];
-    r.modulos = disp; if (r.iconos) ICONOS_MOD = r.iconos; if (r.nombresModulo) NOMBRES_MOD = r.nombresModulo;
+    r.modulos = disp; ES_ADMIN_GENERAL = !!r.adminGeneral; $('btn-sync-todo2').classList.toggle('oculto', !ES_ADMIN_GENERAL); if (r.iconos) ICONOS_MOD = r.iconos; if (r.nombresModulo) NOMBRES_MOD = r.nombresModulo;
     if (disp.length > 1 && disp.indexOf(MODULO) < 0) { mostrarSelectorModulos(r, disp); return { selector: true }; }
     const elegido = disp.indexOf(MODULO) >= 0 ? MODULO : disp[0];
     MODULO = elegido; lsSet('pm_modulo', elegido);
     if (r.modulo !== elegido) { r = await api('quien'); if (r && r.ok) r.modulos = disp; }
     return r;
   }
+  let ES_ADMIN_GENERAL = false;
   function mostrarSelectorModulos(r, disp) {
+    $('bloque-sync-todo').classList.toggle('oculto', !r.adminGeneral);
     $('menu').classList.add('oculto'); VISTAS.forEach(v => $(v).classList.add('oculto')); $('card-log').classList.add('oculto');
     $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · elija el módulo.';
     $('mod-botones').innerHTML = disp.map(m => '<button class="btn-primary" type="button" data-mod="' + esc(m) + '" style="min-width:140px;">' + esc(nombreMod(m)) + '</button>').join('');
@@ -1407,6 +1416,7 @@
     $('titulo-formulario').textContent = eventoEditando ? (ens ? 'Editar el ensayo' : 'Editar repertorio del evento') : (ens ? 'Programar nuevo ensayo' : 'Programar nuevo evento');
     $('btn-guardar-evento').textContent = eventoEditando ? '💾 Guardar cambios' : (ens ? '💾 Guardar ensayo' : '💾 Guardar evento');
     $('bloque-ens-hora').classList.remove('oculto'); $('hora-ayuda').classList.toggle('oculto', ens);   // v4.6.0: los eventos también pueden tener hora de inicio (opcional)
+    $('lbl-nombre').textContent = ens ? 'Nombre del ensayo' : 'Nombre del evento / culto';
     $('bloque-copiar').classList.toggle('oculto', !ens);
     document.querySelectorAll('#vista-formulario .solo-evento').forEach(e => e.classList.toggle('oculto', ens));
     $('btn-cancelar-edicion').classList.toggle('oculto', !eventoEditando);
@@ -3464,6 +3474,14 @@
     if (r && r.ok) mostrarResultadoSync(r);
     else { const m = (r && (r.mensaje || textoError(r.error))) || 'Sin respuesta del servidor.'; log('Error al sincronizar: ' + m); alert('Error al sincronizar:\n' + m); }
   }
+  async function syncTodo(dest) {
+    const el = $(dest); el.classList.remove('oculto'); el.textContent = 'Actualizando todos los grupos desde Drive… puede tardar varios minutos. No cierre la página.';
+    const r = await api('sincronizar_todo');
+    if (!r || !r.ok) { el.textContent = '✖ ' + textoError(r && r.error); return; }
+    el.innerHTML = '<b>' + esc(r.mensaje) + '</b>' + r.resultados.map(x => '<div style="margin-top:6px;"><b>' + esc(x.nombre) + '</b> · ' + esc(x.estado) + '<br>Canciones: ' + esc(x.catalogo) + (x.calentamientos ? '<br>Calentamientos: ' + esc(x.calentamientos) : '') + '</div>').join('');
+  }
+  $('btn-sync-todo').onclick = () => conOcupado(() => syncTodo('sync-todo-res'));
+  $('btn-sync-todo2').onclick = () => conOcupado(async () => { await syncTodo('sync-todo-res2'); });
   $('btn-sync').onclick = () => conOcupado(() => sincronizar(false));
   $('btn-sync-previa').onclick = () => conOcupado(() => sincronizar(true));
   $('btn-sync-diag').onclick = () => conOcupado(async () => {
