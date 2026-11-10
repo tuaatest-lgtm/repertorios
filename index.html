@@ -213,6 +213,30 @@
     .cal-video { width:100%; aspect-ratio:16/9; border:0; border-radius:var(--r); margin-top:8px; background:#000; display:block; }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+<style id="pm-colores">
+/* Navegación por color (Pantone aprox.): 2728 C eventos · 354 C ensayo · 1585 C calentamientos · 2665 C estudio · 3125 C catálogo · 7548 C estadísticas · 7421 C administración · 7545 C inicio */
+:root{--c-eventos:#0047BB;--c-ensayo:#00B140;--c-calent:#FF6A13;--c-estudio:#7D55C7;--c-catalogo:#00AEC7;--c-stats:#FFC72C;--c-admin:#651D32;--c-inicio:#425563;--sec:var(--c-inicio)}
+body[data-sec="eventos"]{--sec:var(--c-eventos)}
+body[data-sec="ensayo"]{--sec:var(--c-ensayo)}
+body[data-sec="calent"]{--sec:var(--c-calent)}
+body[data-sec="estudio"]{--sec:var(--c-estudio)}
+body[data-sec="catalogo"]{--sec:var(--c-catalogo)}
+body[data-sec="stats"]{--sec:var(--c-stats)}
+body[data-sec="admin"]{--sec:var(--c-admin)}
+body[data-sec="inicio"]{--sec:var(--c-inicio)}
+.card{border-top:5px solid var(--sec)}
+.card>h2::before{content:"";display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--sec);margin-right:8px;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+#tabbar button.tab.on{box-shadow:inset 0 4px 0 var(--sec)}
+#tabbar button.tab[data-tab="eventos"]{border-bottom:3px solid var(--c-eventos)}#tabbar button.tab[data-tab="ensayo"]{border-bottom:3px solid var(--c-ensayo)}#tabbar button.tab[data-tab="calentar"]{border-bottom:3px solid var(--c-calent)}
+#btn-eventos,#btn-nuevo-evento,#btn-ensambles{border-left:6px solid var(--c-eventos)!important}
+#btn-nuevo-ensayo,#btn-asistencia{border-left:6px solid var(--c-ensayo)!important}
+#btn-calent{border-left:6px solid var(--c-calent)!important}
+#btn-estudio{border-left:6px solid var(--c-estudio)!important}
+#btn-frecuencia,#btn-clasif,#btn-sync-previa,#btn-sync-diag,#btn-sync-todo,#btn-sync-todo2{border-left:6px solid var(--c-catalogo)!important}
+#btn-stats,#btn-tabgrupo{border-left:6px solid var(--c-stats)!important}
+#btn-usuarios,#btn-gestion,#btn-correo,#btn-publicidad{border-left:6px solid var(--c-admin)!important}
+#btn-qr,#btn-reportes{border-left:6px solid var(--c-inicio)!important}
+</style>
 </head>
 <body>
 
@@ -632,6 +656,13 @@
       <input type="text" id="est-nombre" placeholder="Nombre del repertorio" maxlength="60">
       <button class="eb" data-est="nuevo" type="button">Nuevo</button><button class="eb" data-est="guardar" type="button">Guardar</button><button class="eb" data-est="borrar" type="button">Eliminar</button>
       <button class="eb" data-est="continuar" type="button">Continuar donde quedé</button>
+      <h3>Cargar desde programas, ensayos o temas</h3>
+      <select id="est-src-mod"></select>
+      <select id="est-src-tipo"><option value="Evento">Eventos</option><option value="Ensayo">Ensayos</option><option value="Tema">Por tema</option></select>
+      <select id="est-src-sel"></select>
+      <button class="eb" data-est="src-cargar" type="button">Ver canciones</button>
+      <div id="est-src-lista" style="margin-top:6px"></div>
+      <button class="eb oculto" id="est-src-add" data-est="src-add" type="button">Añadir seleccionadas al repertorio</button>
       <h3>Biblioteca de canciones</h3>
       <select id="est-cat"></select><button class="eb" data-est="anadir" type="button">Añadir al repertorio</button>
       <div id="est-items"></div>
@@ -821,6 +852,7 @@
       <select id="sel-pdf"></select>
       <div class="botones">
         <button class="btn-primary" id="btn-abrir-pdf">📖 Abrir documento</button>
+        <button class="btn-secondary oculto" id="btn-estudiar" type="button">🎼 Estudiar con anotaciones</button>
         <button class="btn-secondary" id="btn-cerrar-pdf">✕ Cerrar documento</button>
         <button class="btn-secondary oculto" id="btn-desc-pdf" data-desc="1">⬇ Descargar PDF (con marca)</button>
       </div>
@@ -929,9 +961,9 @@
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxe06FizEqUe7woFXWLsrM-5rvQ6okDWviD6NsMKhdu3VyTYAInfFWkP5O7oZj1fBgKug/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbynG-OsOakFAT1ZkO9pRKuB6zlAF8xGeOqViaYdqiTRJyceCQpYQibKpQlaRNdB03NX6g/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v5.2.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v5.3.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -1213,7 +1245,7 @@
       });
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
       document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);       // v4.6.0: Calentamientos vive en la barra inferior, junto a Ensayo
-      PUEDE_DESCARGAR = !!r.puedeDescargar; $('btn-estudio').classList.toggle('oculto', !r.estudio); window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
+      PUEDE_DESCARGAR = !!r.puedeDescargar; $('btn-estudio').classList.toggle('oculto', !r.estudio); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
@@ -2486,8 +2518,10 @@
   const pctTxt = v => (v == null ? '—' : v + ' %');
 
   /* ---- Barra inferior ---- */
+  const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
   const TAB_DE_VISTA = { 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
   function marcarTab(vista) {
+    document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio';   // color de la sección activa
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   }
@@ -4008,7 +4042,8 @@
 
   /* ================= ESTUDIO MUSICAL (v5.2.0) =================
      Repertorios personales: servidor (acciones me_*). Anotaciones y posición: IndexedDB del dispositivo (el PDF nunca se modifica). */
-  const EST = { reps: [], rep: null, cat: {}, catLista: [], rec: {}, pdf: null, ver: '', cancion: '', doc: '', page: 1, zoom: 1, tool: 'mano', anot: { pages: {} }, undo: [], redo: [], idb: null, tmr: null, mio: 0, tarea: null };
+  let EST_MODS = [];
+  const EST = { mod: '', srcCat: [], src: null, reps: [], rep: null, cat: {}, catLista: [], rec: {}, pdf: null, ver: '', cancion: '', doc: '', page: 1, zoom: 1, tool: 'mano', anot: { pages: {} }, undo: [], redo: [], idb: null, tmr: null, mio: 0, tarea: null };
   function estDb() {
     return EST.idb || (EST.idb = new Promise((ok, mal) => {
       const q = indexedDB.open('pm_estudio', 1);
@@ -4019,7 +4054,8 @@
   async function estGet(s, k) { const d = await estDb(); return new Promise((ok, mal) => { const r = d.transaction(s).objectStore(s).get(k); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }); }
   async function estPut(s, k, v) { const d = await estDb(); return new Promise((ok, mal) => { const t = d.transaction(s, 'readwrite'); t.objectStore(s).put(v, k); t.oncomplete = () => ok(); t.onerror = () => mal(t.error); t.onabort = () => mal(t.error); }); }
   const estU = () => (window.__correoActual || '') + '|' + (MODULO || 'Worship');
-  const estClave = () => estU() + '|' + EST.cancion + '|' + EST.doc;
+  const estClave = () => (window.__correoActual || '') + '|' + (EST.mod || MODULO || 'Worship') + '|' + EST.cancion + '|' + EST.doc;
+  const estRk = it => (it.modulo || MODULO) + '|' + it.idCancion;
   function estEstado(t) { const e = $('est-estado'); if (e) e.textContent = t; }
 
   async function abrirEstudio() {
@@ -4028,11 +4064,15 @@
     if (permisos.usuarios) estAdminCargar();
     const r = await api('me_mis_repertorios');
     if (!r || !r.ok) { log('Estudio Musical: ' + textoError(r && r.error)); return; }
-    EST.reps = r.repertorios || []; EST.catLista = r.catalogo || []; EST.cat = {};
+    EST.reps = r.repertorios || []; EST.catLista = r.catalogo || [];
     EST.catLista.forEach(c => { EST.cat[c.idCancion] = c.titulo; });
     $('est-cat').innerHTML = EST.catLista.map(c => '<option value="' + esc(c.idCancion) + '">' + esc(c.titulo) + '</option>').join('');
-    estPintarReps(EST.rep ? EST.rep.idRepertorio : '');
+    if (!EST.rep) estPintarReps(''); else estPintarItems();
     $('est-barra').classList.toggle('oculto', !EST.pdf); $('est-area').classList.toggle('oculto', !EST.pdf);
+    const ms = EST_MODS.length ? EST_MODS : [MODULO || 'Worship'], prev = $('est-src-mod').value;
+    $('est-src-mod').innerHTML = ms.map(m => '<option value="' + esc(m) + '">' + esc(((ICONOS_MOD && ICONOS_MOD[m]) || '') + ' ' + nombreMod(m)) + '</option>').join('');
+    $('est-src-mod').value = ms.indexOf(prev) >= 0 ? prev : (ms.indexOf(MODULO) >= 0 ? MODULO : ms[0]);
+    await estSrcOpciones();
   }
   async function estAdminCargar() {
     const r = await api('me_permiso_listar');
@@ -4051,27 +4091,27 @@
     estPintarItems();
   }
   async function estCargarRec(idCancion, marcarTodos) {
-    if (!EST.rec[idCancion]) {
-      const r = await api('recursos_cancion', { idCancion: idCancion });
-      EST.rec[idCancion] = r && r.ok ? (r.recursos || []).filter(x => x.tipo === 'PDF') : [];
+    const it = EST.rep && EST.rep.items.filter(x => x.idCancion === idCancion)[0], m = (it && it.modulo) || MODULO, k = m + '|' + idCancion;
+    if (!EST.rec[k]) {
+      const r = await api('recursos_cancion', { idCancion: idCancion, modulo: m });
+      EST.rec[k] = r && r.ok ? (r.recursos || []).filter(x => x.tipo === 'PDF') : [];
     }
-    const it = EST.rep && EST.rep.items.filter(x => x.idCancion === idCancion)[0];
-    if (it && marcarTodos) it.docs = EST.rec[idCancion].map(x => x.idArchivo);
+    if (it && marcarTodos) it.docs = EST.rec[k].map(x => x.idArchivo);
     estPintarItems();
   }
   function estPintarItems() {
     const r = EST.rep, box = $('est-items'), selC = $('est-sel-can').value;
     box.innerHTML = r.items.map((it, i) => {
-      const p = EST.rec[it.idCancion];
+      const p = EST.rec[estRk(it)];
       const docs = !p ? '<i>Cargando…</i>' : !p.length ? '<i>Sin partituras PDF</i>' : p.map(d => '<label class="est-doc"><input type="checkbox" data-est-doc="' + i + '" value="' + esc(d.idArchivo) + '"' + (it.docs.indexOf(d.idArchivo) >= 0 ? ' checked' : '') + '> ' + esc(d.parte || d.nombreArchivo) + '</label>').join('');
-      return '<div class="est-item"><b>' + (i + 1) + '. ' + esc(EST.cat[it.idCancion] || it.idCancion) + '</b> <button class="eb" data-est="up" data-i="' + i + '" type="button">▲</button><button class="eb" data-est="dn" data-i="' + i + '" type="button">▼</button><button class="eb" data-est="quitar-c" data-i="' + i + '" type="button">Quitar</button><div>' + docs + '</div></div>';
+      return '<div class="est-item"><b>' + (i + 1) + '. ' + esc(EST.cat[it.idCancion] || it.idCancion) + '</b>' + (it.modulo && it.modulo !== MODULO ? ' <small>[' + esc(nombreMod(it.modulo)) + ']</small>' : '') + ' <button class="eb" data-est="up" data-i="' + i + '" type="button">▲</button><button class="eb" data-est="dn" data-i="' + i + '" type="button">▼</button><button class="eb" data-est="quitar-c" data-i="' + i + '" type="button">Quitar</button><div>' + docs + '</div></div>';
     }).join('') || '<i style="font-size:13px">Añada canciones a este repertorio.</i>';
     $('est-sel-can').innerHTML = r.items.map(it => '<option value="' + esc(it.idCancion) + '">' + esc(EST.cat[it.idCancion] || it.idCancion) + '</option>').join('');
     if (selC && r.items.some(it => it.idCancion === selC)) $('est-sel-can').value = selC;
     estPintarDocs();
   }
   function estPintarDocs() {
-    const id = $('est-sel-can').value, it = EST.rep.items.filter(x => x.idCancion === id)[0], p = EST.rec[id] || [], prev = $('est-sel-doc').value;
+    const id = $('est-sel-can').value, it = EST.rep.items.filter(x => x.idCancion === id)[0], p = EST.rec[it ? estRk(it) : id] || [], prev = $('est-sel-doc').value;
     const lista = it ? it.docs : [];
     $('est-sel-doc').innerHTML = lista.map(d => { const x = p.filter(y => y.idArchivo === d)[0]; return '<option value="' + esc(d) + '">' + esc(x ? (x.parte || x.nombreArchivo) : 'Documento') + '</option>'; }).join('');
     if (prev && lista.indexOf(prev) >= 0) $('est-sel-doc').value = prev;
@@ -4079,15 +4119,16 @@
 
   /* ---------- Visor ---------- */
   function estVersion(r) { const b = r.base64 || ''; let h = 2166136261; for (let i = 0; i < b.length; i += 997) { h ^= b.charCodeAt(i); h = (h * 16777619) >>> 0; } return (r.bytes || 0) + '-' + h; }
-  async function estAbrir(idCancion, idArchivo, pagina) {
+  async function estAbrir(idCancion, idArchivo, pagina, modulo) {
+    const m = modulo || MODULO;
     await estFlush();
-    const r = await api('pdf', Object.assign({ idCancion: idCancion, idArchivo: idArchivo }, ctxEns()));
+    const r = await api('pdf', Object.assign({ idCancion: idCancion, idArchivo: idArchivo, modulo: m }, ctxEns()));
     if (!r || !r.ok) { log('No se pudo cargar la partitura: ' + textoError(r && r.error)); return; }
     let pdf;
     try { pdf = await (await cargarPdfJs()).getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise; }
     catch (e) { log('No se pudo mostrar la partitura: ' + e.message); return; }
     if (EST.pdf) { try { EST.pdf.destroy(); } catch (e) { } }
-    EST.pdf = pdf; EST.cancion = idCancion; EST.doc = idArchivo; EST.ver = estVersion(r); EST.zoom = 1; EST.undo = []; EST.redo = [];
+    EST.pdf = pdf; EST.cancion = idCancion; EST.doc = idArchivo; EST.mod = m; EST.ver = estVersion(r); EST.zoom = 1; EST.undo = []; EST.redo = [];
     let g = null; try { g = await estGet('anot', estClave()); } catch (e) { log('Almacenamiento local no disponible: ' + e.message); }
     EST.anot = { pages: (g && g.pages) || {} };
     $('est-aviso').textContent = g && g.ver && g.ver !== EST.ver ? '⚠ Esta partitura cambió desde que la anotó: sus anotaciones podrían no coincidir.' : '';
@@ -4099,7 +4140,7 @@
   async function estAbrirSel() {
     const c = $('est-sel-can').value, d = $('est-sel-doc').value;
     if (!c || !d) { log('Elija una canción con al menos una partitura marcada.'); return; }
-    await estAbrir(c, d, 0);
+    const it = EST.rep.items.filter(x => x.idCancion === c)[0]; await estAbrir(c, d, 0, it && it.modulo);
   }
   async function estRender(ajustar) {
     if (!EST.pdf) return;
@@ -4122,7 +4163,7 @@
   }
   function estIrPagina(n) { if (!EST.pdf) return; n = Math.min(Math.max(1, n | 0), EST.pdf.numPages); if (n === EST.page) return; EST.page = n; EST.undo = []; EST.redo = []; estRender(); }
   async function estPosGuardar() {
-    try { await estPut('pos', 'pg|' + estClave(), { page: EST.page }); await estPut('pos', 'ult|' + estU(), { idRep: EST.rep && EST.rep.idRepertorio, cancion: EST.cancion, doc: EST.doc, page: EST.page }); } catch (e) { }
+    try { await estPut('pos', 'pg|' + estClave(), { page: EST.page }); await estPut('pos', 'ult|' + estU(), { idRep: EST.rep && EST.rep.idRepertorio, cancion: EST.cancion, doc: EST.doc, mod: EST.mod, page: EST.page }); } catch (e) { }
   }
 
   /* ---------- Anotaciones (vectoriales, coordenadas normalizadas 0..1 respecto a la página) ---------- */
@@ -4214,8 +4255,10 @@
     else if (a === 'undo') estDeshacer();
     else if (a === 'redo') estRehacer();
     else if (a === 'limpiar') { const ts = estTrazos(); if (ts.length && confirm('¿Borrar las anotaciones de esta página?')) { EST.undo.push({ k: 'clr', s: ts.slice() }); EST.redo = []; ts.length = 0; estMarcar(); estPintar(); } }
+    else if (a === 'src-cargar') conOcupado(estSrcVer);
+    else if (a === 'src-add') conOcupado(estSrcAnadir);
     else if (a === 'nuevo') { $('est-rep').value = ''; estElegirRep(); }
-    else if (a === 'anadir') { const id = $('est-cat').value; if (!id) return; if (its.some(x => x.idCancion === id)) { log('Esa canción ya está en el repertorio.'); return; } its.push({ idCancion: id, docs: [] }); estCargarRec(id, true); }
+    else if (a === 'anadir') { const id = $('est-cat').value; if (!id) return; if (its.some(x => x.idCancion === id)) { log('Esa canción ya está en el repertorio.'); return; } its.push({ idCancion: id, modulo: MODULO, docs: [] }); estCargarRec(id, true); }
     else if (a === 'up' && i > 0) { its.splice(i - 1, 0, its.splice(i, 1)[0]); estPintarItems(); }
     else if (a === 'dn' && i < its.length - 1) { its.splice(i + 1, 0, its.splice(i, 1)[0]); estPintarItems(); }
     else if (a === 'quitar-c') { its.splice(i, 1); estPintarItems(); }
@@ -4235,7 +4278,7 @@
       let p = null; try { p = await estGet('pos', 'ult|' + estU()); } catch (e) { }
       if (!p || !p.cancion) { log('Aún no hay una posición de estudio guardada.'); return; }
       if (p.idRep && EST.reps.some(x => x.idRepertorio === p.idRep)) { $('est-rep').value = p.idRep; estElegirRep(); }
-      await estCargarRec(p.cancion, false); $('est-sel-can').value = p.cancion; estPintarDocs(); $('est-sel-doc').value = p.doc; await estAbrir(p.cancion, p.doc, p.page);
+      await estAsegurarItem(p.cancion, p.mod || MODULO, p.doc); await estAbrir(p.cancion, p.doc, p.page, p.mod || MODULO);
     });
     else if (a === 'dar' || a === 'quitar') conOcupado(async () => {
       const c = $('est-correo').value.trim(); if (!c) return;
@@ -4249,6 +4292,72 @@
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) estFlush(); });
   window.addEventListener('resize', () => { if (EST.pdf && !$('vista-estudio').classList.contains('oculto')) estRender(); });
+  /* ---- v5.3.0: integración con partituras existentes y carga desde programas/ensayos/temas de cualquier agrupación ---- */
+  async function estAsegurarItem(id, m, doc) {
+    if (!EST.rep) estPintarReps('');
+    let it = EST.rep.items.filter(x => x.idCancion === id && (x.modulo || MODULO) === m)[0];
+    if (!it) { it = { idCancion: id, modulo: m, docs: [] }; EST.rep.items.push(it); }
+    if (doc && it.docs.indexOf(doc) < 0) it.docs.push(doc);
+    await estCargarRec(id, false);
+    $('est-sel-can').value = id; estPintarDocs(); if (doc) $('est-sel-doc').value = doc;
+  }
+  $('btn-estudiar').onclick = () => conOcupado(async () => {          // desde el panel de canción de Ensayo y de Eventos
+    const doc = $('sel-pdf').value; if (!doc || !cancionAbierta) { log('Seleccione un documento.'); return; }
+    await abrirEstudio();
+    if (EST.cat[cancionAbierta] === undefined) EST.cat[cancionAbierta] = ($('titulo-ensayo') && $('titulo-ensayo').textContent) || cancionAbierta;
+    await estAsegurarItem(cancionAbierta, MODULO, doc); await estAbrir(cancionAbierta, doc, 0, MODULO);
+  });
+  async function estSrcOpciones() {
+    const m = $('est-src-mod').value, tp = $('est-src-tipo').value, sel = $('est-src-sel');
+    $('est-src-lista').innerHTML = ''; $('est-src-add').classList.add('oculto'); sel.innerHTML = '';
+    if (!m) return;
+    if (tp === 'Tema') {
+      const r = await api('listar_canciones_catalogo', { modulo: m });
+      if (!r || !r.ok) { log('No se pudo leer el repertorio: ' + textoError(r && r.error)); return; }
+      EST.srcCat = r.canciones || [];
+      sel.innerHTML = '<option value="">Todo el repertorio</option>' + (r.propositos || []).map(p => '<option>' + esc(p) + '</option>').join('');
+    } else {
+      const r = await api('listar_eventos', { modulo: m, clase: tp });
+      if (!r || !r.ok) { log('No se pudo leer la programación: ' + textoError(r && r.error)); return; }
+      sel.innerHTML = (r.eventos || []).map(e => '<option value="' + esc(e.idEvento) + '">' + esc(e.fecha + ' · ' + e.nombre) + '</option>').join('') || '<option value="">Sin programación vigente</option>';
+    }
+  }
+  async function estSrcVer() {
+    const m = $('est-src-mod').value, tp = $('est-src-tipo').value, v = $('est-src-sel').value; let lista = [];
+    if (tp === 'Tema') lista = (EST.srcCat || []).filter(c => !v || (c.propositos || []).indexOf(v) >= 0).map(c => ({ id: c.idCancion, t: c.titulo, g: '' }));
+    else {
+      if (!v) return;
+      const r = await api('evento_activo', { modulo: m, idEvento: v });
+      if (!r || !r.ok) { log('No se pudo leer el programa: ' + textoError(r && r.error)); return; }
+      (r.sets || []).forEach((s, i) => (s.canciones || []).forEach(c => lista.push({ id: c.idCancion, t: c.titulo, g: 'Set ' + (s.numeroSet || i + 1) })));
+    }
+    EST.src = { mod: m, lista: lista };
+    let g = null, h = '<label class="est-doc"><b><input type="checkbox" data-src-all="1"> Seleccionar todo</b></label>';
+    lista.forEach((c, i) => {
+      if (c.g !== g) { g = c.g; if (g) h += '<div style="margin-top:6px"><label><input type="checkbox" data-src-set="' + esc(g) + '"> <b>' + esc(g) + '</b></label></div>'; }
+      h += '<label class="est-doc"><input type="checkbox" data-src="' + i + '"> ' + esc(c.t) + '</label>';
+    });
+    $('est-src-lista').innerHTML = lista.length ? h : '<i style="font-size:13px">Sin canciones.</i>';
+    $('est-src-add').classList.toggle('oculto', !lista.length);
+  }
+  async function estSrcAnadir() {
+    if (!EST.rep) estPintarReps('');
+    const its = EST.rep.items, nuevos = [];
+    document.querySelectorAll('#est-src-lista [data-src]:checked').forEach(c => {
+      const s = EST.src.lista[c.dataset.src]; EST.cat[s.id] = s.t;
+      if (!its.some(x => x.idCancion === s.id && (x.modulo || MODULO) === EST.src.mod)) { its.push({ idCancion: s.id, modulo: EST.src.mod, docs: [] }); nuevos.push(s.id); }
+    });
+    estPintarItems();
+    for (const id of nuevos) await estCargarRec(id, true);       // una por una, para no saturar el servidor
+    log(nuevos.length + ' canción(es) añadida(s) al repertorio. Pulse «Guardar» para conservarlo.');
+  }
+  $('est-src-lista').addEventListener('change', e => {
+    const d = e.target.dataset, cs = Array.prototype.slice.call($('est-src-lista').querySelectorAll('[data-src]'));
+    if (d.srcAll !== undefined) cs.forEach(c => { c.checked = e.target.checked; });
+    else if (d.srcSet !== undefined) cs.forEach(c => { if (EST.src.lista[c.dataset.src].g === d.srcSet) c.checked = e.target.checked; });
+  });
+  $('est-src-mod').onchange = () => conOcupado(estSrcOpciones);
+  $('est-src-tipo').onchange = () => conOcupado(estSrcOpciones);
   estHerramienta('mano');
 
   // Arranque: si hay una sesión guardada y vigente, entra sin volver a pedir Google
