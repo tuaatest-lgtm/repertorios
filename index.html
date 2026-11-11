@@ -694,11 +694,13 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
           <button class="eb" data-est="full" type="button">Pantalla completa</button><br>
           <button class="eb on" data-est-tool="mano" type="button">✋ Mover</button><button class="eb" data-est-tool="p" type="button">✏️ Lápiz</button>
           <button class="eb" data-est-tool="h" type="button">🖍 Marcador</button><button class="eb" data-est-tool="b" type="button">🧽 Borrador</button>
+          <button class="eb" data-est-tool="l" type="button">╱ Línea</button><button class="eb" data-est-tool="a" type="button">➚ Flecha</button><button class="eb" data-est-tool="r" type="button">▭ Rectángulo</button><button class="eb" data-est-tool="e" type="button">◯ Elipse</button><button class="eb" data-est-tool="t" type="button">🔤 Texto</button><button class="eb" data-est-tool="s" type="button">⬚ Seleccionar</button>
           <input type="color" id="est-color" value="#d62828" title="Color">
           <input type="range" id="est-grosor" min="1" max="12" value="3" title="Grosor">
           <input type="range" id="est-op" min="20" max="100" value="100" title="Opacidad">
           <button class="eb" data-est="undo" type="button">↶</button><button class="eb" data-est="redo" type="button">↷</button>
-          <button class="eb" data-est="limpiar" type="button">Borrar página</button>
+          <button class="eb" data-est="limpiar" type="button">Borrar página</button><button class="eb" data-est="limpiar-doc" type="button">Borrar documento</button><button class="eb" data-est="eliminar-sel" type="button">Eliminar selección</button><br>
+          <button class="eb" data-est="export-pdf" type="button">⤓ PDF anotado</button><button class="eb" data-est="resp-exp" type="button">⤓ Respaldo</button><button class="eb" data-est="resp-imp" type="button">⤒ Restaurar respaldo</button><input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
           <span id="est-estado" style="font-size:12px"></span>
         </div>
         <div id="est-area" class="oculto"><div id="est-wrap"><canvas id="est-pdf"></canvas><canvas id="est-ink"></canvas></div></div>
@@ -977,7 +979,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbycG2mKFrZranlNHFE8Ki-jBzEC4j6zz37MrrLm1YwS-WMDiZ8Mj6Diwqbx181sn7Toeg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwoXRkJN8FPrYQDBrAo6i32Ts9o3PRcJ1R5poGV7sY_QvT50nIH-bCI2Rq6A0XvorhwCw/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v5.3.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -4181,7 +4183,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     try { pdf = await (await cargarPdfJs()).getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise; }
     catch (e) { log('No se pudo mostrar la partitura: ' + e.message); return; }
     if (EST.pdf) { try { EST.pdf.destroy(); } catch (e) { } }
-    EST.pdf = pdf; EST.cancion = idCancion; EST.doc = idArchivo; EST.mod = m; EST.ver = estVersion(r); EST.zoom = 1; EST.undo = []; EST.redo = [];
+    EST.bytes = aBytes(r.base64); EST.sel = null; EST.pdf = pdf; EST.cancion = idCancion; EST.doc = idArchivo; EST.mod = m; EST.ver = estVersion(r); EST.zoom = 1; EST.undo = []; EST.redo = [];
     let g = null; try { g = await estGet('anot', estClave()); } catch (e) { log('Almacenamiento local no disponible: ' + e.message); }
     EST.anot = { pages: (g && g.pages) || {} };
     $('est-aviso').textContent = g && g.ver && g.ver !== EST.ver ? '⚠ Esta partitura cambió desde que la anotó: sus anotaciones podrían no coincidir.' : '';
@@ -4214,22 +4216,50 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     estPintar(); $('est-pag').value = EST.page; $('est-total').textContent = ' / ' + EST.pdf.numPages;
     estPosGuardar();
   }
-  function estIrPagina(n) { if (!EST.pdf) return; n = Math.min(Math.max(1, n | 0), EST.pdf.numPages); if (n === EST.page) return; EST.page = n; EST.undo = []; EST.redo = []; estRender(); }
+  function estIrPagina(n) { if (!EST.pdf) return; n = Math.min(Math.max(1, n | 0), EST.pdf.numPages); if (n === EST.page) return; EST.page = n; estRender(); }
   async function estPosGuardar() {
     try { await estPut('pos', 'pg|' + estClave(), { page: EST.page }); await estPut('pos', 'ult|' + estU(), { idRep: EST.rep && EST.rep.idRepertorio, cancion: EST.cancion, doc: EST.doc, mod: EST.mod, page: EST.page }); } catch (e) { }
   }
 
   /* ---------- Anotaciones (vectoriales, coordenadas normalizadas 0..1 respecto a la página) ---------- */
-  const estTrazos = () => (EST.anot.pages[EST.page] = EST.anot.pages[EST.page] || []);
+  const estTrazos = (p) => (EST.anot.pages[p || EST.page] = EST.anot.pages[p || EST.page] || []);
+  /* ---- geometría (px sobre el lienzo; las anotaciones se guardan normalizadas 0..1) ---- */
+  function estCaja(s, W, H) {
+    const xs = s.pts.map(q => q[0] * W), ys = s.pts.map(q => q[1] * H);
+    if (s.t === 't') { const tam = s.s * W, ls = String(s.x).split('\n'), an = Math.max.apply(null, ls.map(l => l.length)) * tam * 0.58; return { x0: xs[0], y0: ys[0], x1: xs[0] + an, y1: ys[0] + ls.length * tam * 1.2 }; }
+    return { x0: Math.min.apply(null, xs), y0: Math.min.apply(null, ys), x1: Math.max.apply(null, xs), y1: Math.max.apply(null, ys) };
+  }
+  function estDist(px, py, ax, ay, bx, by) { const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2)) : 0; return Math.hypot(px - ax - t * dx, py - ay - t * dy); }
+  function estToca(s, p, W, H, lim) {
+    const px = p[0] * W, py = p[1] * H, P = s.pts.map(q => [q[0] * W, q[1] * H]);
+    if (s.t === 't') { const b = estCaja(s, W, H); return px >= b.x0 - lim && px <= b.x1 + lim && py >= b.y0 - lim && py <= b.y1 + lim; }
+    if (s.t === 'r' && P.length > 1) { const b = estCaja(s, W, H); return estDist(px, py, b.x0, b.y0, b.x1, b.y0) < lim || estDist(px, py, b.x1, b.y0, b.x1, b.y1) < lim || estDist(px, py, b.x1, b.y1, b.x0, b.y1) < lim || estDist(px, py, b.x0, b.y1, b.x0, b.y0) < lim; }
+    if (s.t === 'e' && P.length > 1) { const b = estCaja(s, W, H), rx = (b.x1 - b.x0) / 2 || 1, ry = (b.y1 - b.y0) / 2 || 1, r = Math.hypot((px - (b.x0 + rx)) / rx, (py - (b.y0 + ry)) / ry); return Math.abs(r - 1) * Math.min(rx, ry) < lim; }
+    const Q = (s.t === 'l' || s.t === 'a') ? [P[0], P[P.length - 1]] : P;
+    if (Q.length === 1) return Math.hypot(px - Q[0][0], py - Q[0][1]) < lim;
+    for (let i = 1; i < Q.length; i++) if (estDist(px, py, Q[i - 1][0], Q[i - 1][1], Q[i][0], Q[i][1]) < lim) return true;
+    return false;
+  }
   function estDibujar(x, s, W, H) {
     if (!s.pts.length) return;
-    x.save(); x.globalAlpha = s.o; x.strokeStyle = s.c; x.lineCap = 'round'; x.lineJoin = 'round'; x.lineWidth = s.w * W;
+    const P = s.pts.map(q => [q[0] * W, q[1] * H]);
+    x.save(); x.globalAlpha = s.o; x.strokeStyle = s.c; x.fillStyle = s.c; x.lineCap = 'round'; x.lineJoin = 'round'; x.lineWidth = s.w * W;
     if (s.t === 'h') x.globalCompositeOperation = 'multiply';
-    x.beginPath(); s.pts.forEach((p, i) => { if (i) x.lineTo(p[0] * W, p[1] * H); else x.moveTo(p[0] * W, p[1] * H); });
-    if (s.pts.length === 1) x.lineTo(s.pts[0][0] * W + 0.1, s.pts[0][1] * H);
-    x.stroke(); x.restore();
+    if (s.t === 't') { const tam = s.s * W; x.font = '600 ' + tam + 'px Arial, sans-serif'; x.textBaseline = 'top'; String(s.x).split('\n').forEach((l, i) => x.fillText(l, P[0][0], P[0][1] + i * tam * 1.2)); }
+    else if (s.t === 'r' && P.length > 1) x.strokeRect(Math.min(P[0][0], P[1][0]), Math.min(P[0][1], P[1][1]), Math.abs(P[1][0] - P[0][0]), Math.abs(P[1][1] - P[0][1]));
+    else if (s.t === 'e' && P.length > 1) { x.beginPath(); x.ellipse((P[0][0] + P[1][0]) / 2, (P[0][1] + P[1][1]) / 2, Math.abs(P[1][0] - P[0][0]) / 2, Math.abs(P[1][1] - P[0][1]) / 2, 0, 0, 2 * Math.PI); x.stroke(); }
+    else {
+      const Q = (s.t === 'l' || s.t === 'a') ? [P[0], P[P.length - 1]] : P;
+      x.beginPath(); Q.forEach((p, i) => { if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); if (Q.length === 1) x.lineTo(Q[0][0] + 0.1, Q[0][1]); x.stroke();
+      if (s.t === 'a' && Q.length > 1) { const a = Math.atan2(Q[1][1] - Q[0][1], Q[1][0] - Q[0][0]), L = Math.max(12, x.lineWidth * 5); x.beginPath(); x.moveTo(Q[1][0], Q[1][1]); x.lineTo(Q[1][0] - L * Math.cos(a - 0.4), Q[1][1] - L * Math.sin(a - 0.4)); x.moveTo(Q[1][0], Q[1][1]); x.lineTo(Q[1][0] - L * Math.cos(a + 0.4), Q[1][1] - L * Math.sin(a + 0.4)); x.stroke(); }
+    }
+    x.restore();
   }
-  function estPintar(extra) { const c = $('est-ink'), x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); estTrazos().forEach(s => estDibujar(x, s, c.width, c.height)); if (extra) estDibujar(x, extra, c.width, c.height); }
+  function estPintar(extra) {
+    const c = $('est-ink'), x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height);
+    const ts = estTrazos(); ts.forEach(s => estDibujar(x, s, c.width, c.height)); if (extra) estDibujar(x, extra, c.width, c.height);
+    if (EST.sel && ts.indexOf(EST.sel) >= 0) { const b = estCaja(EST.sel, c.width, c.height); x.save(); x.setLineDash([6, 4]); x.strokeStyle = '#4d7cfe'; x.lineWidth = 2; x.strokeRect(b.x0 - 6, b.y0 - 6, b.x1 - b.x0 + 12, b.y1 - b.y0 + 12); x.restore(); }
+  }
   function estMarcar() { estEstado('● cambios pendientes'); clearTimeout(EST.tmr); EST.tmr = setTimeout(estFlush, 600); }
   async function estFlush() {
     clearTimeout(EST.tmr);
@@ -4239,46 +4269,115 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   }
   function estPunto(e) { const r = $('est-ink').getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; }
   let estActual = null;
+  const estForma = t => t === 'l' || t === 'a' || t === 'r' || t === 'e';
   (function () {
     const ink = $('est-ink');
     ink.addEventListener('pointerdown', e => {
       if (EST.tool === 'mano' || !EST.pdf) return;
-      e.preventDefault(); ink.setPointerCapture(e.pointerId);
-      const gr = Number($('est-grosor').value) / 1000, op = Number($('est-op').value) / 100;
+      e.preventDefault();
+      const gr = Number($('est-grosor').value) / 1000, op = Number($('est-op').value) / 100, p = estPunto(e), c = $('est-ink');
+      if (EST.tool === 't') {
+        const txt = (prompt('Texto de la anotación:') || '').slice(0, 300).trim(); if (!txt) return;
+        const s = { t: 't', c: $('est-color').value, s: 0.012 + Number($('est-grosor').value) * 0.003, o: op, x: txt, pts: [p] };
+        estTrazos().push(s); EST.undo.push({ p: EST.page, k: 'add', s: s }); EST.redo = []; estMarcar(); estPintar(); return;
+      }
+      ink.setPointerCapture(e.pointerId);
       if (EST.tool === 'b') { estActual = { borra: true }; estBorrar(e); return; }
-      estActual = { t: EST.tool, c: $('est-color').value, w: EST.tool === 'h' ? gr * 5 : gr, o: EST.tool === 'h' ? Math.min(op, 0.4) : op, pts: [estPunto(e)] };
+      if (EST.tool === 's') {
+        const ts = estTrazos(); EST.sel = null;
+        for (let i = ts.length - 1; i >= 0; i--) if (estToca(ts[i], p, c.width, c.height, 14)) { EST.sel = ts[i]; break; }
+        estActual = EST.sel ? { mueve: true, s: EST.sel, ult: p, dx: 0, dy: 0 } : null; estPintar(); return;
+      }
+      estActual = { t: EST.tool, c: $('est-color').value, w: EST.tool === 'h' ? gr * 5 : gr, o: EST.tool === 'h' ? Math.min(op, 0.4) : op, pts: estForma(EST.tool) ? [p, p] : [p] };
       estPintar(estActual);
     });
     ink.addEventListener('pointermove', e => {
-      if (!estActual) return; e.preventDefault();
+      if (!estActual) return; e.preventDefault(); const p = estPunto(e);
       if (estActual.borra) { estBorrar(e); return; }
-      const ev = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; (ev.length ? ev : [e]).forEach(q => estActual.pts.push(estPunto(q))); estPintar(estActual);
+      if (estActual.mueve) { const dx = p[0] - estActual.ult[0], dy = p[1] - estActual.ult[1]; estActual.s.pts.forEach(q => { q[0] += dx; q[1] += dy; }); estActual.dx += dx; estActual.dy += dy; estActual.ult = p; estPintar(); return; }
+      if (estForma(estActual.t)) estActual.pts[1] = p;
+      else { const ev = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; (ev.length ? ev : [e]).forEach(q => estActual.pts.push(estPunto(q))); }
+      estPintar(estActual);
     });
     const fin = e => {
-      if (!estActual) return;
-      if (!estActual.borra) { estTrazos().push(estActual); EST.undo.push({ k: 'add', s: estActual }); EST.redo = []; estMarcar(); }
-      estActual = null; estPintar();
+      if (!estActual) return; const a = estActual; estActual = null;
+      if (a.borra) return;
+      if (a.mueve) { if (a.dx || a.dy) { EST.undo.push({ p: EST.page, k: 'mov', s: a.s, dx: a.dx, dy: a.dy }); EST.redo = []; estMarcar(); } estPintar(); return; }
+      const c = $('est-ink');
+      if (estForma(a.t) && Math.hypot((a.pts[1][0] - a.pts[0][0]) * c.width, (a.pts[1][1] - a.pts[0][1]) * c.height) < 4) { estPintar(); return; }   // toque sin arrastre: no crea forma
+      estTrazos().push(a); EST.undo.push({ p: EST.page, k: 'add', s: a }); EST.redo = []; estMarcar(); estPintar();
     };
     ink.addEventListener('pointerup', fin); ink.addEventListener('pointercancel', fin);
   })();
   function estBorrar(e) {
-    const c = $('est-ink'), p = estPunto(e), W = c.width, H = c.height, lim = 14, ts = estTrazos();
+    const c = $('est-ink'), p = estPunto(e), ts = estTrazos();
     for (let i = ts.length - 1; i >= 0; i--) {
-      if (ts[i].pts.some(q => Math.hypot((q[0] - p[0]) * W, (q[1] - p[1]) * H) < lim)) { const s = ts.splice(i, 1)[0]; EST.undo.push({ k: 'del', s: s, i: i }); EST.redo = []; estMarcar(); estPintar(); return; }
+      if (estToca(ts[i], p, c.width, c.height, 14)) { const s = ts.splice(i, 1)[0]; EST.undo.push({ p: EST.page, k: 'del', s: s, i: i }); EST.redo = []; estMarcar(); estPintar(); return; }
     }
   }
-  function estDeshacer() {
-    const a = EST.undo.pop(); if (!a) return; const ts = estTrazos();
-    if (a.k === 'add') { const i = ts.indexOf(a.s); if (i >= 0) ts.splice(i, 1); } else if (a.k === 'del') ts.splice(a.i, 0, a.s); else if (a.k === 'clr') { ts.length = 0; a.s.forEach(s => ts.push(s)); }
-    EST.redo.push(a); estMarcar(); estPintar();
+  function estEliminarSel() {
+    const ts = estTrazos(), i = ts.indexOf(EST.sel); if (i < 0) return;
+    ts.splice(i, 1); EST.undo.push({ p: EST.page, k: 'del', s: EST.sel, i: i }); EST.redo = []; EST.sel = null; estMarcar(); estPintar();
   }
-  function estRehacer() {
-    const a = EST.redo.pop(); if (!a) return; const ts = estTrazos();
-    if (a.k === 'add') ts.push(a.s); else if (a.k === 'del') { const i = ts.indexOf(a.s); if (i >= 0) ts.splice(i, 1); } else if (a.k === 'clr') ts.length = 0;
-    EST.undo.push(a); estMarcar(); estPintar();
+  /* deshacer/rehacer: valen entre páginas (cada acción recuerda su página y el visor se mueve a ella) */
+  function estAplicar(a, rehacer) {
+    const ts = estTrazos(a.p);
+    if (a.k === 'add') { if (rehacer) ts.push(a.s); else { const i = ts.indexOf(a.s); if (i >= 0) ts.splice(i, 1); } }
+    else if (a.k === 'del') { if (rehacer) { const i = ts.indexOf(a.s); if (i >= 0) ts.splice(i, 1); } else ts.splice(Math.min(a.i, ts.length), 0, a.s); }
+    else if (a.k === 'clr') { ts.length = 0; if (!rehacer) a.s.forEach(s => ts.push(s)); }
+    else if (a.k === 'mov') { const g = rehacer ? 1 : -1; a.s.pts.forEach(q => { q[0] += g * a.dx; q[1] += g * a.dy; }); }
+    else if (a.k === 'cld') { EST.anot.pages = rehacer ? {} : JSON.parse(a.s); }
+  }
+  function estTrasAccion(a) { EST.sel = null; estMarcar(); if (a.p && a.p !== EST.page) estIrPagina(a.p); else estPintar(); }
+  function estDeshacer() { const a = EST.undo.pop(); if (!a) return; estAplicar(a, false); EST.redo.push(a); estTrasAccion(a); }
+  function estRehacer() { const a = EST.redo.pop(); if (!a) return; estAplicar(a, true); EST.undo.push(a); estTrasAccion(a); }
+  /* ---- exportación (respeta el permiso de descarga y la marca de agua) y respaldo ---- */
+  const estRgb = (PL, hex) => PL.rgb(parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255);
+  function estDibujarPdf(PL, pg, fuente, s, W, H) {
+    const col = estRgb(PL, s.c), P = s.pts.map(q => [q[0] * W, H - q[1] * H]), th = Math.max(0.5, (s.w || 0.003) * W), op = s.o;
+    const linea = (a, b) => pg.drawLine({ start: { x: a[0], y: a[1] }, end: { x: b[0], y: b[1] }, thickness: th, color: col, opacity: op, lineCap: PL.LineCapStyle.Round });
+    if (s.t === 't') { const tam = s.s * W; String(s.x).split('\n').forEach((l, i) => pg.drawText(soloLatin(l), { x: P[0][0], y: P[0][1] - tam * 0.9 - i * tam * 1.2, size: tam, font: fuente, color: col, opacity: op })); }
+    else if (s.t === 'r' && P.length > 1) pg.drawRectangle({ x: Math.min(P[0][0], P[1][0]), y: Math.min(P[0][1], P[1][1]), width: Math.abs(P[1][0] - P[0][0]), height: Math.abs(P[1][1] - P[0][1]), borderColor: col, borderWidth: th, borderOpacity: op });
+    else if (s.t === 'e' && P.length > 1) pg.drawEllipse({ x: (P[0][0] + P[1][0]) / 2, y: (P[0][1] + P[1][1]) / 2, xScale: Math.abs(P[1][0] - P[0][0]) / 2, yScale: Math.abs(P[1][1] - P[0][1]) / 2, borderColor: col, borderWidth: th, borderOpacity: op });
+    else {
+      const Q = (s.t === 'l' || s.t === 'a') ? [P[0], P[P.length - 1]] : P;
+      if (Q.length === 1) linea(Q[0], [Q[0][0] + 0.1, Q[0][1]]); else for (let i = 1; i < Q.length; i++) linea(Q[i - 1], Q[i]);
+      if (s.t === 'a' && Q.length > 1) { const a = Math.atan2(Q[1][1] - Q[0][1], Q[1][0] - Q[0][0]), L = Math.max(8, th * 5); linea(Q[1], [Q[1][0] - L * Math.cos(a - 0.4), Q[1][1] - L * Math.sin(a - 0.4)]); linea(Q[1], [Q[1][0] - L * Math.cos(a + 0.4), Q[1][1] - L * Math.sin(a + 0.4)]); }
+    }
+  }
+  async function estExportarPdf() {
+    if (!EST.pdf || !EST.bytes) { log('Abra una partitura primero.'); return; }
+    if (!PUEDE_DESCARGAR) { log('Su cuenta no tiene permiso de descarga: no se puede exportar el PDF anotado.'); return; }
+    const ok = await api('descarga_registrar', { tipo: 'pdf', idCancion: EST.cancion, modulo: EST.mod });
+    if (!ok || !ok.ok) { log('No se pudo autorizar la descarga: ' + textoError(ok && ok.error)); return; }
+    await estFlush();
+    try {
+      const quien = ((document.querySelector('#estado-sesion b') || {}).textContent || ''), texto = textoMarca(window.__correoActual || '', quien);
+      const PL = await cargarPdfLib(), sil = await prepararMarca();
+      const doc = await PL.PDFDocument.load(await estamparPdf(PL, EST.bytes, texto, sil), { ignoreEncryption: true }), fuente = await doc.embedFont(PL.StandardFonts.HelveticaBold), pgs = doc.getPages();
+      Object.keys(EST.anot.pages).forEach(n => { const pg = pgs[Number(n) - 1]; if (pg) EST.anot.pages[n].forEach(s => estDibujarPdf(PL, pg, fuente, s, pg.getWidth(), pg.getHeight())); });
+      const base = soloLatin(EST.cat[EST.cancion] || 'partitura').replace(/[^A-Za-z0-9._ -]+/g, '_').slice(0, 50) || 'partitura';
+      descargarBlob(new Blob([await doc.save()], { type: 'application/pdf' }), base + ' (anotada).pdf');
+      log('PDF anotado listo, con marca de agua. El original no se modificó.');
+    } catch (e) { log('No se pudo exportar: ' + e.message); }
+  }
+  function estRespaldo() {
+    if (!EST.pdf) return;
+    descargarBlob(new Blob([JSON.stringify({ formato: 'palermo-anotaciones', v: 1, cancion: EST.cancion, modulo: EST.mod, doc: EST.doc, ver: EST.ver, pages: EST.anot.pages })], { type: 'application/json' }), 'anotaciones ' + (soloLatin(EST.cat[EST.cancion] || EST.cancion).replace(/[^A-Za-z0-9._ -]+/g, '_').slice(0, 40)) + '.json');
+  }
+  const estNum = (v, a, b, d) => (typeof v === 'number' && isFinite(v)) ? Math.min(b, Math.max(a, v)) : d;
+  function estValidarPaginas(pg) {          // el archivo importado no es de confianza: solo se aceptan formas y valores conocidos
+    const out = {};
+    Object.keys(pg || {}).slice(0, 500).forEach(n => {
+      if (!/^\d{1,4}$/.test(n) || !Array.isArray(pg[n])) return;
+      out[n] = pg[n].slice(0, 3000).filter(s => s && 'phlaret'.indexOf(s.t) >= 0 && s.t.length === 1 && Array.isArray(s.pts) && s.pts.length && s.pts.length <= 8000 && /^#[0-9a-fA-F]{6}$/.test(s.c || ''))
+        .map(s => { const r = { t: s.t, c: s.c, o: estNum(s.o, 0.05, 1, 1), pts: s.pts.map(q => [estNum(q && q[0], -0.5, 1.5, 0), estNum(q && q[1], -0.5, 1.5, 0)]) };
+          if (s.t === 't') { r.s = estNum(s.s, 0.005, 0.12, 0.02); r.x = String(s.x || '').slice(0, 300); } else r.w = estNum(s.w, 0.0005, 0.08, 0.003); return r; });
+    });
+    return out;
   }
   function estHerramienta(t) {
-    EST.tool = t; $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
+    EST.tool = t; if (t !== 's') { EST.sel = null; if (EST.pdf) estPintar(); } $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
     document.querySelectorAll('[data-est-tool]').forEach(b => b.classList.toggle('on', b.dataset.estTool === t));
   }
 
@@ -4307,7 +4406,12 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     else if (a === 'full') { const v = $('est-visor'); if (document.fullscreenElement) document.exitFullscreen(); else if (v.requestFullscreen) v.requestFullscreen().then(() => setTimeout(estRender, 250)); }
     else if (a === 'undo') estDeshacer();
     else if (a === 'redo') estRehacer();
-    else if (a === 'limpiar') { const ts = estTrazos(); if (ts.length && confirm('¿Borrar las anotaciones de esta página?')) { EST.undo.push({ k: 'clr', s: ts.slice() }); EST.redo = []; ts.length = 0; estMarcar(); estPintar(); } }
+    else if (a === 'limpiar') { const ts = estTrazos(); if (ts.length && confirm('¿Borrar las anotaciones de esta página?')) { EST.undo.push({ p: EST.page, k: 'clr', s: ts.slice() }); EST.redo = []; ts.length = 0; estMarcar(); estPintar(); } }
+    else if (a === 'limpiar-doc') { if (EST.pdf && confirm('¿Borrar TODAS las anotaciones de este documento?')) { EST.undo.push({ p: EST.page, k: 'cld', s: JSON.stringify(EST.anot.pages) }); EST.redo = []; EST.anot.pages = {}; EST.sel = null; estMarcar(); estPintar(); } }
+    else if (a === 'eliminar-sel') estEliminarSel();
+    else if (a === 'export-pdf') conOcupado(estExportarPdf);
+    else if (a === 'resp-exp') estRespaldo();
+    else if (a === 'resp-imp') { if (EST.pdf) $('est-resp-file').click(); else log('Abra una partitura primero.'); }
     else if (a === 'src-cargar') conOcupado(estSrcVer);
     else if (a === 'src-add') conOcupado(estSrcAnadir);
     else if (a === 'nuevo') { $('est-rep').value = ''; estElegirRep(); }
@@ -4411,6 +4515,16 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   });
   $('est-src-mod').onchange = () => conOcupado(estSrcOpciones);
   $('est-src-tipo').onchange = () => conOcupado(estSrcOpciones);
+  $('est-resp-file').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f || !EST.pdf) return;
+    try {
+      if (f.size > 8e6) throw new Error('El archivo es demasiado grande.');
+      const d = JSON.parse(await f.text()); if (!d || d.formato !== 'palermo-anotaciones' || typeof d.pages !== 'object') throw new Error('No es un respaldo de anotaciones de Palermo Music.');
+      if (!confirm('Se reemplazarán las anotaciones actuales de este documento por las del respaldo. ¿Continuar?')) return;
+      EST.anot.pages = estValidarPaginas(d.pages); EST.undo = []; EST.redo = []; EST.sel = null; estMarcar(); estPintar(); log('Respaldo restaurado.');
+    } catch (err) { log('No se pudo restaurar: ' + err.message); }
+  };
+  document.addEventListener('keydown', e => { if ((e.key === 'Delete' || e.key === 'Backspace') && EST.tool === 's' && EST.sel && !$('vista-estudio').classList.contains('oculto') && !/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) { e.preventDefault(); estEliminarSel(); } });
   estHerramienta('mano');
 
   // Arranque: si hay una sesión guardada y vigente, entra sin volver a pedir Google
