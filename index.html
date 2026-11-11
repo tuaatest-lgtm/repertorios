@@ -237,6 +237,69 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
 #btn-usuarios,#btn-gestion,#btn-correo,#btn-publicidad{border-left:6px solid var(--c-admin)!important}
 #btn-qr,#btn-reportes{border-left:6px solid var(--c-inicio)!important}
 </style>
+<style id="pm-lector">
+#est-lector{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:#eef1f7;color:#1c2740;font-size:14px}
+#est-lector.oculto,#est-flota.oculto{display:none!important}
+#est-lector button,#est-lector select,#est-lector input,#est-lector textarea{font:inherit}
+#est-lector button{cursor:pointer;border:1px solid #cdd6ea;background:#fff;color:#1c2740;border-radius:10px}
+#est-lector button:disabled{opacity:.4;cursor:default}
+#est-lector button:hover:not(:disabled){border-color:#0047BB}
+.lec-cab{display:flex;align-items:center;gap:10px;padding:6px 12px;background:#fff;border-bottom:1px solid #dbe2f1;flex:0 0 auto}
+.lec-marca{font-weight:800;color:#0047BB;white-space:nowrap}
+.lec-nav{display:flex;gap:4px}.lec-nav button{padding:6px 10px;border:0;background:transparent}.lec-nav button.act{background:#0047BB;color:#fff;font-weight:700}
+.lec-tit{flex:1;min-width:0;display:flex;gap:8px;align-items:baseline;justify-content:center}.lec-tit b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lec-acc{display:flex;gap:6px}.lec-acc button{padding:6px 10px}
+.lec-herr{display:flex;gap:4px;align-items:stretch;overflow-x:auto;padding:6px 10px;background:#fff;border-bottom:1px solid #dbe2f1;flex:0 0 auto;scrollbar-width:thin}
+.lec-g{display:flex;gap:3px;padding:0 8px;border-right:1px solid #dbe2f1;align-items:center}.lec-g:last-child{border:0;margin-left:auto}
+.lt{min-width:52px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.1;border:0!important;background:transparent!important}
+.lt i{font-style:normal;font-size:19px}.lt b{font-weight:500;font-size:11px}
+.lt.on{background:#0047BB!important;color:#fff!important}
+.lt.rojo{color:#DA291C!important}
+.lec-g label{display:flex;flex-direction:column;align-items:center;font-size:11px;gap:2px}.lec-g input[type=range]{width:74px}.lec-g input[type=color]{width:34px;height:26px;border:0;padding:0;background:none}
+.sw-c{width:18px;height:18px;border-radius:50%!important;padding:0!important;border:2px solid #fff!important;box-shadow:0 0 0 1px #cdd6ea}
+.lec-medio{flex:1;min-height:0;display:flex;position:relative}
+.lec-izq,.lec-der{flex:0 0 19%;max-width:300px;min-width:200px;background:#fff;display:flex;flex-direction:column;min-height:0;border:1px solid #dbe2f1;margin:8px;border-radius:12px;overflow:hidden}
+.lec-der{flex-basis:18%;max-width:240px;min-width:170px}
+#est-lector.sin-izq .lec-izq,#est-lector.sin-der .lec-der{display:none}
+.lec-ph{background:#0A2F6C;color:#fff;font-weight:700;padding:9px 10px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.3px}.lec-ph button{background:transparent!important;color:#fff!important;border:0!important;padding:0 6px}
+.lec-izq select{margin:8px;padding:8px;border:1px solid #cdd6ea;border-radius:10px;background:#fff;color:#1c2740}
+.lec-tn{display:flex;gap:6px;padding:0 8px 6px}.lec-tn button{flex:1;padding:6px}
+#lec-lista{overflow:auto;flex:1;padding:0 6px 8px}
+.lec-song{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:9px 8px!important;margin:2px 0;border:0!important;background:transparent!important}
+.lec-song .n{font-weight:700;color:#0047BB;min-width:18px}.lec-song .t{flex:1}.lec-song.on{background:#dbe7ff!important;font-weight:700}.lec-song.on::after{content:'▶';color:#0047BB}
+.lec-doc{padding:2px 10px 8px 34px;font-size:12px}.lec-doc select{margin:2px 0 0;padding:5px;width:100%}
+.lec-cen{flex:1;min-width:0;display:flex;flex-direction:column;background:#e3e7ef;margin:8px 0}
+#est-visor{flex:1;min-height:0;display:flex}
+#est-lector #est-area{flex:1;min-height:0;max-height:none!important;overflow:auto;border-radius:0;background:#e3e7ef;padding:10px 6px}
+#est-lector #est-wrap{display:block;margin:0 auto;width:fit-content;box-shadow:0 2px 14px rgba(0,0,0,.25)}
+#est-wrap.sin-zonas .est-zona{display:none}
+.lec-pg{padding:10px 8px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+.lec-pg .big{display:flex;align-items:center;gap:10px;padding:10px;text-align:left}.lec-pg .big i{font-style:normal;width:22px;text-align:center}
+.lec-ind{text-align:center;font-weight:800;font-size:18px;border:1px solid #dbe2f1;border-radius:10px;padding:8px;background:#f5f8ff}
+.lec-ind input{width:46px;text-align:center;font-size:18px;font-weight:800;border:0;background:transparent;color:#0047BB}
+.lec-zm{display:flex;gap:6px;align-items:center}.lec-zm button{flex:1;padding:8px}.lec-zm span{min-width:48px;text-align:center;font-weight:700}
+.lec-inf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:#fff;border-top:2px solid #0047BB;flex:0 0 auto;position:relative}
+.lec-inf .play{width:44px;height:44px;border-radius:50%!important;background:#0047BB!important;color:#fff!important;border:0!important;font-size:18px}
+.lec-inf .stop{width:40px;height:40px}
+.lec-inf input[type=range]{accent-color:#0047BB}#lec-prog{flex:1;min-width:120px}#lec-vol,#lec-mvol{width:80px}
+.lec-sep{width:1px;align-self:stretch;background:#dbe2f1}
+.lec-inf .tb{display:flex;align-items:center;gap:5px;padding:6px 10px}.lec-inf .tb.on{background:#dbe7ff!important;border-color:#0047BB!important}
+#lec-bpm{width:58px;padding:5px;border:1px solid #cdd6ea;border-radius:8px;text-align:center}
+.lec-pop{position:absolute;bottom:calc(100% + 6px);right:12px;width:min(340px,92vw);background:#fff;border:1px solid #cdd6ea;border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:30;display:flex;flex-direction:column;gap:6px}
+.lec-pop.oculto{display:none!important}.lec-pop h4{margin:0 0 2px}.lec-pop textarea{width:100%;min-height:70px;border:1px solid #cdd6ea;border-radius:8px;padding:6px;color:#1c2740;background:#fff}
+.lec-pop button{padding:7px 10px;text-align:left}
+#est-flota{position:fixed;right:14px;bottom:14px;z-index:999;padding:12px 16px;border-radius:30px;border:0;background:#0047BB;color:#fff;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer}
+#est-aviso{color:#b45309;font-size:13px;padding:2px 8px}
+@media (max-width:900px){
+  .lec-izq,.lec-der{position:absolute;top:0;bottom:0;margin:0;z-index:15;width:min(300px,86vw);max-width:none;flex:none;box-shadow:0 0 30px rgba(0,0,0,.35);display:none}
+  .lec-izq{left:0}.lec-der{right:0}
+  #est-lector.abre-izq .lec-izq,#est-lector.abre-der .lec-der{display:flex}
+  #est-lector.sin-izq .lec-izq,#est-lector.sin-der .lec-der{display:none}
+  .lec-cen{margin:0}.lec-nav span,.lt b{display:none}.lec-marca{display:none}.lt{min-width:42px}
+  .lec-tit{justify-content:flex-start}
+}
+body.leyendo #tabbar{display:none!important}
+</style>
 </head>
 <body>
 
@@ -718,47 +781,6 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
         <div id="est-items"></div>
         <button class="eb" data-est="leer-cat" type="button">📖 Leer este set</button>
       </div>
-      <div id="est-lector" class="oculto">
-        <div class="est-top">
-          <button class="eb ic salir" data-est="cerrar-lector" type="button" title="Volver a la lista">✕</button>
-          <div id="est-chips" class="est-chips" aria-label="Temas del set"></div>
-          <label class="est-enc" title="Al terminar una partitura, pasar a la siguiente"><input type="checkbox" id="est-encadenar" checked> Encadenar</label>
-        </div>
-        <div class="est-tit"><b id="est-titulo"></b><span id="est-estado" style="font-size:12px"></span></div>
-        <div id="est-aviso" class="est-av"></div>
-        <div id="est-visor">
-          <div id="est-area" class="oculto"><div id="est-wrap"><canvas id="est-pdf"></canvas><canvas id="est-ink"></canvas><div class="est-zona izq" data-est="prev" title="Página anterior"><span>‹</span></div><div class="est-zona der" data-est="next" title="Página siguiente"><span>›</span></div></div></div>
-        </div>
-        <div id="est-barra" class="oculto">
-          <div id="est-herr" class="est-herr oculto">
-            <div class="est-grp">
-              <button class="eb ic on" data-est-tool="mano" type="button" title="Mover / leer">✋</button><button class="eb ic" data-est-tool="p" type="button" title="Lápiz">✏️</button><button class="eb ic" data-est-tool="h" type="button" title="Marcador">🖍</button><button class="eb ic" data-est-tool="b" type="button" title="Borrador">🧽</button>
-            </div>
-            <div class="est-grp">
-              <button class="eb ic" data-est-tool="l" type="button" title="Línea">╱</button><button class="eb ic" data-est-tool="a" type="button" title="Flecha">➚</button><button class="eb ic" data-est-tool="r" type="button" title="Rectángulo">▭</button><button class="eb ic" data-est-tool="e" type="button" title="Elipse">◯</button><button class="eb ic" data-est-tool="t" type="button" title="Texto">🔤</button><button class="eb ic" data-est-tool="s" type="button" title="Seleccionar y mover">⬚</button>
-            </div>
-            <div class="est-grp"><input type="color" id="est-color" value="#d62828" title="Color"><input type="range" id="est-grosor" min="1" max="12" value="3" title="Grosor"><input type="range" id="est-op" min="20" max="100" value="100" title="Opacidad"></div>
-            <button class="eb ic" data-est="eliminar-sel" type="button" title="Eliminar lo seleccionado">🗑</button>
-          </div>
-          <div class="est-tools">
-            <div class="est-grp"><button class="eb ic" data-est="zm" type="button" title="Alejar">−</button><button class="eb ic" data-est="zp" type="button" title="Acercar">＋</button><button class="eb ic" data-est="ajuste" type="button" title="Ajustar a la pantalla">⤢</button><button class="eb ic" data-est="full" type="button" title="Pantalla completa">⛶</button></div>
-            <button class="eb tog" id="est-btn-anotar" data-est="anotar" type="button">✏️ Anotar</button>
-            <div class="est-grp"><button class="eb ic" data-est="undo" type="button" title="Deshacer">↶</button><button class="eb ic" data-est="redo" type="button" title="Rehacer">↷</button></div>
-            <details class="est-mas"><summary class="eb ic" title="Más opciones">⋯</summary><div class="est-menu-mas">
-              <button class="eb peligro" data-est="limpiar" type="button">Borrar anotaciones de la página</button><button class="eb peligro" data-est="limpiar-doc" type="button">Borrar anotaciones de la partitura</button>
-              <button class="eb" data-est="export-pdf" type="button">⤓ PDF anotado</button><button class="eb" data-est="resp-exp" type="button">⤓ Respaldo de anotaciones</button><button class="eb" data-est="resp-imp" type="button">⤒ Restaurar respaldo</button>
-              <input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
-            </div></details>
-          </div>
-          <div class="est-nav">
-            <button class="eb nav" data-est="cprev" type="button" title="Tema anterior">⏮<small>Tema</small></button>
-            <button class="eb nav grande" data-est="prev" type="button" title="Página anterior">◀<small>Página</small></button>
-            <div class="est-pg"><input type="text" id="est-pag" inputmode="numeric" aria-label="Página"><span id="est-total"></span></div>
-            <button class="eb nav grande" data-est="next" type="button" title="Página siguiente">▶<small>Página</small></button>
-            <button class="eb nav" data-est="cnext" type="button" title="Tema siguiente">⏭<small>Tema</small></button>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -1009,7 +1031,102 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     Documentos protegidos bajo derechos institucionales de Palermo Music.
   </div>
 
-  <nav id="tabbar" class="oculto" aria-label="Navegación principal"><div class="tabs">
+  <div id="est-lector" class="oculto" role="dialog" aria-label="Lector de partituras">
+  <header class="lec-cab">
+    <div class="lec-marca">🎼 Palermo Music</div>
+    <nav class="lec-nav" aria-label="Ir a otra sección">
+      <button type="button" data-lec-ir="inicio" title="Ir a Inicio (el lector queda en una burbuja)">🏠 <span>Inicio</span></button>
+      <button type="button" data-lec-ir="eventos" title="Ir a Eventos">📅 <span>Eventos</span></button>
+      <button type="button" data-lec-ir="ensayo" title="Ir a Ensayo">🎧 <span>Ensayo</span></button>
+      <button type="button" data-lec-ir="calentar" title="Ir a Calentar">🎤 <span>Calentar</span></button>
+      <button type="button" class="act" data-est="lec-lista" title="Volver a la lista de Partituras">🎼 <span>Estudio Musical</span></button>
+    </nav>
+    <button type="button" data-est="lec-col" data-p="izq" title="Mostrar u ocultar los temas" aria-label="Temas">☰</button>
+    <div class="lec-tit"><b id="est-titulo"></b><span id="est-estado" style="font-size:12px"></span></div>
+    <button type="button" data-est="lec-col" data-p="der" title="Mostrar u ocultar los controles de página" aria-label="Página">📄</button>
+    <div class="lec-acc">
+      <button type="button" data-est="lec-liberar" title="Liberar: seguir usando la app; el lector queda en una burbuja y se vuelve a fijar con un toque">🔓 <span>Liberar</span></button>
+      <button type="button" data-est="lec-cerrar" title="Cerrar el lector" aria-label="Cerrar">✕</button>
+    </div>
+  </header>
+  <div class="lec-herr" role="toolbar" aria-label="Herramientas de anotación">
+    <div class="lec-g">
+      <button class="lt on" type="button" data-est-tool="mano" title="Leer y desplazar (sin dibujar)"><i>✋</i><b>Leer</b></button>
+      <button class="lt" type="button" data-est-tool="p" title="Lápiz"><i>✏️</i><b>Lápiz</b></button>
+      <button class="lt" type="button" data-est-tool="h" title="Marcador semitransparente"><i>🖍</i><b>Marcador</b></button>
+      <button class="lt" type="button" data-est-tool="t" title="Texto"><i>🔤</i><b>Texto</b></button>
+      <button class="lt" type="button" data-est-tool="l" title="Línea recta"><i>╱</i><b>Línea</b></button>
+      <button class="lt" type="button" data-est-tool="a" title="Flecha"><i>➚</i><b>Flecha</b></button>
+      <button class="lt" id="lec-fig" type="button" data-est="figura" title="Figura: rectángulo; un segundo toque cambia a elipse"><i>▭</i><b>Figura</b></button>
+      <button class="lt" type="button" data-est-tool="b" title="Borrador: toca una anotación para quitarla"><i>🧽</i><b>Borrador</b></button>
+      <button class="lt" type="button" data-est-tool="s" title="Seleccionar, mover o eliminar una anotación"><i>⬚</i><b>Seleccionar</b></button>
+      <button class="lt" type="button" data-est="eliminar-sel" title="Eliminar la anotación seleccionada"><i>🗑</i><b>Quitar</b></button>
+    </div>
+    <div class="lec-g">
+      <button class="sw-c" type="button" data-c="#d62828" style="background:#d62828" title="Rojo"></button><button class="sw-c" type="button" data-c="#0047BB" style="background:#0047BB" title="Azul"></button><button class="sw-c" type="button" data-c="#00B140" style="background:#00B140" title="Verde"></button><button class="sw-c" type="button" data-c="#FF6A13" style="background:#FF6A13" title="Naranja"></button><button class="sw-c" type="button" data-c="#111111" style="background:#111" title="Negro"></button>
+      <label title="Color (se recuerda el último)">Color<input type="color" id="est-color" value="#d62828"></label>
+      <label title="Grosor del trazo">Grosor<input type="range" id="est-grosor" min="1" max="12" value="3"></label>
+      <label title="Opacidad">Opacidad<input type="range" id="est-op" min="20" max="100" value="100"></label>
+    </div>
+    <div class="lec-g">
+      <button class="lt" type="button" data-est="undo" title="Deshacer"><i>↶</i><b>Deshacer</b></button>
+      <button class="lt" type="button" data-est="redo" title="Rehacer"><i>↷</i><b>Rehacer</b></button>
+    </div>
+    <div class="lec-g">
+      <button class="lt rojo" type="button" data-est="limpiar" title="Borrar las anotaciones de esta página (el PDF no se toca)"><i>🗑</i><b>Limpiar página</b></button>
+      <button class="lt rojo" type="button" data-est="limpiar-doc" title="Borrar todas las anotaciones de esta partitura (pide confirmación)"><i>🗑</i><b>Limpiar todo</b></button>
+    </div>
+  </div>
+  <div class="lec-medio">
+    <aside class="lec-izq" aria-label="Temas">
+      <div class="lec-ph"><span>🎵 MIS REPERTORIOS</span><button type="button" data-est="lec-col" data-p="izq" title="Contraer">◀</button></div>
+      <select id="lec-rep" title="Cambiar de repertorio"></select>
+      <div class="lec-tn"><button type="button" data-est="cprev" title="Tema anterior">⏮ Anterior</button><button type="button" data-est="cnext" title="Tema siguiente">Siguiente ⏭</button></div>
+      <div id="lec-lista"></div>
+    </aside>
+    <main class="lec-cen">
+      <div id="est-aviso"></div>
+      <div id="est-visor"><div id="est-area" class="oculto"><div id="est-wrap"><canvas id="est-pdf"></canvas><canvas id="est-ink"></canvas><div class="est-zona izq" data-est="prev" title="Página anterior"><span>‹</span></div><div class="est-zona der" data-est="next" title="Página siguiente"><span>›</span></div></div></div></div>
+    </main>
+    <aside class="lec-der" aria-label="Página">
+      <div class="lec-ph"><span>📄 PÁGINA</span><button type="button" data-est="lec-col" data-p="der" title="Contraer">▶</button></div>
+      <div class="lec-pg">
+        <div class="lec-ind"><input type="text" id="est-pag" inputmode="numeric" aria-label="Ir a la página"><span id="est-total"></span></div>
+        <button class="big" type="button" data-est="prim" title="Primera página"><i>⏮</i> Primera página</button>
+        <button class="big" type="button" data-est="prev" title="Página anterior"><i>◀</i> Página anterior</button>
+        <button class="big" type="button" data-est="next" title="Página siguiente"><i>▶</i> Página siguiente</button>
+        <button class="big" type="button" data-est="ult" title="Última página"><i>⏭</i> Última página</button>
+        <div class="lec-zm"><button type="button" data-est="zm" title="Alejar">🔍−</button><span id="lec-zoom">100%</span><button type="button" data-est="zp" title="Acercar">🔍＋</button></div>
+        <button class="big" type="button" data-est="ajuste" title="Ajustar la página a la pantalla"><i>⤢</i> Ajustar a página</button>
+        <button class="big" type="button" data-est="full" title="Pantalla completa"><i>⛶</i> Pantalla completa</button>
+      </div>
+    </aside>
+  </div>
+  <footer id="est-barra" class="lec-inf">
+    <button class="play" type="button" data-est="play" title="Reproducir el audio del tema">▶</button>
+    <button class="stop" type="button" data-est="pausa" title="Pausar">⏸</button>
+    <input type="range" id="lec-prog" min="0" max="1000" value="0" aria-label="Progreso del audio"><span id="lec-t">00:00 / 00:00</span>
+    <span title="Volumen">🔊</span><input type="range" id="lec-vol" min="0" max="100" value="80" aria-label="Volumen">
+    <div class="lec-sep"></div>
+    <span title="Metrónomo (independiente del audio)">🎚 Metrónomo</span><input type="checkbox" id="lec-met" data-est="met" aria-label="Activar metrónomo"><input type="number" id="lec-bpm" min="30" max="240" value="80" title="Pulsos por minuto"><input type="range" id="lec-mvol" min="0" max="100" value="50" title="Volumen del metrónomo">
+    <div class="lec-sep"></div>
+    <button class="tb" id="lec-mk-btn" type="button" data-est="mk" title="Marcar o desmarcar esta página">🔖 Marcador</button>
+    <button class="tb" type="button" data-est="pop" data-p="mk" title="Ver mis marcadores">📑</button>
+    <button class="tb" type="button" data-est="pop" data-p="nt" title="Notas personales">📝 Notas</button>
+    <button class="tb" type="button" data-est="pop" data-p="cfg" title="Configuración personal">⚙ Configuración</button>
+    <div class="lec-pop oculto" id="lec-pop-mk"><h4>Marcadores de esta partitura</h4><div id="lec-mk-lista"></div></div>
+    <div class="lec-pop oculto" id="lec-pop-nt"><h4>Notas personales</h4><label>De la partitura<textarea id="lec-nt-s" maxlength="2000"></textarea></label><label>De la página <b id="lec-nt-pn"></b><textarea id="lec-nt-p" maxlength="1000"></textarea></label></div>
+    <div class="lec-pop oculto" id="lec-pop-cfg"><h4>Configuración personal</h4>
+      <label><input type="checkbox" id="est-encadenar"> Al terminar una partitura, pasar al tema siguiente</label>
+      <label><input type="checkbox" id="lec-zonas"> Tocar el borde de la página para pasarla</label>
+      <button type="button" data-est="export-pdf">⤓ Exportar PDF anotado (con marca de agua)</button><button type="button" data-est="resp-exp">⤓ Respaldo de anotaciones</button><button type="button" data-est="resp-imp">⤒ Restaurar respaldo</button>
+      <input type="file" id="est-resp-file" accept=".json,application/json" class="oculto"></div>
+  </footer>
+  <audio id="est-audio" preload="none"></audio>
+</div>
+<button id="est-flota" class="oculto" type="button" title="Volver al lector de partituras">🎼 Volver al lector <span id="est-flota-t"></span></button>
+
+<nav id="tabbar" class="oculto" aria-label="Navegación principal"><div class="tabs">
     <button class="tab on" data-tab="inicio" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Inicio</span></button>
     <button class="tab" data-tab="eventos" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Eventos</span></button>
     <button class="tab oculto" data-tab="lectura" type="button" aria-label="Lectura de partituras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Partituras</span></button>
@@ -1034,7 +1151,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyiliXCd0dsLN8itxs09-5TaiMVG--BRx_NWHRNTDUslzcBGYH67WQdlpI3EdGQmm4qBw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxQgDOlSyQJjo2mRlwcytWGzHlqsS_Tq0WonexaZfAMxCaDAe05ssmbb63RujnNCECeng/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v5.4.1';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -2613,7 +2730,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
   const TAB_DE_VISTA = { 'vista-estudio': 'lectura',  'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
   function marcarTab(vista) {
-    document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio'; if (vista !== 'vista-estudio') document.body.classList.remove('leyendo');   // color de la sección activa
+    document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio'; if (vista !== 'vista-estudio') { document.body.classList.remove('leyendo'); if (typeof lecLiberar === 'function' && !$('est-lector').classList.contains('oculto')) lecLiberar(); }   // color de la sección activa
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   }
@@ -4155,7 +4272,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
      Entrada por programación: Eventos y Ensayos -> sets -> temas en orden de ejecución, con partitura elegible por tema.
      Las anotaciones se guardan SOLO en este dispositivo (IndexedDB), por persona, por set/lista, por tema y por partitura. */
   let EST_MODS = [];
-  const EST = { mod: '', ctx: '', seq: [], idx: 0, rep: null, reps: [], cat: {}, catLista: [], rec: {}, sets: {}, pdf: null, ver: '', cancion: '', doc: '', page: 1, zoom: 1, tool: 'mano', anot: { pages: {} }, undo: [], redo: [], idb: null, tmr: null, mio: 0, tarea: null, bytes: null, sel: null };
+  const EST = { recAll: {}, repsOk: false, rotulo: '', mod: '', ctx: '', seq: [], idx: 0, rep: null, reps: [], cat: {}, catLista: [], rec: {}, sets: {}, pdf: null, ver: '', cancion: '', doc: '', page: 1, zoom: 1, tool: 'mano', anot: { pages: {} }, undo: [], redo: [], idb: null, tmr: null, mio: 0, tarea: null, bytes: null, sel: null };
   function estDb() {
     return EST.idb || (EST.idb = new Promise((ok, mal) => {
       const q = indexedDB.open('pm_estudio', 1);
@@ -4182,17 +4299,15 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     document.querySelectorAll('[data-est^="tab-"]').forEach(b => b.classList.toggle('on', b.dataset.est === 'tab-' + t));
     if (t === 'prog') await estCargarProg(); else await estCargarCat();
   }
-  function estMostrarLector(si) {
-    document.body.classList.toggle('leyendo', !!si);          // al leer se oculta la barra inferior de la app: más espacio y menos toques accidentales
-    $('est-lector').classList.toggle('oculto', !si);
-    ['est-menu', 'est-p-prog', 'est-p-cat'].forEach(id => $(id).classList.toggle('oculto', si || (id === 'est-p-prog' && EST.tab === 'cat') || (id === 'est-p-cat' && EST.tab !== 'cat')));
-  }
   async function estAdminCargar() {
     const r = await api('me_permiso_listar');
     if (r && r.ok) { $('est-global').checked = !!r.global; $('est-instr').checked = !!r.instrumentistas; $('est-autorizados').textContent = 'Autorizados individualmente: ' + (r.autorizados.join(', ') || 'ninguno'); }
   }
-  async function estPdfsDe(idCancion) {
-    if (!EST.rec[idCancion]) { const r = await api('recursos_cancion', { idCancion: idCancion }); EST.rec[idCancion] = r && r.ok ? (r.recursos || []).filter(x => x.tipo === 'PDF') : []; }
+  async function estPdfsDe(idCancion, ev) {
+    if (!EST.rec[idCancion]) {
+      const r = await api('recursos_cancion', Object.assign({ idCancion: idCancion }, ev ? { ctxEvento: ev } : {})), t = r && r.ok ? (r.recursos || []) : [];
+      EST.recAll[idCancion] = t; EST.rec[idCancion] = t.filter(x => x.tipo === 'PDF');
+    }
     return EST.rec[idCancion];
   }
   const estOpcPdf = p => '<option value="">— sin partitura —</option>' + p.map(d => '<option value="' + esc(d.idArchivo) + '">' + esc(d.parte || d.nombreArchivo) + '</option>').join('');
@@ -4222,7 +4337,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     });
     det.innerHTML = (h ? '<div><button class="eb" data-est="ev-leer" data-id="' + esc(id) + '" type="button">📖 Leer todo el evento</button></div>' + h : '<i>Aún no tiene temas.</i>');
     for (const s of sets) for (const c of (s.canciones || [])) {
-      const p = await estPdfsDe(c.idCancion), el = estSelEl(s.idSet, c.idCancion); if (!el) continue;
+      const p = await estPdfsDe(c.idCancion, id), el = estSelEl(s.idSet, c.idCancion); if (!el) continue;
       el.innerHTML = estOpcPdf(p);
       let g = null; try { g = await estGet('pos', 'sel|' + estU() + '|' + s.idSet + '|' + c.idCancion); } catch (e) { }
       el.value = g && p.some(d => d.idArchivo === g) ? g : ((p[0] && p[0].idArchivo) || '');
@@ -4230,25 +4345,48 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   }
   function estItemsDe(id, setId) {
     const out = [];
-    (EST.sets[id] || []).forEach(s => { if (setId && s.idSet !== setId) return; (s.canciones || []).forEach(c => { const el = estSelEl(s.idSet, c.idCancion); if (el && el.value) out.push({ idCancion: c.idCancion, doc: el.value, titulo: c.titulo, ctx: s.idSet }); }); });
+    (EST.sets[id] || []).forEach(s => { if (setId && s.idSet !== setId) return; (s.canciones || []).forEach(c => { const el = estSelEl(s.idSet, c.idCancion); if (el && el.value) out.push({ idCancion: c.idCancion, doc: el.value, titulo: c.titulo, ctx: s.idSet, ev: id }); }); });
     return out;
   }
-  async function estLeer(items) {
+  async function estLeer(items, rotulo) {
     if (!items.length) { log('Elija al menos una partitura para leer.'); return; }
-    EST.seq = items; EST.idx = 0; estMostrarLector(true); estChips(); await estAbrirIdx(0, 1);
+    EST.seq = items; EST.idx = 0; EST.rotulo = rotulo || ''; estMostrarLector(true); lecRepOpciones(); lecLista(); estCargarReps();
+    await estAbrirIdx(0, 1);
   }
-  function estChips() { $('est-chips').innerHTML = EST.seq.map((it, i) => '<button type="button" data-est="tema" data-i="' + i + '" title="' + esc(it.titulo) + '">' + (i + 1) + '</button>').join(''); }
+  const estRotulo = b => ((b.closest('.est-ev') || document).querySelector('b') || {}).textContent || '';
+  async function estCargarReps() {
+    if (EST.repsOk) return;
+    const r = await api('me_mis_repertorios');
+    if (r && r.ok) { EST.reps = r.repertorios || []; (r.catalogo || []).forEach(c => { EST.cat[c.idCancion] = c.titulo; }); EST.repsOk = true; }
+    lecRepOpciones();
+  }
+  function lecRepOpciones() {
+    $('lec-rep').innerHTML = '<option value="">▸ ' + esc(EST.rotulo || 'Set actual') + '</option>' + EST.reps.map(r => '<option value="' + esc(r.idRepertorio) + '">' + esc(r.nombre) + '</option>').join('');
+    $('lec-rep').value = '';
+  }
+  function lecLista() {
+    $('lec-lista').innerHTML = EST.seq.map((it, i) => '<button type="button" class="lec-song' + (i === EST.idx ? ' on' : '') + '" data-est="tema" data-i="' + i + '" title="' + esc(it.titulo) + '"><span class="n">' + (i + 1) + '</span><span class="t">' + esc(it.titulo) + '</span><span title="Partitura elegida">📄</span></button>'
+      + (i === EST.idx ? '<div class="lec-doc">Documento<select id="lec-doc"></select></div>' : '')).join('');
+    lecDocs();
+  }
+  async function lecDocs() {
+    const it = EST.seq[EST.idx]; if (!it || !$('lec-doc')) return;
+    const p = await estPdfsDe(it.idCancion, it.ev), el = $('lec-doc'); if (!el) return;
+    el.innerHTML = p.map(d => '<option value="' + esc(d.idArchivo) + '">' + esc(d.parte || d.nombreArchivo) + '</option>').join(''); el.value = it.doc;
+  }
   async function estAbrirIdx(i, pagina) {
     if (i < 0 || i >= EST.seq.length) return;
-    EST.idx = i; estActualizarNav(); const it = EST.seq[i];
+    EST.idx = i; lecLista(); estActualizarNav(); const it = EST.seq[i];
     await estAbrir(it.idCancion, it.doc, pagina === undefined ? 1 : pagina, MODULO, it.ctx);       // al cambiar de tema se empieza en la primera página (-1 = la última)
   }
   function estActualizarNav() {
     const it = EST.seq[EST.idx]; if (!it) return;
     $('est-titulo').textContent = (EST.idx + 1) + '/' + EST.seq.length + ' · ' + it.titulo;
-    document.querySelectorAll('#est-chips button').forEach(b => { const on = Number(b.dataset.i) === EST.idx; b.classList.toggle('on', on); if (on && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'center' }); });
     document.querySelectorAll('[data-est="cprev"]').forEach(b => { b.disabled = EST.idx <= 0; });
     document.querySelectorAll('[data-est="cnext"]').forEach(b => { b.disabled = EST.idx >= EST.seq.length - 1; });
+    $('lec-zoom').textContent = Math.round(EST.zoom * 100) + '%';
+    $('est-flota-t').textContent = '· ' + (EST.idx + 1) + '/' + EST.seq.length + (EST.pdf ? ' · pág. ' + EST.page : '');
+    if (EST.doc === it.doc && EST.cancion === it.idCancion) { lecMk(); if (!$('lec-pop-nt').classList.contains('oculto')) lecNotasCargar(); }
   }
   // Salto de tema sin bloquear la pantalla: si se toca varias veces seguidas, gana el último destino.
   let estTemaBusy = false, estTemaPend = null;
@@ -4258,7 +4396,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     estTemaBusy = true;
     try { await estAbrirIdx(i, pagina); } finally { estTemaBusy = false; if (estTemaPend) { const p = estTemaPend; estTemaPend = null; estIrTema(p[0], p[1]); } }
   }
-  // Pasar página: al final de una partitura salta al tema siguiente (y hacia atrás, a la última página del tema anterior) si «Encadenar» está marcado.
+  // Pasar página: al final de una partitura salta al tema siguiente (y hacia atrás, a la última página del tema anterior) si «encadenar» está activo.
   async function estPaso(d) {
     if (!EST.pdf) return;
     const n = EST.page + d;
@@ -4268,7 +4406,10 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     if (j < 0 || j >= EST.seq.length) { estEstado(d > 0 ? 'Fin del set' : 'Inicio del set'); return; }
     await estIrTema(j, d > 0 ? 1 : -1);
   }
-  function estAnotar(si) { $('est-herr').classList.toggle('oculto', !si); $('est-btn-anotar').classList.toggle('on', si); estHerramienta(si ? 'p' : 'mano'); }
+  function estMostrarLector(si) {
+    document.body.classList.toggle('leyendo', !!si); $('est-lector').classList.toggle('oculto', !si); $('est-flota').classList.add('oculto');
+    if (si) lecRedibujar();
+  }
 
   /* ---- Mi set del catálogo (máximo 10 temas, una partitura por tema) ---- */
   async function estCargarCat() {
@@ -4303,7 +4444,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   async function estAbrir(idCancion, idArchivo, pagina, modulo, ctx) {
     const m = modulo || MODULO;
     await estFlush();
-    const r = await api('pdf', Object.assign({ idCancion: idCancion, idArchivo: idArchivo, modulo: m }, ctxEns()));
+    const r = await api('pdf', Object.assign({ idCancion: idCancion, idArchivo: idArchivo, modulo: m }, ctxEns(), (EST.seq[EST.idx] && EST.seq[EST.idx].ev) ? { ctxEvento: EST.seq[EST.idx].ev } : {}));
     if (!r || !r.ok) { log('No se pudo cargar la partitura: ' + textoError(r && r.error)); return; }
     let pdf;
     try { pdf = await (await cargarPdfJs()).getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise; }
@@ -4315,7 +4456,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     $('est-aviso').textContent = g && g.ver && g.ver !== EST.ver ? '⚠ Esta partitura cambió desde que la anotó: sus anotaciones podrían no coincidir.' : '';
     if (!pagina) { try { const p = await estGet('pos', 'pg|' + estClave()); pagina = p && p.page; } catch (e) { } }
     EST.page = pagina === -1 ? pdf.numPages : Math.min(Math.max(1, pagina || 1), pdf.numPages);
-    $('est-barra').classList.remove('oculto'); $('est-area').classList.remove('oculto');
+    $('est-barra').classList.remove('oculto'); $('est-area').classList.remove('oculto'); lecAlCambiarDoc();
     await estRender();
   }
   async function estRender(ajustar) {
@@ -4499,7 +4640,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     return out;
   }
   function estHerramienta(t) {
-    EST.tool = t; $('est-wrap').classList.toggle('anota', t !== 'mano'); if (t !== 's') { EST.sel = null; if (EST.pdf) estPintar(); } $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
+    EST.tool = t; $('est-wrap').classList.toggle('anota', t !== 'mano'); const fg = $('lec-fig'); if (fg) { fg.classList.toggle('on', t === 'r' || t === 'e'); fg.querySelector('b').textContent = t === 'e' ? 'Elipse' : 'Figura'; fg.querySelector('i').textContent = t === 'e' ? '◯' : '▭'; } if (t !== 's') { EST.sel = null; if (EST.pdf) estPintar(); } $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
     document.querySelectorAll('[data-est-tool]').forEach(b => b.classList.toggle('on', b.dataset.estTool === t));
   }
 
@@ -4508,32 +4649,48 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   $('est-global').onchange = () => conOcupado(async () => { const r = await api('me_global_set', { on: $('est-global').checked }); if (!r || !r.ok) log('No se pudo cambiar: ' + textoError(r && r.error)); estAdminCargar(); });
   $('est-instr').onchange = () => conOcupado(async () => { const r = await api('me_global_set', { on: $('est-instr').checked, alcance: 'instrumentistas' }); if (!r || !r.ok) log('No se pudo cambiar: ' + textoError(r && r.error)); estAdminCargar(); });
   $('est-pag').onchange = () => estIrPagina(parseInt($('est-pag').value, 10) || EST.page);
-  $('vista-estudio').addEventListener('change', e => {
+  const estChange = e => {
     const d = e.target.dataset || {};
     if (d.estSel !== undefined) { const p = d.estSel.split('|'); estPut('pos', 'sel|' + estU() + '|' + p[0] + '|' + p[1], e.target.value).catch(() => { }); }       // se recuerda la partitura elegida para cada tema de cada set
     else if (d.estIt !== undefined) { const it = EST.rep.items[Number(d.estIt)]; if (it) it.docs = e.target.value ? [e.target.value] : []; }
-  });
-  $('vista-estudio').addEventListener('click', e => {
+    else if (e.target.id === 'lec-doc') { const it = EST.seq[EST.idx]; if (it) { it.doc = e.target.value; estPut('pos', 'sel|' + estU() + '|' + it.ctx + '|' + it.idCancion, it.doc).catch(() => { }); estIrTema(EST.idx, 1); } }
+  };
+  $('vista-estudio').addEventListener('change', estChange); $('est-lector').addEventListener('change', estChange);
+  const estClick = e => {
+    const ir = e.target.closest('[data-lec-ir]'); if (ir) { lecLiberar(); const tb = document.querySelector('#tabbar .tab[data-tab="' + ir.dataset.lecIr + '"]'); if (tb) tb.click(); return; }
+    const sw = e.target.closest('[data-c]'); if (sw) { $('est-color').value = sw.dataset.c; try { localStorage.setItem('pm_lec_color', sw.dataset.c); } catch (er) { } return; }
     const bt = e.target.closest('[data-est-tool]'); if (bt) { estHerramienta(bt.dataset.estTool); return; }
     const b = e.target.closest('[data-est]'); if (!b) return;
     const a = b.dataset.est, i = Number(b.dataset.i), its = EST.rep ? EST.rep.items : [];
     if (a === 'tab-prog') conOcupado(() => estTab('prog'));
     else if (a === 'tab-cat') conOcupado(() => estTab('cat'));
     else if (a === 'ev-abrir') conOcupado(() => estAbrirEvento(b.dataset.id));
-    else if (a === 'ev-leer') conOcupado(() => estLeer(estItemsDe(b.dataset.id)));
-    else if (a === 'set-leer') conOcupado(() => estLeer(estItemsDe(b.dataset.id, b.dataset.set)));
-    else if (a === 'leer-cat') conOcupado(() => estLeer(its.filter(x => x.docs[0]).map(x => ({ idCancion: x.idCancion, doc: x.docs[0], titulo: EST.cat[x.idCancion] || x.idCancion, ctx: 'P-' + (EST.rep.idRepertorio || 'borrador') }))));
+    else if (a === 'ev-leer') conOcupado(() => estLeer(estItemsDe(b.dataset.id), estRotulo(b)));
+    else if (a === 'set-leer') conOcupado(() => estLeer(estItemsDe(b.dataset.id, b.dataset.set), estRotulo(b)));
+    else if (a === 'leer-cat') conOcupado(() => estLeer(its.filter(x => x.docs[0]).map(x => ({ idCancion: x.idCancion, doc: x.docs[0], titulo: EST.cat[x.idCancion] || x.idCancion, ctx: 'P-' + (EST.rep.idRepertorio || 'borrador') })), 'Mi set: ' + (EST.rep.nombre || 'sin guardar')));
     else if (a === 'cerrar-lector') { estFlush(); estMostrarLector(false); }
     else if (a === 'cprev') estIrTema(EST.idx - 1, 1);
     else if (a === 'cnext') estIrTema(EST.idx + 1, 1);
     else if (a === 'tema') estIrTema(i, 1);
-    else if (a === 'anotar') estAnotar($('est-herr').classList.contains('oculto'));
+    else if (a === 'prim') estIrPagina(1);
+    else if (a === 'ult') estIrPagina(EST.pdf ? EST.pdf.numPages : 1);
+    else if (a === 'figura') estHerramienta(EST.tool === 'r' ? 'e' : 'r');
+    else if (a === 'lec-liberar') lecLiberar();
+    else if (a === 'lec-cerrar') lecCerrar();
+    else if (a === 'lec-lista') { lecLiberar(); conOcupado(abrirEstudio); }
+    else if (a === 'lec-col') lecPanel(b.dataset.p);
+    else if (a === 'play') lecPlay();
+    else if (a === 'pausa') $('est-audio').pause();
+    else if (a === 'met') lecMet();
+    else if (a === 'mk') lecMk('toggle');
+    else if (a === 'mk-ir') estIrPagina(Number(b.dataset.i));
+    else if (a === 'pop') lecPop(b.dataset.p);
     else if (a === 'prev') estPaso(-1);
     else if (a === 'next') estPaso(1);
     else if (a === 'zp') { EST.zoom = Math.min(4, EST.zoom * 1.25); estRender(); }
     else if (a === 'zm') { EST.zoom = Math.max(0.4, EST.zoom / 1.25); estRender(); }
     else if (a === 'ajuste') estRender(true);
-    else if (a === 'full') { const v = $('est-visor'); if (document.fullscreenElement) document.exitFullscreen(); else if (v.requestFullscreen) v.requestFullscreen().then(() => setTimeout(estRender, 250)); }
+    else if (a === 'full') { const v = $('est-lector'); if (document.fullscreenElement) document.exitFullscreen(); else if (v.requestFullscreen) v.requestFullscreen().then(() => setTimeout(estRender, 250)); }
     else if (a === 'undo') estDeshacer();
     else if (a === 'redo') estRehacer();
     else if (a === 'limpiar') { const ts = estTrazos(); if (ts.length && confirm('¿Borrar las anotaciones de esta página?')) { EST.undo.push({ p: EST.page, k: 'clr', s: ts.slice() }); EST.redo = []; ts.length = 0; estMarcar(); estPintar(); } }
@@ -4564,18 +4721,106 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
       const r = await api('me_permiso_set', { correo: c, autorizado: a === 'dar' }); if (!r || !r.ok) log('No se pudo cambiar el permiso: ' + textoError(r && r.error));
       estAdminCargar();
     });
-  });
+  };
+  $('vista-estudio').addEventListener('click', estClick); $('est-lector').addEventListener('click', estClick);
   $('btn-estudiar').onclick = () => conOcupado(async () => {          // desde el panel de canción de Ensayo
     const doc = $('sel-pdf').value; if (!doc || !cancionAbierta) { log('Seleccione un documento.'); return; }
     await abrirEstudio(); estMostrarLector(true); EST.seq = [{ idCancion: cancionAbierta, doc: doc, titulo: EST.cat[cancionAbierta] || cancionAbierta, ctx: 'BIB' }]; EST.idx = 0;
-    estChips(); await estAbrirIdx(0, 1);
+    lecLista(); await estAbrirIdx(0, 1);
   });
   document.addEventListener('keydown', e => {
-    if ($('vista-estudio').classList.contains('oculto') || /INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return;
+    if ($('est-lector').classList.contains('oculto') || /INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown') { if (e.shiftKey) estIrTema(EST.idx + 1, 1); else estPaso(1); e.preventDefault(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { if (e.shiftKey) estIrTema(EST.idx - 1, 1); else estPaso(-1); e.preventDefault(); }   // Mayús + flecha = cambiar de tema; los pedales Bluetooth envían estas teclas
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) estFlush(); });
-  window.addEventListener('resize', () => { if (EST.pdf && !$('vista-estudio').classList.contains('oculto')) estRender(); });
+  window.addEventListener('resize', () => { if (EST.pdf && !$('est-lector').classList.contains('oculto')) estRender(); });
+  /* ================= MARCO DEL LECTOR (v5.5.0): fijar/liberar, paneles, audio, metrónomo, marcadores, notas, configuración ================= */
+  const lecEsMovil = () => window.matchMedia('(max-width: 900px)').matches;
+  const lecRedibujar = () => setTimeout(() => { if (EST.pdf && !$('est-lector').classList.contains('oculto')) estRender(); }, 60);
+  function lecFijar() { $('est-lector').classList.remove('oculto'); $('est-flota').classList.add('oculto'); document.body.classList.add('leyendo'); lecRedibujar(); }
+  function lecLiberar() { $('est-lector').classList.add('oculto'); document.body.classList.remove('leyendo'); if (EST.pdf) $('est-flota').classList.remove('oculto'); }
+  function lecCerrar() {
+    estFlush(); $('est-audio').pause(); metApagar();
+    if (EST.pdf) { try { EST.pdf.destroy(); } catch (e) { } } EST.pdf = null; EST.seq = []; EST.doc = '';
+    estMostrarLector(false);
+  }
+  function lecPanel(p) {
+    const L = $('est-lector');
+    if (lecEsMovil()) { L.classList.toggle('abre-' + p); L.classList.remove('abre-' + (p === 'izq' ? 'der' : 'izq')); } else L.classList.toggle('sin-' + p);
+    lecRedibujar();
+  }
+  function lecPop(n) { ['mk', 'nt', 'cfg'].forEach(x => { const el = $('lec-pop-' + x); el.classList.toggle('oculto', x !== n || !el.classList.contains('oculto')); }); if (n === 'nt') lecNotasCargar(); if (n === 'mk') lecMk(); }
+  $('est-flota').onclick = lecFijar;
+  /* ---- configuración personal (se recuerda en este dispositivo) ---- */
+  const LEC_CFG = (function () { try { return Object.assign({ enc: true, zonas: true }, JSON.parse(localStorage.getItem('pm_lec_cfg') || '{}')); } catch (e) { return { enc: true, zonas: true }; } })();
+  function lecCfgGuardar() { try { localStorage.setItem('pm_lec_cfg', JSON.stringify(LEC_CFG)); } catch (e) { } }
+  $('est-encadenar').checked = LEC_CFG.enc; $('lec-zonas').checked = LEC_CFG.zonas; $('est-wrap').classList.toggle('sin-zonas', !LEC_CFG.zonas);
+  $('est-encadenar').onchange = () => { LEC_CFG.enc = $('est-encadenar').checked; lecCfgGuardar(); };
+  $('lec-zonas').onchange = () => { LEC_CFG.zonas = $('lec-zonas').checked; $('est-wrap').classList.toggle('sin-zonas', !LEC_CFG.zonas); lecCfgGuardar(); };
+  try { const c = localStorage.getItem('pm_lec_color'); if (c && /^#[0-9a-f]{6}$/i.test(c)) $('est-color').value = c; } catch (e) { }
+  $('est-color').addEventListener('input', () => { try { localStorage.setItem('pm_lec_color', $('est-color').value); } catch (e) { } });
+  /* ---- audio del tema ---- */
+  const lecT = s => isFinite(s) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
+  const LA = { cargado: '', url: '' };
+  function lecAlCambiarDoc() {
+    const a = $('est-audio'); a.pause(); a.removeAttribute('src'); a.load(); LA.cargado = ''; $('lec-prog').value = 0; $('lec-t').textContent = '0:00 / 0:00';
+    if (!$('lec-pop-nt').classList.contains('oculto')) lecNotasCargar();
+  }
+  async function lecPlay() {
+    const a = $('est-audio'), it = EST.seq[EST.idx]; if (!it) return;
+    if (LA.cargado !== it.idCancion) {
+      await estPdfsDe(it.idCancion, it.ev);
+      const m = (EST.recAll[it.idCancion] || []).filter(x => /mp3|audio/i.test(String(x.tipo)))[0];
+      if (!m) { log('Este tema no tiene audio disponible.'); return; }
+      const r = await api('mp3', Object.assign({ idCancion: it.idCancion, idArchivo: m.idArchivo, modulo: MODULO }, ctxEns(), it.ev ? { ctxEvento: it.ev } : {}));
+      if (!r || !r.ok) { log('No se pudo cargar el audio: ' + textoError(r && r.error)); return; }
+      if (LA.url) URL.revokeObjectURL(LA.url);
+      LA.url = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' })); a.src = LA.url; LA.cargado = it.idCancion; a.volume = $('lec-vol').value / 100;
+    }
+    try { await a.play(); } catch (e) { log('No se pudo reproducir: ' + e.message); }
+  }
+  (function () {
+    const a = $('est-audio'), t = () => { $('lec-t').textContent = lecT(a.currentTime) + ' / ' + lecT(a.duration); };
+    a.addEventListener('timeupdate', () => { if (a.duration) $('lec-prog').value = Math.round(a.currentTime / a.duration * 1000); t(); });
+    a.addEventListener('loadedmetadata', t);
+    $('lec-prog').oninput = () => { if (a.duration) a.currentTime = $('lec-prog').value / 1000 * a.duration; };
+    $('lec-vol').oninput = () => { a.volume = $('lec-vol').value / 100; };
+  })();
+  /* ---- metrónomo (independiente del audio) ---- */
+  const MET = { t: null, ctx: null, next: 0, n: 0, bpm: 80, vol: 0.5 };
+  function metPlan() {
+    while (MET.next < MET.ctx.currentTime + 0.12) {
+      const o = MET.ctx.createOscillator(), g = MET.ctx.createGain(), v = Math.max(MET.vol, 0.0001);
+      o.frequency.value = MET.n % 4 === 0 ? 1200 : 800; g.gain.setValueAtTime(v, MET.next); g.gain.exponentialRampToValueAtTime(0.0001, MET.next + 0.05);
+      o.connect(g); g.connect(MET.ctx.destination); o.start(MET.next); o.stop(MET.next + 0.06); MET.next += 60 / MET.bpm; MET.n++;
+    }
+  }
+  function metApagar() { if (MET.t) { clearInterval(MET.t); MET.t = null; } $('lec-met').checked = false; }
+  function lecMet() {
+    if (!$('lec-met').checked) { metApagar(); return; }
+    try { MET.ctx = MET.ctx || new (window.AudioContext || window.webkitAudioContext)(); MET.ctx.resume(); } catch (e) { log('Este navegador no permite el metrónomo.'); metApagar(); return; }
+    MET.next = MET.ctx.currentTime + 0.05; MET.n = 0; MET.t = setInterval(metPlan, 25);
+  }
+  $('lec-bpm').onchange = () => { MET.bpm = Math.min(240, Math.max(30, Number($('lec-bpm').value) || 80)); $('lec-bpm').value = MET.bpm; };
+  $('lec-mvol').oninput = () => { MET.vol = $('lec-mvol').value / 100; };
+  /* ---- marcadores y notas (por persona, set, tema y partitura; en este dispositivo) ---- */
+  async function lecMk(accion) {
+    if (!EST.pdf || !EST.doc) return; const k = 'mk|' + estClave(); let l = [];
+    try { l = (await estGet('pos', k)) || []; } catch (e) { }
+    if (accion === 'toggle') { const i = l.indexOf(EST.page); if (i >= 0) l.splice(i, 1); else { l.push(EST.page); l.sort((a, b) => a - b); } try { await estPut('pos', k, l); } catch (e) { log('No se pudo guardar el marcador.'); } }
+    $('lec-mk-btn').classList.toggle('on', l.indexOf(EST.page) >= 0);
+    $('lec-mk-lista').innerHTML = l.length ? l.map(n => '<button type="button" data-est="mk-ir" data-i="' + n + '">Página ' + n + '</button>').join(' ') : '<i>Aún no hay marcadores.</i>';
+  }
+  async function lecNotasCargar() {
+    let n = {}; try { n = (await estGet('pos', 'nt|' + estClave())) || {}; } catch (e) { }
+    $('lec-nt-s').value = n.s || ''; $('lec-nt-p').value = (n.p || {})[EST.page] || ''; $('lec-nt-pn').textContent = EST.page;
+  }
+  let lecNtT = null;
+  function lecNotasGuardar() {
+    const k = 'nt|' + estClave(), pg = EST.page, s = $('lec-nt-s').value.slice(0, 2000), p = $('lec-nt-p').value.slice(0, 1000); clearTimeout(lecNtT);
+    lecNtT = setTimeout(async () => { let n = {}; try { n = (await estGet('pos', k)) || {}; } catch (e) { } n.s = s; n.p = n.p || {}; if (p) n.p[pg] = p; else delete n.p[pg]; estPut('pos', k, n).catch(() => log('No se pudo guardar la nota.')); }, 500);
+  }
+  $('lec-nt-s').oninput = lecNotasGuardar; $('lec-nt-p').oninput = lecNotasGuardar;
   (function () {
     const ar = $('est-area'); let x0 = 0, y0 = 0, t0 = 0, ok = false;
     ar.addEventListener('pointerdown', e => { ok = EST.tool === 'mano' && EST.zoom <= 1.05 && e.pointerType !== 'mouse'; x0 = e.clientX; y0 = e.clientY; t0 = Date.now(); });
@@ -4590,7 +4835,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
       EST.anot.pages = estValidarPaginas(d.pages); EST.undo = []; EST.redo = []; EST.sel = null; estMarcar(); estPintar(); log('Respaldo restaurado.');
     } catch (err) { log('No se pudo restaurar: ' + err.message); }
   };
-  document.addEventListener('keydown', e => { if ((e.key === 'Delete' || e.key === 'Backspace') && EST.tool === 's' && EST.sel && !$('vista-estudio').classList.contains('oculto') && !/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) { e.preventDefault(); estEliminarSel(); } });
+  document.addEventListener('keydown', e => { if ((e.key === 'Delete' || e.key === 'Backspace') && EST.tool === 's' && EST.sel && !$('est-lector').classList.contains('oculto') && !/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) { e.preventDefault(); estEliminarSel(); } });
   estHerramienta('mano');
 
   // Arranque: si hay una sesión guardada y vigente, entra sin volver a pedir Google
