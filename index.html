@@ -442,8 +442,24 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   </div>
 
   <div class="card oculto" id="vista-clasif">
+    <style>
+      .cl-wrap{overflow:auto;max-height:68vh;border:1px solid var(--bd);border-radius:10px;margin-top:8px}
+      .cl-tabla{border-collapse:separate;border-spacing:0;width:100%;min-width:640px;font-size:14px}
+      .cl-tabla th,.cl-tabla td{border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);padding:6px 4px;text-align:center;background:var(--s)}
+      .cl-tabla thead th{position:sticky;top:0;z-index:2;background:var(--s3);color:var(--tx);font-size:13px}
+      .cl-tabla th.cl-t,.cl-tabla td.cl-t{position:sticky;left:0;z-index:1;text-align:left;min-width:150px;max-width:210px;background:var(--s2)}
+      .cl-tabla thead th.cl-t{z-index:3;background:var(--s3)}
+      .cl-tabla th.cl-p{height:118px;width:44px;padding:4px 2px}
+      .cl-tabla th.cl-p span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}
+      .cl-tabla .cl-u{width:56px;color:var(--mu);font-size:12px}
+      .cl-tabla .cl-e{width:64px}
+      .cl-tabla input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:var(--c-catalogo,#00AEC7);cursor:pointer}
+      .cl-tabla input[type=number]{width:48px;margin:0;padding:5px 2px;text-align:center;font-size:15px}
+      .cl-tabla tr.cl-pend td.cl-t{box-shadow:inset 5px 0 0 #FFC72C}
+      .cl-tabla tr:hover td{filter:brightness(1.12)}
+    </style>
     <h3>🏷️ Clasificación del repertorio</h3>
-    <div class="aviso">Asigne a cada canto uno o varios <b>propósitos</b> y su <b>energía</b> (1 muy baja · 2 baja · 3 moderada · 4 alta · 5 muy alta). Se guarda al instante, queda ligado al canto y sirve para todos los eventos. Lo que no se registra aparece como «Sin clasificar»: nada se asume.</div>
+    <div class="aviso">Marque con ✔ los <b>propósitos</b> de cada canto y escriba su <b>energía</b> (1 muy baja · 2 baja · 3 moderada · 4 alta · 5 muy alta). Cada cambio se guarda al instante y sirve para todos los eventos. La barra amarilla marca los cantos sin clasificar: nada se asume.</div>
     <div id="cl-resumen" class="aviso"></div>
     <input type="search" id="cl-buscar" placeholder="Buscar canción…" autocomplete="off">
     <div class="botones">
@@ -961,7 +977,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycby57vReFyJhZpiqheY6PuSE0NMH4qiau9YzlI2EsImrla0L8Rsp4r4fu1h-fAFSNvhtWA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbycG2mKFrZranlNHFE8Ki-jBzEC4j6zz37MrrLm1YwS-WMDiZ8Mj6Diwqbx181sn7Toeg/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v5.3.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -1932,40 +1948,59 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     $('cl-f-ene').innerHTML = '<option value="">Toda energía</option><option value="0">Sin energía</option>' + [1, 2, 3, 4, 5].map(n => '<option value="' + n + '">Energía ' + n + '</option>').join('');
     mostrarVista('vista-clasif'); pintarClasif();
   }
+  function resumenClasif() {
+    $('cl-resumen').textContent = clDatos.length + ' cantos · ' + clDatos.filter(c => !c.clasificada).length + ' pendientes de clasificar (' + clDatos.filter(c => !c.propositos.length).length + ' sin propósito, ' + clDatos.filter(c => !c.energia).length + ' sin energía).';
+  }
   function pintarClasif() {
     const q = $('cl-buscar').value.trim().toLowerCase(), fp = $('cl-f-prop').value, fe = $('cl-f-ene').value, solo = $('cl-solo-pend').checked, ord = $('cl-orden').value;
-    const sin = clDatos.filter(c => !c.clasificada).length;
-    $('cl-resumen').textContent = clDatos.length + ' cantos · ' + sin + ' pendientes de clasificar (' + clDatos.filter(c => !c.propositos.length).length + ' sin propósito, ' + clDatos.filter(c => !c.energia).length + ' sin energía).';
+    resumenClasif();
     let l = clDatos.filter(c => (!q || c.titulo.toLowerCase().includes(q)) && (!solo || !c.clasificada) &&
       (!fp || (fp === '_sin' ? !c.propositos.length : c.propositos.indexOf(fp) >= 0)) && (fe === '' || c.energia === Number(fe)));
     const t = (a, b) => a.titulo.localeCompare(b.titulo, 'es');
     l = l.slice().sort(ord === 'ene-asc' ? (a, b) => (a.energia || 99) - (b.energia || 99) || t(a, b) : ord === 'ene-desc' ? (a, b) => b.energia - a.energia || t(a, b) :
       ord === 'uso-asc' ? (a, b) => a.usos60 - b.usos60 || t(a, b) : ord === 'uso-desc' ? (a, b) => b.usos60 - a.usos60 || t(a, b) :
       ord === 'pend' ? (a, b) => (a.clasificada ? 1 : 0) - (b.clasificada ? 1 : 0) || t(a, b) : t);
-    $('cl-lista').innerHTML = l.length ? l.map(c => '<div class="fila" data-cl-fila="' + esc(c.idCancion) + '" style="display:block;">' +
-      '<div><b>' + esc(c.titulo) + '</b> <span class="badge-uso">' + c.usos60 + '× / 60 d</span>' + (c.clasificada ? '' : ' <span class="badge-uso" style="background:#fde9c9;">Sin clasificar</span>') + (c.activa ? '' : ' <span class="meta">(inactivo)</span>') + '</div>' +
-      '<div style="margin:6px 0;">' + clProps.map(p => '<button type="button" class="btn-small ' + (c.propositos.indexOf(p) >= 0 ? 'btn-accent' : 'btn-secondary') + '" data-cl-prop="' + esc(c.idCancion) + '" data-p="' + esc(p) + '" aria-pressed="' + (c.propositos.indexOf(p) >= 0) + '">' + esc(p) + '</button> ').join('') + '</div>' +
-      '<label style="font-size:14px;">Energía <select data-cl-ene="' + esc(c.idCancion) + '" style="width:auto;margin:0 0 0 6px;"><option value="">Sin clasificar</option>' +
-      [1, 2, 3, 4, 5].map(n => '<option value="' + n + '"' + (c.energia === n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label></div>').join('') : '<span class="aviso">Ningún canto cumple el filtro.</span>';
+    const cab = '<tr><th class="cl-t">Canción</th><th class="cl-u" title="Veces programado en los últimos 60 días">Uso 60 d</th>' + clProps.map(p => '<th class="cl-p"><span>' + esc(p) + '</span></th>').join('') + '<th class="cl-e">Energía<br>1–5</th></tr>';
+    const filas = l.map(c => '<tr data-cl-fila="' + esc(c.idCancion) + '"' + (c.clasificada ? '' : ' class="cl-pend"') + '><td class="cl-t"><b>' + esc(c.titulo) + '</b>' + (c.activa ? '' : ' <span class="meta">(inactivo)</span>') + '</td><td class="cl-u">' + c.usos60 + '×</td>' +
+      clProps.map(p => '<td class="cl-p"><input type="checkbox" data-cl-prop="' + esc(c.idCancion) + '" data-p="' + esc(p) + '" aria-label="' + esc(c.titulo + ' · ' + p) + '"' + (c.propositos.indexOf(p) >= 0 ? ' checked' : '') + '></td>').join('') +
+      '<td class="cl-e"><input type="number" min="1" max="5" step="1" inputmode="numeric" data-cl-ene="' + esc(c.idCancion) + '" value="' + (c.energia || '') + '" aria-label="Energía de ' + esc(c.titulo) + '"></td></tr>').join('');
+    $('cl-lista').innerHTML = l.length ? '<div class="cl-wrap"><table class="cl-tabla"><thead>' + cab + '</thead><tbody>' + filas + '</tbody></table></div>' : '<span class="aviso">Ningún canto cumple el filtro.</span>';
   }
-  async function guardarClasif(id, cambio) {
+  // Una fila se actualiza sola (sin repintar la tabla): no se pierde el lugar ni el foco al marcar varias casillas seguidas.
+  function actualizarFilaClasif(c) {
+    resumenClasif();
+    const tr = Array.prototype.slice.call(document.querySelectorAll('#cl-lista [data-cl-fila]')).filter(x => x.dataset.clFila === c.idCancion)[0]; if (!tr) return;
+    tr.querySelectorAll('[data-cl-prop]').forEach(i => { i.checked = c.propositos.indexOf(i.dataset.p) >= 0; });
+    const e = tr.querySelector('[data-cl-ene]'); if (e) e.value = c.energia || '';
+    tr.classList.toggle('cl-pend', !c.clasificada);
+  }
+  let clCola = Promise.resolve();      // los guardados van en fila: ningún clic se pierde aunque se marque muy rápido
+  function guardarClasif(id, cambio) {
     const c = clDatos.filter(x => x.idCancion === id)[0]; if (!c) return;
-    const r = await api('clasificar_cancion', Object.assign({ idCancion: id }, cambio));
-    if (r && r.ok) { c.propositos = r.propositos || []; c.energia = r.energia || 0; c.clasificada = c.propositos.length > 0 && c.energia > 0; }
-    else log('No se guardó la clasificación: ' + textoError(r && r.error));
-    pintarClasif();
+    const previo = { propositos: c.propositos.slice(), energia: c.energia, clasificada: c.clasificada };
+    if (cambio.propositos) c.propositos = cambio.propositos.slice();          // se refleja de inmediato; si el servidor lo rechaza, se revierte
+    if (cambio.energia !== undefined) c.energia = cambio.energia;
+    c.clasificada = c.propositos.length > 0 && c.energia > 0; actualizarFilaClasif(c);
+    clCola = clCola.then(async () => {
+      const r = await api('clasificar_cancion', Object.assign({ idCancion: id }, cambio));
+      if (r && r.ok) { c.propositos = r.propositos || []; c.energia = r.energia || 0; c.clasificada = c.propositos.length > 0 && c.energia > 0; }
+      else { log('No se guardó la clasificación: ' + textoError(r && r.error)); Object.assign(c, previo); }
+      actualizarFilaClasif(c);
+    }).catch(() => { });
+    return clCola;
   }
   $('btn-clasif').onclick = () => conOcupado(abrirClasif);
   ['cl-buscar', 'cl-f-prop', 'cl-f-ene', 'cl-orden', 'cl-solo-pend'].forEach(i => { $(i).addEventListener('input', pintarClasif); $(i).addEventListener('change', pintarClasif); });
-  $('cl-lista').addEventListener('click', e => {
-    const b = e.target.closest('[data-cl-prop]'); if (!b) return;
-    const id = b.dataset.clProp, c = clDatos.filter(x => x.idCancion === id)[0]; if (!c) return;
-    const nuevo = c.propositos.indexOf(b.dataset.p) >= 0 ? c.propositos.filter(x => x !== b.dataset.p) : c.propositos.concat([b.dataset.p]);
-    conOcupado(() => guardarClasif(id, { propositos: nuevo }));
-  });
   $('cl-lista').addEventListener('change', e => {
-    const sel = e.target.closest('[data-cl-ene]'); if (!sel) return;
-    conOcupado(() => guardarClasif(sel.dataset.clEne, { energia: sel.value === '' ? 0 : Number(sel.value) }));
+    const t = e.target;
+    if (t.dataset.clProp !== undefined) {
+      const c = clDatos.filter(x => x.idCancion === t.dataset.clProp)[0]; if (!c) return;
+      guardarClasif(c.idCancion, { propositos: t.checked ? c.propositos.concat([t.dataset.p]) : c.propositos.filter(x => x !== t.dataset.p) });
+    } else if (t.dataset.clEne !== undefined) {
+      const c = clDatos.filter(x => x.idCancion === t.dataset.clEne)[0], v = t.value.trim(), n = v === '' ? 0 : Number(v);
+      if (v !== '' && !(Number.isInteger(n) && n >= 1 && n <= 5)) { log('La energía debe ser un número entero de 1 a 5.'); if (c) t.value = c.energia || ''; return; }
+      guardarClasif(t.dataset.clEne, { energia: n });
+    }
   });
   $('tg-persona').onchange = () => conOcupado(async () => {
     const c = $('tg-persona').value;
@@ -3691,13 +3726,29 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     return _pdfLibPromesa;
   }
   // PDF: texto diagonal repetido en cada página + datos de quien descarga en el pie y en las propiedades del documento
-  async function estamparPdf(PDFLib, bytes, texto) {
+  // v5.3.1: la marca del PDF descargado es el MISMO logo que se ve en pantalla (misma silueta, color, opacidad, ángulo y trama).
+  // Solo si el logo no se puede cargar se usa el texto «PALERMO MUSIC», igual que el visor. Los datos de quien descarga van en el pie y en las propiedades.
+  function pngDeCanvas(cv) { const b = atob(cv.toDataURL('image/png').split(',')[1]), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  async function estamparPdf(PDFLib, bytes, texto, sil) {
     const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true }), fuente = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
     doc.setSubject(texto); doc.setKeywords(['PalermoMusic']);
+    const img = sil ? await doc.embedPng(pngDeCanvas(sil)) : null;
+    const ang = -MARCA.angulo * Math.PI / 180, ca = Math.cos(ang), sa = Math.sin(ang);   // el visor gira -28° (antihorario en pantalla); en PDF (eje Y hacia arriba) es +28°
     doc.getPages().forEach(pg => {
-      const w = pg.getWidth(), h = pg.getHeight(), tam = Math.max(14, Math.min(w, h) / 22), ancho = fuente.widthOfTextAtSize(texto, tam);
-      for (let y = -h; y < h * 1.6; y += tam * 7) for (let x = -w * 0.6; x < w * 1.2; x += ancho * 0.8)
-        pg.drawText(texto, { x: x, y: y, size: tam, font: fuente, color: PDFLib.rgb(0.55, 0.55, 0.6), opacity: 0.16, rotate: PDFLib.degrees(35) });
+      const W = pg.getWidth(), H = pg.getHeight(), w0 = Math.max(60, W * MARCA.ancho), tamT = W * 0.05, anT = fuente.widthOfTextAtSize('PALERMO MUSIC', tamT);
+      const w = sil ? w0 : anT, h = sil ? w * sil.height / sil.width : tamT / 0.8;
+      const px = w * 1.2, py = h * 2.7, R = Math.hypot(W, H) / 2 + w;
+      let fila = 0;
+      for (let y = -R; y <= R; y += py, fila++) {
+        for (let cx = -R + (fila % 2 ? px / 2 : 0); cx <= R; cx += px) {
+          const vx = cx, vy = -y;                                                   // posición respecto al centro, eje Y hacia arriba
+          const mx = W / 2 + vx * ca - vy * sa, my = H / 2 + vx * sa + vy * ca;       // centro de la repetición ya girado
+          const ox = -w / 2, oy = -h / 2;                                           // esquina inferior izquierda respecto a ese centro
+          if (img) pg.drawImage(img, { x: mx + ox * ca - oy * sa, y: my + ox * sa + oy * ca, width: w, height: h, rotate: PDFLib.degrees(MARCA_PDF_GRADOS), opacity: MARCA.opacidad });
+          else { const t = 'PALERMO MUSIC', tam = h * 0.8, tw = fuente.widthOfTextAtSize(t, tam);
+            pg.drawText(t, { x: mx - (tw / 2) * ca + (tam * 0.35) * sa, y: my - (tw / 2) * sa - (tam * 0.35) * ca, size: tam, font: fuente, color: PDFLib.rgb(MARCA.color[0] / 255, MARCA.color[1] / 255, MARCA.color[2] / 255), opacity: MARCA.opacidad, rotate: PDFLib.degrees(MARCA_PDF_GRADOS) }); }
+        }
+      }
       pg.drawText(texto, { x: 18, y: 10, size: 8, font: fuente, color: PDFLib.rgb(0.3, 0.3, 0.35), opacity: 0.8 });
     });
     return await doc.save();
@@ -3724,6 +3775,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     const sal = new Uint8Array(tag.length + bytes.length - inicioAudio); sal.set(tag, 0); sal.set(bytes.subarray(inicioAudio), tag.length); return sal;
   }
   function refrescarBotonesDescarga() { document.querySelectorAll('[data-desc]').forEach(b => b.classList.toggle('oculto', !PUEDE_DESCARGAR)); }
+  let marcaUsada = '';
   async function descargarConMarca(tipo) {
     const f = tipo === 'pdf' ? ultimoPdf : ultimoAudio;
     if (!f) { alert('Primero abre el ' + (tipo === 'pdf' ? 'documento' : 'audio') + '.'); return; }
@@ -3732,9 +3784,9 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     const quien = ((document.querySelector('#estado-sesion b') || {}).textContent || ''), correo = (window.__correoActual || ''), texto = textoMarca(correo, quien);
     const base = soloLatin(f.nombre).replace(/[^A-Za-z0-9._ -]+/g, '_').slice(0, 60) || 'archivo';
     try {
-      if (tipo === 'pdf') descargarBlob(new Blob([await estamparPdf(await cargarPdfLib(), f.bytes, texto)], { type: 'application/pdf' }), base.replace(/\.pdf$/i, '') + ' (Palermo).pdf');
+      if (tipo === 'pdf') { const sil = await prepararMarca(); marcaUsada = sil ? 'logo' : 'texto'; descargarBlob(new Blob([await estamparPdf(await cargarPdfLib(), f.bytes, texto, sil)], { type: 'application/pdf' }), base.replace(/\.pdf$/i, '') + ' (Palermo).pdf'); }
       else descargarBlob(new Blob([etiquetarMp3(f.bytes, texto)], { type: 'audio/mpeg' }), base.replace(/\.mp3$/i, '') + ' (Palermo).mp3');
-      log('Descarga lista con marca de agua.');
+      log('Descarga lista con marca de agua' + (tipo === 'pdf' ? (marcaUsada === 'logo' ? ' (logo de Palermo).' : ' (el logo no se pudo cargar: se usó el texto PALERMO MUSIC).') : ' (datos en las propiedades del audio).'));
     } catch (e) { alert('No se pudo preparar la descarga: ' + e.message); }
   }
   document.addEventListener('click', e => { const b = e.target.closest('#btn-desc-pdf,#btn-desc-audio'); if (b) conOcupado(() => descargarConMarca(b.id === 'btn-desc-pdf' ? 'pdf' : 'audio')); });
@@ -3855,6 +3907,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   /* ---------------- Marca de agua sobre cada página del documento ---------------- */
   // Se dibuja SOLO en la imagen que se muestra; el PDF original no se modifica.
   const MARCA = { opacidad: 0.19, ancho: 0.36, angulo: -28, color: [18, 48, 82] };
+  const MARCA_PDF_GRADOS = 28;   // el mismo giro de la pantalla (-28° con el eje Y hacia abajo) expresado para PDF
   let marcaLista;   // undefined = sin preparar; null = no hay logo (se usa texto)
   function cargarImagen(url) {
     return new Promise(res => { const im = new Image(); im.onload = () => res(im.naturalWidth ? im : null); im.onerror = () => res(null); im.src = url; });
