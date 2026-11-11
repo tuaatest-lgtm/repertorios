@@ -660,6 +660,43 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     
       .est-ev{border:1px solid #e0e4ee;border-radius:10px;padding:8px;margin:8px 0;background:#fff}.est-fila{margin:4px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     </style>
+    <style>
+      #vista-estudio{--ev:var(--c-estudio,#7D55C7)}
+      .est-claro .eb.on{background:var(--ev);color:#fff;border-color:var(--ev)}
+      .est-claro .eb.ic{min-width:40px;height:40px;padding:0 6px;font-size:18px;display:inline-flex;align-items:center;justify-content:center;margin:0}
+      [data-est="set-leer"],[data-est="ev-leer"],[data-est="leer-cat"]{background:var(--ev)!important;color:#fff!important;border-color:var(--ev)!important;font-weight:700}
+      .est-ev.ev{border-left:6px solid var(--c-eventos,#0047BB)}.est-ev.en{border-left:6px solid var(--c-ensayo,#00B140)}
+      .est-top{display:flex;gap:6px;align-items:center}
+      .est-top .salir{background:#fff;border-color:#cfc3ea;color:#4a3a78;font-weight:700}
+      .est-chips{display:flex;gap:5px;overflow-x:auto;flex:1;padding:2px;scrollbar-width:thin}
+      .est-chips button{flex:0 0 auto;min-width:36px;height:36px;border-radius:18px;border:1px solid #cfc3ea;background:#fff;color:#4a3a78;font-weight:700;cursor:pointer}
+      .est-chips button.on{background:var(--ev);color:#fff;border-color:var(--ev)}
+      .est-enc{font-size:12px;white-space:nowrap;color:#4a3a78}
+      .est-tit{margin:4px 2px;font-size:15px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+      #est-titulo{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .est-av{color:#b45309;font-size:13px}
+      #est-area{max-height:calc(100vh - 215px);max-height:calc(100dvh - 215px)}
+      #est-barra{position:sticky;bottom:0;z-index:6;background:rgba(251,250,246,.97);border-top:3px solid var(--ev);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 16px rgba(0,0,0,.14);margin-top:6px}
+      .est-nav{display:flex;gap:6px;align-items:stretch;justify-content:center}
+      .est-nav .nav{flex:1;max-width:120px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;line-height:1;background:#efeaf8;border-color:#cfc3ea;margin:0}
+      .est-nav .nav small{font-size:11px;margin-top:2px}
+      .est-nav .nav.grande{flex:1.7;max-width:180px;background:var(--ev);color:#fff;border-color:var(--ev)}
+      .est-nav .nav:disabled{opacity:.35}
+      .est-pg{display:flex;align-items:center;gap:3px;font-weight:700;color:#4a3a78}.est-pg input{width:44px;text-align:center;font-size:16px;padding:6px 2px}
+      .est-tools,.est-herr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+      .est-grp{display:inline-flex;gap:2px;padding:2px;border-radius:12px;background:#efeaf8;align-items:center}
+      .est-grp .eb{border:0;background:transparent}.est-grp .eb.on{background:var(--ev);color:#fff}
+      .est-grp input[type=color]{width:34px;height:34px;border:0;padding:0;background:none}.est-grp input[type=range]{width:70px}
+      .eb.tog{font-weight:700}
+      .est-mas{position:relative}.est-mas summary{list-style:none;cursor:pointer;background:#fff;border:1px solid #cfd6e6;border-radius:8px;color:#243048}.est-mas summary::-webkit-details-marker{display:none}
+      .est-menu-mas{position:absolute;right:0;bottom:46px;background:#fff;border:1px solid #cfd6e6;border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.22);z-index:9}
+      .est-menu-mas .eb{text-align:left}.est-menu-mas .peligro{color:#DA291C}
+      .est-zona{position:absolute;top:0;bottom:0;width:22%;display:flex;align-items:center;justify-content:center;touch-action:pan-x pan-y pinch-zoom;cursor:pointer;color:var(--ev);font-size:44px;opacity:0;transition:opacity .15s;user-select:none;-webkit-tap-highlight-color:transparent}
+      .est-zona.izq{left:0}.est-zona.der{right:0}
+      .est-zona:hover,.est-zona:active{opacity:.55;background:linear-gradient(90deg,rgba(125,85,199,.18),transparent)}.est-zona.der:hover,.est-zona.der:active{background:linear-gradient(270deg,rgba(125,85,199,.18),transparent)}
+      #est-wrap.anota .est-zona{display:none}
+      body.leyendo #tabbar{display:none!important}
+    </style>
     <h2>🎼 Partituras</h2>
     <div id="est-admin" class="oculto est-claro" style="margin-bottom:10px">
       <h3>Acceso a Partituras (administrador)</h3>
@@ -682,30 +719,45 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
         <button class="eb" data-est="leer-cat" type="button">📖 Leer este set</button>
       </div>
       <div id="est-lector" class="oculto">
-        <button class="eb" data-est="cerrar-lector" type="button">← Volver a la lista</button>
-        <button class="eb" data-est="cprev" type="button">◀ Tema anterior</button><select id="est-sel-can"></select><button class="eb" data-est="cnext" type="button">Tema siguiente ▶</button>
-        <div id="est-visor">
-        <div id="est-aviso" style="color:#b45309;font-size:13px"></div>
-        <div class="oculto" id="est-barra">
-          <button class="eb" data-est="prev" type="button">◀</button>
-          <input type="text" id="est-pag" size="3" inputmode="numeric"><span id="est-total"></span>
-          <button class="eb" data-est="next" type="button">▶</button>
-          <button class="eb" data-est="zm" type="button">−</button><button class="eb" data-est="zp" type="button">＋</button><button class="eb" data-est="ajuste" type="button">Ajustar</button>
-          <button class="eb" data-est="full" type="button">Pantalla completa</button><br>
-          <button class="eb on" data-est-tool="mano" type="button">✋ Mover</button><button class="eb" data-est-tool="p" type="button">✏️ Lápiz</button>
-          <button class="eb" data-est-tool="h" type="button">🖍 Marcador</button><button class="eb" data-est-tool="b" type="button">🧽 Borrador</button>
-          <button class="eb" data-est-tool="l" type="button">╱ Línea</button><button class="eb" data-est-tool="a" type="button">➚ Flecha</button><button class="eb" data-est-tool="r" type="button">▭ Rectángulo</button><button class="eb" data-est-tool="e" type="button">◯ Elipse</button><button class="eb" data-est-tool="t" type="button">🔤 Texto</button><button class="eb" data-est-tool="s" type="button">⬚ Seleccionar</button>
-          <input type="color" id="est-color" value="#d62828" title="Color">
-          <input type="range" id="est-grosor" min="1" max="12" value="3" title="Grosor">
-          <input type="range" id="est-op" min="20" max="100" value="100" title="Opacidad">
-          <button class="eb" data-est="undo" type="button">↶</button><button class="eb" data-est="redo" type="button">↷</button>
-          <button class="eb" data-est="limpiar" type="button">Borrar página</button><button class="eb" data-est="limpiar-doc" type="button">Borrar documento</button><button class="eb" data-est="eliminar-sel" type="button">Eliminar selección</button><br>
-          <button class="eb" data-est="export-pdf" type="button">⤓ PDF anotado</button><button class="eb" data-est="resp-exp" type="button">⤓ Respaldo</button><button class="eb" data-est="resp-imp" type="button">⤒ Restaurar respaldo</button><input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
-          <span id="est-estado" style="font-size:12px"></span>
+        <div class="est-top">
+          <button class="eb ic salir" data-est="cerrar-lector" type="button" title="Volver a la lista">✕</button>
+          <div id="est-chips" class="est-chips" aria-label="Temas del set"></div>
+          <label class="est-enc" title="Al terminar una partitura, pasar a la siguiente"><input type="checkbox" id="est-encadenar" checked> Encadenar</label>
         </div>
-        <div id="est-area" class="oculto"><div id="est-wrap"><canvas id="est-pdf"></canvas><canvas id="est-ink"></canvas></div></div>
-      </div>
-    
+        <div class="est-tit"><b id="est-titulo"></b><span id="est-estado" style="font-size:12px"></span></div>
+        <div id="est-aviso" class="est-av"></div>
+        <div id="est-visor">
+          <div id="est-area" class="oculto"><div id="est-wrap"><canvas id="est-pdf"></canvas><canvas id="est-ink"></canvas><div class="est-zona izq" data-est="prev" title="Página anterior"><span>‹</span></div><div class="est-zona der" data-est="next" title="Página siguiente"><span>›</span></div></div></div>
+        </div>
+        <div id="est-barra" class="oculto">
+          <div id="est-herr" class="est-herr oculto">
+            <div class="est-grp">
+              <button class="eb ic on" data-est-tool="mano" type="button" title="Mover / leer">✋</button><button class="eb ic" data-est-tool="p" type="button" title="Lápiz">✏️</button><button class="eb ic" data-est-tool="h" type="button" title="Marcador">🖍</button><button class="eb ic" data-est-tool="b" type="button" title="Borrador">🧽</button>
+            </div>
+            <div class="est-grp">
+              <button class="eb ic" data-est-tool="l" type="button" title="Línea">╱</button><button class="eb ic" data-est-tool="a" type="button" title="Flecha">➚</button><button class="eb ic" data-est-tool="r" type="button" title="Rectángulo">▭</button><button class="eb ic" data-est-tool="e" type="button" title="Elipse">◯</button><button class="eb ic" data-est-tool="t" type="button" title="Texto">🔤</button><button class="eb ic" data-est-tool="s" type="button" title="Seleccionar y mover">⬚</button>
+            </div>
+            <div class="est-grp"><input type="color" id="est-color" value="#d62828" title="Color"><input type="range" id="est-grosor" min="1" max="12" value="3" title="Grosor"><input type="range" id="est-op" min="20" max="100" value="100" title="Opacidad"></div>
+            <button class="eb ic" data-est="eliminar-sel" type="button" title="Eliminar lo seleccionado">🗑</button>
+          </div>
+          <div class="est-tools">
+            <div class="est-grp"><button class="eb ic" data-est="zm" type="button" title="Alejar">−</button><button class="eb ic" data-est="zp" type="button" title="Acercar">＋</button><button class="eb ic" data-est="ajuste" type="button" title="Ajustar a la pantalla">⤢</button><button class="eb ic" data-est="full" type="button" title="Pantalla completa">⛶</button></div>
+            <button class="eb tog" id="est-btn-anotar" data-est="anotar" type="button">✏️ Anotar</button>
+            <div class="est-grp"><button class="eb ic" data-est="undo" type="button" title="Deshacer">↶</button><button class="eb ic" data-est="redo" type="button" title="Rehacer">↷</button></div>
+            <details class="est-mas"><summary class="eb ic" title="Más opciones">⋯</summary><div class="est-menu-mas">
+              <button class="eb peligro" data-est="limpiar" type="button">Borrar anotaciones de la página</button><button class="eb peligro" data-est="limpiar-doc" type="button">Borrar anotaciones de la partitura</button>
+              <button class="eb" data-est="export-pdf" type="button">⤓ PDF anotado</button><button class="eb" data-est="resp-exp" type="button">⤓ Respaldo de anotaciones</button><button class="eb" data-est="resp-imp" type="button">⤒ Restaurar respaldo</button>
+              <input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
+            </div></details>
+          </div>
+          <div class="est-nav">
+            <button class="eb nav" data-est="cprev" type="button" title="Tema anterior">⏮<small>Tema</small></button>
+            <button class="eb nav grande" data-est="prev" type="button" title="Página anterior">◀<small>Página</small></button>
+            <div class="est-pg"><input type="text" id="est-pag" inputmode="numeric" aria-label="Página"><span id="est-total"></span></div>
+            <button class="eb nav grande" data-est="next" type="button" title="Página siguiente">▶<small>Página</small></button>
+            <button class="eb nav" data-est="cnext" type="button" title="Tema siguiente">⏭<small>Tema</small></button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -982,9 +1034,9 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzyX7lpaRAvDvUPaZ2nQbQrGvuIJd8Zw8mie4mdir_zqg60E9_2M5zlIsRG-aM0Oq3x6g/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyiliXCd0dsLN8itxs09-5TaiMVG--BRx_NWHRNTDUslzcBGYH67WQdlpI3EdGQmm4qBw/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v5.4.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v5.4.1';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -2561,7 +2613,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
   const TAB_DE_VISTA = { 'vista-estudio': 'lectura',  'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
   function marcarTab(vista) {
-    document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio';   // color de la sección activa
+    document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio'; if (vista !== 'vista-estudio') document.body.classList.remove('leyendo');   // color de la sección activa
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   }
@@ -4131,6 +4183,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     if (t === 'prog') await estCargarProg(); else await estCargarCat();
   }
   function estMostrarLector(si) {
+    document.body.classList.toggle('leyendo', !!si);          // al leer se oculta la barra inferior de la app: más espacio y menos toques accidentales
     $('est-lector').classList.toggle('oculto', !si);
     ['est-menu', 'est-p-prog', 'est-p-cat'].forEach(id => $(id).classList.toggle('oculto', si || (id === 'est-p-prog' && EST.tab === 'cat') || (id === 'est-p-cat' && EST.tab !== 'cat')));
   }
@@ -4151,7 +4204,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
       const r = await api('listar_eventos', { clase: clase });
       if (!r || !r.ok) { h += '<div class="aviso">No se pudo leer la programación de ' + clase.toLowerCase() + 's: ' + esc(textoError(r && r.error)) + '</div>'; continue; }
       const l = (r.eventos || []).slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
-      h += '<h3>' + (clase === 'Evento' ? '📅 Eventos' : '🎧 Ensayos') + '</h3>' + (l.map((e, i) => '<div class="est-ev"><b>' + clase + ' ' + (i + 1) + ' · ' + esc(e.nombre) + '</b> <span style="font-size:12px">' + esc(e.fecha) + '</span> <button class="eb" data-est="ev-abrir" data-id="' + esc(e.idEvento) + '" type="button">Temas y partituras</button><div class="est-det oculto" id="evd-' + esc(e.idEvento) + '"></div></div>').join('') || '<i style="font-size:13px">Sin programación vigente.</i>');
+      h += '<h3>' + (clase === 'Evento' ? '📅 Eventos' : '🎧 Ensayos') + '</h3>' + (l.map((e, i) => '<div class="est-ev ' + (clase === 'Evento' ? 'ev' : 'en') + '"><b>' + clase + ' ' + (i + 1) + ' · ' + esc(e.nombre) + '</b> <span style="font-size:12px">' + esc(e.fecha) + '</span> <button class="eb" data-est="ev-abrir" data-id="' + esc(e.idEvento) + '" type="button">Temas y partituras</button><div class="est-det oculto" id="evd-' + esc(e.idEvento) + '"></div></div>').join('') || '<i style="font-size:13px">Sin programación vigente.</i>');
     }
     box.innerHTML = h;
   }
@@ -4182,15 +4235,40 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   }
   async function estLeer(items) {
     if (!items.length) { log('Elija al menos una partitura para leer.'); return; }
-    EST.seq = items; EST.idx = 0; estMostrarLector(true);
-    $('est-sel-can').innerHTML = items.map((it, i) => '<option value="' + i + '">' + (i + 1) + '. ' + esc(it.titulo) + '</option>').join('');
-    await estAbrirIdx(0);
+    EST.seq = items; EST.idx = 0; estMostrarLector(true); estChips(); await estAbrirIdx(0, 1);
   }
-  async function estAbrirIdx(i) {
+  function estChips() { $('est-chips').innerHTML = EST.seq.map((it, i) => '<button type="button" data-est="tema" data-i="' + i + '" title="' + esc(it.titulo) + '">' + (i + 1) + '</button>').join(''); }
+  async function estAbrirIdx(i, pagina) {
     if (i < 0 || i >= EST.seq.length) return;
-    EST.idx = i; $('est-sel-can').value = String(i); const it = EST.seq[i];
-    await estAbrir(it.idCancion, it.doc, 0, MODULO, it.ctx);
+    EST.idx = i; estActualizarNav(); const it = EST.seq[i];
+    await estAbrir(it.idCancion, it.doc, pagina === undefined ? 1 : pagina, MODULO, it.ctx);       // al cambiar de tema se empieza en la primera página (-1 = la última)
   }
+  function estActualizarNav() {
+    const it = EST.seq[EST.idx]; if (!it) return;
+    $('est-titulo').textContent = (EST.idx + 1) + '/' + EST.seq.length + ' · ' + it.titulo;
+    document.querySelectorAll('#est-chips button').forEach(b => { const on = Number(b.dataset.i) === EST.idx; b.classList.toggle('on', on); if (on && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'center' }); });
+    document.querySelectorAll('[data-est="cprev"]').forEach(b => { b.disabled = EST.idx <= 0; });
+    document.querySelectorAll('[data-est="cnext"]').forEach(b => { b.disabled = EST.idx >= EST.seq.length - 1; });
+  }
+  // Salto de tema sin bloquear la pantalla: si se toca varias veces seguidas, gana el último destino.
+  let estTemaBusy = false, estTemaPend = null;
+  async function estIrTema(i, pagina) {
+    if (i < 0 || i >= EST.seq.length) return;
+    if (estTemaBusy) { estTemaPend = [i, pagina]; return; }
+    estTemaBusy = true;
+    try { await estAbrirIdx(i, pagina); } finally { estTemaBusy = false; if (estTemaPend) { const p = estTemaPend; estTemaPend = null; estIrTema(p[0], p[1]); } }
+  }
+  // Pasar página: al final de una partitura salta al tema siguiente (y hacia atrás, a la última página del tema anterior) si «Encadenar» está marcado.
+  async function estPaso(d) {
+    if (!EST.pdf) return;
+    const n = EST.page + d;
+    if (n >= 1 && n <= EST.pdf.numPages) { estIrPagina(n); return; }
+    if (!$('est-encadenar').checked) { estEstado(d > 0 ? 'Última página' : 'Primera página'); return; }
+    const j = EST.idx + d;
+    if (j < 0 || j >= EST.seq.length) { estEstado(d > 0 ? 'Fin del set' : 'Inicio del set'); return; }
+    await estIrTema(j, d > 0 ? 1 : -1);
+  }
+  function estAnotar(si) { $('est-herr').classList.toggle('oculto', !si); $('est-btn-anotar').classList.toggle('on', si); estHerramienta(si ? 'p' : 'mano'); }
 
   /* ---- Mi set del catálogo (máximo 10 temas, una partitura por tema) ---- */
   async function estCargarCat() {
@@ -4236,7 +4314,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     EST.anot = { pages: (g && g.pages) || {} };
     $('est-aviso').textContent = g && g.ver && g.ver !== EST.ver ? '⚠ Esta partitura cambió desde que la anotó: sus anotaciones podrían no coincidir.' : '';
     if (!pagina) { try { const p = await estGet('pos', 'pg|' + estClave()); pagina = p && p.page; } catch (e) { } }
-    EST.page = Math.min(Math.max(1, pagina || 1), pdf.numPages);
+    EST.page = pagina === -1 ? pdf.numPages : Math.min(Math.max(1, pagina || 1), pdf.numPages);
     $('est-barra').classList.remove('oculto'); $('est-area').classList.remove('oculto');
     await estRender();
   }
@@ -4247,6 +4325,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     const page = await EST.pdf.getPage(EST.page); if (mio !== EST.mio) return;
     const area = $('est-area'), base = page.getViewport({ scale: 1 });
     if (ajustar) EST.zoom = Math.min(1, (area.clientHeight - 8) / ((area.clientWidth - 12) * base.height / base.width)) || 1;
+    area.style.touchAction = EST.zoom > 1.05 ? 'pan-x pan-y pinch-zoom' : 'pan-y pinch-zoom';
     const ancho = Math.max(200, area.clientWidth - 12) * EST.zoom, dpr = Math.min(window.devicePixelRatio || 1, 2);
     const vp = page.getViewport({ scale: (ancho / base.width) * dpr });
     const cv = $('est-pdf'), ink = $('est-ink');
@@ -4256,7 +4335,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     try { await EST.tarea.promise; } catch (e) { return; }
     if (mio !== EST.mio) return;
     try { aplicarMarca(cv, await prepararMarca()); } catch (e) { }
-    estPintar(); $('est-pag').value = EST.page; $('est-total').textContent = ' / ' + EST.pdf.numPages;
+    estPintar(); $('est-pag').value = EST.page; $('est-total').textContent = '/' + EST.pdf.numPages; estActualizarNav();
     estPosGuardar();
   }
   function estIrPagina(n) { if (!EST.pdf) return; n = Math.min(Math.max(1, n | 0), EST.pdf.numPages); if (n === EST.page) return; EST.page = n; estRender(); }
@@ -4420,13 +4499,12 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     return out;
   }
   function estHerramienta(t) {
-    EST.tool = t; if (t !== 's') { EST.sel = null; if (EST.pdf) estPintar(); } $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
+    EST.tool = t; $('est-wrap').classList.toggle('anota', t !== 'mano'); if (t !== 's') { EST.sel = null; if (EST.pdf) estPintar(); } $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
     document.querySelectorAll('[data-est-tool]').forEach(b => b.classList.toggle('on', b.dataset.estTool === t));
   }
 
   /* ---------- Eventos de la pantalla ---------- */
   $('est-rep').onchange = estElegirRep;
-  $('est-sel-can').onchange = () => conOcupado(() => estAbrirIdx(Number($('est-sel-can').value)));
   $('est-global').onchange = () => conOcupado(async () => { const r = await api('me_global_set', { on: $('est-global').checked }); if (!r || !r.ok) log('No se pudo cambiar: ' + textoError(r && r.error)); estAdminCargar(); });
   $('est-instr').onchange = () => conOcupado(async () => { const r = await api('me_global_set', { on: $('est-instr').checked, alcance: 'instrumentistas' }); if (!r || !r.ok) log('No se pudo cambiar: ' + textoError(r && r.error)); estAdminCargar(); });
   $('est-pag').onchange = () => estIrPagina(parseInt($('est-pag').value, 10) || EST.page);
@@ -4446,10 +4524,12 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
     else if (a === 'set-leer') conOcupado(() => estLeer(estItemsDe(b.dataset.id, b.dataset.set)));
     else if (a === 'leer-cat') conOcupado(() => estLeer(its.filter(x => x.docs[0]).map(x => ({ idCancion: x.idCancion, doc: x.docs[0], titulo: EST.cat[x.idCancion] || x.idCancion, ctx: 'P-' + (EST.rep.idRepertorio || 'borrador') }))));
     else if (a === 'cerrar-lector') { estFlush(); estMostrarLector(false); }
-    else if (a === 'cprev') conOcupado(() => estAbrirIdx(EST.idx - 1));
-    else if (a === 'cnext') conOcupado(() => estAbrirIdx(EST.idx + 1));
-    else if (a === 'prev') estIrPagina(EST.page - 1);
-    else if (a === 'next') estIrPagina(EST.page + 1);
+    else if (a === 'cprev') estIrTema(EST.idx - 1, 1);
+    else if (a === 'cnext') estIrTema(EST.idx + 1, 1);
+    else if (a === 'tema') estIrTema(i, 1);
+    else if (a === 'anotar') estAnotar($('est-herr').classList.contains('oculto'));
+    else if (a === 'prev') estPaso(-1);
+    else if (a === 'next') estPaso(1);
     else if (a === 'zp') { EST.zoom = Math.min(4, EST.zoom * 1.25); estRender(); }
     else if (a === 'zm') { EST.zoom = Math.max(0.4, EST.zoom / 1.25); estRender(); }
     else if (a === 'ajuste') estRender(true);
@@ -4488,14 +4568,19 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
   $('btn-estudiar').onclick = () => conOcupado(async () => {          // desde el panel de canción de Ensayo
     const doc = $('sel-pdf').value; if (!doc || !cancionAbierta) { log('Seleccione un documento.'); return; }
     await abrirEstudio(); estMostrarLector(true); EST.seq = [{ idCancion: cancionAbierta, doc: doc, titulo: EST.cat[cancionAbierta] || cancionAbierta, ctx: 'BIB' }]; EST.idx = 0;
-    $('est-sel-can').innerHTML = '<option value="0">' + esc(EST.seq[0].titulo) + '</option>'; await estAbrirIdx(0);
+    estChips(); await estAbrirIdx(0, 1);
   });
   document.addEventListener('keydown', e => {
     if ($('vista-estudio').classList.contains('oculto') || /INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return;
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') { estIrPagina(EST.page + 1); e.preventDefault(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { estIrPagina(EST.page - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { if (e.shiftKey) estIrTema(EST.idx + 1, 1); else estPaso(1); e.preventDefault(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { if (e.shiftKey) estIrTema(EST.idx - 1, 1); else estPaso(-1); e.preventDefault(); }   // Mayús + flecha = cambiar de tema; los pedales Bluetooth envían estas teclas
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) estFlush(); });
   window.addEventListener('resize', () => { if (EST.pdf && !$('vista-estudio').classList.contains('oculto')) estRender(); });
+  (function () {
+    const ar = $('est-area'); let x0 = 0, y0 = 0, t0 = 0, ok = false;
+    ar.addEventListener('pointerdown', e => { ok = EST.tool === 'mano' && EST.zoom <= 1.05 && e.pointerType !== 'mouse'; x0 = e.clientX; y0 = e.clientY; t0 = Date.now(); });
+    ar.addEventListener('pointerup', e => { if (!ok) return; ok = false; const dx = e.clientX - x0, dy = e.clientY - y0; if (Math.abs(dx) > 60 && Math.abs(dx) > 1.6 * Math.abs(dy) && Date.now() - t0 < 700) estPaso(dx < 0 ? 1 : -1); });
+  })();
   $('est-resp-file').onchange = async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f || !EST.pdf) return;
     try {
