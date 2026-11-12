@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -241,44 +241,54 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
 #est-lector{position:fixed;inset:0;z-index:1000;background:#dfe3ea;color:#1c2740;font-size:14px;overflow:hidden}
 #est-lector.oculto,#est-flota.oculto{display:none!important}
 #est-lector button,#est-lector select,#est-lector input{font:inherit}
-#est-lector button{cursor:pointer;border:1px solid #cdd6ea;background:#fff;color:#1c2740;border-radius:10px}
-#est-lector button:disabled{opacity:.35;cursor:default}
+#est-lector button{cursor:pointer;border:1px solid #cdd6ea;background:#fff;color:#1c2740;border-radius:8px}
+#est-lector button:hover:not(:disabled){border-color:#0047BB}#est-lector button:disabled{opacity:.35;cursor:default}
 .lec-cen{position:absolute;inset:0;background:#dfe3ea}
 #est-lector #est-area{position:absolute;inset:0;max-height:none!important;overflow:auto;display:flex;padding:4px;background:transparent;border-radius:0}
 #est-lector #est-wrap{margin:auto;display:block;width:fit-content;box-shadow:0 2px 16px rgba(0,0,0,.3)}
 .lec-z{position:absolute;top:0;bottom:0;z-index:5;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .lec-z.izq{left:0;width:34%}.lec-z.cen{left:34%;width:32%}.lec-z.der{right:0;width:34%}
-.lec-z.izq:active{background:linear-gradient(90deg,rgba(0,71,187,.14),transparent)}.lec-z.der:active{background:linear-gradient(270deg,rgba(0,71,187,.14),transparent)}
+.lec-z.izq:active{background:linear-gradient(90deg,rgba(0,71,187,.12),transparent)}.lec-z.der:active{background:linear-gradient(270deg,rgba(0,71,187,.12),transparent)}
 #est-lector.anota .lec-z,#est-lector.zoomed .lec-z{pointer-events:none}
 .lec-cen.sin-zonas .lec-z.izq,.lec-cen.sin-zonas .lec-z.der{pointer-events:none}
-.lec-top{position:absolute;left:0;right:0;top:0;z-index:30;background:rgba(255,255,255,.94);border-bottom:1px solid #cdd6ea;transition:transform .18s}
-#est-lector:not(.ctl) .lec-top{transform:translateY(-105%);pointer-events:none}
-.lec-row{display:flex;align-items:center;gap:4px;padding:4px 8px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}.lec-row::-webkit-scrollbar{display:none}
-.lec-herr.oculto{display:none}
-.ib{flex:0 0 auto;min-width:38px;height:38px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
-.ib.on{background:#0047BB!important;color:#fff!important;border-color:#0047BB!important}.ib.rojo{color:#DA291C!important}
-.lec-sep{width:1px;height:26px;background:#dbe2f1;margin:0 4px;flex:0 0 auto}
-.lec-tit{flex:1 1 60px;min-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
-.lec-row input[type=range]{width:64px;accent-color:#0047BB;flex:0 0 auto}.lec-row input[type=color]{width:34px;height:30px;border:0;padding:0;background:none;flex:0 0 auto}
-.sw-c{width:20px!important;height:20px;min-width:20px!important;border-radius:50%!important;padding:0!important;border:2px solid #fff!important;box-shadow:0 0 0 1px #cdd6ea;flex:0 0 auto}
-.lec-pgin{width:40px;text-align:center;font-weight:700;padding:6px 2px;border:1px solid #cdd6ea;border-radius:8px;background:#fff;color:#0047BB;flex:0 0 auto}
-.lec-tx{flex:0 0 auto;font-weight:700;color:#4a5878;font-size:13px}
-.lec-fab{position:absolute;top:10px;right:10px;z-index:31;width:44px;height:44px;border-radius:50%!important;background:rgba(255,255,255,.85)!important;box-shadow:0 2px 10px rgba(0,0,0,.3);font-size:20px;opacity:.75}
-.lec-chip{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:6;background:rgba(10,47,108,.72);color:#fff;border-radius:14px;padding:3px 10px;font-size:12px;pointer-events:none;white-space:nowrap}
-#est-lector.ctl .lec-fab{display:none}
-.lec-aviso{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:35;background:rgba(10,47,108,.9);color:#fff;border-radius:18px;padding:16px 26px;font-size:28px;font-weight:800;text-align:center;max-width:86vw;opacity:0;pointer-events:none;transition:opacity .15s}
-.lec-aviso.v{opacity:1}
-#est-aviso{position:absolute;left:8px;bottom:30px;z-index:6;color:#b45309;font-size:13px;background:rgba(255,255,255,.9);border-radius:8px;padding:0 6px}#est-aviso:empty{display:none}
-.lec-izq{position:absolute;top:0;bottom:0;left:0;z-index:40;width:min(330px,88vw);background:#fff;display:flex;flex-direction:column;box-shadow:0 0 30px rgba(0,0,0,.35);transform:translateX(-105%);transition:transform .18s}
+/* único botón flotante: abre y cierra el menú */
+.lec-fab{position:absolute;top:10px;right:10px;z-index:60;width:44px;height:44px;border-radius:50%!important;background:rgba(255,255,255,.88)!important;box-shadow:0 2px 10px rgba(0,0,0,.3);font-size:20px;opacity:.8;padding:0}
+#est-lector.abre-izq .lec-fab{opacity:1;background:#0047BB!important;color:#fff!important;border-color:#0047BB!important}
+/* indicador y aviso: translúcidos, dejan ver la partitura */
+.lec-chip{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);z-index:6;background:rgba(10,47,108,.32);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;pointer-events:none;white-space:nowrap}
+.lec-aviso{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);z-index:35;background:rgba(10,47,108,.14);color:rgba(10,47,108,.62);text-shadow:0 0 3px rgba(255,255,255,.9);border-radius:14px;padding:6px 18px;font-size:26px;font-weight:800;text-align:center;max-width:86vw;opacity:0;pointer-events:none}
+.lec-aviso.v{animation:lecfade 1s ease-out forwards}
+@keyframes lecfade{0%{opacity:1}30%{opacity:1}100%{opacity:0}}
+#est-aviso{position:absolute;left:8px;bottom:24px;z-index:6;color:#b45309;font-size:13px;background:rgba(255,255,255,.9);border-radius:8px;padding:0 6px}#est-aviso:empty{display:none}
+/* menú */
+.lec-izq{position:absolute;top:0;bottom:0;left:0;z-index:40;width:min(340px,86vw);background:#fff;display:flex;flex-direction:column;box-shadow:0 0 30px rgba(0,0,0,.35);transform:translateX(-105%);transition:transform .18s;overflow-y:auto;padding-bottom:10px}
 #est-lector.abre-izq .lec-izq{transform:none}
-.lec-ph{background:#0A2F6C;color:#fff;font-weight:700;padding:10px;display:flex;justify-content:space-between;align-items:center}.lec-ph button{background:transparent!important;color:#fff!important;border:0!important}
-.lec-ir{display:flex;flex-wrap:wrap;gap:4px;padding:8px}.lec-ir button{padding:7px 9px}
-.lec-izq select{margin:0 8px 8px;padding:8px;border:1px solid #cdd6ea;border-radius:10px;background:#fff;color:#1c2740}
-#lec-lista{overflow:auto;flex:1;padding:0 6px 8px}
-.lec-song{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:11px 8px!important;margin:2px 0;border:0!important;background:transparent!important;font-size:15px}
-.lec-song .n{font-weight:700;color:#0047BB;min-width:20px}.lec-song .t{flex:1}.lec-song.on{background:#dbe7ff!important;font-weight:700}
-.lec-doc{padding:2px 10px 8px 34px;font-size:12px}.lec-doc.oculto{display:none}.lec-doc select{margin:2px 0 0;padding:5px;width:100%}
-.lec-opc{border-top:1px solid #dbe2f1;padding:8px;display:flex;flex-direction:column;gap:6px;font-size:13px}.lec-opc label{display:flex;gap:6px;align-items:center}.lec-opc button{padding:8px 10px;text-align:left}
+.lec-ph{background:#0A2F6C;color:#fff;font-weight:700;padding:10px 12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;position:sticky;top:0;z-index:2}.lec-ph small{font-weight:400;opacity:.85}
+.lec-sec{padding:0 10px}
+.lec-h{font-size:11px;font-weight:700;color:#4a5878;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 4px}
+.lec-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.lt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:46px;padding:4px 2px;line-height:1.1;border:1px solid transparent!important;background:transparent!important}
+.lt i{font-style:normal;font-size:18px}.lt b{font-weight:500;font-size:10.5px}
+.lt:hover:not(:disabled){background:#eef3ff!important}.lt.on{background:#0047BB!important;color:#fff!important}.lt.rojo{color:#DA291C!important}
+.lec-fila{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:#4a5878}.lec-fila>span{width:62px;flex:0 0 auto}
+.lec-fila input[type=range]{flex:1;min-width:0;accent-color:#0047BB}.lec-fila input[type=color]{width:34px;height:26px;border:0;padding:0;background:none}
+.sw-c{width:20px!important;height:20px;min-width:20px!important;border-radius:50%!important;padding:0!important;border:2px solid #fff!important;box-shadow:0 0 0 1px #cdd6ea}
+.lec-acc4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;border-top:1px solid #eef1f7;margin-top:6px;padding-top:4px}
+.lec-nav{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.ib{min-width:34px;height:34px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1}
+.lec-pgin{width:38px;text-align:center;font-weight:700;padding:5px 2px;border:1px solid #cdd6ea;border-radius:8px;background:#fff;color:#0047BB}
+.lec-tx{font-weight:700;color:#4a5878;font-size:13px}
+.lec-sep{width:1px;height:22px;background:#dbe2f1;margin:0 3px}
+.lec-izq select{width:100%;padding:6px 8px;border:1px solid #cdd6ea;border-radius:8px;background:#fff;color:#1c2740;font-size:13px}
+#lec-lista{max-height:30vh;overflow:auto;margin-top:4px}
+.lec-song{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:7px 8px!important;margin:1px 0;border:0!important;background:transparent!important;font-size:14px;border-radius:6px!important}
+.lec-song .n{font-weight:700;color:#0047BB;min-width:18px}.lec-song .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lec-song.on{background:#dbe7ff!important;font-weight:700}
+.lec-doc{padding:0 8px 6px 34px;font-size:12px;color:#4a5878}.lec-doc.oculto{display:none}.lec-doc select{margin-top:2px;padding:4px 6px}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px}
+.sw input{-webkit-appearance:none;appearance:none;width:36px;height:20px;border-radius:10px;background:#cdd6ea;position:relative;flex:0 0 auto;cursor:pointer;margin:0;transition:background .15s}
+.sw input::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw input:checked{background:#0047BB}.sw input:checked::after{transform:translateX(16px)}
+.lec-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.cb{padding:6px 10px;font-size:13px;display:inline-flex;align-items:center;gap:5px}
 #est-flota{position:fixed;right:14px;bottom:14px;z-index:999;padding:12px 16px;border-radius:30px;border:0;background:#0047BB;color:#fff;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer}
 body.leyendo #tabbar{display:none!important}
 </style>
@@ -1013,50 +1023,72 @@ body.leyendo #tabbar{display:none!important}
     Documentos protegidos bajo derechos institucionales de Palermo Music.
   </div>
 
-  <div id="est-lector" class="oculto ctl" role="dialog" aria-label="Lector de partituras">
+  <div id="est-lector" class="oculto" role="dialog" aria-label="Lector de partituras">
   <div id="lec-cen" class="lec-cen">
     <div id="est-area" class="oculto"><div id="est-wrap"><canvas id="est-pdf"></canvas><canvas id="est-ink"></canvas></div></div>
     <div class="lec-z izq" data-lec-z="-1" title="Toque: página anterior · 3 toques: partitura anterior"></div>
-    <div class="lec-z cen" data-lec-z="0" title="Mostrar u ocultar los controles"></div>
+    <div class="lec-z cen" data-lec-z="0"></div>
     <div class="lec-z der" data-lec-z="1" title="Toque: página siguiente · 3 toques: partitura siguiente"></div>
     <div id="est-aviso"></div><div id="lec-aviso" class="lec-aviso"></div><div id="lec-chip" class="lec-chip"></div>
-    <button id="lec-fab" class="lec-fab" type="button" data-est="fab" title="Mostrar los controles" aria-label="Mostrar controles">⋯</button>
+    <button id="lec-fab" class="lec-fab" type="button" data-est="fab" title="Abrir el menú" aria-label="Abrir o cerrar el menú" aria-expanded="false">⋯</button>
   </div>
-  <div id="lec-top" class="lec-top">
-    <div class="lec-row">
-      <button class="ib" type="button" data-est="lec-col" title="Temas, repertorios, secciones y opciones">☰</button>
-      <button class="ib" type="button" data-est="cprev" title="Partitura anterior">⏮</button><button class="ib" type="button" data-est="prev" title="Página anterior">◀</button>
-      <input type="text" id="est-pag" class="lec-pgin" inputmode="numeric" aria-label="Ir a la página"><span id="est-total" class="lec-tx"></span>
-      <button class="ib" type="button" data-est="next" title="Página siguiente">▶</button><button class="ib" type="button" data-est="cnext" title="Partitura siguiente">⏭</button>
-      <div class="lec-sep"></div>
-      <button class="ib" type="button" data-est="zm" title="Alejar">−</button><button class="ib" type="button" data-est="ajuste" title="Ver la hoja completa">⤢</button><button class="ib" type="button" data-est="zp" title="Acercar">＋</button><button class="ib" type="button" data-est="full" title="Pantalla completa">⛶</button>
-      <div class="lec-sep"></div>
-      <button class="ib" id="lec-anotar" type="button" data-est="anotar" title="Anotar sobre la partitura">✏️</button>
-      <b id="est-titulo" class="lec-tit"></b><span id="est-estado" class="lec-tx"></span>
-      <button class="ib" type="button" data-est="lec-liberar" title="Liberar: seguir usando la app; el lector queda en una burbuja">🔓</button>
-      <button class="ib" type="button" data-est="lec-cerrar" title="Cerrar el lector" aria-label="Cerrar">✕</button>
+  <aside class="lec-izq" id="lec-izq" aria-label="Menú del lector">
+    <div class="lec-ph"><span>🎵 MIS REPERTORIOS</span><small><span id="est-titulo"></span> <span id="est-estado"></span></small></div>
+    <div class="lec-sec">
+      <div class="lec-h">Herramientas</div>
+      <div class="lec-tools">
+        <button class="lt on" type="button" data-est-tool="mano" title="Mano: leer y mover la partitura (sin dibujar)"><i>✋</i><b>Mano</b></button>
+        <button class="lt" type="button" data-est-tool="p" title="Lápiz"><i>✏️</i><b>Lápiz</b></button>
+        <button class="lt" type="button" data-est-tool="h" title="Marcador semitransparente"><i>🖍</i><b>Marcador</b></button>
+        <button class="lt" type="button" data-est-tool="t" title="Texto"><i>🔤</i><b>Texto</b></button>
+        <button class="lt" type="button" data-est-tool="l" title="Línea recta"><i>╱</i><b>Línea</b></button>
+        <button class="lt" type="button" data-est-tool="a" title="Flecha"><i>➚</i><b>Flecha</b></button>
+        <button class="lt" id="lec-fig" type="button" data-est="figura" title="Figura: rectángulo; un segundo toque cambia a elipse"><i>▭</i><b>Figura</b></button>
+        <button class="lt" type="button" data-est-tool="b" title="Borrador: toca una anotación para quitarla"><i>🧽</i><b>Borrador</b></button>
+        <button class="lt" type="button" data-est-tool="s" title="Seleccionar y mover una anotación"><i>⬚</i><b>Seleccionar</b></button>
+        <button class="lt" type="button" data-est="eliminar-sel" title="Eliminar la anotación seleccionada"><i>🗑</i><b>Quitar</b></button>
+      </div>
+      <div class="lec-fila"><span>Color</span>
+        <button class="sw-c" type="button" data-c="#d62828" style="background:#d62828" title="Rojo"></button><button class="sw-c" type="button" data-c="#0047BB" style="background:#0047BB" title="Azul"></button><button class="sw-c" type="button" data-c="#00B140" style="background:#00B140" title="Verde"></button><button class="sw-c" type="button" data-c="#FF6A13" style="background:#FF6A13" title="Naranja"></button><button class="sw-c" type="button" data-c="#111111" style="background:#111" title="Negro"></button>
+        <input type="color" id="est-color" value="#d62828" title="Otro color (se recuerda el último)"></div>
+      <div class="lec-fila"><span>Grosor</span><input type="range" id="est-grosor" min="1" max="12" value="3"></div>
+      <div class="lec-fila"><span>Opacidad</span><input type="range" id="est-op" min="20" max="100" value="100"></div>
+      <div class="lec-acc4">
+        <button class="lt" type="button" data-est="undo" title="Deshacer"><i>↶</i><b>Deshacer</b></button>
+        <button class="lt" type="button" data-est="redo" title="Rehacer"><i>↷</i><b>Rehacer</b></button>
+        <button class="lt rojo" type="button" data-est="limpiar" title="Limpiar las anotaciones de esta página (el PDF no se toca)"><i>🧹</i><b>Limpiar página</b></button>
+        <button class="lt rojo" type="button" data-est="limpiar-doc" title="Limpiar todas las anotaciones de esta partitura (pide confirmación)"><i>🗑</i><b>Limpiar todo</b></button>
+      </div>
     </div>
-    <div id="lec-herr" class="lec-row lec-herr oculto" role="toolbar" aria-label="Herramientas de anotación">
-      <button class="ib on" type="button" data-est-tool="mano" title="Leer y desplazar (sin dibujar)">✋</button><button class="ib" type="button" data-est-tool="p" title="Lápiz">✏️</button><button class="ib" type="button" data-est-tool="h" title="Marcador semitransparente">🖍</button><button class="ib" type="button" data-est-tool="t" title="Texto">🔤</button><button class="ib" type="button" data-est-tool="l" title="Línea">╱</button><button class="ib" type="button" data-est-tool="a" title="Flecha">➚</button><button class="ib" id="lec-fig" type="button" data-est="figura" title="Figura: rectángulo; un segundo toque cambia a elipse"><i style="font-style:normal">▭</i></button><button class="ib" type="button" data-est-tool="b" title="Borrador: toca una anotación para quitarla">🧽</button><button class="ib" type="button" data-est-tool="s" title="Seleccionar y mover">⬚</button><button class="ib" type="button" data-est="eliminar-sel" title="Eliminar lo seleccionado">🗑</button>
-      <div class="lec-sep"></div>
-      <button class="sw-c" type="button" data-c="#d62828" style="background:#d62828" title="Rojo"></button><button class="sw-c" type="button" data-c="#0047BB" style="background:#0047BB" title="Azul"></button><button class="sw-c" type="button" data-c="#00B140" style="background:#00B140" title="Verde"></button><button class="sw-c" type="button" data-c="#FF6A13" style="background:#FF6A13" title="Naranja"></button><button class="sw-c" type="button" data-c="#111111" style="background:#111" title="Negro"></button>
-      <input type="color" id="est-color" value="#d62828" title="Color (se recuerda el último)"><input type="range" id="est-grosor" min="1" max="12" value="3" title="Grosor"><input type="range" id="est-op" min="20" max="100" value="100" title="Opacidad">
-      <div class="lec-sep"></div>
-      <button class="ib" type="button" data-est="undo" title="Deshacer">↶</button><button class="ib" type="button" data-est="redo" title="Rehacer">↷</button>
-      <div class="lec-sep"></div>
-      <button class="ib rojo" type="button" data-est="limpiar" title="Limpiar las anotaciones de esta página (el PDF no se toca)">🧹</button><button class="ib rojo" type="button" data-est="limpiar-doc" title="Limpiar todas las anotaciones de esta partitura (pide confirmación)">🗑✱</button>
+    <div class="lec-sec">
+      <div class="lec-h">Página</div>
+      <div class="lec-nav">
+        <button class="ib" type="button" data-est="cprev" title="Partitura anterior">⏮</button><button class="ib" type="button" data-est="prev" title="Página anterior">◀</button>
+        <input type="text" id="est-pag" class="lec-pgin" inputmode="numeric" aria-label="Ir a la página"><span id="est-total" class="lec-tx"></span>
+        <button class="ib" type="button" data-est="next" title="Página siguiente">▶</button><button class="ib" type="button" data-est="cnext" title="Partitura siguiente">⏭</button>
+        <div class="lec-sep"></div>
+        <button class="ib" type="button" data-est="zm" title="Alejar">−</button><button class="ib" type="button" data-est="ajuste" title="Ver la hoja completa">⤢</button><button class="ib" type="button" data-est="zp" title="Acercar">＋</button><button class="ib" type="button" data-est="full" title="Pantalla completa">⛶</button>
+      </div>
     </div>
-  </div>
-  <aside class="lec-izq" id="lec-izq" aria-label="Temas">
-    <div class="lec-ph"><span>🎵 MIS REPERTORIOS</span><button type="button" data-est="lec-col" title="Cerrar">✕</button></div>
-    <div class="lec-ir"><button type="button" data-lec-ir="inicio" title="Ir a Inicio">🏠 Inicio</button><button type="button" data-lec-ir="eventos" title="Ir a Eventos">📅 Eventos</button><button type="button" data-lec-ir="ensayo" title="Ir a Ensayo">🎧 Ensayo</button><button type="button" data-lec-ir="calentar" title="Ir a Calentar">🎤 Calentar</button><button type="button" data-est="lec-lista" title="Volver a la lista de Partituras">🎼 Partituras</button></div>
-    <select id="lec-rep" title="Cambiar de repertorio"></select>
-    <div id="lec-lista"></div>
-    <div class="lec-opc">
-      <label><input type="checkbox" id="est-encadenar"> Al terminar una partitura, pasar a la siguiente</label>
-      <label><input type="checkbox" id="lec-zonas"> Tocar el costado de la pantalla pasa la página</label>
-      <button type="button" data-est="export-pdf">⤓ PDF anotado (con marca de agua)</button><button type="button" data-est="resp-exp">⤓ Respaldo de anotaciones</button><button type="button" data-est="resp-imp">⤒ Restaurar respaldo</button>
-      <input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
+    <div class="lec-sec">
+      <div class="lec-h">Temas</div>
+      <select id="lec-rep" title="Cambiar de repertorio"></select>
+      <div id="lec-lista"></div>
+    </div>
+    <div class="lec-sec">
+      <div class="lec-h">Opciones</div>
+      <label class="sw"><span>Al terminar una partitura, pasar a la siguiente</span><input type="checkbox" id="est-encadenar" role="switch"></label>
+      <label class="sw"><span>Tocar el costado de la pantalla pasa la página</span><input type="checkbox" id="lec-zonas" role="switch"></label>
+      <div class="lec-btns">
+        <button class="cb" type="button" data-est="export-pdf" title="Descargar el PDF con tus anotaciones y la marca de agua">⤓ PDF anotado</button>
+        <button class="cb" type="button" data-est="resp-exp" title="Guardar un respaldo de tus anotaciones">⤓ Respaldo</button>
+        <button class="cb" type="button" data-est="resp-imp" title="Restaurar anotaciones desde un respaldo">⤒ Restaurar</button>
+        <input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
+      </div>
+      <div class="lec-btns">
+        <button class="cb" type="button" data-est="lec-liberar" title="Liberar: seguir usando la app; el lector queda en una burbuja">🔓 Liberar</button>
+        <button class="cb" type="button" data-est="lec-cerrar" title="Cerrar el lector">✕ Cerrar lector</button>
+      </div>
     </div>
   </aside>
 </div>
@@ -1087,7 +1119,7 @@ body.leyendo #tabbar{display:none!important}
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbz7pljoJktGoUlnAMydpl60pPnw7Hep1JD3C-WE0xn-O9ECnLppmAbwvP5exhrJL1-Oyg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyHL5jakOqCwfGwHos6nVYtSqP3s48T-U1XRcWUzO_UHCc9oMF0gJue7rm2jcwlAN6pHA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v5.4.1';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -4295,7 +4327,7 @@ body.leyendo #tabbar{display:none!important}
   async function estLeer(items, rotulo) {
     if (!items.length) { log('Elija al menos una partitura para leer.'); return; }
     EST.seq = items; EST.idx = 0; EST.rotulo = rotulo || ''; estMostrarLector(true); lecRepOpciones(); lecLista(); estCargarReps();
-    LAY.ctl = true; lecLayout(); lecReloj();                      // los controles se ven unos segundos y luego se ocultan solos
+    lecMenu(false);                                               // se abre solo la hoja; el menú se abre con el botón flotante
     await estAbrirIdx(0, 1);
   }
   const estRotulo = b => ((b.closest('.est-ev') || document).querySelector('b') || {}).textContent || '';
@@ -4590,7 +4622,7 @@ body.leyendo #tabbar{display:none!important}
     return out;
   }
   function estHerramienta(t) {
-    EST.tool = t; $('est-lector').classList.toggle('anota', t !== 'mano'); if (typeof lecReloj === 'function') lecReloj(); const fg = $('lec-fig'); if (fg) { fg.classList.toggle('on', t === 'r' || t === 'e'); fg.querySelector('b').textContent = t === 'e' ? 'Elipse' : 'Figura'; fg.querySelector('i').textContent = t === 'e' ? '◯' : '▭'; } if (t !== 's') { EST.sel = null; if (EST.pdf) estPintar(); } $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
+    EST.tool = t; $('est-lector').classList.toggle('anota', t !== 'mano'); const fg = $('lec-fig'); if (fg) { fg.classList.toggle('on', t === 'r' || t === 'e'); fg.querySelector('b').textContent = t === 'e' ? 'Elipse' : 'Figura'; fg.querySelector('i').textContent = t === 'e' ? '◯' : '▭'; } if (t !== 's') { EST.sel = null; if (EST.pdf) estPintar(); } $('est-ink').style.touchAction = t === 'mano' ? 'auto' : 'none'; $('est-ink').style.pointerEvents = t === 'mano' ? 'none' : 'auto';
     document.querySelectorAll('[data-est-tool]').forEach(b => b.classList.toggle('on', b.dataset.estTool === t));
   }
 
@@ -4607,7 +4639,6 @@ body.leyendo #tabbar{display:none!important}
   };
   $('vista-estudio').addEventListener('change', estChange); $('est-lector').addEventListener('change', estChange);
   const estClick = e => {
-    const ir = e.target.closest('[data-lec-ir]'); if (ir) { lecLiberar(); const tb = document.querySelector('#tabbar .tab[data-tab="' + ir.dataset.lecIr + '"]'); if (tb) tb.click(); return; }
     const sw = e.target.closest('[data-c]'); if (sw) { $('est-color').value = sw.dataset.c; try { localStorage.setItem('pm_lec_color', sw.dataset.c); } catch (er) { } return; }
     const bt = e.target.closest('[data-est-tool]'); if (bt) { estHerramienta(bt.dataset.estTool); return; }
     const b = e.target.closest('[data-est]'); if (!b) return;
@@ -4621,16 +4652,14 @@ body.leyendo #tabbar{display:none!important}
     else if (a === 'cerrar-lector') { estFlush(); estMostrarLector(false); }
     else if (a === 'cprev') estIrTema(EST.idx - 1, 1);
     else if (a === 'cnext') estIrTema(EST.idx + 1, 1);
-    else if (a === 'tema') { estIrTema(i, 1); $('est-lector').classList.remove('abre-izq'); }
+    else if (a === 'tema') { estIrTema(i, 1); lecMenu(false); }
     else if (a === 'prim') estIrPagina(1);
     else if (a === 'ult') estIrPagina(EST.pdf ? EST.pdf.numPages : 1);
     else if (a === 'figura') estHerramienta(EST.tool === 'r' ? 'e' : 'r');
     else if (a === 'lec-liberar') lecLiberar();
     else if (a === 'lec-cerrar') lecCerrar();
     else if (a === 'lec-lista') { lecLiberar(); conOcupado(abrirEstudio); }
-    else if (a === 'lec-col') lecPanel();
-    else if (a === 'fab') lecCtl(true);
-    else if (a === 'anotar') lecAnotar();
+    else if (a === 'fab') lecMenu();
     else if (a === 'prev') estPaso(-1);
     else if (a === 'next') estPaso(1);
     else if (a === 'zp') { EST.auto = false; EST.zoom = Math.min(4, EST.zoom * 1.25); estRender(); }
@@ -4680,30 +4709,22 @@ body.leyendo #tabbar{display:none!important}
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) estFlush(); });
   window.addEventListener('resize', () => { if (EST.pdf && !$('est-lector').classList.contains('oculto')) estRender(); });
-  /* ================= MARCO DEL LECTOR (v5.7.0): PRIORIDAD ÚNICA = VER LA HOJA COMPLETA ================= */
-  const LAY = { ctl: true, tmr: null };
+  /* ================= MARCO DEL LECTOR (v5.8.0): hoja completa; un solo botón flotante abre/cierra el menú ================= */
+  const LAY = { ab: false };
   const lecRedibujar = () => setTimeout(() => { if (EST.pdf && !$('est-lector').classList.contains('oculto')) estRender(); }, 60);
-  function lecLayout() { $('est-lector').classList.toggle('ctl', LAY.ctl); lecRedibujar(); }
-  // Los controles flotan sobre la hoja (nunca la achican) y se ocultan solos a los 4 s, salvo que se esté anotando o el cajón esté abierto.
-  function lecReloj() {
-    clearTimeout(LAY.tmr);
-    if (!LAY.ctl) return;
-    LAY.tmr = setTimeout(() => { const L = $('est-lector'); if (L.classList.contains('herr') || L.classList.contains('abre-izq')) { lecReloj(); return; } lecCtl(false); }, 4000);
-  }
-  function lecCtl(si) { LAY.ctl = si; lecLayout(); lecReloj(); }
-  $('lec-top').addEventListener('pointerdown', lecReloj);
-  function lecAnotar(si) {
-    if (si === undefined) si = $('lec-herr').classList.contains('oculto');
-    $('lec-herr').classList.toggle('oculto', !si); $('lec-anotar').classList.toggle('on', si); $('est-lector').classList.toggle('herr', si);
-    estHerramienta(si ? 'p' : 'mano'); lecReloj();
+  function lecLayout() { lecRedibujar(); }
+  // El menú flota sobre la hoja (no la achica). El mismo botón lo abre y lo cierra; la herramienta elegida se conserva al cerrarlo.
+  function lecMenu(si) {
+    if (si === undefined) si = !LAY.ab; LAY.ab = si;
+    $('est-lector').classList.toggle('abre-izq', si);
+    const f = $('lec-fab'); f.textContent = si ? '✕' : '⋯'; f.title = si ? 'Cerrar el menú' : 'Abrir el menú'; f.setAttribute('aria-expanded', String(si));
   }
   function lecFijar() { $('est-lector').classList.remove('oculto'); $('est-flota').classList.add('oculto'); document.body.classList.add('leyendo'); lecLayout(); }
   function lecLiberar() { $('est-lector').classList.add('oculto'); document.body.classList.remove('leyendo'); if (EST.pdf) $('est-flota').classList.remove('oculto'); }
   function lecCerrar() {
     estFlush(); if (EST.pdf) { try { EST.pdf.destroy(); } catch (e) { } } EST.pdf = null; EST.seq = []; EST.doc = '';
-    $('est-lector').classList.remove('abre-izq'); lecAnotar(false); estMostrarLector(false);
+    lecMenu(false); estHerramienta('mano'); estMostrarLector(false);
   }
-  function lecPanel() { $('est-lector').classList.toggle('abre-izq'); lecReloj(); }
   $('est-flota').onclick = lecFijar;
   /* ---- opciones personales (se recuerdan en este dispositivo) ---- */
   const LEC_CFG = (function () { try { return Object.assign({ enc: true, zonas: true }, JSON.parse(localStorage.getItem('pm_lec_cfg') || '{}')); } catch (e) { return { enc: true, zonas: true }; } })();
@@ -4713,9 +4734,8 @@ body.leyendo #tabbar{display:none!important}
   $('lec-zonas').onchange = () => { LEC_CFG.zonas = $('lec-zonas').checked; $('lec-cen').classList.toggle('sin-zonas', !LEC_CFG.zonas); lecCfgGuardar(); };
   try { const c = localStorage.getItem('pm_lec_color'); if (c && /^#[0-9a-f]{6}$/i.test(c)) $('est-color').value = c; } catch (e) { }
   $('est-color').addEventListener('input', () => { try { localStorage.setItem('pm_lec_color', $('est-color').value); } catch (e) { } });
-  /* ---- avisos grandes (legibles a distancia) y toques ---- */
-  let lecAvT = null;
-  function lecAviso(t) { const el = $('lec-aviso'); el.textContent = t; el.classList.add('v'); clearTimeout(lecAvT); lecAvT = setTimeout(() => el.classList.remove('v'), 1100); }
+  /* ---- aviso translúcido (deja ver la partitura mientras se desvanece) y toques ---- */
+  function lecAviso(t) { const el = $('lec-aviso'); el.classList.remove('v'); el.textContent = t; void el.offsetWidth; el.classList.add('v'); }
   const TQ = { n: 0, d: 0, t: null, orig: null };
   // 1 toque = página; 3 toques seguidos del mismo lado = partitura (la página se mueve al primer toque, sin esperar).
   async function lecToque(d) {
@@ -4741,7 +4761,7 @@ body.leyendo #tabbar{display:none!important}
     c.addEventListener('click', e => {
       if (Date.now() - lecSwipeT < 450) return;
       const z = e.target.closest('[data-lec-z]'); if (!z) return; const d = Number(z.dataset.lecZ);
-      if (d === 0) lecCtl(!LAY.ctl); else lecToque(d);
+      if (d === 0) { if (LAY.ab) lecMenu(false); } else lecToque(d);          // el centro solo cierra el menú si está abierto
     });
   })();
   $('est-resp-file').onchange = async e => {
@@ -4762,4 +4782,3 @@ body.leyendo #tabbar{display:none!important}
 
 </body>
 </html>
-
