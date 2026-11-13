@@ -232,7 +232,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
 #btn-nuevo-ensayo,#btn-asistencia{border-left:6px solid var(--c-ensayo)!important}
 #btn-calent{border-left:6px solid var(--c-calent)!important}
 #btn-estudio{border-left:6px solid var(--c-estudio)!important}
-#btn-frecuencia,#btn-clasif,#btn-sync-previa,#btn-sync-diag,#btn-sync-todo,#btn-sync-todo2{border-left:6px solid var(--c-catalogo)!important}
+#btn-frecuencia,#btn-clasif,#btn-sync-previa,#btn-sync-diag,#btn-actualizar{border-left:6px solid var(--c-catalogo)!important}
 #btn-stats,#btn-tabgrupo{border-left:6px solid var(--c-stats)!important}
 #btn-usuarios,#btn-gestion,#btn-correo,#btn-publicidad{border-left:6px solid var(--c-admin)!important}
 #btn-qr,#btn-reportes{border-left:6px solid var(--c-inicio)!important}
@@ -319,11 +319,6 @@ body.leyendo #tabbar{display:none!important}
     <h3>¿A qué módulo desea entrar?</h3>
     <div class="aviso">Cada módulo tiene sus propios repertorios, materiales, eventos, ensayos y registros. Puede cambiar de módulo cuando quiera.</div>
     <div id="mod-botones" class="botones" style="justify-content:center;"></div>
-    <div class="oculto" id="bloque-sync-todo" style="margin-top:14px;">
-      <button class="btn-secondary" type="button" id="btn-sync-todo">🔄 Actualizar contenido de todos los grupos (Drive)</button>
-      <div class="aviso" style="margin-top:6px;">Solo administrador general. Vuelve a leer las carpetas de Drive de Worship y de cada coro encendido (canciones, calentamientos y Gramática musical).</div>
-      <div id="sync-todo-res" class="aviso" style="text-align:left;"></div>
-    </div>
   </div>
 
   <div id="aviso-usuario" role="alert" class="card oculto" style="color:var(--err);font-size:14px;"></div>
@@ -351,12 +346,12 @@ body.leyendo #tabbar{display:none!important}
     <div class="menu-grid oculto">
       <button class="btn-accent" id="btn-biblioteca">🎧 Material de ensayo</button>
       <button class="btn-primary" id="btn-eventos">📅 Eventos Programados y Repertorio</button>
+      <button class="btn-primary oculto" id="btn-estudio" type="button">🎼 Estudio Musical</button>   <!-- v6.1.2: fuera de la superficie (su función vive en la pestaña Partituras de la barra inferior) -->
     </div>
     <div id="bloque-mas">
       <div class="menu-tit">Para ti</div>
       <div class="menu-grid" id="grid-parati">
         <button class="btn-primary" id="btn-stats" type="button">📈 Mi estadística personal</button>
-        <button class="btn-primary oculto" id="btn-estudio" type="button">🎼 Estudio Musical</button>
         <button class="btn-secondary" id="btn-frecuencia" type="button">📊 Frecuencia de cantos e histórico</button>
         <button class="btn-secondary" id="btn-qr" type="button">📶 QR de la red Wi-Fi</button>
         <button class="btn-secondary" id="btn-reportes" type="button">💬 Tu opinión <span id="ins-opinion" class="insignia oculto" aria-live="polite"></span></button>
@@ -378,8 +373,8 @@ body.leyendo #tabbar{display:none!important}
       <div class="menu-tit">Administración</div>
       <div class="menu-grid" id="grid-admin">
         <button class="btn-dark oculto" id="btn-sync" data-rol="sync">🔄 Sincronizar Catálogo de Recursos</button>
-        <button class="btn-secondary oculto" id="btn-sync-todo2">🔄 Actualizar contenido de TODOS los grupos (solo administrador general)</button>
-        <div id="sync-todo-res2" class="aviso oculto" style="text-align:left;"></div>
+        <button class="btn-dark oculto" id="btn-actualizar" data-rol="programa">🔄 Actualizar contenido (Drive)</button>
+        <div id="actualizar-res" class="aviso oculto" style="text-align:left;"></div>
         <button class="btn-secondary oculto" id="btn-sync-previa" data-rol="sync">🔎 Vista previa de la sincronización (no cambia nada)</button>
         <button class="btn-secondary oculto" id="btn-sync-diag" data-rol="sync">🩺 Diagnóstico del catálogo (pestañas, columnas y carpeta de Drive)</button>
         <button class="btn-secondary oculto" id="btn-publicidad" data-rol="publicidad">🖼️ Subir publicidad</button>
@@ -1120,9 +1115,9 @@ body.leyendo #tabbar{display:none!important}
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbx8NRa4_F1nc42iVK7m9rD9v5PAq-rC6G7qgZRsP5Ij1GgVuW7UiFgoSl472H5RuEUiFw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw414K1-7YzrrtG1AuVnmqXOzdQv9-rsWHkY-HhMEl-u_3jPaaefBoIScx7EthHX58FTQ/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v6.1.1';
+  const VERSION_SERVIDOR_ESPERADA = 'v6.1.3';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -1139,7 +1134,7 @@ body.leyendo #tabbar{display:none!important}
   const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} try { sessionStorage.removeItem('ls_' + k); } catch (e) {} };
   let SESION = lsGet('pm_sesion') || null;     // token de sesión emitido por el servidor (sin vencimiento práctico)
   let ultimoContacto = Date.now();
-  const ESTADO_CLAVE = 'pm_estado', RESTAURAR_HORAS = 12;
+  const ESTADO_CLAVE = 'pm_estado', RESTAURAR_HORAS = 24 * 30;
   let est = {};
   function estadoGuardar(parcial) { est = Object.assign(est, parcial, { ts: Date.now() }); lsSet(ESTADO_CLAVE, JSON.stringify(est)); }
   let rol = '';
@@ -1357,7 +1352,7 @@ body.leyendo #tabbar{display:none!important}
     if (r && !r.ok && r.error === 'MODULO_NO_AUTORIZADO' && MODULO) { MODULO = ''; lsDel('pm_modulo'); r = await api('quien'); }   // el módulo guardado ya no le corresponde
     if (!(r && r.ok)) return r;
     const disp = Array.isArray(r.modulos) && r.modulos.length ? r.modulos : [r.modulo || 'Worship'];
-    r.modulos = disp; ES_ADMIN_GENERAL = !!r.adminGeneral; $('btn-sync-todo2').classList.toggle('oculto', !ES_ADMIN_GENERAL); if (r.iconos) ICONOS_MOD = r.iconos; if (r.nombresModulo) NOMBRES_MOD = r.nombresModulo;
+    r.modulos = disp; ES_ADMIN_GENERAL = !!r.adminGeneral; if (r.iconos) ICONOS_MOD = r.iconos; if (r.nombresModulo) NOMBRES_MOD = r.nombresModulo;
     if (disp.length > 1 && disp.indexOf(MODULO) < 0) { mostrarSelectorModulos(r, disp); return { selector: true }; }
     const elegido = disp.indexOf(MODULO) >= 0 ? MODULO : disp[0];
     MODULO = elegido; lsSet('pm_modulo', elegido);
@@ -1366,7 +1361,7 @@ body.leyendo #tabbar{display:none!important}
   }
   let ES_ADMIN_GENERAL = false;
   function mostrarSelectorModulos(r, disp) {
-    $('bloque-sync-todo').classList.toggle('oculto', !r.adminGeneral);
+    
     $('menu').classList.add('oculto'); VISTAS.forEach(v => $(v).classList.add('oculto')); $('card-log').classList.add('oculto');
     $('estado-sesion').innerHTML = 'Hola <b>' + esc(r.nombre) + '</b> · elija el módulo.';
     $('mod-botones').innerHTML = disp.map(m => '<button class="btn-primary" type="button" data-mod="' + esc(m) + '" style="min-width:140px;">' + esc(nombreMod(m)) + '</button>').join('');
@@ -1406,7 +1401,7 @@ body.leyendo #tabbar{display:none!important}
         b.classList.toggle('oculto', !ok);
       });
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
-      document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);       // v4.6.0: Calentamientos vive en la barra inferior, junto a Ensayo
+      document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);
       PUEDE_DESCARGAR = !!r.puedeDescargar; $('btn-estudio').classList.toggle('oculto', !r.estudio); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !r.estudio); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
@@ -1438,6 +1433,7 @@ body.leyendo #tabbar{display:none!important}
         if (p.vista === 'vista-biblioteca') { if (await cargarCatalogo()) { mostrarVista('vista-biblioteca'); pintarBiblioteca(); await cargarEnsayoCalent(); } }
         else if (p.vista === 'vista-eventos') await cargarEventos();
         else if (p.vista === 'vista-repertorio' && p.evento) await verEvento(p.evento.id, p.evento.nombre);
+        else if (p.vista === 'vista-estudio' && !$('btn-estudio').classList.contains('oculto')) await abrirEstudio();   // v6.1.2: Partituras también se restaura
         else if (p.vista === 'vista-usuarios' && permisos.usuarios) await cargarRegistro();
         else if (p.vista === 'vista-gestion' && permisos.gestionar) await cargarGestion();
         else if (p.vista === 'vista-publicidad' && permisos.publicidad) { mostrarVista('vista-publicidad'); pintarCola(); await cargarListaPublicidad(); }
@@ -1505,6 +1501,7 @@ body.leyendo #tabbar{display:none!important}
   let claseVista = 'Evento', claseForm = 'Evento';
   const esEnsVista = () => !!(vistaEv && vistaEv.r && vistaEv.r.evento && vistaEv.r.evento.clase === 'Ensayo');
   $('btn-eventos').onclick = () => conOcupado(() => cargarEventos('Evento'));
+  $('btn-estudio').onclick = () => conOcupado(abrirEstudio);      // v6.1.2: «Estudio Musical» no tenía función asignada
   $('ev-seg').addEventListener('click', e => { const b = e.target.closest('button[data-ev-clase]'); if (b) conOcupado(() => cargarEventos(b.dataset.evClase)); });
 
   async function cargarEventos(clase) {
@@ -3748,14 +3745,13 @@ body.leyendo #tabbar{display:none!important}
     if (r && r.ok) mostrarResultadoSync(r);
     else { const m = (r && (r.mensaje || textoError(r.error))) || 'Sin respuesta del servidor.'; log('Error al sincronizar: ' + m); alert('Error al sincronizar:\n' + m); }
   }
-  async function syncTodo(dest) {
-    const el = $(dest); el.classList.remove('oculto'); el.textContent = 'Actualizando todos los grupos desde Drive… puede tardar varios minutos. No cierre la página.';
-    const r = await api('sincronizar_todo');
+  async function actualizarContenido(dest) {
+    const el = $(dest); el.classList.remove('oculto'); el.textContent = 'Actualizando desde Drive los grupos que usted administra… puede tardar varios minutos. No cierre la página.';
+    const r = await api('actualizar_contenido');
     if (!r || !r.ok) { el.textContent = '✖ ' + textoError(r && r.error); return; }
     el.innerHTML = '<b>' + esc(r.mensaje) + '</b>' + r.resultados.map(x => '<div style="margin-top:6px;"><b>' + esc(x.nombre) + '</b> · ' + esc(x.estado) + '<br>Canciones: ' + esc(x.catalogo) + (x.calentamientos ? '<br>Calentamientos: ' + esc(x.calentamientos) : '') + '</div>').join('');
   }
-  $('btn-sync-todo').onclick = () => conOcupado(() => syncTodo('sync-todo-res'));
-  $('btn-sync-todo2').onclick = () => conOcupado(async () => { await syncTodo('sync-todo-res2'); });
+  $('btn-actualizar').onclick = () => conOcupado(() => actualizarContenido('actualizar-res'));
   $('btn-sync').onclick = () => conOcupado(() => sincronizar(false));
   $('btn-sync-previa').onclick = () => conOcupado(() => sincronizar(true));
   $('btn-sync-diag').onclick = () => conOcupado(async () => {
