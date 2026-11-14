@@ -747,27 +747,71 @@ body.leyendo #tabbar{display:none!important}
       #est-wrap.anota .est-zona{display:none}
       body.leyendo #tabbar{display:none!important}
     </style>
+    <style id="pm-compacto">
+      /* v6.1.5 — diseño compacto de Partituras: cada función con su componente (segmentado, fila de lista, botón de ancho propio, interruptor) */
+      #vista-estudio .est-claro button,#vista-estudio .est-claro .eb{width:auto;min-height:36px;padding:6px 12px;margin:0;font-size:14px;font-weight:600;border-radius:8px}
+      #vista-estudio .est-claro h3{color:#243048;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin:12px 0 6px}
+      #vista-estudio .est-claro label{color:#243048}
+      #vista-estudio .est-claro input[type=search]{background:#fff;color:#243048;border:1px solid #cfd6e6;border-radius:8px;padding:8px;max-width:100%}
+      @media (max-width:440px){#est-menu .lg{display:none}}
+      #vista-estudio .est-claro input[type=checkbox]{width:18px;height:18px;margin:0 8px 0 0;flex:none}
+      .est-sw{display:flex;align-items:center;margin:4px 0;font-size:14px}
+      .est-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+      #vista-estudio .est-claro .est-row input,#vista-estudio .est-claro .est-row select{flex:1 1 150px;width:auto;min-width:0;margin:0}
+      #vista-estudio .est-seg{display:flex;flex-wrap:wrap;gap:3px;padding:3px;background:#eceff6;border-radius:10px;margin-bottom:8px}
+      #vista-estudio .est-seg .eb{flex:1 1 auto;border:0;background:transparent;color:#4a5573}
+      #vista-estudio .est-seg .eb.on{background:var(--ev);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+      #vista-estudio .est-claro .est-ev{padding:8px 10px}
+      #vista-estudio .est-fila select{flex:1 1 150px;width:auto;min-width:0}
+      #vista-estudio .est-item{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #e8ebf3}
+      #vista-estudio .est-item b{flex:1 1 100%;font-size:14px}
+      #vista-estudio .est-item select{flex:1 1 150px;width:auto;min-width:0}
+      /* Un canto */
+      #uno-grupos:empty{display:none}.uno-grupo1{display:inline-block;font-weight:700;color:#4a3a78;margin:0 0 6px}
+      #est-p-uno input[type=search]{width:100%;margin:0 0 6px}
+      .uno-lista{max-height:36vh;overflow:auto;border:1px solid #e0e4ee;border-radius:10px;background:#fff}
+      #vista-estudio .est-claro .uno-fila{display:flex;align-items:center;width:100%;min-height:38px;padding:6px 12px;border:0;border-bottom:1px solid #eef0f6;border-radius:0;background:#fff;color:#243048;text-align:left;font-weight:500}
+      #vista-estudio .est-claro .uno-fila.on{background:#efeaf8;box-shadow:inset 3px 0 0 var(--ev);font-weight:700}
+      .uno-vacio{display:block;padding:10px 12px;color:#5b647f;font-size:13px}
+      #uno-det{margin-top:10px;border:1px solid #e0e4ee;border-radius:10px;background:#fff;padding:8px 10px}
+      .uno-tit{font-weight:700;font-size:15px;color:#243048;margin-bottom:2px}
+      .uno-rec{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #eef0f6}
+      .uno-rec .ic{flex:none}.uno-rec .nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#243048;font-size:14px}
+      .uno-rec .par{flex:none;font-size:11px;color:#5b647f;background:#eef1f7;border-radius:8px;padding:1px 7px}
+      .uno-ahora{font-size:13px;color:#4a3a78;margin:8px 0 4px;font-weight:600}#uno-audio{width:100%}
+    </style>
     <h2>🎼 Partituras</h2>
     <div id="est-admin" class="oculto est-claro" style="margin-bottom:10px">
       <h3>Acceso a Partituras (administrador)</h3>
-      <label><input type="checkbox" id="est-instr"> Habilitar a todos los instrumentistas</label><br>
-      <label><input type="checkbox" id="est-global"> Habilitar a todos los usuarios</label><br>
-      <input type="text" id="est-correo" placeholder="correo@ejemplo.com" style="width:230px">
-      <button class="eb" data-est="dar" type="button">Habilitar</button><button class="eb" data-est="quitar" type="button">Retirar</button>
+      <label class="est-sw"><input type="checkbox" id="est-instr"> Habilitar a todos los instrumentistas</label>
+      <label class="est-sw"><input type="checkbox" id="est-global"> Habilitar a todos los usuarios</label>
+      <div class="est-row"><input type="text" id="est-correo" placeholder="correo@ejemplo.com" aria-label="Correo de la persona">
+        <button class="eb" data-est="dar" type="button">Habilitar</button><button class="eb" data-est="quitar" type="button">Retirar</button></div>
       <div id="est-autorizados" style="font-size:13px;margin-top:4px"></div>
     </div>
     <div class="est-claro">
-      <div id="est-menu"><button class="eb on" data-est="tab-prog" type="button">📅 Eventos y ensayos</button><button class="eb" data-est="tab-cat" type="button">📚 Mi set del catálogo</button></div>
+      <div id="est-menu" class="est-seg" role="tablist"><button class="eb on" data-est="tab-prog" type="button" aria-label="Eventos y ensayos" title="Eventos y ensayos">📅 Eventos<span class="lg"> y ensayos</span></button><button class="eb" data-est="tab-uno" type="button" title="Escoger un solo canto del catálogo">🎵 Un canto</button><button class="eb" data-est="tab-cat" type="button" title="Mi set del catálogo">📚 Mi set</button></div>
       <div id="est-p-prog"><div id="est-prog-lista"></div></div>
+      <div id="est-p-uno" class="oculto">
+        <h3>Un canto del catálogo</h3>
+        <div id="uno-grupos" aria-label="Grupo del canto"></div>
+        <input type="search" id="uno-buscar" placeholder="Buscar canción…" aria-label="Buscar canción en el catálogo">
+        <div id="uno-lista" class="uno-lista"></div>
+        <div id="uno-det" class="oculto">
+          <div class="uno-tit"></div>
+          <div id="uno-recs"></div>
+          <div id="uno-repro" class="oculto"><div class="uno-ahora" id="uno-ahora"></div><audio id="uno-audio" controls preload="none"></audio></div>
+        </div>
+      </div>
       <div id="est-p-cat" class="oculto">
         <h3>Mis sets (máximo 10 temas)</h3>
-        <select id="est-rep"></select> <input type="text" id="est-nombre" placeholder="Nombre del set" maxlength="60">
-        <button class="eb" data-est="nuevo" type="button">Nuevo</button><button class="eb" data-est="guardar" type="button">Guardar</button><button class="eb" data-est="borrar" type="button">Eliminar</button>
+        <div class="est-row"><select id="est-rep" aria-label="Set"></select><input type="text" id="est-nombre" placeholder="Nombre del set" maxlength="60" aria-label="Nombre del set"></div>
+        <div class="est-row"><button class="eb" data-est="nuevo" type="button">Nuevo</button><button class="eb" data-est="guardar" type="button">Guardar</button><button class="eb" data-est="borrar" type="button">Eliminar</button></div>
         <h3>Catálogo del repertorio</h3>
-        <input type="search" id="est-buscar" placeholder="Buscar canción…" aria-label="Buscar canción en el catálogo" style="max-width:260px">
-        <select id="est-cat"></select><button class="eb" data-est="anadir" type="button">Añadir al set</button><button class="eb" data-est="abrir-cat" type="button">📖 Abrir ahora</button> <span id="est-cuenta" style="font-size:13px"></span>
+        <div class="est-row"><input type="search" id="est-buscar" placeholder="Buscar canción…" aria-label="Buscar canción en el catálogo"><select id="est-cat" aria-label="Canción"></select></div>
+        <div class="est-row"><button class="eb" data-est="anadir" type="button">Añadir al set</button><button class="eb" data-est="abrir-cat" type="button">📖 Abrir ahora</button><span id="est-cuenta" style="font-size:13px"></span></div>
         <div id="est-items"></div>
-        <button class="eb" data-est="leer-cat" type="button">📖 Leer este set</button>
+        <div class="est-row"><button class="eb" data-est="leer-cat" type="button">📖 Leer este set</button></div>
       </div>
     </div>
   </div>
@@ -1103,9 +1147,9 @@ body.leyendo #tabbar{display:none!important}
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbw8B0_ZT6QECX8y9f6DCoF_YPncn8TEtU5ub1I8nfk5sTk3NT4AVz1OHhLVK-e1qSyzYg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v6.1.4';
+  const VERSION_SERVIDOR_ESPERADA = 'v6.1.5';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -4169,9 +4213,10 @@ body.leyendo #tabbar{display:none!important}
   }
   async function estTab(t) {
     EST.tab = t;
-    $('est-p-prog').classList.toggle('oculto', t !== 'prog'); $('est-p-cat').classList.toggle('oculto', t !== 'cat');
+    $('est-p-prog').classList.toggle('oculto', t !== 'prog'); $('est-p-cat').classList.toggle('oculto', t !== 'cat'); $('est-p-uno').classList.toggle('oculto', t !== 'uno');
     document.querySelectorAll('[data-est^="tab-"]').forEach(b => b.classList.toggle('on', b.dataset.est === 'tab-' + t));
-    if (t === 'prog') await estCargarProg(); else await estCargarCat();
+    if (t !== 'uno') estUnoDetener();
+    if (t === 'prog') await estCargarProg(); else if (t === 'uno') await estCargarUno(); else await estCargarCat();
   }
   async function estAdminCargar() {
     const r = await api('me_permiso_listar');
@@ -4209,6 +4254,74 @@ body.leyendo #tabbar{display:none!important}
     return { reps: reps || [], cat: cat, multi: mods.length > 1 };
   }
   const estOpcPdf = p => '<option value="">— sin partitura —</option>' + p.map(d => '<option value="' + esc(d.idArchivo) + '">' + esc(d.nombre || d.nombreArchivo || d.parte) + '</option>').join('');
+
+  /* ---- Un canto (v6.1.5): un solo canto del catálogo, de una agrupación habilitada para la persona; TODOS sus PDF y MP3 ---- */
+  EST.uno = { mod: '', cat: {}, sel: null, url: '' };
+  // El nombre que se muestra es el que sigue al prefijo (ABC-001 - …); «Otro» nunca es nombre ni etiqueta.
+  const estNombreRec = r => {
+    const n = String(r.nombre || '').trim(); if (n && !/^otro$/i.test(n)) return n;
+    const f = String(r.nombreArchivo || '').replace(/\.(pdf|mp3)$/i, '').replace(/^[A-Za-z]{2,4}\s*-\s*\d{3,4}(?!\d)[\s\-–—_.:]*/, '').trim();
+    return f || String(r.nombreArchivo || 'Sin nombre');
+  };
+  const estParteRec = r => { const p = String(r.parte || '').trim(); return /^otro$/i.test(p) ? '' : p; };
+  function estUnoDetener() {
+    const a = $('uno-audio'); if (!a) return;
+    try { a.pause(); } catch (e) { } a.removeAttribute('src'); try { a.load(); } catch (e) { }
+    if (EST.uno.url) { URL.revokeObjectURL(EST.uno.url); EST.uno.url = ''; }
+    $('uno-repro').classList.add('oculto');
+  }
+  async function estCargarUno() {
+    const mods = estMods(), U = EST.uno;
+    if (mods.indexOf(U.mod) < 0) U.mod = mods.indexOf(MODULO) >= 0 ? MODULO : mods[0];
+    const g = $('uno-grupos');
+    g.className = mods.length > 1 ? 'est-seg' : '';
+    g.innerHTML = mods.length > 1
+      ? mods.map(m => '<button type="button" class="eb' + (m === U.mod ? ' on' : '') + '" data-est="uno-grupo" data-mod="' + esc(m) + '">' + esc(nombreMod(m)) + '</button>').join('')
+      : '<span class="uno-grupo1">' + esc(nombreMod(mods[0])) + '</span>';
+    U.sel = null; $('uno-det').classList.add('oculto'); $('uno-buscar').value = ''; estUnoDetener();
+    const m = U.mod;
+    if (!U.cat[m]) {
+      $('uno-lista').innerHTML = '<i class="uno-vacio">Cargando catálogo…</i>';
+      const r = await api('me_mis_repertorios', { modulo: m });
+      if (!r || !r.ok) { $('uno-lista').innerHTML = '<div class="aviso">No se pudo leer el catálogo de ' + esc(nombreMod(m)) + ': ' + esc(textoError(r && r.error)) + '</div>'; return; }
+      U.cat[m] = (r.catalogo || []).map(c => ({ idCancion: c.idCancion, titulo: c.titulo })); U.cat[m].forEach(c => { EST.cat[m + '|' + c.idCancion] = c.titulo; });
+    }
+    if (U.mod === m) estUnoFiltrar();
+  }
+  function estUnoFiltrar() {
+    const U = EST.uno, l = U.cat[U.mod] || [], q = estNorm($('uno-buscar').value).trim();
+    const f = l.filter(c => !q || estNorm(c.titulo + ' ' + c.idCancion).indexOf(q) >= 0);
+    $('uno-lista').innerHTML = f.length
+      ? f.map(c => '<button type="button" class="uno-fila' + (U.sel === c.idCancion ? ' on' : '') + '" data-est="uno-sel" data-cid="' + esc(c.idCancion) + '">' + esc(c.titulo) + '</button>').join('')
+      : '<i class="uno-vacio">' + (l.length ? 'Ninguna canción coincide con la búsqueda.' : 'Este grupo no tiene canciones activas.') + '</i>';
+  }
+  async function estUnoVer(id) {
+    const U = EST.uno, m = U.mod; U.sel = id; estUnoFiltrar(); estUnoDetener();
+    $('uno-det').classList.remove('oculto'); $('uno-det').querySelector('.uno-tit').textContent = EST.cat[m + '|' + id] || id;
+    $('uno-recs').innerHTML = '<i class="uno-vacio">Cargando recursos…</i>';
+    const r = await api('recursos_cancion', { idCancion: id, modulo: m });
+    if (U.sel !== id || U.mod !== m) return;                      // eligió otro canto mientras cargaba
+    if (!r || !r.ok) { $('uno-recs').innerHTML = '<div class="aviso">No se pudieron leer los recursos: ' + esc(textoError(r && r.error)) + '</div>'; return; }
+    const t = r.recursos || [], pdf = t.filter(x => x.tipo === 'PDF'), mp3 = t.filter(x => x.tipo === 'MP3');
+    EST.recAll[m + '|' + id] = t; EST.rec[m + '|' + id] = pdf;
+    const fila = (x, ico, acc, rot) => '<div class="uno-rec"><span class="ic">' + ico + '</span><span class="nom" title="' + esc(x.nombreArchivo || '') + '">' + esc(estNombreRec(x)) + '</span>'
+      + (estParteRec(x) ? '<span class="par">' + esc(estParteRec(x)) + '</span>' : '') + '<button type="button" class="eb" data-est="' + acc + '" data-aid="' + esc(x.idArchivo) + '">' + rot + '</button></div>';
+    $('uno-recs').innerHTML = '<h3>Partituras y letras (' + pdf.length + ')</h3>' + (pdf.length ? pdf.map(x => fila(x, '📄', 'uno-leer', 'Leer')).join('') : '<i class="uno-vacio">Sin PDF disponibles para usted.</i>')
+      + '<h3>Audios (' + mp3.length + ')</h3>' + (mp3.length ? mp3.map(x => fila(x, '🎧', 'uno-audio', '▶ Escuchar')).join('') : '<i class="uno-vacio">Sin audios disponibles para usted.</i>');
+  }
+  async function estUnoAudio(aid) {
+    const U = EST.uno, id = U.sel; if (!id) return;
+    const rec = (EST.recAll[U.mod + '|' + id] || []).filter(x => x.idArchivo === aid)[0];
+    log('Cargando audio…');
+    const r = await api('mp3', { idCancion: id, idArchivo: aid, modulo: U.mod });
+    if (U.sel !== id) return;
+    if (!r || !r.ok) { log('No se pudo cargar el audio: ' + textoError(r && r.error)); return; }
+    estUnoDetener();
+    U.url = URL.createObjectURL(new Blob([aBytes(r.base64)], { type: r.tipo || 'audio/mpeg' }));
+    const a = $('uno-audio'); a.src = U.url; $('uno-repro').classList.remove('oculto');
+    $('uno-ahora').textContent = '🎧 ' + (rec ? estNombreRec(rec) : 'Audio');
+    a.play().catch(() => log('Pulse ▶ para reproducir.'));
+  }
 
   /* ---- Eventos y ensayos ---- */
   async function estCargarProg() {
@@ -4577,7 +4690,7 @@ body.leyendo #tabbar{display:none!important}
   }
 
   /* ---------- Eventos de la pantalla ---------- */
-  $('est-rep').onchange = estElegirRep; $('est-buscar').addEventListener('input', estFiltrarCat);
+  $('est-rep').onchange = estElegirRep; $('est-buscar').addEventListener('input', estFiltrarCat); $('uno-buscar').addEventListener('input', estUnoFiltrar);
   $('est-global').onchange = () => conOcupado(async () => { const r = await api('me_global_set', { on: $('est-global').checked }); if (!r || !r.ok) log('No se pudo cambiar: ' + textoError(r && r.error)); estAdminCargar(); });
   $('est-instr').onchange = () => conOcupado(async () => { const r = await api('me_global_set', { on: $('est-instr').checked, alcance: 'instrumentistas' }); if (!r || !r.ok) log('No se pudo cambiar: ' + textoError(r && r.error)); estAdminCargar(); });
   $('est-pag').onchange = () => estIrPagina(parseInt($('est-pag').value, 10) || EST.page);
@@ -4595,6 +4708,11 @@ body.leyendo #tabbar{display:none!important}
     const a = b.dataset.est, i = Number(b.dataset.i), its = EST.rep ? EST.rep.items : [];
     if (a === 'tab-prog') conOcupado(() => estTab('prog'));
     else if (a === 'tab-cat') conOcupado(() => estTab('cat'));
+    else if (a === 'tab-uno') conOcupado(() => estTab('uno'));
+    else if (a === 'uno-grupo') conOcupado(async () => { EST.uno.mod = b.dataset.mod; await estCargarUno(); });
+    else if (a === 'uno-sel') conOcupado(() => estUnoVer(b.dataset.cid));
+    else if (a === 'uno-leer') conOcupado(async () => { const U = EST.uno; if (!U.sel) return; await estLeer([{ idCancion: U.sel, doc: b.dataset.aid, titulo: estTit(U.mod, U.sel), mod: U.mod, ctx: 'BIB' }], 'Un canto'); });
+    else if (a === 'uno-audio') conOcupado(() => estUnoAudio(b.dataset.aid));
     else if (a === 'ev-abrir') conOcupado(() => estAbrirEvento(b.dataset.id, b.dataset.mod));
     else if (a === 'ev-leer') conOcupado(() => estLeer(estItemsDe(b.dataset.id, undefined, b.dataset.mod), estRotulo(b)));
     else if (a === 'set-leer') conOcupado(() => estLeer(estItemsDe(b.dataset.id, b.dataset.set, b.dataset.mod), estRotulo(b)));
