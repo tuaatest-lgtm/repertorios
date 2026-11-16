@@ -310,6 +310,7 @@ table.la td.c label{display:flex;align-items:center;justify-content:center;min-h
 table.la td.c input{width:22px;height:22px;margin:0;accent-color:var(--p)}
 table.la td.c.auto label::after{content:'•';position:absolute;top:2px;right:8px;color:var(--ok,#22c55e);font-size:16px;line-height:1}
 table.la td.c.cambio{background:rgba(124,92,255,.22)}
+table.la td.c.dos{white-space:nowrap}table.la td.c.dos label{display:inline-flex;width:50%;min-height:40px;vertical-align:middle}table.la td.c.dos label.lx input{accent-color:var(--mu)}table.la th .sub{font-size:10px;color:var(--mu);display:flex;justify-content:space-around}
 table.la td.c.nulo{color:var(--mu);opacity:.5}
 table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;padding:6px 2px}
 #vista-elenco .el-barra{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
@@ -638,6 +639,8 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     <div class="solo-evento"><label for="in-ensamble"><b>Ensamble (esquema de montaje)</b></label>
     <select id="in-ensamble"><option value="">— Sin ensamble (definir a mano) —</option></select>
     <div class="aviso" id="aviso-ensamble"></div>
+    <div id="bloque-guardar-ens" class="oculto" style="margin:6px 0;"><label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="in-guardar-ens" style="width:20px;height:20px;"> Guardar esta estructura como ensamble para reutilizarla</label>
+    <input type="text" id="in-nombre-ens" maxlength="80" placeholder="Nombre del ensamble (por defecto, el del evento)" class="oculto"><div class="aviso oculto" id="aviso-guardar-ens">Se guardan el alcance y las funciones de abajo. Podrá cambiarle el nombre después en «Ensambles».</div></div>
     <label for="in-alcance"><b>Alcance del evento (quiénes registran su asistencia)</b></label>
     <select id="in-alcance">
       <option value="Todos">Todos (Worship 1 y Worship 2)</option>
@@ -886,9 +889,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
   </div>
 
   <div class="card oculto" id="vista-lista-asist">
-    <h3>📝 Lista de asistencia a ensayos</h3>
+    <h3>📝 Lista de asistencia: ensayos y eventos</h3>
     <div id="la-grupos"></div>
-    <div class="aviso" id="la-sub">Marque con ✓ a quienes asistieron y no registraron su asistencia. Las casillas con punto (•) las marcó la propia persona.</div>
+    <div class="aviso" id="la-sub">Marque con ✓ a quienes asistieron y no registraron su asistencia. Las casillas con punto (•) las marcó la propia persona. En los <b>eventos</b> hay dos casillas por persona: la primera (<b>Esp.</b>) indica si se esperaba que asistiera (según quién fue citado; puede ajustarla) y la segunda (<b>Asist.</b>) si asistió. Los eventos aparecen desde el mismo día.</div>
     <div class="la-barra">
       <input type="search" id="la-buscar" placeholder="Buscar persona…" aria-label="Buscar persona">
       <select id="la-dias" aria-label="Periodo"><option value="30">Últimos 30 días</option><option value="45" selected>Últimos 45 días</option><option value="90">Últimos 90 días</option><option value="180">Últimos 180 días</option></select>
@@ -1254,9 +1257,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxS0r1x7JbNySUDYX8e8ZZ0GOA2IAHI8twnhAZ9GZ1Z_VsOm7ag3tBofwMxceiTBiU1bw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v6.2.1';
+  const VERSION_SERVIDOR_ESPERADA = 'v6.3.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -1405,6 +1408,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     quien();
   }
 
+  let ERR_API = '';      // v6.2.1: causa del último fallo de conexión (se muestra al iniciar sesión en lugar de un mensaje genérico)
   async function api(accion, extra, reintento) {
     if (!ID_TOKEN && !SESION) { log('Inicie sesión con Google primero.'); return null; }
     try {
@@ -1417,8 +1421,12 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       const txt = await res.text();
       let r;
       try { r = JSON.parse(txt); }
-      catch (e) { log('Respuesta no válida del servidor (¿despliegue desactualizado?): ' + txt.slice(0, 120)); return null; }
-      ultimoContacto = Date.now();
+      catch (e) {
+        const crudo = String(txt || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
+        ERR_API = 'El servidor respondió algo que no es una respuesta de la app (HTTP ' + res.status + '): «' + crudo + '». Casi siempre es el despliegue: en Apps Script → Implementar → Administrar implementaciones, «Quién tiene acceso» debe ser «Cualquier persona», y debe existir una versión nueva del código; si pegó código nuevo, ejecute una función del editor una vez y acepte los permisos.';
+        log('Respuesta no válida del servidor (¿despliegue desactualizado?): ' + txt.slice(0, 120)); return null;
+      }
+      ultimoContacto = Date.now(); ERR_API = '';
       if (r.sesion) { SESION = r.sesion; lsSet('pm_sesion', SESION); }   // el servidor renueva la ventana en cada respuesta
       if (!r.ok && /^SESION_(INVALIDA|EXPIRADA|REVOCADA)/.test(String(r.error))) {
         SESION = null; lsDel('pm_sesion');
@@ -1433,6 +1441,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       }
       return r;
     } catch (e) {
+      ERR_API = 'No hubo conexión con el servidor (' + e.message + '). Revise su internet y que la dirección /exec del archivo sea la del despliegue vigente; abra esa dirección en el navegador: debe decir «API de repertorios activa».';
       log('Error de red: ' + e.message);
       return null;
     }
@@ -1556,7 +1565,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     } else {
       $('menu').classList.add('oculto');
       $('btn-salir').classList.add('oculto');
-      $('estado-sesion').textContent = r ? textoError(r.error) : 'No se pudo verificar la sesión.';
+      $('estado-sesion').textContent = r ? textoError(r.error) : ('No se pudo verificar la sesión. ' + ERR_API).trim();
       log($('estado-sesion').textContent);
     }
   }
@@ -1966,7 +1975,10 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       }
     } else {
       if (!claveEvento) claveEvento = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
-      r = await api('guardar_evento', Object.assign({ idempotencia: claveEvento, estado: 'Programado' }, comun));
+      const gEns = !esE && $('in-guardar-ens').checked && !$('in-ensamble').value && comun.funcionesRequeridas && comun.funcionesRequeridas.length;
+      if (!esE && $('in-guardar-ens').checked && !gEns) { alert('Para guardar el ensamble defina al menos una función requerida.'); return; }
+      r = await api('guardar_evento', Object.assign({ idempotencia: claveEvento, estado: 'Programado' }, comun, gEns ? { guardarComoEnsamble: { nombre: $('in-nombre-ens').value.trim() || nombre } } : {}));
+      if (r && r.ok && r.ensamble) log(r.ensamble.ok ? 'Ensamble «' + r.ensamble.nombre + '» guardado para reutilizar (renómbrelo en «Ensambles» si lo desea).' : 'El evento se guardó, pero no se pudo guardar el ensamble: ' + textoError(r.ensamble.error));
     }
     if (r && r.ok) {
       claveEvento = ''; eventoEditando = null;
@@ -2639,10 +2651,22 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     sel.innerHTML = '<option value="">— Sin ensamble (definir a mano) —</option>' + activos.concat(extra).map(e =>
       '<option value="' + esc(e.idEnsamble) + '">' + esc(e.nombre) + (e.estado === 'Archivado' ? ' (archivado)' : '') + ' · ' + esc(e.alcance) + '</option>').join('');
     sel.value = seleccion || '';
-    $('aviso-ensamble').textContent = activos.length ? '' : 'Aún no hay ensambles. Cree uno en el menú «Ensambles» para reutilizarlo en varios eventos.';
+    const arch = ensambles.filter(e => e.estado === 'Archivado').length;
+    $('aviso-ensamble').textContent = activos.length ? '' : (arch ? 'No hay ensambles activos: tiene ' + arch + ' archivado' + (arch > 1 ? 's' : '') + '. Reactívelo en el menú «Ensambles» (♻ Reactivar) para poder elegirlo aquí.' : 'Aún no hay ensambles. Cree uno en el menú «Ensambles» o marque «Guardar esta estructura como ensamble» más abajo.');
+    pintarGuardarEns();
   }
+  function pintarGuardarEns() {
+    const visible = !eventoEditando && claseForm !== 'Ensayo' && !$('in-ensamble').value;
+    $('bloque-guardar-ens').classList.toggle('oculto', !visible);
+    if (!visible) $('in-guardar-ens').checked = false;
+    const on = visible && $('in-guardar-ens').checked;
+    $('in-nombre-ens').classList.toggle('oculto', !on); $('aviso-guardar-ens').classList.toggle('oculto', !on);
+    if (on && !$('in-nombre-ens').value) $('in-nombre-ens').value = $('in-nombre').value.trim();
+  }
+  $('in-guardar-ens').onchange = pintarGuardarEns;
   $('in-ensamble').onchange = () => {
     const e = ensambles.find(x => x.idEnsamble === $('in-ensamble').value);
+    pintarGuardarEns();
     if (!e) { $('aviso-ensamble').textContent = ''; return; }
     $('in-alcance').value = e.alcance; funcReq = e.funciones.map(f => ({ funcion: f.funcion, cantidad: f.cantidad })); pintarFuncReq();
     $('aviso-ensamble').textContent = 'Ensamble aplicado: ' + e.alcance + ' · ' + textoFunciones(e.funciones) + '. Puede ajustar el alcance o las funciones solo para este evento.';
@@ -3460,9 +3484,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     pintarFrecuencia(); mostrarVista('vista-frecuencia'); mostrarTablero('frecuencia', {}, 'tb-frecuencia');
   }
   /* ---- Lista de asistencia en cuadrícula (v6.1.6): solo administrador y programador; una agrupación a la vez ---- */
-  const LA = { mod: '', sesiones: [], personas: [], orig: {}, cur: {}, hayMas: false };
+  const LA = { mod: '', sesiones: [], personas: [], orig: {}, cur: {}, origX: {}, curX: {}, hayMas: false };
   const laKey = (j, cr) => j + '|' + cr;
-  const laCambios = () => Object.keys(LA.cur).filter(k => LA.cur[k] !== LA.orig[k]);
+  const laCambios = () => Object.keys(LA.cur).filter(k => LA.cur[k] !== LA.orig[k]).concat(Object.keys(LA.curX).filter(k => LA.curX[k] !== LA.origX[k] && LA.cur[k] === LA.orig[k]));
   function laPintarBarra() {
     const n = laCambios().length; $('la-guardar').disabled = !n;
     $('la-cambios').textContent = n ? n + ' cambio' + (n > 1 ? 's' : '') + ' sin guardar' : '';
@@ -3470,18 +3494,22 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
   function laPintar() {
     const q = estNorm($('la-buscar').value).trim(), S = LA.sesiones;
     const P = LA.personas.filter(p => !q || estNorm(p.nombre + ' ' + p.correo).indexOf(q) >= 0);
-    if (!S.length) { $('la-tabla').innerHTML = '<div class="aviso">No hay ensayos realizados en este periodo para ' + esc(nombreMod(LA.mod)) + '.</div>'; laPintarBarra(); return; }
-    let h = '<table class="la"><thead><tr><th class="nom">Persona</th>' + S.map((s, j) => '<th><div class="d">' + esc(fmtFechaHora(s.fecha).slice(0, 5)) + '</div><div class="n" title="' + esc(s.nombre) + '">' + esc(s.nombre) + '</div><button type="button" class="col" data-la-col="' + j + '" title="Marcar a todos los de este ensayo" aria-label="Marcar a todos los de este ensayo">☑</button></th>').join('') + '</tr></thead><tbody>';
+    if (!S.length) { $('la-tabla').innerHTML = '<div class="aviso">No hay ensayos ni eventos realizados en este periodo para ' + esc(nombreMod(LA.mod)) + '.</div>'; laPintarBarra(); return; }
+    let h = '<table class="la"><thead><tr><th class="nom">Persona</th>' + S.map((s, j) => '<th><div class="d">' + esc(fmtFechaHora(s.fecha).slice(0, 5)) + '</div>' + (s.esp ? '<div class="sub"><span title="Se esperaba">Esp.</span> <span title="Asistió">Asist.</span></div>' : '') + '<div class="n" title="' + esc(s.nombre) + '">' + esc(s.nombre) + '</div><button type="button" class="col" data-la-col="' + j + '" title="Marcar a todos" aria-label="Marcar a todos">☑</button></th>').join('') + '</tr></thead><tbody>';
     P.forEach(p => {
       h += '<tr><td class="nom"><b title="' + esc(p.correo) + '">' + esc(p.nombre) + '</b><small>' + esc(p.funcion || '') + '</small></td>';
       S.forEach((s, j) => {
         const c = p.c[j], k = laKey(j, p.correo);
         if (!c) { h += '<td class="c nulo" title="No estaba convocado(a)">–</td>'; return; }
+        if (c.x !== undefined) {        // evento: casilla «se esperaba» + casilla de asistencia
+          h += '<td class="c dos' + (c.a ? ' auto' : '') + ((LA.cur[k] !== LA.orig[k] || LA.curX[k] !== LA.origX[k]) ? ' cambio' : '') + '"><label class="lx" title="Se esperaba que asistiera"><input type="checkbox" data-lx="' + j + '" data-cr="' + esc(p.correo) + '"' + (LA.curX[k] ? ' checked' : '') + ' aria-label="Se esperaba: ' + esc(p.nombre) + '"></label><label class="la2" title="' + (c.a ? 'Lo marcó la propia persona' : (c.p ? 'Marcado por ' + esc(c.p) : 'Asistió')) + '"><input type="checkbox" data-la="' + j + '" data-cr="' + esc(p.correo) + '"' + (LA.cur[k] ? ' checked' : '') + ' aria-label="Asistió: ' + esc(p.nombre) + ', ' + esc(fmtFechaHora(s.fecha)) + '"></label></td>';
+          return;
+        }
         h += '<td class="c' + (c.a ? ' auto' : '') + (LA.cur[k] !== LA.orig[k] ? ' cambio' : '') + '"><label title="' + (c.a ? 'Lo marcó la propia persona' : (c.p ? 'Marcado por ' + esc(c.p) : '')) + '"><input type="checkbox" data-la="' + j + '" data-cr="' + esc(p.correo) + '"' + (LA.cur[k] ? ' checked' : '') + ' aria-label="' + esc(p.nombre) + ', ' + esc(fmtFechaHora(s.fecha)) + '"></label></td>';
       });
       h += '</tr>';
     });
-    h += '</tbody><tfoot><tr><td class="nom">Asistieron</td>' + S.map((s, j) => { let a = 0, n = 0; LA.personas.forEach(p => { if (p.c[j]) { n++; if (LA.cur[laKey(j, p.correo)]) a++; } }); return '<td>' + a + '/' + n + '</td>'; }).join('') + '</tr></tfoot></table>';
+    h += '</tbody><tfoot><tr><td class="nom">Asistieron</td>' + S.map((s, j) => { let a = 0, n = 0; LA.personas.forEach(p => { const c = p.c[j]; if (!c) return; const k = laKey(j, p.correo); if (c.x !== undefined) { if (LA.curX[k]) { n++; if (LA.cur[k]) a++; } } else { n++; if (LA.cur[k]) a++; } }); return '<td title="' + (s.esp ? 'Asistieron / esperados' : '') + '">' + a + '/' + n + '</td>'; }).join('') + '</tr></tfoot></table>';
     $('la-tabla').innerHTML = h + (LA.hayMas ? '<div class="aviso">Se muestran los 12 ensayos más recientes del periodo. Reduzca el periodo para ver otros.</div>' : '');
     laPintarBarra();
   }
@@ -3492,9 +3520,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     $('la-tabla').innerHTML = '<i>Cargando ensayos…</i>';
     const r = await api('asistencia_grilla', { modulo: m, dias: Number($('la-dias').value) || 45 });
     if (LA.mod !== m) return;
-    if (!r || !r.ok) { LA.sesiones = []; LA.personas = []; LA.orig = {}; LA.cur = {}; $('la-tabla').innerHTML = '<div class="aviso">' + esc(textoError(r && r.error)) + '</div>'; laPintarBarra(); return; }
-    LA.sesiones = r.sesiones; LA.personas = r.personas; LA.hayMas = !!r.hayMas; LA.orig = {}; LA.cur = {};
-    r.personas.forEach(p => p.c.forEach((c, j) => { if (c) { const v = c.e === 'Asistió'; LA.orig[laKey(j, p.correo)] = v; LA.cur[laKey(j, p.correo)] = v; } }));
+    if (!r || !r.ok) { LA.sesiones = []; LA.personas = []; LA.orig = {}; LA.cur = {}; LA.origX = {}; LA.curX = {}; $('la-tabla').innerHTML = '<div class="aviso">' + esc(textoError(r && r.error)) + '</div>'; laPintarBarra(); return; }
+    LA.sesiones = r.sesiones; LA.personas = r.personas; LA.hayMas = !!r.hayMas; LA.orig = {}; LA.cur = {}; LA.origX = {}; LA.curX = {};
+    r.personas.forEach(p => p.c.forEach((c, j) => { if (c) { const v = c.e === 'Asistió', k = laKey(j, p.correo); LA.orig[k] = v; LA.cur[k] = v; if (c.x !== undefined) { LA.origX[k] = !!c.x; LA.curX[k] = !!c.x; } } }));
     laPintar();
   }
   async function abrirListaAsistencia() {
@@ -3503,7 +3531,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     await laCargar(mods.indexOf(LA.mod) >= 0 ? LA.mod : (mods.indexOf(MODULO) >= 0 ? MODULO : mods[0]));
   }
   async function laGuardar() {
-    const marcas = laCambios().map(k => { const j = Number(k.split('|')[0]), cr = k.slice(k.indexOf('|') + 1), s = LA.sesiones[j]; return { idEvento: s.idEvento, idSesion: s.idSesion, correo: cr, estado: LA.cur[k] ? 'Asistió' : '' }; });
+    const marcas = laCambios().map(k => { const j = Number(k.split('|')[0]), cr = k.slice(k.indexOf('|') + 1), s = LA.sesiones[j]; const m = { idEvento: s.idEvento, idSesion: s.idSesion, correo: cr, estado: LA.cur[k] ? 'Asistió' : '' }; if (s.esp && k in LA.curX) m.esperado = LA.curX[k] ? 'Sí' : 'No'; return m; });
     if (!marcas.length) return;
     const r = await api('asistencia_grilla_guardar', { modulo: LA.mod, marcas: marcas });
     if (r && r.ok) log('Asistencia guardada: ' + r.guardados + ' cambio(s).');
@@ -3516,12 +3544,19 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
   $('la-guardar').onclick = () => laOcupado(laGuardar);
   $('la-buscar').addEventListener('input', laPintar);
   $('la-dias').onchange = () => { if (laCambios().length && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) { return; } laOcupado(() => laCargar(LA.mod)); };
-  $('vista-lista-asist').addEventListener('change', e => { const i = e.target.closest('input[data-la]'); if (!i) return; LA.cur[laKey(i.dataset.la, i.dataset.cr)] = i.checked; i.closest('td').classList.toggle('cambio', LA.cur[laKey(i.dataset.la, i.dataset.cr)] !== LA.orig[laKey(i.dataset.la, i.dataset.cr)]); laPintarBarra(); });
+  $('vista-lista-asist').addEventListener('change', e => {
+    const x = e.target.closest('input[data-lx]'), i = x || e.target.closest('input[data-la]'); if (!i) return;
+    const k = laKey(x ? i.dataset.lx : i.dataset.la, i.dataset.cr);
+    if (x) { LA.curX[k] = i.checked; if (i.checked === false && LA.cur[k]) { LA.cur[k] = false; } }
+    else { LA.cur[k] = i.checked; if (i.checked && k in LA.curX && !LA.curX[k]) LA.curX[k] = true; }   // marcar asistencia implica que se esperaba; desmarcar «se esperaba» quita la asistencia
+    if (k in LA.curX) { laPintar(); return; }
+    i.closest('td').classList.toggle('cambio', LA.cur[k] !== LA.orig[k]); laPintarBarra();
+  });
   $('vista-lista-asist').addEventListener('click', e => {
     const g = e.target.closest('[data-la-grupo]');
     if (g) { if (laCambios().length && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return; laOcupado(() => laCargar(g.dataset.laGrupo)); return; }
     const c = e.target.closest('[data-la-col]'); if (!c) return;
-    const j = Number(c.dataset.laCol), cel = LA.personas.filter(p => p.c[j]), todos = cel.every(p => LA.cur[laKey(j, p.correo)]);
+    const j = Number(c.dataset.laCol), cel = LA.personas.filter(p => p.c[j] && (p.c[j].x === undefined || LA.curX[laKey(j, p.correo)])), todos = cel.every(p => LA.cur[laKey(j, p.correo)]);
     cel.forEach(p => { LA.cur[laKey(j, p.correo)] = !todos; }); laPintar();
   });
 
