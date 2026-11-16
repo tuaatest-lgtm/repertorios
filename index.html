@@ -311,6 +311,7 @@ table.la td.c input{width:22px;height:22px;margin:0;accent-color:var(--p)}
 table.la td.c.auto label::after{content:'•';position:absolute;top:2px;right:8px;color:var(--ok,#22c55e);font-size:16px;line-height:1}
 table.la td.c.cambio{background:rgba(124,92,255,.22)}
 table.la td.c.dos{white-space:nowrap}table.la td.c.dos label{display:inline-flex;width:50%;min-height:40px;vertical-align:middle}table.la td.c.dos label.lx input{accent-color:var(--mu)}table.la th .sub{font-size:10px;color:var(--mu);display:flex;justify-content:space-around}
+table.la th .alc{display:inline-block;font-size:10px;font-weight:800;border-radius:6px;padding:0 5px;margin:1px 0;background:rgba(120,140,255,.22);color:inherit}table.la th .alc.amb{background:rgba(70,200,150,.25)}
 table.la td.c.nulo{color:var(--mu);opacity:.5}
 table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;padding:6px 2px}
 #vista-elenco .el-barra{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
@@ -891,7 +892,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
   <div class="card oculto" id="vista-lista-asist">
     <h3>📝 Lista de asistencia: ensayos y eventos</h3>
     <div id="la-grupos"></div>
-    <div class="aviso" id="la-sub">Marque con ✓ a quienes asistieron y no registraron su asistencia. Las casillas con punto (•) las marcó la propia persona. En los <b>eventos</b> hay dos casillas por persona: la primera (<b>Esp.</b>) indica si se esperaba que asistiera (según quién fue citado; puede ajustarla) y la segunda (<b>Asist.</b>) si asistió. Los eventos aparecen desde el mismo día.</div>
+    <div class="aviso" id="la-sub">Marque con ✓ a quienes asistieron y no registraron su asistencia. Las casillas con punto (•) las marcó la propia persona. En cada fecha hay dos casillas por persona: <b>Esp.</b> (se esperaba que asistiera, según quién fue citado; puede ajustarla) y <b>Asist.</b> (asistió realmente). Bajo la fecha se indica el grupo: <b>W1</b>, <b>W2</b> o <b>W1 + W2</b>. Los eventos aparecen desde el mismo día.</div>
     <div class="la-barra">
       <input type="search" id="la-buscar" placeholder="Buscar persona…" aria-label="Buscar persona">
       <select id="la-dias" aria-label="Periodo"><option value="30">Últimos 30 días</option><option value="45" selected>Últimos 45 días</option><option value="90">Últimos 90 días</option><option value="180">Últimos 180 días</option></select>
@@ -1218,7 +1219,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       <label class="sw"><span>Al terminar una partitura, pasar a la siguiente</span><input type="checkbox" id="est-encadenar" role="switch"></label>
       <label class="sw"><span>Tocar el costado de la pantalla pasa la página</span><input type="checkbox" id="lec-zonas" role="switch"></label>
       <div class="lec-btns">
-        <button class="cb" type="button" data-est="export-pdf" title="Descargar el PDF con tus anotaciones y la marca de agua">⤓ PDF anotado</button>
+        <button class="cb oculto" type="button" data-desc="1" data-est="export-orig" title="Descargar esta partitura o letra con marca de agua (sin anotaciones)">⬇ Descargar</button><button class="cb oculto" type="button" data-desc="1" data-est="export-pdf" title="Descargar el PDF con tus anotaciones y la marca de agua">⤓ PDF anotado</button>
         <button class="cb" type="button" data-est="resp-exp" title="Guardar un respaldo de tus anotaciones">⤓ Respaldo</button>
         <button class="cb" type="button" data-est="resp-imp" title="Restaurar anotaciones desde un respaldo">⤒ Restaurar</button>
         <input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
@@ -1257,13 +1258,13 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxBJHUasm9o4gJ7CnpEOmJeFOu5QJjKpcSjOXu-Tx4r8SmFGACDQAf4Bq2EjH3hjsZtFw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v6.3.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v6.3.1';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
-  let PUEDE_DESCARGAR = false;
+  let PUEDE_DESCARGAR = false, PUEDE_ESTUDIO = false;
   const esGrupo = () => !!MODULO && MODULO !== 'Worship';          // «agrupación adicional» (Coro u otra): no usa Worship 1/2/3
   // contexto del ensayo que se está viendo: permite abrir el material de SUS cantos sin responder antes el próximo evento
   const ctxEns = () => (esEnsVista() && vistaEv ? { ctxEvento: vistaEv.idEvento } : {});
@@ -1552,7 +1553,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       });
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
       document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);
-      PUEDE_DESCARGAR = !!r.puedeDescargar; $('btn-estudio').classList.toggle('oculto', !r.estudio); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !r.estudio); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
+      PUEDE_DESCARGAR = !!r.puedeDescargar; PUEDE_ESTUDIO = !!r.estudio; document.querySelectorAll('[data-est="tab-cat"]').forEach(x => x.classList.toggle('oculto', !r.estudio)); $('btn-estudio').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
@@ -3486,6 +3487,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
   /* ---- Lista de asistencia en cuadrícula (v6.1.6): solo administrador y programador; una agrupación a la vez ---- */
   const LA = { mod: '', sesiones: [], personas: [], orig: {}, cur: {}, origX: {}, curX: {}, hayMas: false };
   const laKey = (j, cr) => j + '|' + cr;
+  // v6.3.1: a qué grupo corresponde la fecha (Todos = W1 + W2); en agrupaciones (coros) no aplica
+  const LA_ALC = { 'Todos': 'W1 + W2', 'Worship 1': 'W1', 'Worship 2': 'W2', 'Worship 3': 'W3' };
+  const laAlcanceHtml = s => (LA.mod === 'Worship' && LA_ALC[s.alc]) ? '<div class="alc' + (s.alc === 'Todos' ? ' amb' : '') + '" title="Esta fecha corresponde a: ' + esc(s.alc === 'Todos' ? 'Worship 1 y Worship 2' : s.alc) + '">' + LA_ALC[s.alc] + '</div>' : '';
   const laCambios = () => Object.keys(LA.cur).filter(k => LA.cur[k] !== LA.orig[k]).concat(Object.keys(LA.curX).filter(k => LA.curX[k] !== LA.origX[k] && LA.cur[k] === LA.orig[k]));
   function laPintarBarra() {
     const n = laCambios().length; $('la-guardar').disabled = !n;
@@ -3495,7 +3499,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     const q = estNorm($('la-buscar').value).trim(), S = LA.sesiones;
     const P = LA.personas.filter(p => !q || estNorm(p.nombre + ' ' + p.correo).indexOf(q) >= 0);
     if (!S.length) { $('la-tabla').innerHTML = '<div class="aviso">No hay ensayos ni eventos realizados en este periodo para ' + esc(nombreMod(LA.mod)) + '.</div>'; laPintarBarra(); return; }
-    let h = '<table class="la"><thead><tr><th class="nom">Persona</th>' + S.map((s, j) => '<th><div class="d">' + esc(fmtFechaHora(s.fecha).slice(0, 5)) + '</div>' + (s.esp ? '<div class="sub"><span title="Se esperaba">Esp.</span> <span title="Asistió">Asist.</span></div>' : '') + '<div class="n" title="' + esc(s.nombre) + '">' + esc(s.nombre) + '</div><button type="button" class="col" data-la-col="' + j + '" title="Marcar a todos" aria-label="Marcar a todos">☑</button></th>').join('') + '</tr></thead><tbody>';
+    let h = '<table class="la"><thead><tr><th class="nom">Persona</th>' + S.map((s, j) => '<th><div class="d">' + esc(fmtFechaHora(s.fecha).slice(0, 5)) + '</div>' + laAlcanceHtml(s) + (s.esp ? '<div class="sub"><span title="Se esperaba que asistiera">Esp.</span> <span title="Asistió (asistencia real)">Asist.</span></div>' : '') + '<div class="n" title="' + esc(s.nombre) + '">' + esc(s.nombre) + '</div><button type="button" class="col" data-la-col="' + j + '" title="Marcar a todos" aria-label="Marcar a todos">☑</button></th>').join('') + '</tr></thead><tbody>';
     P.forEach(p => {
       h += '<tr><td class="nom"><b title="' + esc(p.correo) + '">' + esc(p.nombre) + '</b><small>' + esc(p.funcion || '') + '</small></td>';
       S.forEach((s, j) => {
@@ -4602,7 +4606,8 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     const t = r.recursos || [], pdf = t.filter(x => x.tipo === 'PDF'), mp3 = t.filter(x => x.tipo === 'MP3');
     EST.recAll[m + '|' + id] = t; EST.rec[m + '|' + id] = pdf;
     const fila = (x, ico, acc, rot) => '<div class="uno-rec"><span class="ic">' + ico + '</span><span class="nom" title="' + esc(x.nombreArchivo || '') + '">' + esc(estNombreRec(x)) + '</span>'
-      + (estParteRec(x) ? '<span class="par">' + esc(estParteRec(x)) + '</span>' : '') + '<button type="button" class="eb" data-est="' + acc + '" data-aid="' + esc(x.idArchivo) + '">' + rot + '</button></div>';
+      + (estParteRec(x) ? '<span class="par">' + esc(estParteRec(x)) + '</span>' : '') + '<button type="button" class="eb" data-est="' + acc + '" data-aid="' + esc(x.idArchivo) + '">' + rot + '</button>'
+      + (PUEDE_DESCARGAR ? '<button type="button" class="eb" data-est="uno-desc" data-tipo="' + (x.tipo === 'MP3' ? 'mp3' : 'pdf') + '" data-aid="' + esc(x.idArchivo) + '" title="Descargar con marca de agua" aria-label="Descargar ' + esc(estNombreRec(x)) + '">⬇</button>' : '') + '</div>';
     $('uno-recs').innerHTML = '<h3>Partituras y letras (' + pdf.length + ')</h3>' + (pdf.length ? pdf.map(x => fila(x, '📄', 'uno-leer', 'Leer')).join('') : '<i class="uno-vacio">Sin PDF disponibles para usted.</i>')
       + '<h3>Audios (' + mp3.length + ')</h3>' + (mp3.length ? mp3.map(x => fila(x, '🎧', 'uno-audio', '▶ Escuchar')).join('') : '<i class="uno-vacio">Sin audios disponibles para usted.</i>');
   }
@@ -4926,6 +4931,32 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       if (s.t === 'a' && Q.length > 1) { const a = Math.atan2(Q[1][1] - Q[0][1], Q[1][0] - Q[0][0]), L = Math.max(8, th * 5); linea(Q[1], [Q[1][0] - L * Math.cos(a - 0.4), Q[1][1] - L * Math.sin(a - 0.4)]); linea(Q[1], [Q[1][0] - L * Math.cos(a + 0.4), Q[1][1] - L * Math.sin(a + 0.4)]); }
     }
   }
+  // v6.3.1: descarga directa (con marca de agua) de una partitura/letra/audio, solo para personas autorizadas; la descarga queda registrada en Actividad
+  async function estEntregar(tipo, bytes, idCancion, mod, titulo) {
+    const ok = await api('descarga_registrar', { tipo: tipo, idCancion: idCancion, modulo: mod });
+    if (!ok || !ok.ok) { log('No se pudo autorizar la descarga: ' + textoError(ok && ok.error)); return; }
+    const quien = ((document.querySelector('#estado-sesion b') || {}).textContent || ''), texto = textoMarca(window.__correoActual || '', quien);
+    const base = soloLatin(titulo || 'archivo').replace(/[^A-Za-z0-9._ -]+/g, '_').slice(0, 60) || 'archivo';
+    try {
+      if (tipo === 'pdf') { const PL = await cargarPdfLib(), sil = await prepararMarca(); descargarBlob(new Blob([await estamparPdf(PL, bytes, texto, sil)], { type: 'application/pdf' }), base.replace(/\.pdf$/i, '') + ' (Palermo).pdf'); }
+      else descargarBlob(new Blob([etiquetarMp3(bytes, texto)], { type: 'audio/mpeg' }), base.replace(/\.mp3$/i, '') + ' (Palermo).mp3');
+      log('Descarga lista con marca de agua. Queda registrada a su nombre.');
+    } catch (e) { log('No se pudo preparar la descarga: ' + e.message); }
+  }
+  async function estDescargarOriginal() {
+    if (!PUEDE_DESCARGAR) { log('Su cuenta no tiene permiso de descarga.'); return; }
+    if (!EST.pdf || !EST.bytes) { log('Abra una partitura primero.'); return; }
+    await estEntregar('pdf', EST.bytes, EST.cancion, EST.mod, EST.cat[EST.mod + '|' + EST.cancion] || 'partitura');
+  }
+  async function estUnoDescargar(aid, tipo) {
+    const U = EST.uno, id = U.sel, m = U.mod; if (!id || !aid) return;
+    if (!PUEDE_DESCARGAR) { log('Su cuenta no tiene permiso de descarga.'); return; }
+    const rec = (EST.recAll[m + '|' + id] || []).filter(x => x.idArchivo === aid)[0];
+    log('Preparando la descarga…');
+    const r = await api(tipo === 'mp3' ? 'mp3' : 'pdf', { idCancion: id, idArchivo: aid, modulo: m });
+    if (!r || !r.ok) { log('No se pudo leer el archivo: ' + textoError(r && r.error)); return; }
+    await estEntregar(tipo === 'mp3' ? 'audio' : 'pdf', aBytes(r.base64), id, m, (EST.cat[m + '|' + id] || id) + (rec ? ' - ' + estNombreRec(rec) : ''));
+  }
   async function estExportarPdf() {
     if (!EST.pdf || !EST.bytes) { log('Abra una partitura primero.'); return; }
     if (!PUEDE_DESCARGAR) { log('Su cuenta no tiene permiso de descarga: no se puede exportar el PDF anotado.'); return; }
@@ -5013,6 +5044,8 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     else if (a === 'limpiar-doc') { if (EST.pdf && confirm('¿Borrar TODAS las anotaciones de esta partitura?')) { EST.undo.push({ p: EST.page, k: 'cld', s: JSON.stringify(EST.anot.pages) }); EST.redo = []; EST.anot.pages = {}; EST.sel = null; estMarcar(); estPintar(); } }
     else if (a === 'eliminar-sel') estEliminarSel();
     else if (a === 'export-pdf') conOcupado(estExportarPdf);
+    else if (a === 'export-orig') conOcupado(estDescargarOriginal);
+    else if (a === 'uno-desc') conOcupado(() => estUnoDescargar(b.dataset.aid, b.dataset.tipo));
     else if (a === 'resp-exp') estRespaldo();
     else if (a === 'resp-imp') { if (EST.pdf) $('est-resp-file').click(); else log('Abra una partitura primero.'); }
     else if (a === 'nuevo') { $('est-rep').value = ''; estElegirRep(); }
