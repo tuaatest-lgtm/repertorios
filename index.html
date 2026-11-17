@@ -180,6 +180,11 @@
     h4.sec-ens { margin:18px 0 6px; font-family:var(--fh); font-size:19px; color:var(--a); border-top:1px solid var(--bd); padding-top:12px; }
     #cal-loop.on { background:var(--p); color:var(--onp); }
     .calent h5 { margin:0 0 4px; font-family:var(--fh); font-size:19px; }
+    .guia-paso { border-left:3px solid var(--p); padding:2px 0 2px 12px; margin:14px 0; }
+    .guia-paso h4 { margin:0 0 6px; font-size:16px; } .guia-paso ol, .guia-paso ul { margin:6px 0 6px 18px; padding:0; font-size:14px; line-height:1.45; }
+    .guia-paso details { background:var(--s2); border-radius:var(--r); padding:8px 12px; margin:8px 0; } .guia-paso summary { cursor:pointer; font-weight:bold; }
+    .guia-fila { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid var(--s3); }
+    .guia-fila label { display:flex; gap:8px; align-items:center; flex:1; min-width:150px; } .guia-fila input[type=checkbox] { width:22px; height:22px; flex:none; }
     .seg { display:flex; background:var(--s2); border-radius:var(--r); padding:4px; gap:2px; margin:8px 0; flex-wrap:wrap; }
     .seg button { flex:1; min-width:70px; margin:0; min-height:44px; padding:8px 4px; background:transparent; color:var(--mu); font-size:13px; border-radius:calc(var(--r) - 4px); }
     .seg button.on { background:var(--p); color:var(--onp); }
@@ -335,6 +340,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
 .el-g button{background:transparent;border:1px solid var(--bd);color:var(--tx);padding:0 10px}
 .el-vacio{display:block;padding:10px 12px;color:var(--mu);font-size:13px}
 </style>
+
 </head>
 <body>
 
@@ -376,6 +382,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       <div class="botones">
         <button class="btn-accent oculto" id="ini-confirmar" type="button">✔ Confirmar mi participación</button>
         <button class="btn-secondary oculto" id="ini-ver" type="button">Ver repertorio y voces del ensamble</button>
+        <button class="btn-primary oculto" id="ini-guia" type="button">🧭 Guía de preparación</button>
       </div>
     </div>
     <div class="hero ens oculto" id="ini-hero-ens">
@@ -599,6 +606,14 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       <input type="search" id="buscar-biblioteca" placeholder="Buscar canción…" autocomplete="off">
       <div id="lista-biblioteca"></div>
     </div>
+  </div>
+
+  <!-- v6.4.0: Guía de preparación -->
+  <div class="card oculto ens-verde" id="vista-guia">
+    <h3>🧭 Guía de preparación</h3>
+    <div class="aviso">Sigue los cuatro pasos en orden: 1 · confirma tu participación, 2 · elige para qué te preparas, 3 · calienta, 4 · ensaya todos los temas.</div>
+    <div id="guia-p12"></div>
+    <div id="guia-p34"></div>
   </div>
 
   <!-- Eventos -->
@@ -853,6 +868,95 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     ::-webkit-scrollbar { width:10px; height:10px; } ::-webkit-scrollbar-thumb { background:#2f3556; border-radius:10px; border:2px solid var(--bg); } ::-webkit-scrollbar-track { background:transparent; }
     @media (prefers-reduced-motion:reduce) { *, *::before, *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
   </style>
+<!-- v6.5.0 · Look & feel «Obsidian & Sapphire Glass» (solo apariencia). Fuentes con carga no bloqueante; si no cargan, se usa la fuente del sistema. -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" media="print" onload="this.media='all'">
+<style id="pm-obsidian">
+/* 1. Tokens: se reasignan las variables que ya usa toda la app, así cada pantalla hereda el estilo */
+:root{
+  --bg-canvas:#090A0F; --bg-sidebar:#0E1017; --bg-surface:#131620; --bg-elevated:#1A1E2C; --bg-overlay:rgba(19,22,32,.85);
+  --border-hairline:rgba(255,255,255,.07); --border-highlight:rgba(255,255,255,.14); --inner-specular:inset 0 1px 0 0 rgba(255,255,255,.06);
+  --accent-primary:#3B82F6; --accent-hover:#2563EB; --accent-soft:rgba(59,130,246,.14); --accent-border:rgba(59,130,246,.35);
+  --accent-glow:radial-gradient(circle at 50% 0%, rgba(59,130,246,.15), transparent 70%);
+  --text-primary:#F8FAFC; --text-secondary:#94A3B8; --text-muted:#64748B;
+  --status-success:#10B981; --status-success-bg:rgba(16,185,129,.12); --status-warning:#F59E0B; --status-warning-bg:rgba(245,158,11,.12); --status-danger:#EF4444; --status-danger-bg:rgba(239,68,68,.12);
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:9999px; --transition-fast:160ms cubic-bezier(.2,0,0,1);
+  /* puente hacia las variables de la app */
+  --bg:var(--bg-canvas); --s:var(--bg-surface); --s2:var(--bg-elevated); --s3:#212638; --tx:var(--text-primary); --mu:var(--text-secondary); --bd:var(--border-hairline);
+  --p:var(--accent-primary); --onp:#fff; --a:#60A5FA; --ona:#fff; --ok:var(--status-success); --warn:var(--status-warning); --err:var(--status-danger);
+  --r:var(--radius-lg); --r2:var(--radius-sm); --fh:'Plus Jakarta Sans','Inter','CarlitoPM',system-ui,sans-serif; --sh:0 8px 30px -10px rgba(0,0,0,.6); --glass:var(--bg-overlay);
+  --ring:0 0 0 3px var(--accent-soft);
+}
+body{background:radial-gradient(900px 420px at 80% -10%, rgba(59,130,246,.10), transparent 65%), var(--bg-canvas); background-attachment:fixed; color:var(--text-primary);
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale}
+h1,h2,h3,.font-display{font-family:var(--fh); letter-spacing:-.02em; color:var(--text-primary)}
+h3{font-size:19px} .hero h4{font-family:var(--fh); letter-spacing:-.02em}
+.aviso,.meta{color:var(--text-secondary)}
+/* 2. Cabecera y tarjetas (Nivel 2) */
+.header-container{background:var(--bg-sidebar); border:1px solid var(--border-hairline); border-bottom:2px solid var(--accent-primary); border-radius:var(--radius-lg); box-shadow:var(--inner-specular)}
+.card{background:var(--bg-surface); border:1px solid var(--border-hairline); border-top:2px solid color-mix(in srgb, var(--sec) 80%, transparent); border-radius:var(--radius-lg); box-shadow:var(--inner-specular); transition:border-color var(--transition-fast)}
+.card:hover{border-color:var(--border-highlight)}
+.card>h2::before{box-shadow:none}
+.hero{background:var(--accent-glow), var(--bg-surface); border:1px solid var(--accent-border); border-radius:var(--radius-lg); box-shadow:var(--inner-specular), 0 8px 30px -10px rgba(59,130,246,.18); color:var(--text-primary)}
+.hero small{color:var(--text-secondary)} .hero p{color:var(--text-secondary)}
+.hero.ens{background:radial-gradient(circle at 50% 0%, rgba(16,185,129,.15), transparent 70%), var(--bg-surface); border-color:rgba(16,185,129,.35); box-shadow:var(--inner-specular), 0 8px 30px -10px rgba(16,185,129,.16)}
+.hero.ens small,.hero.ens p{color:var(--text-secondary)}
+/* 3. Botones */
+button{font-family:inherit; font-weight:600; font-size:14px; border-radius:var(--radius-sm); transition:all var(--transition-fast)}
+.btn-primary,.btn-accent{background:var(--accent-primary); color:#fff; border:1px solid rgba(255,255,255,.12); box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 2px 8px rgba(59,130,246,.3)}
+@media (hover:hover){.btn-primary:not(:disabled):hover,.btn-accent:not(:disabled):hover{background:var(--accent-hover); transform:translateY(-1px); filter:none; box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 4px 14px rgba(59,130,246,.38)}
+  .btn-secondary:not(:disabled):hover,.btn-dark:not(:disabled):hover{border-color:var(--border-highlight); background:#212638; filter:none}}
+.btn-secondary,.btn-dark{background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border-hairline)}
+.btn-danger{background:var(--status-danger-bg); color:#FCA5A5; border:1px solid rgba(239,68,68,.4)}
+.menu-grid button{border-radius:var(--radius-md); box-shadow:none; border-left-width:3px!important}
+.menu-tit{color:var(--text-secondary); letter-spacing:.08em; font-size:11px; opacity:1}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:none; box-shadow:var(--ring)}
+/* 4. Campos (Nivel 3) */
+input,select,textarea{background:var(--bg-sidebar); border:1px solid var(--border-hairline); border-radius:var(--radius-md); color:var(--text-primary)}
+input::placeholder,textarea::placeholder{color:var(--text-muted)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent-primary); box-shadow:var(--ring); outline:none}
+/* 5. Píldoras, segmentos, filas */
+.chip{background:rgba(255,255,255,.06); color:var(--text-secondary); border-radius:var(--radius-pill); font-size:12px; font-weight:600; padding:2px 10px}
+.chip.ok{background:var(--status-success-bg); color:#6EE7B7} .chip.pend{background:var(--status-warning-bg); color:#FCD34D} .chip.no{background:var(--status-danger-bg); color:#FCA5A5}
+.insignia{background:var(--status-danger); font-variant-numeric:tabular-nums}
+.seg{background:var(--bg-sidebar); border:1px solid var(--border-hairline); border-radius:var(--radius-md)}
+.seg button{border-radius:var(--radius-sm); color:var(--text-secondary)}
+.seg button.on{background:var(--accent-primary); color:#fff; box-shadow:0 2px 12px rgba(59,130,246,.35)}
+.seg button.on.a{background:var(--status-success-bg); color:#6EE7B7; box-shadow:none} .seg button.on.f{background:var(--status-danger-bg); color:#FCA5A5; box-shadow:none} .seg button.on.e{background:var(--status-warning-bg); color:#FCD34D; box-shadow:none}
+.fila,.gu-fila,.pub-item,.guia-fila{border-bottom-color:var(--border-hairline)}
+@media (hover:hover){.fila:hover{background:rgba(255,255,255,.02)}}
+.pub-zona{background:var(--bg-sidebar); border-color:var(--border-highlight)}
+.guia-paso{border-left-color:var(--accent-primary)} .guia-paso details{background:var(--bg-sidebar); border:1px solid var(--border-hairline)}
+/* 6. Barra inferior (completa; solo cambia la apariencia) */
+#tabbar{background:var(--bg-overlay); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); border-top:1px solid var(--border-highlight)}
+#tabbar button.tab{color:var(--text-secondary); border-radius:var(--radius-md)}
+#tabbar button.tab.on{background:var(--accent-soft); color:#93C5FD}
+#tabbar button.tab[data-tab]{border-bottom-width:2px}
+/* 7. Ventanas emergentes (Nivel 4) */
+#popup-inicio{background:rgba(5,6,10,.7)!important; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px)}
+#popup-inicio>*{background:var(--bg-overlay); border:1px solid var(--border-highlight); border-radius:var(--radius-lg); box-shadow:var(--inner-specular), 0 24px 48px rgba(0,0,0,.65)}
+::-webkit-scrollbar-thumb{background:#262B3D; border-color:var(--bg-canvas)}
+.tabular-data,table.la td,.insignia,.chip{font-variant-numeric:tabular-nums}
+table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--accent-soft)}
+/* 8. Partituras: el panel claro pasa a oscuro (el lector de PDF mantiene su fondo de papel) */
+.est-claro{background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border-hairline); border-radius:var(--radius-md)}
+.est-claro select,.est-claro input[type=text],#vista-estudio .est-claro input[type=search]{background:var(--bg-sidebar); color:var(--text-primary); border:1px solid var(--border-hairline); border-radius:var(--radius-md)}
+.est-claro .eb,#vista-estudio .est-claro .eb{background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border-hairline); border-radius:var(--radius-sm)}
+.est-claro .eb.on,#vista-estudio .est-claro .eb.on{background:var(--accent-primary); color:#fff; border-color:var(--accent-border)}
+#vista-estudio .est-claro h3{color:var(--text-secondary)} #vista-estudio .est-claro label{color:var(--text-primary)}
+#vista-estudio .est-seg{background:var(--bg-sidebar); border:1px solid var(--border-hairline); border-radius:var(--radius-md)}
+#vista-estudio .est-seg .eb{background:transparent; color:var(--text-secondary); border:0}
+#vista-estudio .est-seg .eb.on{background:var(--accent-primary); color:#fff; box-shadow:0 2px 12px rgba(59,130,246,.35)}
+.est-ev,#vista-estudio .est-claro .est-ev{background:var(--bg-sidebar); border:1px solid var(--border-hairline)}
+.est-ev.ev{border-left:3px solid var(--c-eventos,#0047BB)} .est-ev.en{border-left:3px solid var(--c-ensayo,#00B140)}
+#vista-estudio .est-item{border-bottom-color:var(--border-hairline)}
+.uno-grupo1,.uno-ahora{color:var(--text-secondary)}
+.uno-lista,#uno-det{background:var(--bg-sidebar); border:1px solid var(--border-hairline); border-radius:var(--radius-md)}
+#vista-estudio .est-claro .uno-fila{background:transparent; color:var(--text-primary); border-bottom:1px solid var(--border-hairline)}
+#vista-estudio .est-claro .uno-fila.on{background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent-primary)}
+.uno-vacio{color:var(--text-secondary)} .uno-tit,.uno-rec .nom{color:var(--text-primary)} .uno-rec{border-bottom-color:var(--border-hairline)}
+.uno-rec .par{background:rgba(255,255,255,.06); color:var(--text-secondary); border-radius:var(--radius-pill)}
+</style>
     <h2>🎼 Partituras</h2>
     <div id="est-admin" class="oculto est-claro" style="margin-bottom:10px">
       <h3>Acceso a Partituras (administrador)</h3>
@@ -1258,9 +1362,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzIWq48BVFkAGIx4m4uVtb7UxL_fOav_PgTzATofEs7I6vGd25ohjMFYUlg95T550A_TA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v6.3.2';
+  const VERSION_SERVIDOR_ESPERADA = 'v6.4.1';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -1350,6 +1454,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     SOLO_ADMIN_OTORGA_ADMIN: 'Solo un administrador puede dar o quitar el cargo de Administrador.',
     ULTIMO_ADMIN: 'Debe quedar al menos un administrador activo.',
     NO_AUTOELIMINAR: 'No puede eliminar su propia cuenta.',
+    CORREO_YA_EXISTE: 'Ese correo ya pertenece a otra cuenta. Si es una cuenta duplicada, elimínela primero.',
+    MISMO_CORREO: 'El correo nuevo es igual al actual.',
+    ACCION_INVALIDA: 'El servidor todavía no tiene esta función: instale la «Nueva versión» del Apps Script con el Codigo.gs más reciente.',
     CONFIRMACION_REQUERIDA: 'La confirmación no coincide con el correo. No se eliminó nada.',
     USUARIO_EN_OTROS_MODULOS: 'Esta persona tiene acceso a otros módulos: solo un administrador general puede eliminarla por completo. Use «Quitar de este módulo».',
     SOLO_ADMIN_GENERAL_TOCA_ADMIN_GENERAL: 'Solo un administrador general puede modificar o eliminar a otro administrador general.',
@@ -1464,7 +1571,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     }
   }
 
-  const VISTAS = ['vista-estudio', 'vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif', 'vista-lista-asist', 'vista-elenco'];
+  const VISTAS = ['vista-estudio', 'vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif', 'vista-lista-asist', 'vista-elenco', 'vista-guia'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
@@ -1587,6 +1694,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       try {
         if (p.vista === 'vista-biblioteca') { if (await cargarCatalogo()) { mostrarVista('vista-biblioteca'); pintarBiblioteca(); await cargarEnsayoCalent(); } }
         else if (p.vista === 'vista-eventos') await cargarEventos();
+        else if (p.vista === 'vista-guia') await abrirGuia('');
         else if (p.vista === 'vista-repertorio' && p.evento) await verEvento(p.evento.id, p.evento.nombre);
         else if (p.vista === 'vista-estudio' && !$('btn-estudio').classList.contains('oculto')) await abrirEstudio();   // v6.1.2: Partituras también se restaura
         else if (p.vista === 'vista-usuarios' && permisos.usuarios) await cargarRegistro();
@@ -2808,8 +2916,8 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
   const pctTxt = v => (v == null ? '—' : v + ' %');
 
   /* ---- Barra inferior ---- */
-  const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-lista-asist': 'ensayo', 'vista-elenco': 'eventos', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
-  const TAB_DE_VISTA = { 'vista-estudio': 'lectura',  'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
+  const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-lista-asist': 'ensayo', 'vista-guia': 'ensayo', 'vista-elenco': 'eventos', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
+  const TAB_DE_VISTA = { 'vista-estudio': 'lectura',  'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-guia': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
   function marcarTab(vista) {
     document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio'; if (vista !== 'vista-estudio') { document.body.classList.remove('leyendo'); if (typeof lecLiberar === 'function' && !$('est-lector').classList.contains('oculto')) lecLiberar(); }   // color de la sección activa
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
@@ -2856,9 +2964,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       const hoy = hoyLocal();
       const prox = re && re.ok ? (re.eventos || []).filter(e => e.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha))[0] : null;
       iniEvento = prox || null;
-      $('ini-confirmar').classList.add('oculto'); $('ini-ver').classList.add('oculto');
+      $('ini-confirmar').classList.add('oculto'); $('ini-ver').classList.add('oculto'); $('ini-guia').classList.add('oculto');
       if (!prox) { $('ini-ev-nombre').textContent = 'Sin eventos próximos'; $('ini-ev-detalle').textContent = 'Cuando se programe uno, aparecerá aquí.'; return; }
-      $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto'); ajustarHero();
+      $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto'); $('ini-guia').classList.remove('oculto'); ajustarHero();
       let det = fmtFechaHora(prox.fecha) + (prox.alcance && prox.alcance !== 'Todos' ? ' · ' + prox.alcance : '');
       const p = await api('participacion_evento', { idEvento: prox.idEvento });
       if (p && p.ok && (p.puedoConfirmar || p.miEstado === 'Confirmado')) {
@@ -2874,6 +2982,135 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     const r = await api('participacion_confirmar', { idEvento: iniEvento.idEvento });
     if (r && r.ok) { log('Participación confirmada.'); await cargarInicio(); } else log('No se pudo confirmar: ' + textoError(r && (r.motivo || r.error)));
   });
+
+  /* ---------------- v6.4.0: Guía de preparación (confirmar → elegir → calentar → ensayar todos los temas) ---------------- */
+  const GUIA = { items: [], sel: '' };
+  const guiaClave = (idEv, idC) => 'pm_guia_' + idEv + '_' + idC;
+  const guiaHecho = (idEv, idC) => lsGet(guiaClave(idEv, idC)) === '1';
+  async function abrirGuia(idPre) {
+    const hoy = hoyLocal();
+    const [re, ren] = await Promise.all([api('listar_eventos'), api('mis_ensayos', {})]);
+    const items = [];
+    if (re && re.ok) (re.eventos || []).filter(e => e.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(0, 3).forEach(e => items.push({ clase: 'Evento', idEvento: e.idEvento, nombre: e.nombre, fecha: e.fecha, hora: '', alcance: e.alcance || '' }));
+    const vistos = {};
+    if (ren && ren.ok) (ren.ensayos || []).filter(e => e.actividad && (e.ventana !== 'cerrada' || e.fecha >= hoy) && !vistos[e.idEvento] && (vistos[e.idEvento] = 1)).forEach(e => items.push({ clase: 'Ensayo', idEvento: e.idEvento, nombre: e.nombreEvento, fecha: e.fecha, hora: e.hora || '', e: e }));
+    await Promise.all(items.filter(x => x.clase === 'Evento').map(async x => { try { const p = await api('participacion_evento', { idEvento: x.idEvento }); if (p && p.ok) x.part = p; } catch (e) {} }));
+    items.sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
+    GUIA.items = items;
+    GUIA.sel = items.some(x => x.idEvento === idPre) ? idPre : (items.some(x => x.idEvento === GUIA.sel) ? GUIA.sel : (items[0] ? items[0].idEvento : ''));
+    mostrarVista('vista-guia'); guiaPintarP12();
+    await guiaCargarSel();
+  }
+  function guiaEstadoHtml(it) {
+    const id = esc(it.idEvento);
+    if (it.clase === 'Ensayo') {
+      const e = it.e, partes = [];
+      if (e.miEstado) partes.push('<span class="chip ' + (e.miEstado === 'Asistió' ? 'ok' : e.miEstado === 'Faltó' ? 'no' : 'pend') + '">Asistencia: ' + esc(e.miEstado) + '</span>');
+      else if (e.convocado) { partes.push('<span class="chip ok">✔ Confirmada</span>'); if (e.ventana !== 'cerrada') partes.push('<button class="btn-secondary btn-small" data-guia-canc="' + id + '" type="button">Cancelar</button>'); }
+      else if (e.puedeConfirmar && e.ventana !== 'cerrada') partes.push('<button class="btn-accent btn-small" data-guia-conf="' + id + '" type="button">✔ Confirmar mi asistencia</button>');
+      else partes.push('<span class="chip">' + esc(textoEstadoEnsayo(e)) + '</span>');
+      return partes.join(' ') + '<span class="meta" style="flex-basis:100%;font-size:12px;color:var(--mu);">' + esc(textoRegistro(e)) + '</span>';
+    }
+    const p = it.part;
+    if (!p) return '<span class="chip">Estado no disponible</span>';
+    if (p.miEstado === 'Confirmado') return '<span class="chip ok">✔ Confirmada</span> <button class="btn-secondary btn-small" data-guia-canc="' + id + '" type="button">Cancelar</button>';
+    if (p.puedoConfirmar) return '<button class="btn-accent btn-small" data-guia-conf="' + id + '" type="button">✔ Confirmar mi participación</button>';
+    return '<span class="chip">' + esc(p.motivoNoConfirmar === 'EVENTO_NO_PUBLICADO' ? 'Aún no publicado' : 'No estás convocado') + '</span>';
+  }
+  function guiaPintarP12() {
+    const c = $('guia-p12');
+    if (!GUIA.items.length) { c.innerHTML = '<div class="aviso">No hay eventos ni ensayos próximos. Cuando se programe uno, aparecerá aquí.</div>'; $('guia-p34').innerHTML = ''; return; }
+    const ico = it => it.clase === 'Ensayo' ? '🎼' : '📅';
+    const cuando = it => fmtFechaHora(it.fecha, it.hora ? it.hora : '');
+    c.innerHTML = '<div class="guia-paso"><h4>1 · Confirma tu participación</h4><div class="aviso">Confirmar le dice a quien programa que cuenta contigo (el ensayo además tiene su propio registro de asistencia el día de la sesión). Confirma cada actividad en la que vas a estar.</div>' +
+      GUIA.items.map(it => '<div class="guia-fila"><span class="nombre" style="flex:1;min-width:150px;">' + ico(it) + ' ' + esc(it.nombre) + '<span class="meta" style="display:block;font-size:12px;color:var(--mu);">' + esc(cuando(it)) + (it.alcance && it.alcance !== 'Todos' ? ' · ' + esc(it.alcance) : '') + '</span></span><span style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + guiaEstadoHtml(it) + '</span></div>').join('') + '</div>' +
+      '<div class="guia-paso"><h4>2 · Elige para qué te vas a preparar</h4><div class="seg" id="guia-sel">' +
+      GUIA.items.map(it => '<button type="button" data-guia-sel="' + esc(it.idEvento) + '" class="' + (it.idEvento === GUIA.sel ? 'on' : '') + '">' + ico(it) + ' ' + esc(it.nombre) + ' · ' + esc(fmtFechaHora(it.fecha)) + '</button>').join('') + '</div>' +
+      '<div class="aviso">Sugerencia: prepárate primero para lo más próximo en el calendario.</div></div>';
+  }
+  const GUIA_VOZ = {
+    soprano: 'Soprano: no subas a la zona aguda antes de haber calentado; cierra con arpegios ligeros hacia arriba, sin forzar.',
+    contralto: 'Contralto: cuida el paso entre el registro medio y el agudo sin empujar la voz de pecho.',
+    tenor: 'Tenor: trabaja con volumen bajo la zona de cambio de registro, usando vocales cerradas (u, o).',
+    bajo: 'Bajo: empieza en tu zona media cómoda y baja poco a poco; mantén el apoyo del aire también en las notas graves.'
+  };
+  function guiaRutinaHtml(cal) {
+    const aplica = !!(cal && cal.ok && cal.ambito && cal.ambito.aplica), g = aplica ? String(cal.ambito.grupoPropio || '') : '';
+    const k = clv(g).replace(/s$/, '');
+    const tip = Object.keys(GUIA_VOZ).filter(x => k.indexOf(x) === 0 || (x === 'contralto' && k === 'alto'))[0];
+    let h = '<div class="guia-paso"><h4>3 · Calienta antes de ensayar</h4>';
+    if (aplica) {
+      h += '<details open><summary>Rutina sugerida (10–12 min)' + (g ? ' · tu grupo: ' + esc(g) : '') + '</summary><ol>' +
+        '<li><b>Cuerpo y respiración (2 min):</b> de pie, hombros sueltos; inhala 4 tiempos por la nariz y exhala 6–8 tiempos en «sss».</li>' +
+        '<li><b>Activación suave (2–3 min):</b> masaje de mandíbula, labios vibrantes («brrr») y sirena de grave a agudo con volumen bajo.</li>' +
+        '<li><b>Vocalización (3–4 min):</b> escalas de cinco notas en «mi-a-o» o «nu-nu», subiendo de medio en medio tono, dentro de tu registro cómodo.</li>' +
+        '<li><b>Dicción y afinación (2 min):</b> un trabalenguas lento y afina la primera nota del primer canto.</li>' +
+        '<li><b>Aplicación (1–2 min):</b> canta suave el primer pasaje del primer canto.</li></ol>' +
+        (tip ? '<div class="aviso">' + esc(GUIA_VOZ[tip]) + '</div>' : '') +
+        '<div class="aviso">Es una guía general de buena práctica vocal, no un tratamiento: si hay dolor o ronquera, detente y descansa.</div></details>' +
+        '<div id="guia-calent"></div>';
+    } else {
+      h += '<div class="aviso">No hay calentamiento vocal asignado a tu grupo para esta actividad. Si tocas un instrumento: afina, haz escalas lentas con metrónomo (5 min) y repite despacio los cambios difíciles de los temas.</div>';
+    }
+    return h + '</div>';
+  }
+  function guiaTemasHtml(it, r) {
+    const sets = ((r && r.ok && r.sets) || []).filter(s => s.canciones.length);
+    const ens = it.clase === 'Ensayo';
+    let n = 0, hechos = 0, filas = '';
+    sets.forEach(s => {
+      if (sets.length > 1) filas += '<div class="set-titulo">' + esc(s.nombreSet || ('Set ' + s.numeroSet)) + '</div>';
+      s.canciones.forEach((c, i) => {
+        n++; const ok = guiaHecho(it.idEvento, c.idCancion); if (ok) hechos++;
+        filas += '<div class="guia-fila"><label><input type="checkbox" data-guia-chk="' + esc(c.idCancion) + '"' + (ok ? ' checked' : '') + ' aria-label="Listo: ' + esc(c.titulo) + '"><span>' + (i + 1) + '. ' + esc(c.titulo) + '</span></label>' +
+          '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '" type="button">▶ Ensayar</button></div>';
+      });
+    });
+    let h = '<div class="guia-paso"><h4>4 · Ensaya todos los temas</h4>';
+    if (!n) return h + '<div class="aviso">Esta actividad todavía no tiene canciones con recursos disponibles.</div></div>';
+    h += '<div class="aviso" id="guia-prog"><b>' + hechos + ' de ' + n + '</b> temas listos. Calcula entre ' + (n * 10) + ' y ' + (n * 15) + ' min en total (10–15 min por tema); es mejor repartirlo en varios días que hacerlo todo en una sola sesión.</div>' +
+      '<details open><summary>Método para cada tema</summary><ol>' +
+      '<li><b>Escucha completa</b> una vez, sin cantar, siguiendo la letra o la partitura.</li>' +
+      '<li><b>Escucha solo tu parte</b> (audio de tu voz o instrumento) y marca los pasajes difíciles.</li>' +
+      '<li><b>Canta o toca tu parte con el audio</b>, frase por frase; repite 3 veces, despacio, cada pasaje difícil.</li>' +
+      '<li><b>Revisa con la partitura o letra:</b> respiraciones, entradas, finales y cambios.</li>' +
+      '<li><b>Hazlo sin el audio de tu parte:</b> comprueba que entras y sales a tiempo.</li>' +
+      '<li><b>Pasada completa</b> con el audio del ensamble; si sale bien, marca ✔ «listo».</li></ol>' +
+      '<div class="aviso">Orden sugerido: empieza por los temas que menos dominas, mientras la voz está fresca tras el calentamiento, y termina con una pasada de todo ' + (n > 1 ? 'el repertorio' : 'el tema') + ' en el orden en que se cantará.</div></details>' +
+      filas +
+      '<div class="aviso">' + (ens ? 'Llega al ensayo con todos los temas en ✔ y tus dudas anotadas.' : 'Antes del evento, repasa el repertorio completo en el orden en que se canta.') + '</div></div>';
+    return h;
+  }
+  async function guiaCargarSel() {
+    const it = GUIA.items.find(x => x.idEvento === GUIA.sel), c = $('guia-p34');
+    if (!it) { c.innerHTML = ''; return; }
+    c.innerHTML = '<div class="aviso">Cargando calentamiento y temas…</div>';
+    const id = it.idEvento;
+    const [cal, rep] = await Promise.all([api('calentamientos_evento', { idEvento: id }), api('evento_activo', { idEvento: id })]);
+    if (GUIA.sel !== id) return;        // el usuario eligió otra actividad mientras cargaba
+    if (rep && rep.ok) vistaEv = { idEvento: id, nombre: it.nombre, r: rep };   // contexto para abrir los recursos de cada canto
+    limpiarCalent();
+    c.innerHTML = guiaRutinaHtml(cal) + guiaTemasHtml(it, rep);
+    if (cal && cal.ok && cal.ambito && cal.ambito.aplica && $('guia-calent')) montarCalent('guia-calent', cal, id, false);
+  }
+  $('ini-guia').onclick = () => { if (iniEvento) conOcupado(() => abrirGuia(iniEvento.idEvento)); };
+  $('vista-guia').addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.guiaSel) { GUIA.sel = b.dataset.guiaSel; guiaPintarP12(); conOcupado(guiaCargarSel); }
+    else if (b.dataset.guiaConf || b.dataset.guiaCanc) conOcupado(async () => {
+      const id = b.dataset.guiaConf || b.dataset.guiaCanc;
+      const r = await api(b.dataset.guiaConf ? 'participacion_confirmar' : 'participacion_cancelar', { idEvento: id });
+      if (r && r.ok) log(b.dataset.guiaConf ? 'Participación confirmada.' : 'Confirmación cancelada.'); else alert(textoError(r && (r.motivo || r.error)));
+      const sel = GUIA.sel; await abrirGuia(sel); cargarInicio();
+    });
+  });
+  $('vista-guia').addEventListener('change', ev => {
+    const k = ev.target.closest('input[data-guia-chk]'); if (!k) return;
+    lsSet(guiaClave(GUIA.sel, k.dataset.guiaChk), k.checked ? '1' : '0');
+    const todos = document.querySelectorAll('#guia-p34 input[data-guia-chk]'), ok = Array.prototype.filter.call(todos, x => x.checked).length, pr = $('guia-prog');
+    if (pr) { const b = pr.querySelector('b'); if (b) b.textContent = ok + ' de ' + todos.length; }
+  });
+  document.addEventListener('click', ev => { const b = ev.target.closest('button[data-guia-abrir]'); if (b) conOcupado(() => abrirGuia(b.dataset.guiaAbrir)); });
   $('btn-stats').onclick = () => conOcupado(() => cargarStats(''));
 
   /* ---- Tiempo de estudio: segundos con audio sonando en el reproductor de la app ---- */
@@ -3005,7 +3242,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     v.src = info.directo;
   }
   let calEstado = null;      // { idEvento, r, grupo, id }
-  const CONT_CALENT = { 'rep-calent': 'vista-repertorio', 'ens-calent': 'vista-biblioteca', 'lib-calent': 'vista-calent-lib' };
+  const CONT_CALENT = { 'rep-calent': 'vista-repertorio', 'ens-calent': 'vista-biblioteca', 'lib-calent': 'vista-calent-lib', 'guia-calent': 'vista-guia' };
   function limpiarCalent() { Object.keys(CONT_CALENT).forEach(c => { if ($(c)) $(c).innerHTML = ''; }); if ($('rep-calent-admin')) $('rep-calent-admin').innerHTML = ''; calEstado = null; }
   function montarCalent(cont, r, idEvento, numerar) {
     calEstado = { idEvento: idEvento || '', r: r, grupo: '', id: '', cont: cont, repetir: false };
@@ -3300,7 +3537,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     const h = $('ini-hero-ens'); if (!h) return; h.classList.toggle('oculto', !e); if (!e) return;
     $('ini-en-nombre').textContent = e.nombreEvento;
     $('ini-en-detalle').innerHTML = esc(fmtFechaHora(e.fecha, e.hora + (e.horaFin ? '–' + e.horaFin : '')) + (e.lugar ? ' · ' + e.lugar : '')) + '<br>' + esc(textoEstadoEnsayo(e)) + '<br><span style="font-size:12.5px;">' + esc(textoRegistro(e)) + '</span>';
-    $('ini-en-botones').innerHTML = '<button class="btn-secondary" data-ens-ver="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombreEvento) + '" type="button">📖 Ver ensayo y material</button>' + accionesEnsayo(e);
+    $('ini-en-botones').innerHTML = '<button class="btn-secondary" data-ens-ver="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombreEvento) + '" type="button">📖 Ver ensayo y material</button><button class="btn-primary" data-guia-abrir="' + esc(e.idEvento) + '" type="button">🧭 Guía de preparación</button>' + accionesEnsayo(e);
   }
   async function refrescarListaEnsayos() { if (!$('vista-eventos').classList.contains('oculto') && claseVista === 'Ensayo') await cargarEventos('Ensayo'); }
   function filaEnsayoSesion(e, hoy, conEvento) {
@@ -3759,7 +3996,17 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
         return '<button class="btn-secondary btn-small" data-gu-acceso="' + esc(u.correo) + '" data-grupo="' + esc(g.id) + '" data-on="' + (tiene ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (tiene ? 'Quitar acceso a ' : 'Dar acceso a ') + esc((g.icono || '') + ' ' + (g.nombre || g.id)) + '</button>'; }).join('') : '') +
       (permisos.usuarios ? '<button class="btn-secondary btn-small" data-gu-desc="' + esc(u.correo) + '" data-on="' + (guDescarga.indexOf(String(u.correo).toLowerCase()) >= 0 ? '0' : '1') + '" type="button" style="margin-top:6px;">' + (guDescarga.indexOf(String(u.correo).toLowerCase()) >= 0 ? '⛔ Retirar permiso de descarga' : '⬇ Permitir descargar partituras y audios (con marca)') + '</button>' : '') +
       '<button class="btn-secondary btn-small" data-gu-quitar="' + esc(u.correo) + '" style="margin-top:6px;">Quitar de ' + esc(MODULO || 'este módulo') + '</button>' +
+      (permisos.usuarios ? '<button class="btn-secondary btn-small" data-gu-correo="' + esc(u.correo) + '" type="button" style="margin-top:6px;" title="La persona pasa a usar otra cuenta de Google; se conservan su cuenta, permisos e historial.">✉ Cambiar correo</button>' : '') +
       (permisos.usuarios ? '<button class="btn-small" data-gu-eliminar="' + esc(u.correo) + '" type="button" style="margin-top:6px;border:1px solid #c0392b;color:#ff8a7a;background:transparent;" title="Borra la cuenta y sus autorizaciones. El historial se conserva.">🗑 Eliminar usuario</button>' : '');
+  }
+  async function cambiarCorreoUI(correo) {
+    const u = (guDatos.usuarios || []).find(x => x.correo === correo); if (!u) return;
+    const nuevo = prompt('Cambiar el correo de ' + (u.nombre || correo) + '\nCorreo actual: ' + correo + '\n\nEscriba el NUEVO correo (debe ser una cuenta de Google con la que la persona iniciará sesión):', ''); if (nuevo === null) return;
+    const n = String(nuevo).trim().toLowerCase(); if (!n) return;
+    if (!confirm('¿Cambiar el correo?\n\n' + correo + '  →  ' + n + '\n\nSe conservan la cuenta, los permisos y el historial. El correo anterior dejará de tener acceso y la persona debe iniciar sesión con el nuevo.')) return;
+    const r = await api('usuarios_cambiar_correo', { correo: correo, nuevoCorreo: n, confirmar: n });
+    if (r && r.ok) { log(r.mensaje || 'Correo cambiado.'); alert(r.mensaje || 'Correo cambiado.'); await cargarGestion(); }
+    else { const m = ERRORES[r && r.error] || textoError(r && r.error); log('No se cambió el correo: ' + m); alert('No se cambió el correo: ' + m); }
   }
   async function eliminarUsuarioUI(correo) {
     const u = (guDatos.usuarios || []).find(x => x.correo === correo); if (!u) return;
@@ -3855,6 +4102,8 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       log(r && r.ok ? (r.mensaje || 'Listo.') : 'No se pudo: ' + (ERRORES[r && r.error] || String((r && r.mensaje) || (r && r.error) || ''))); await cargarGestion(); }); return; }
     const dsc = ev.target.closest('[data-gu-desc]');
     if (dsc) { conOcupado(async () => { const r = await api('descarga_autorizar', { correo: dsc.dataset.guDesc, autorizado: dsc.dataset.on === '1' }); log(r && r.ok ? (r.autorizado ? 'Descarga autorizada.' : 'Permiso de descarga retirado.') : 'No se pudo: ' + textoError(r && r.error)); await cargarGestion(); }); return; }
+    const cc = ev.target.closest('[data-gu-correo]');
+    if (cc) { conOcupado(() => cambiarCorreoUI(cc.dataset.guCorreo)); return; }
     const el = ev.target.closest('[data-gu-eliminar]');
     if (el) { conOcupado(() => eliminarUsuarioUI(el.dataset.guEliminar)); return; }
     const q = ev.target.closest('[data-gu-quitar]');
