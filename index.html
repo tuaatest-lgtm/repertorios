@@ -183,6 +183,7 @@
     .guia-paso { border-left:3px solid var(--p); padding:2px 0 2px 12px; margin:14px 0; }
     .guia-paso h4 { margin:0 0 6px; font-size:16px; } .guia-paso ol, .guia-paso ul { margin:6px 0 6px 18px; padding:0; font-size:14px; line-height:1.45; }
     .guia-paso details { background:var(--s2); border-radius:var(--r); padding:8px 12px; margin:8px 0; } .guia-paso summary { cursor:pointer; font-weight:bold; }
+    .seg-tabla { width:100%; border-collapse:collapse; font-size:13px; } .seg-tabla th, .seg-tabla td { padding:6px 8px; border-bottom:1px solid var(--bd); text-align:left; vertical-align:top; } .seg-tabla th { color:var(--mu); font-weight:600; font-size:12px; } .seg-tabla td.n { text-align:right; font-variant-numeric:tabular-nums; } .seg-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .guia-fila { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid var(--s3); }
     .guia-fila label { display:flex; gap:8px; align-items:center; flex:1; min-width:150px; } .guia-fila input[type=checkbox] { width:22px; height:22px; flex:none; }
     .seg { display:flex; background:var(--s2); border-radius:var(--r); padding:4px; gap:2px; margin:8px 0; flex-wrap:wrap; }
@@ -430,6 +431,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
         <button class="btn-secondary oculto" id="btn-sync-diag" data-rol="sync">🩺 Diagnóstico del catálogo (pestañas, columnas y carpeta de Drive)</button>
         <button class="btn-secondary oculto" id="btn-publicidad" data-rol="publicidad">🖼️ Subir publicidad</button>
         <button class="btn-primary oculto" id="btn-usuarios" data-rol="gestionar">👥 Usuarios</button>
+        <button class="btn-primary oculto" id="btn-seguimiento" data-rol="gestionar">📋 Seguimiento de participación (W1 / W2)</button>
+        <button class="btn-secondary oculto" id="btn-rendimiento" data-rol="gestionar" type="button">⏱ Rendimiento de esta sesión</button>
+        <button class="btn-secondary oculto" id="btn-guia-toggle" data-rol="admin" type="button">🧭 Guía de preparación</button>
         <button class="btn-secondary oculto" id="btn-correo" data-rol="admin">✉️ Correo remitente</button>
       </div>
     </div>
@@ -608,10 +612,33 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     </div>
   </div>
 
+  <!-- v6.5.0: Seguimiento de participación -->
+  <div class="card oculto" id="vista-rendimiento">
+    <h3>⏱ Rendimiento de esta sesión</h3>
+    <div class="aviso">Mide cuánto tarda cada consulta al servidor <b>desde este dispositivo y esta conexión</b>, desde que abrió la app. Los datos no se envían a ningún sitio. Úselo en su teléfono con datos móviles para saber cómo lo vive un usuario real. p50 = tiempo típico; p95 = los casos lentos.</div>
+    <div id="rend-tabla" style="overflow-x:auto;"></div>
+    <div class="botones" style="flex-wrap:wrap;"><button class="btn-secondary btn-small" id="rend-copiar" type="button">Copiar informe</button><button class="btn-secondary btn-small" id="rend-cerrar" type="button">Cerrar</button></div>
+  </div>
+  <div class="card oculto" id="vista-seguimiento">
+    <h3>📋 Seguimiento de participación</h3>
+    <div class="aviso" id="seg-nota">Muestra por semana (lunes a domingo) quién ingresó, cuántas veces, cuántos cantos abrió para ensayar y cuántos minutos practicó, y quién respondió a cada evento.</div>
+    <div class="botones" style="flex-wrap:wrap;">
+      <div style="flex:1 1 130px;min-width:0;"><label for="seg-desde" style="font-size:12px;">Desde</label><input type="date" id="seg-desde"></div>
+      <div style="flex:1 1 130px;min-width:0;"><label for="seg-hasta" style="font-size:12px;">Hasta</label><input type="date" id="seg-hasta"></div>
+      <div style="flex:1 1 130px;min-width:0;"><label for="seg-grupo" style="font-size:12px;">Grupo</label><select id="seg-grupo"><option value="">Todos</option><option>W1</option><option>W2</option></select></div>
+    </div>
+    <div class="botones">
+      <button class="btn-accent btn-small" id="seg-consultar" type="button">Consultar</button>
+      <button class="btn-secondary btn-small" id="seg-csv" type="button">⬇ Descargar registro (Excel)</button>
+      <button class="btn-secondary btn-small" id="seg-cerrar" type="button">Cerrar</button>
+    </div>
+    <div id="seg-res"></div>
+  </div>
+
   <!-- v6.4.0: Guía de preparación -->
   <div class="card oculto ens-verde" id="vista-guia">
     <h3>🧭 Guía de preparación</h3>
-    <div class="aviso">Sigue los cuatro pasos en orden: 1 · confirma tu participación, 2 · elige para qué te preparas, 3 · calienta, 4 · ensaya todos los temas.</div>
+    <div class="aviso"><b>Sección temporal.</b> Esta guía es una ayuda mientras el equipo se acostumbra a usar la app; quien administra la apagará cuando ya no haga falta. Sigue los cuatro pasos en orden: 1 · confirma tu participación, 2 · elige para qué te preparas, 3 · calienta, 4 · ensaya todos los temas.</div>
     <div id="guia-p12"></div>
     <div id="guia-p34"></div>
   </div>
@@ -1362,9 +1389,9 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyPAyOTT1YtXyjmXihq4KDCkGhgvsyEortQT69SePz_G-O-onS54hqg7WK7pDUF9_QNIg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v6.4.1';
+  const VERSION_SERVIDOR_ESPERADA = 'v6.6.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -1523,6 +1550,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   let ERR_API = '';      // v6.2.1: causa del último fallo de conexión (se muestra al iniciar sesión en lugar de un mensaje genérico)
   async function api(accion, extra, reintento) {
     if (!ID_TOKEN && !SESION) { log('Inicie sesión con Google primero.'); return null; }
+    const t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+    let medOk = false;
     try {
       const cred = SESION ? { sesion: SESION } : { token: ID_TOKEN };
       const res = await fetch(API_URL, {
@@ -1538,7 +1567,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         ERR_API = 'El servidor respondió algo que no es una respuesta de la app (HTTP ' + res.status + '): «' + crudo + '». Casi siempre es el despliegue: en Apps Script → Implementar → Administrar implementaciones, «Quién tiene acceso» debe ser «Cualquier persona», y debe existir una versión nueva del código; si pegó código nuevo, ejecute una función del editor una vez y acepte los permisos.';
         log('Respuesta no válida del servidor (¿despliegue desactualizado?): ' + txt.slice(0, 120)); return null;
       }
-      ultimoContacto = Date.now(); ERR_API = '';
+      ultimoContacto = Date.now(); ERR_API = ''; medOk = !!r.ok;
       if (r.sesion) { SESION = r.sesion; lsSet('pm_sesion', SESION); }   // el servidor renueva la ventana en cada respuesta
       if (!r.ok && /^SESION_(INVALIDA|EXPIRADA|REVOCADA)/.test(String(r.error))) {
         SESION = null; lsDel('pm_sesion');
@@ -1556,7 +1585,18 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       ERR_API = 'No hubo conexión con el servidor (' + e.message + '). Revise su internet y que la dirección /exec del archivo sea la del despliegue vigente; abra esa dirección en el navegador: debe decir «API de repertorios activa».';
       log('Error de red: ' + e.message);
       return null;
-    }
+    } finally { medir(accion, ((window.performance && performance.now) ? performance.now() : Date.now()) - t0, medOk); }
+  }
+  /* v6.6.0 — Registro de tiempos de las llamadas (solo en este dispositivo, en memoria; no se envía a ningún sitio y no
+   * guarda datos personales: únicamente nombre de la acción, milisegundos y si respondió bien). */
+  const MEDIDAS = [];
+  function medir(accion, ms, ok) { MEDIDAS.push({ a: accion, ms: Math.round(ms), ok: ok, t: Date.now() }); if (MEDIDAS.length > 300) MEDIDAS.shift(); }
+  function resumenMedidas() {
+    const por = {}; MEDIDAS.forEach(m => { (por[m.a] = por[m.a] || []).push(m); });
+    const pct = (arr, p) => { const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
+    return Object.keys(por).map(a => { const v = por[a], ms = v.map(x => x.ms);
+      return { accion: a, n: v.length, p50: pct(ms, 0.5), p95: pct(ms, 0.95), max: Math.max.apply(null, ms), fallos: v.filter(x => !x.ok).length }; })
+      .sort((x, y) => y.p50 - x.p50);
   }
 
   // Ejecuta una acción deshabilitando los botones para evitar dobles clics
@@ -1571,7 +1611,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     }
   }
 
-  const VISTAS = ['vista-estudio', 'vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif', 'vista-lista-asist', 'vista-elenco', 'vista-guia'];
+  const VISTAS = ['vista-estudio', 'vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif', 'vista-lista-asist', 'vista-elenco', 'vista-guia', 'vista-seguimiento', 'vista-rendimiento'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
@@ -1664,6 +1704,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       });
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
       document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);
+      GUIA_ACTIVA = r.guiaActiva !== false; pintarToggleGuia();
       PUEDE_DESCARGAR = !!r.puedeDescargar; PUEDE_ESTUDIO = !!r.estudio; document.querySelectorAll('[data-est="tab-cat"]').forEach(x => x.classList.toggle('oculto', !r.estudio)); $('btn-estudio').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
@@ -2916,7 +2957,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   const pctTxt = v => (v == null ? '—' : v + ' %');
 
   /* ---- Barra inferior ---- */
-  const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-lista-asist': 'ensayo', 'vista-guia': 'ensayo', 'vista-elenco': 'eventos', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
+  const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-lista-asist': 'ensayo', 'vista-guia': 'ensayo', 'vista-elenco': 'eventos', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-seguimiento': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
   const TAB_DE_VISTA = { 'vista-estudio': 'lectura',  'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-guia': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
   function marcarTab(vista) {
     document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio'; if (vista !== 'vista-estudio') { document.body.classList.remove('leyendo'); if (typeof lecLiberar === 'function' && !$('est-lector').classList.contains('oculto')) lecLiberar(); }   // color de la sección activa
@@ -2959,16 +3000,21 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   }
   async function cargarInicio() {
     try {
-      const [re, ren] = await Promise.all([api('listar_eventos'), api('mis_ensayos', {})]);
+      // v6.6.0: una sola llamada trae eventos, ensayos y la participación del próximo evento. Si el servidor aún no la
+      // conoce (versión anterior) o falla, se usan las llamadas de siempre.
+      let re, ren, p = null, lote = null;
+      const d = await api('inicio_datos', { hoy: hoyLocal() });
+      if (d && d.ok && d.eventos && d.ensayos) { lote = d; re = d.eventos; ren = d.ensayos; p = d.participacion; }
+      else { [re, ren] = await Promise.all([api('listar_eventos'), api('mis_ensayos', {})]); }
       pintarEnsayosInicio(ren);
       const hoy = hoyLocal();
       const prox = re && re.ok ? (re.eventos || []).filter(e => e.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha))[0] : null;
       iniEvento = prox || null;
       $('ini-confirmar').classList.add('oculto'); $('ini-ver').classList.add('oculto'); $('ini-guia').classList.add('oculto');
       if (!prox) { $('ini-ev-nombre').textContent = 'Sin eventos próximos'; $('ini-ev-detalle').textContent = 'Cuando se programe uno, aparecerá aquí.'; return; }
-      $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto'); $('ini-guia').classList.remove('oculto'); ajustarHero();
+      $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto'); $('ini-guia').classList.toggle('oculto', !GUIA_ACTIVA); ajustarHero();
       let det = fmtFechaHora(prox.fecha) + (prox.alcance && prox.alcance !== 'Todos' ? ' · ' + prox.alcance : '');
-      const p = await api('participacion_evento', { idEvento: prox.idEvento });
+      if (!lote || !p) p = await api('participacion_evento', { idEvento: prox.idEvento });
       if (p && p.ok && (p.puedoConfirmar || p.miEstado === 'Confirmado')) {
         det += ' · ' + (p.miEstado === 'Confirmado' ? 'Tu participación: confirmada' : 'Falta tu confirmación');
         if (p.puedoConfirmar && p.miEstado !== 'Confirmado') $('ini-confirmar').classList.remove('oculto');
@@ -2985,9 +3031,9 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
 
   /* ---------------- v6.4.0: Guía de preparación (confirmar → elegir → calentar → ensayar todos los temas) ---------------- */
   const GUIA = { items: [], sel: '' };
-  const guiaClave = (idEv, idC) => 'pm_guia_' + idEv + '_' + idC;
-  const guiaHecho = (idEv, idC) => lsGet(guiaClave(idEv, idC)) === '1';
+  let GUIA_ACTIVA = true;     // v6.5.0: interruptor global (lo define el administrador desde el menú Administración)
   async function abrirGuia(idPre) {
+    if (!GUIA_ACTIVA) { log('La guía de preparación está apagada.'); return; }
     const hoy = hoyLocal();
     const [re, ren] = await Promise.all([api('listar_eventos'), api('mis_ensayos', {})]);
     const items = [];
@@ -3014,7 +3060,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const p = it.part;
     if (!p) return '<span class="chip">Estado no disponible</span>';
     if (p.miEstado === 'Confirmado') return '<span class="chip ok">✔ Confirmada</span> <button class="btn-secondary btn-small" data-guia-canc="' + id + '" type="button">Cancelar</button>';
-    if (p.puedoConfirmar) return '<button class="btn-accent btn-small" data-guia-conf="' + id + '" type="button">✔ Confirmar mi participación</button>';
+    if (p.puedoConfirmar) return (p.miEstado === 'Cancelado' ? '<span class="chip no">No podrás participar</span> ' : '') + '<button class="btn-accent btn-small" data-guia-conf="' + id + '" type="button">✔ Confirmar mi participación</button>' +
+      (p.miEstado === 'Cancelado' ? '' : ' <button class="btn-secondary btn-small" data-guia-dec="' + id + '" type="button">No podré</button>');
     return '<span class="chip">' + esc(p.motivoNoConfirmar === 'EVENTO_NO_PUBLICADO' ? 'Aún no publicado' : 'No estás convocado') + '</span>';
   }
   function guiaPintarP12() {
@@ -3057,28 +3104,28 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function guiaTemasHtml(it, r) {
     const sets = ((r && r.ok && r.sets) || []).filter(s => s.canciones.length);
     const ens = it.clase === 'Ensayo';
-    let n = 0, hechos = 0, filas = '';
+    let n = 0, filas = '';
     sets.forEach(s => {
       if (sets.length > 1) filas += '<div class="set-titulo">' + esc(s.nombreSet || ('Set ' + s.numeroSet)) + '</div>';
       s.canciones.forEach((c, i) => {
-        n++; const ok = guiaHecho(it.idEvento, c.idCancion); if (ok) hechos++;
-        filas += '<div class="guia-fila"><label><input type="checkbox" data-guia-chk="' + esc(c.idCancion) + '"' + (ok ? ' checked' : '') + ' aria-label="Listo: ' + esc(c.titulo) + '"><span>' + (i + 1) + '. ' + esc(c.titulo) + '</span></label>' +
+        n++;
+        filas += '<div class="guia-fila"><span style="flex:1;min-width:150px;">' + (i + 1) + '. ' + esc(c.titulo) + '</span>' +
           '<button class="btn-accent btn-small" data-ensayo="' + esc(c.idCancion) + '" data-titulo="' + esc(c.titulo) + '" type="button">▶ Ensayar</button></div>';
       });
     });
     let h = '<div class="guia-paso"><h4>4 · Ensaya todos los temas</h4>';
     if (!n) return h + '<div class="aviso">Esta actividad todavía no tiene canciones con recursos disponibles.</div></div>';
-    h += '<div class="aviso" id="guia-prog"><b>' + hechos + ' de ' + n + '</b> temas listos. Calcula entre ' + (n * 10) + ' y ' + (n * 15) + ' min en total (10–15 min por tema); es mejor repartirlo en varios días que hacerlo todo en una sola sesión.</div>' +
+    h += '<div class="aviso">Son <b>' + n + '</b> temas. Calcula entre ' + (n * 10) + ' y ' + (n * 15) + ' min en total (10–15 min por tema); es mejor repartirlo en varios días que hacerlo todo en una sola sesión.</div>' +
       '<details open><summary>Método para cada tema</summary><ol>' +
       '<li><b>Escucha completa</b> una vez, sin cantar, siguiendo la letra o la partitura.</li>' +
       '<li><b>Escucha solo tu parte</b> (audio de tu voz o instrumento) y marca los pasajes difíciles.</li>' +
       '<li><b>Canta o toca tu parte con el audio</b>, frase por frase; repite 3 veces, despacio, cada pasaje difícil.</li>' +
       '<li><b>Revisa con la partitura o letra:</b> respiraciones, entradas, finales y cambios.</li>' +
       '<li><b>Hazlo sin el audio de tu parte:</b> comprueba que entras y sales a tiempo.</li>' +
-      '<li><b>Pasada completa</b> con el audio del ensamble; si sale bien, marca ✔ «listo».</li></ol>' +
+      '<li><b>Pasada completa</b> con el audio del ensamble; si sale bien, pasa al siguiente tema.</li></ol>' +
       '<div class="aviso">Orden sugerido: empieza por los temas que menos dominas, mientras la voz está fresca tras el calentamiento, y termina con una pasada de todo ' + (n > 1 ? 'el repertorio' : 'el tema') + ' en el orden en que se cantará.</div></details>' +
       filas +
-      '<div class="aviso">' + (ens ? 'Llega al ensayo con todos los temas en ✔ y tus dudas anotadas.' : 'Antes del evento, repasa el repertorio completo en el orden en que se canta.') + '</div></div>';
+      '<div class="aviso">' + (ens ? 'Llega al ensayo con todos los temas repasados y tus dudas anotadas.' : 'Antes del evento, repasa el repertorio completo en el orden en que se canta.') + '</div></div>';
     return h;
   }
   async function guiaCargarSel() {
@@ -3093,22 +3140,79 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     c.innerHTML = guiaRutinaHtml(cal) + guiaTemasHtml(it, rep);
     if (cal && cal.ok && cal.ambito && cal.ambito.aplica && $('guia-calent')) montarCalent('guia-calent', cal, id, false);
   }
+
+  /* ---------------- v6.5.0: interruptor de la guía + seguimiento de participación ---------------- */
+  function pintarToggleGuia() {
+    const b = $('btn-guia-toggle'); if (b) b.textContent = GUIA_ACTIVA ? '🧭 Guía de preparación: ENCENDIDA (pulse para apagarla)' : '🧭 Guía de preparación: APAGADA (pulse para encenderla)';
+    if (!GUIA_ACTIVA) { document.querySelectorAll('#ini-guia,[data-guia-abrir]').forEach(x => x.classList.add('oculto')); $('vista-guia').classList.add('oculto'); }
+  }
+  $('btn-guia-toggle').onclick = () => conOcupado(async () => {
+    const nuevo = !GUIA_ACTIVA;
+    if (!confirm(nuevo ? '¿Encender la Guía de preparación para todos?' : '¿Apagar la Guía de preparación para TODOS?\n\nDesaparecen sus botones; cada persona deja de verla al volver a abrir la app. Puede encenderla de nuevo desde este mismo botón.')) return;
+    const r = await api('guia_activar', { on: nuevo });
+    if (r && r.ok) { GUIA_ACTIVA = r.guiaActiva; pintarToggleGuia(); log(r.mensaje); try { await cargarInicio(); } catch (e) { } alert(r.mensaje); }
+    else alert('No se pudo cambiar: ' + textoError(r && r.error));
+  });
+  let SEG = null;
+  const fmtD = d => String(d).slice(8, 10) + '/' + String(d).slice(5, 7);
+  function seguimientoPintar() {
+    const r = SEG, c = $('seg-res'); if (!r) { c.innerHTML = ''; return; }
+    const sem = r.semanas.map(w => fmtD(w.ini));
+    let h = '<h4 style="margin:12px 0 6px;">Resumen por grupo</h4><div class="seg-scroll"><table class="seg-tabla"><tr><th>Grupo</th><th>Personas</th><th>Con acceso</th><th>Sin actividad</th><th>Accesos</th><th>Ensayos por persona y semana</th><th>Práctica (min por persona)</th></tr>' +
+      r.grupos.map(g => '<tr><td><b>' + esc(g.worship) + '</b></td><td class="n">' + g.personas + '</td><td class="n">' + g.conAcceso + '</td><td class="n">' + (g.sinActividad ? '<span class="chip no">' + g.sinActividad + '</span>' : '0') + '</td><td class="n">' + g.accesos + '</td><td class="n">' + g.ensayosPorSemana + '</td><td class="n">' + g.practicaMinPorPersona + '</td></tr>').join('') + '</table></div>';
+    h += '<h4 style="margin:14px 0 6px;">Respuesta a eventos</h4>';
+    h += r.eventos.length ? r.eventos.map(e => '<details class="guia-paso" style="border:0;padding:0;"><summary><b>' + esc(e.nombre) + '</b> · ' + esc(e.fecha) + (e.futuro ? '' : ' (pasado)') + ' · ' +
+      Object.keys(e.grupos).sort().map(k => esc(k) + ' ✔' + e.grupos[k].confirmaron + ' ✖' + e.grupos[k].declinaron + ' ?' + e.grupos[k].sinRespuesta).join(' · ') + '</summary>' +
+      '<div class="aviso">✔ confirmó · ✖ indicó que no podrá · ? sin respuesta.' + (e.sinRespuesta.length ? '<br><b>Sin respuesta:</b> ' + e.sinRespuesta.map(x => esc(x.nombre) + ' (' + esc(x.worship) + ')').join(', ') : ' Todos respondieron.') + '</div></details>').join('') : '<div class="aviso">No hay eventos publicados en el periodo.</div>';
+    h += '<h4 style="margin:14px 0 6px;">Por persona</h4><div class="aviso">Semanas (lunes): ' + sem.join(' · ') + '. «Ens.» = cantos abiertos para ensayar; «Acc.» = visitas a la app.</div>' +
+      '<div class="seg-scroll"><table class="seg-tabla"><tr><th>Persona</th><th>Último acceso</th><th>Acc.</th><th>Días</th><th>Ens.</th><th>Práctica min</th><th>Ens. por semana</th><th>Acc. por semana</th><th>Eventos ✔/elegible</th></tr>' +
+      r.personas.map(x => '<tr><td><b>' + esc(x.nombre) + '</b><br><span class="meta" style="font-size:12px;color:var(--mu);">' + esc(x.worship) + (x.parte ? ' · ' + esc(x.parte) : '') + '</span></td><td>' + (x.ultimoAcceso ? esc(x.ultimoAcceso.slice(0, 16)) : '<span class="chip no">Sin ingreso</span>') + '</td><td class="n">' + x.accesos + '</td><td class="n">' + x.diasActivos + '</td><td class="n">' + x.ensayos + '</td><td class="n">' + x.practicaMin + '</td><td>' + x.semanas.map(m => m.ensayos).join(' · ') + '</td><td>' + x.semanas.map(m => m.accesos).join(' · ') + '</td><td class="n">' + x.eventos.confirmo + '/' + x.eventos.elegible + (x.eventos.declino ? ' · ✖' + x.eventos.declino : '') + '</td></tr>').join('') + '</table></div>';
+    c.innerHTML = h;
+    $('seg-nota').innerHTML = esc(r.nota) + (r.recortado ? '<br><b>El periodo se recortó a 90 días.</b>' : '') + (r.registroDesde ? '<br>Primer registro de actividad: ' + esc(r.registroDesde.slice(0, 10)) + '.' : '');
+  }
+  async function seguimientoConsultar() {
+    const r = await api('seguimiento_participacion', { desde: $('seg-desde').value, hasta: $('seg-hasta').value, worship: $('seg-grupo').value });
+    if (!r || !r.ok) { alert('No se pudo cargar el seguimiento: ' + textoError(r && r.error)); return; }
+    SEG = r; $('seg-desde').value = r.desde; $('seg-hasta').value = r.hasta; seguimientoPintar();
+  }
+  function rendimientoPintar() {
+    const f = resumenMedidas();
+    $('rend-tabla').innerHTML = f.length ? '<table><thead><tr><th>Acción</th><th>Veces</th><th>p50 ms</th><th>p95 ms</th><th>Máx ms</th><th>Fallos</th></tr></thead><tbody>' +
+      f.map(x => '<tr><td>' + esc(x.accion) + '</td><td>' + x.n + '</td><td>' + x.p50 + '</td><td>' + x.p95 + '</td><td>' + x.max + '</td><td>' + x.fallos + '</td></tr>').join('') + '</tbody></table>' : '<p>Aún no hay mediciones.</p>';
+  }
+  function rendimientoTexto() {
+    const nav = navigator.connection ? (navigator.connection.effectiveType || '') : '';
+    return 'Rendimiento Palermo Music ' + VERSION_SERVIDOR_ESPERADA + ' · conexión: ' + (nav || 'n/d') + ' · ' + new Date().toISOString() + '\n' +
+      'accion\tveces\tp50ms\tp95ms\tmaxms\tfallos\n' + resumenMedidas().map(x => [x.accion, x.n, x.p50, x.p95, x.max, x.fallos].join('\t')).join('\n');
+  }
+  $('btn-rendimiento').onclick = () => { mostrarVista('vista-rendimiento'); rendimientoPintar(); };
+  $('rend-cerrar').onclick = () => { $('vista-rendimiento').classList.add('oculto'); window.scrollTo(0, 0); };
+  $('rend-copiar').onclick = async () => { try { await navigator.clipboard.writeText(rendimientoTexto()); alert('Informe copiado.'); } catch (e) { prompt('Copie el informe:', rendimientoTexto()); } };
+  $('btn-seguimiento').onclick = () => conOcupado(async () => { mostrarVista('vista-seguimiento'); await seguimientoConsultar(); });
+  $('seg-consultar').onclick = () => conOcupado(seguimientoConsultar);
+  $('seg-cerrar').onclick = () => { $('vista-seguimiento').classList.add('oculto'); window.scrollTo(0, 0); };
+  $('seg-csv').onclick = () => {
+    if (!SEG) return; const c = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const sem = SEG.semanas.map(w => fmtD(w.ini)), enc = ['Persona', 'Correo', 'Grupo', 'Parte', 'Estado', 'Último acceso', 'Accesos', 'Días activos', 'Ensayos (cantos abiertos)', 'Calentamientos', 'Min estudio', 'Min calentamiento', 'Min práctica', 'Eventos elegible', 'Confirmó', 'No podrá', 'Sin respuesta']
+      .concat(sem.map(x => 'Acc. sem ' + x), sem.map(x => 'Ens. sem ' + x), sem.map(x => 'Min sem ' + x));
+    const filas = [enc.map(c).join(';')];
+    SEG.personas.forEach(x => filas.push([x.nombre, x.correo, x.worship, x.parte, x.estado, x.ultimoAcceso, x.accesos, x.diasActivos, x.ensayos, x.calentamientos, x.estudioMin, x.calentMin, x.practicaMin, x.eventos.elegible, x.eventos.confirmo, x.eventos.declino, x.eventos.sinRespuesta]
+      .concat(x.semanas.map(m => m.accesos), x.semanas.map(m => m.ensayos), x.semanas.map(m => m.practicaMin)).map(c).join(';')));
+    filas.push(''); filas.push(['Respuesta a eventos'].map(c).join(';')); filas.push(['Evento', 'Fecha', 'Grupo', 'Elegibles', 'Confirmaron', 'No podrán', 'Sin respuesta'].map(c).join(';'));
+    SEG.eventos.forEach(e => Object.keys(e.grupos).sort().forEach(k => filas.push([e.nombre, e.fecha, k, e.grupos[k].elegibles, e.grupos[k].confirmaron, e.grupos[k].declinaron, e.grupos[k].sinRespuesta].map(c).join(';'))));
+    filas.push(''); filas.push([SEG.nota].map(c).join(';'));
+    descargarBlob(new Blob(['﻿' + filas.join('\r\n')], { type: 'text/csv;charset=utf-8' }), 'Seguimiento_participacion_' + SEG.desde + '_a_' + SEG.hasta + '.csv'); log('Registro de seguimiento descargado (se abre con Excel).');
+  };
   $('ini-guia').onclick = () => { if (iniEvento) conOcupado(() => abrirGuia(iniEvento.idEvento)); };
   $('vista-guia').addEventListener('click', ev => {
     const b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.guiaSel) { GUIA.sel = b.dataset.guiaSel; guiaPintarP12(); conOcupado(guiaCargarSel); }
-    else if (b.dataset.guiaConf || b.dataset.guiaCanc) conOcupado(async () => {
-      const id = b.dataset.guiaConf || b.dataset.guiaCanc;
-      const r = await api(b.dataset.guiaConf ? 'participacion_confirmar' : 'participacion_cancelar', { idEvento: id });
-      if (r && r.ok) log(b.dataset.guiaConf ? 'Participación confirmada.' : 'Confirmación cancelada.'); else alert(textoError(r && (r.motivo || r.error)));
+    else if (b.dataset.guiaConf || b.dataset.guiaCanc || b.dataset.guiaDec) conOcupado(async () => {
+      const id = b.dataset.guiaConf || b.dataset.guiaCanc || b.dataset.guiaDec;
+      const r = await api(b.dataset.guiaConf ? 'participacion_confirmar' : (b.dataset.guiaDec ? 'participacion_declinar' : 'participacion_cancelar'), { idEvento: id });
+      if (r && r.ok) log(b.dataset.guiaConf ? 'Participación confirmada.' : (b.dataset.guiaDec ? 'Registrado: no podrás participar.' : 'Confirmación cancelada.')); else alert(textoError(r && (r.motivo || r.error)));
       const sel = GUIA.sel; await abrirGuia(sel); cargarInicio();
     });
-  });
-  $('vista-guia').addEventListener('change', ev => {
-    const k = ev.target.closest('input[data-guia-chk]'); if (!k) return;
-    lsSet(guiaClave(GUIA.sel, k.dataset.guiaChk), k.checked ? '1' : '0');
-    const todos = document.querySelectorAll('#guia-p34 input[data-guia-chk]'), ok = Array.prototype.filter.call(todos, x => x.checked).length, pr = $('guia-prog');
-    if (pr) { const b = pr.querySelector('b'); if (b) b.textContent = ok + ' de ' + todos.length; }
   });
   document.addEventListener('click', ev => { const b = ev.target.closest('button[data-guia-abrir]'); if (b) conOcupado(() => abrirGuia(b.dataset.guiaAbrir)); });
   $('btn-stats').onclick = () => conOcupado(() => cargarStats(''));
@@ -3537,7 +3641,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const h = $('ini-hero-ens'); if (!h) return; h.classList.toggle('oculto', !e); if (!e) return;
     $('ini-en-nombre').textContent = e.nombreEvento;
     $('ini-en-detalle').innerHTML = esc(fmtFechaHora(e.fecha, e.hora + (e.horaFin ? '–' + e.horaFin : '')) + (e.lugar ? ' · ' + e.lugar : '')) + '<br>' + esc(textoEstadoEnsayo(e)) + '<br><span style="font-size:12.5px;">' + esc(textoRegistro(e)) + '</span>';
-    $('ini-en-botones').innerHTML = '<button class="btn-secondary" data-ens-ver="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombreEvento) + '" type="button">📖 Ver ensayo y material</button><button class="btn-primary" data-guia-abrir="' + esc(e.idEvento) + '" type="button">🧭 Guía de preparación</button>' + accionesEnsayo(e);
+    $('ini-en-botones').innerHTML = '<button class="btn-secondary" data-ens-ver="' + esc(e.idEvento) + '" data-nombre="' + esc(e.nombreEvento) + '" type="button">📖 Ver ensayo y material</button>' + (GUIA_ACTIVA ? '<button class="btn-primary" data-guia-abrir="' + esc(e.idEvento) + '" type="button">🧭 Guía de preparación</button>' : '') + accionesEnsayo(e);
   }
   async function refrescarListaEnsayos() { if (!$('vista-eventos').classList.contains('oculto') && claseVista === 'Ensayo') await cargarEventos('Ensayo'); }
   function filaEnsayoSesion(e, hoy, conEvento) {
