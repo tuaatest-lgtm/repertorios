@@ -358,8 +358,9 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     <div id="g_id_onload"
          data-client_id="397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com"
          data-callback="manejarCredencial" data-auto_select="false"></div>
-    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
+    <div class="g_id_signin" id="g-boton" data-type="standard" data-size="large" data-theme="outline"></div>
     <div id="estado-sesion" class="aviso" role="status" aria-live="polite">Inicie sesión con su cuenta de Google.</div>
+    <button class="btn-primary btn-small oculto" id="btn-reintentar" type="button" style="margin-top:8px;">↻ Reintentar conexión</button>
     <button class="btn-secondary btn-small oculto" id="btn-modulo" style="margin-top:8px;">🔀 Cambiar de módulo</button>
     <button class="btn-secondary btn-small oculto" id="btn-salir" style="margin-top:8px;">Cerrar sesión</button>
   </div>
@@ -1436,7 +1437,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbypVjffN0m_s21aHmRqgyenU2cZ-wF6D4_eLf0yvIein-ObSDVa1vRzyhvL_S1ZJZeV5Q/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxVbGHJ9ClJQF3sv-3W8kvtr0g_jqBYH4o22VPxwLwIcwfioAL11BOhjxOY71Z-cmrY8A/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v6.8.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -1591,9 +1592,15 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     ID_TOKEN = resp.credential;
     SESION = null; lsDel('pm_sesion');          // un inicio de sesión explícito con Google reemplaza la sesión guardada
     log('Sesión de Google recibida.');
-    quien();
+    quienRobusto();
   }
 
+  /* v6.9.0 — Sesión robusta. Solo un rechazo DEFINITIVO del servidor (SESION_*, TOKEN_*) borra la sesión guardada; un fallo de red o una respuesta
+   * transitoria del servidor NUNCA la borra: se reintenta solo y se ofrece «Reintentar». Cada pérdida definitiva queda anotada (sin datos personales). */
+  function anotarPerdidaSesion(error, accion) { try { lsSet('pm_diag_sesion', JSON.stringify({ t: new Date().toISOString(), error: String(error).slice(0, 60), accion: accion, modulo: MODULO || '' })); } catch (e) {} }
+  function ultimaPerdidaSesion() { try { return JSON.parse(lsGet('pm_diag_sesion') || 'null'); } catch (e) { return null; } }
+  const mostrarGoogle = si => { const g = $('g-boton'); if (g) g.classList.toggle('oculto', !si); };
+  const TRANSITORIO = /exception|service|timed? ?out|tiempo|l[ií]mite|quota|cuota|internal|temporar|unavailable|network|overload|sobrecarg/i;
   let ERR_API = '';      // v6.2.1: causa del último fallo de conexión (se muestra al iniciar sesión en lugar de un mensaje genérico)
   async function api(accion, extra, reintento) {
     if (!ID_TOKEN && !SESION) { log('Inicie sesión con Google primero.'); return null; }
@@ -1617,14 +1624,16 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       ultimoContacto = Date.now(); ERR_API = ''; medOk = !!r.ok;
       if (r.sesion) { SESION = r.sesion; lsSet('pm_sesion', SESION); }   // el servidor renueva la ventana en cada respuesta
       if (!r.ok && /^SESION_(INVALIDA|EXPIRADA|REVOCADA)/.test(String(r.error))) {
+        anotarPerdidaSesion(r.error, accion);
         SESION = null; lsDel('pm_sesion');
         if (ID_TOKEN && !reintento) return api(accion, extra, true);     // aún hay credencial de Google en memoria
       }
       if (!r.ok && r.error === 'PARTICIPACION_PENDIENTE' && r.evento) exigirParticipacion(r.evento);
       if (!r.ok && /^(TOKEN_|SIN_TOKEN|SESION_(INVALIDA|EXPIRADA|REVOCADA))/.test(String(r.error))) {
+        if (!/^SESION_/.test(String(r.error))) anotarPerdidaSesion(r.error, accion);
         ID_TOKEN = null; SESION = null; lsDel('pm_sesion');
-        $('menu').classList.add('oculto');
-        $('estado-sesion').textContent = 'La sesión venció. Pulse el botón de Google para entrar de nuevo.';
+        $('menu').classList.add('oculto'); mostrarGoogle(true); $('btn-reintentar').classList.add('oculto');
+        $('estado-sesion').textContent = 'La sesión venció (' + String(r.error).split(':')[0] + '). Pulse el botón de Google para entrar de nuevo.';
         try { google.accounts.id.prompt(); } catch (e) {}
       }
       return r;
@@ -1735,8 +1744,10 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
 
   async function quien() {
     const r = await resolverModulo();
-    if (r && r.selector) return;
+    if (r && r.selector) { mostrarGoogle(false); return { selector: true }; }
     if (r && r.ok) {
+      mostrarGoogle(false); $('btn-reintentar').classList.add('oculto');
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}    // pide al navegador no borrar la sesión guardada por falta de espacio
       ajustarModuloUI(r);
       rol = r.rol;
       permisos = r.permisos || { programar: false, reordenar: false, sincronizar: false, usuarios: false };
@@ -1762,13 +1773,38 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         log('AVISO: servidor desactualizado. Publique una nueva versión del Código.gs.');
       }
       restaurarEstado();
+      return { ok: true };
     } else {
+      const trans = !r || TRANSITORIO.test(String(r.error || ''));
       $('menu').classList.add('oculto');
       $('btn-salir').classList.add('oculto');
       $('estado-sesion').textContent = r ? textoError(r.error) : ('No se pudo verificar la sesión. ' + ERR_API).trim();
       log($('estado-sesion').textContent);
+      return { ok: false, transitorio: trans && !!(SESION || ID_TOKEN) };
     }
   }
+  /* Entra (o restaura) con hasta 4 intentos escalonados: un fallo momentáneo del servidor no debe sacar a nadie de su sesión. */
+  let quienEnCurso = false;
+  async function quienRobusto() {
+    if (quienEnCurso) return; quienEnCurso = true;
+    try {
+      $('btn-reintentar').classList.add('oculto');
+      if (SESION || ID_TOKEN) mostrarGoogle(false);
+      const esperas = [0, 1500, 4000, 8000]; let res = null;
+      for (let i = 0; i < esperas.length; i++) {
+        if (esperas[i]) { $('estado-sesion').textContent = 'Reconectando con el servidor… (intento ' + (i + 1) + ' de ' + esperas.length + ')'; await new Promise(s => setTimeout(s, esperas[i])); }
+        res = await quien();
+        if (!res || res.ok || res.selector || !res.transitorio) break;
+      }
+      if (res && !res.ok && !res.selector) {
+        if (res.transitorio) {       // sigue sin responder: la sesión se conserva; no se pide Google
+          $('estado-sesion').textContent = ('No se pudo conectar con el servidor. Su sesión sigue guardada: pulse «Reintentar conexión». ' + ERR_API).trim();
+          $('btn-reintentar').classList.remove('oculto'); mostrarGoogle(false);
+        } else { mostrarGoogle(!SESION); }
+      }
+    } finally { quienEnCurso = false; }
+  }
+  $('btn-reintentar').onclick = () => quienRobusto();
 
   /* ---------------- Restaurar lo que se estaba haciendo ---------------- */
   let restaurado = false;
@@ -1807,7 +1843,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   $('btn-salir').onclick = () => {
     if (SESION) { try { fetch(API_URL, { method: 'POST', redirect: 'follow', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'cerrar_sesion', sesion: SESION }) }).catch(() => {}); } catch (e) {} }   // revoca ESTA sesión en el servidor
     SESION = null; ID_TOKEN = null; lsDel('pm_sesion'); lsDel(ESTADO_CLAVE); est = {}; restaurado = false;   // las secuencias (seq_*) se conservan
-    cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto'); $('btn-modulo').classList.add('oculto'); $('vista-modulos').classList.add('oculto'); MODULO = ''; lsDel('pm_modulo');
+    mostrarGoogle(true); $('btn-reintentar').classList.add('oculto'); cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto'); $('btn-modulo').classList.add('oculto'); $('vista-modulos').classList.add('oculto'); MODULO = ''; lsDel('pm_modulo');
     VISTAS.forEach(v => $(v).classList.add('oculto'));
     try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     $('estado-sesion').textContent = 'Sesión cerrada. Inicie sesión con su cuenta de Google.';
@@ -3012,7 +3048,13 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   }
   function ocultarVistas() { VISTAS.forEach(v => $(v).classList.add('oculto')); }
-  function irInicio() { ocultarVistas(); setTimeout(ajustarHero, 0); marcarTab(''); estadoGuardar({ vista: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); cargarInicio(); }
+  /* v6.9.0 — «Inicio» deja el menú principal con TODO recogido: calendario contraído (vista Día), listas desplegables del menú cerradas, panel de ensayo cerrado. */
+  function recogerTodo() {
+    calendarioRecoger();
+    document.querySelectorAll('#menu details[open]').forEach(d => d.removeAttribute('open'));
+    if (!$('panel-ensayo').classList.contains('oculto')) cerrarPanel();
+  }
+  function irInicio() { ocultarVistas(); recogerTodo(); setTimeout(ajustarHero, 0); marcarTab(''); estadoGuardar({ vista: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); cargarInicio(); }
   document.querySelectorAll('#tabbar .tab').forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.tab;
     if (t === 'inicio') irInicio();
@@ -3149,6 +3191,12 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (mi !== CAL.seq) return;       // llegó una respuesta vieja: se ignora
     if (!r || !r.ok) { $('cld-lista').innerHTML = '<p>No se pudo cargar el calendario: ' + esc(textoError(r && r.error)) + '</p>'; return; }
     CAL.cache[clave] = { t: Date.now(), r: r }; CAL.datos = r; CAL.hoy = r.hoy; calPintar();
+  }
+  function calendarioRecoger() {
+    CAL.seq++; CAL.ancla = ''; calModo('dia');
+    if (!CAL.abierto) return;
+    CAL.abierto = false; $('cld-cab').setAttribute('aria-expanded', 'false'); $('cld-cuerpo').classList.add('oculto'); $('cld').classList.remove('abierto');
+    $('cld-sub').textContent = 'Toque para ver'; $('cld-detalle').classList.add('oculto'); $('cld-detalle').innerHTML = '';
   }
   function calModo(m) { CAL.modo = m; document.querySelectorAll('#cld .cld-modos button').forEach(b => b.setAttribute('aria-pressed', b.dataset.modo === m ? 'true' : 'false')); }
   $('cld-cab').onclick = () => {
@@ -3326,6 +3374,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function rendimientoTexto() {
     const nav = navigator.connection ? (navigator.connection.effectiveType || '') : '';
     return 'Rendimiento Palermo Music ' + VERSION_SERVIDOR_ESPERADA + ' · conexión: ' + (nav || 'n/d') + ' · ' + new Date().toISOString() + '\n' +
+      'ultima_perdida_sesion: ' + (function () { const d = ultimaPerdidaSesion(); return d ? d.t + ' · ' + d.error + ' · ' + d.accion + ' · modulo ' + d.modulo : 'ninguna'; })() + '\n' +
       'accion\tveces\tp50ms\tp95ms\tmaxms\tfallos\n' + resumenMedidas().map(x => [x.accion, x.n, x.p50, x.p95, x.max, x.fallos].join('\t')).join('\n');
   }
   $('btn-rendimiento').onclick = () => { mostrarVista('vista-rendimiento'); rendimientoPintar(); };
@@ -5672,7 +5721,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   estHerramienta('mano');
 
   // Arranque: si hay una sesión guardada y vigente, entra sin volver a pedir Google
-  if (SESION) { $('estado-sesion').textContent = 'Restaurando su sesión…'; quien(); }
+  if (SESION) { $('estado-sesion').textContent = 'Restaurando su sesión…'; mostrarGoogle(false); quienRobusto(); }
 </script>
 
 </body>
