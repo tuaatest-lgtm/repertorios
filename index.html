@@ -393,10 +393,12 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       <div class="botones" id="ini-en-botones"></div>
     </div>
     <div class="aviso oculto" id="ini-ensayos"></div>
+    <div class="card oculto" id="ini-semana" style="padding:12px 14px;"></div>
     <div class="menu-tit oculto">Accesos</div>
     <div class="menu-grid oculto">
       <button class="btn-accent" id="btn-biblioteca">🎧 Material de ensayo</button>
       <button class="btn-primary" id="btn-eventos">📅 Eventos Programados y Repertorio</button>
+      <button class="btn-primary" id="btn-calendario" type="button">🗓 Calendario de música</button>
       <button class="btn-primary oculto" id="btn-estudio" type="button">🎼 Estudio Musical</button>   <!-- v6.1.2: fuera de la superficie (su función vive en la pestaña Partituras de la barra inferior) -->
     </div>
     <div id="bloque-mas">
@@ -613,6 +615,19 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
   </div>
 
   <!-- v6.5.0: Seguimiento de participación -->
+  <div class="card oculto" id="vista-calendario">
+    <h3>🗓 Calendario de música</h3>
+    <div class="aviso" id="cld-nota">Muestra el calendario «CALENDARIO MUSICA I PALERMO» junto con los eventos y ensayos de la app. Por ahora es solo de consulta.</div>
+    <div class="botones" style="flex-wrap:wrap;align-items:center;">
+      <button class="btn-secondary btn-small" id="cld-ant" type="button" aria-label="Anterior">‹</button>
+      <b id="cld-rango" style="flex:1 1 140px;text-align:center;"></b>
+      <button class="btn-secondary btn-small" id="cld-sig" type="button" aria-label="Siguiente">›</button>
+      <button class="btn-secondary btn-small" id="cld-hoy" type="button">Hoy</button>
+      <select id="cld-modo" aria-label="Vista" style="width:auto;"><option value="semana">Semana</option><option value="mes">Mes</option></select>
+    </div>
+    <div id="cld-lista"></div>
+    <div class="botones"><button class="btn-secondary btn-small" id="cld-cerrar" type="button">Cerrar</button></div>
+  </div>
   <div class="card oculto" id="vista-rendimiento">
     <h3>⏱ Rendimiento de esta sesión</h3>
     <div class="aviso">Mide cuánto tarda cada consulta al servidor <b>desde este dispositivo y esta conexión</b>, desde que abrió la app. Los datos no se envían a ningún sitio. Úselo en su teléfono con datos móviles para saber cómo lo vive un usuario real. p50 = tiempo típico; p95 = los casos lentos.</div>
@@ -1389,9 +1404,9 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyudMcK239d8v1usZVoamZdsvEVMh3XiJn-m0cgUx4zoZki7Lfg22i7WSQAKduVqmZZBQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbweL0cn-Gk2q_R44dTN5nf-s31lv9dYKRE-nWygJaAiFoUCUJKTNRGZwWTMUMRLSYCe9A/exec';
 
-  const VERSION_SERVIDOR_ESPERADA = 'v6.6.0';
+  const VERSION_SERVIDOR_ESPERADA = 'v6.7.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
   let ICONOS_MOD = { Worship: '🎸' }, NOMBRES_MOD = { Worship: 'Worship' };
   const nombreMod = m => ((ICONOS_MOD[m] || '') + ' ' + (NOMBRES_MOD[m] || m)).trim();
@@ -1611,7 +1626,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     }
   }
 
-  const VISTAS = ['vista-estudio', 'vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif', 'vista-lista-asist', 'vista-elenco', 'vista-guia', 'vista-seguimiento', 'vista-rendimiento'];
+  const VISTAS = ['vista-estudio', 'vista-biblioteca', 'vista-eventos', 'vista-repertorio', 'vista-formulario', 'vista-usuarios', 'vista-gestion', 'vista-tablero', 'vista-actividad', 'vista-publicidad', 'vista-correo', 'vista-ensambles', 'vista-frecuencia', 'vista-calent', 'vista-stats', 'vista-asistencia', 'vista-asist-informe', 'vista-calent-lib', 'vista-reportes', 'vista-qr', 'vista-tabgrupo', 'vista-gestor-act', 'vista-clasif', 'vista-lista-asist', 'vista-elenco', 'vista-guia', 'vista-seguimiento', 'vista-rendimiento', 'vista-calendario'];
   function mostrarVista(id) {
     const estabaOculta = $(id).classList.contains('oculto');
     VISTAS.forEach(v =>
@@ -2957,8 +2972,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   const pctTxt = v => (v == null ? '—' : v + ' %');
 
   /* ---- Barra inferior ---- */
-  const SEC_DE_VISTA = {'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-lista-asist': 'ensayo', 'vista-guia': 'ensayo', 'vista-elenco': 'eventos', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-seguimiento': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
-  const TAB_DE_VISTA = { 'vista-estudio': 'lectura',  'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-guia': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
+  const SEC_DE_VISTA = {'vista-calendario': 'eventos', 'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-gestor-act': 'eventos', 'vista-ensambles': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-asistencia': 'ensayo', 'vista-asist-informe': 'ensayo', 'vista-lista-asist': 'ensayo', 'vista-guia': 'ensayo', 'vista-elenco': 'eventos', 'vista-calent': 'calent', 'vista-calent-lib': 'calent', 'vista-estudio': 'estudio', 'vista-clasif': 'catalogo', 'vista-frecuencia': 'catalogo', 'vista-stats': 'stats', 'vista-tablero': 'stats', 'vista-tabgrupo': 'stats', 'vista-actividad': 'stats', 'vista-seguimiento': 'stats', 'vista-usuarios': 'admin', 'vista-gestion': 'admin', 'vista-correo': 'admin', 'vista-publicidad': 'admin'};
+  const TAB_DE_VISTA = { 'vista-calendario': 'eventos', 'vista-estudio': 'lectura',  'vista-eventos': 'eventos', 'vista-repertorio': 'eventos', 'vista-formulario': 'eventos', 'vista-biblioteca': 'ensayo', 'vista-guia': 'ensayo', 'vista-calent-lib': 'calentar', 'vista-stats': 'mas', 'vista-frecuencia': 'mas', 'vista-qr': 'mas', 'vista-reportes': 'mas', 'vista-tabgrupo': 'mas', 'vista-gestor-act': 'mas', 'vista-clasif': 'mas' };
   function marcarTab(vista) {
     document.body.dataset.sec = vista ? (SEC_DE_VISTA[vista] || 'inicio') : 'inicio'; if (vista !== 'vista-estudio') { document.body.classList.remove('leyendo'); if (typeof lecLiberar === 'function' && !$('est-lector').classList.contains('oculto')) lecLiberar(); }   // color de la sección activa
     const t = vista ? (TAB_DE_VISTA[vista] || 'mas') : 'inicio';
@@ -2991,7 +3006,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const partes = String(r.nombre || '').trim().split(/\s+/).filter(Boolean);
     $('ini-nombre').textContent = partes[0] || 'músico';
     $('ini-avatar').textContent = ((partes[0] || '?').charAt(0) + (partes[1] || '').charAt(0)).toUpperCase();
-    ajustarBloques(); cargarInicio(); estudioEnviarPendiente();
+    ajustarBloques(); cargarInicio().then(() => semanaInicio()); estudioEnviarPendiente();
   }
   function ajustarHero() {      // si ese mismo evento ya está abierto, el botón sobra
     if (!iniEvento) return;
@@ -3022,6 +3037,58 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       $('ini-ev-detalle').textContent = det;
     } catch (e) { /* el Inicio nunca debe romper la sesión */ }
   }
+  /* ---- Calendario (v6.7.0, solo lectura) ---- */
+  const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const fechaDeTexto = s => { const p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); };
+  const textoDeFecha = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const sumaDias = (s, n) => { const d = fechaDeTexto(s); d.setDate(d.getDate() + n); return textoDeFecha(d); };
+  const lunesDeTexto = s => { const d = fechaDeTexto(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return textoDeFecha(d); };
+  const etiquetaDia = s => { const d = fechaDeTexto(s); return DIAS_ES[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES_ES[d.getMonth()]; };
+  const CAL = { modo: 'semana', ancla: '', datos: null };
+  function itemHora(x) { return x.todoElDia ? 'Todo el día' : (x.hora + (x.horaFin ? '–' + x.horaFin : '')); }
+  function itemHtml(x, conDesc) {
+    const marca = x.origen === 'app' ? (x.clase === 'Ensayo' ? '🎼 Ensayo · app' : '🎵 Evento · app') : '🗓 Calendario';
+    const det = (conDesc && x.descripcion) ? '<details style="margin-top:4px;"><summary style="cursor:pointer;font-size:13px;">Ver detalle</summary><div style="white-space:pre-wrap;font-size:13px;margin-top:4px;">' + esc(x.descripcion) + '</div></details>' : '';
+    return '<div class="fila" style="display:block;padding:8px 0;"><span class="nombre" style="display:block;">' + esc(x.titulo) + '</span><span class="meta">' + esc(itemHora(x)) + (x.lugar ? ' · ' + esc(x.lugar) : '') + ' · ' + marca + (x.personal ? ' · disponibilidad' : '') + '</span>' + det + '</div>';
+  }
+  function agruparPorDia(items, desde, hasta) {
+    const por = {}; items.forEach(x => { for (let d = x.fecha; d <= (x.fechaFin || x.fecha) && d <= hasta; d = sumaDias(d, 1)) { if (d >= desde) (por[d] = por[d] || []).push(x); if (d > hasta) break; } });
+    return por;
+  }
+  async function semanaInicio() {
+    const c = $('ini-semana'); if (!c || !SESION && !ID_TOKEN) return;
+    try {
+      const r = await api('calendario_listar', {});
+      if (!r || !r.ok) { c.classList.add('oculto'); return; }
+      const por = agruparPorDia(r.items, r.desde, r.hasta), dias = Object.keys(por).sort();
+      c.classList.remove('oculto');
+      c.innerHTML = '<b>Esta semana</b>' + (r.calendarioOk ? '' : '<div class="meta">No se pudo leer el calendario de Google (' + esc(r.calendarioError) + '). Se muestran solo los eventos de la app.</div>') +
+        (dias.length ? dias.map(d => '<div style="margin-top:6px;"><span class="meta" style="font-weight:600;' + (d === r.hoy ? 'color:var(--a);' : '') + '">' + esc(etiquetaDia(d)) + (d === r.hoy ? ' · hoy' : '') + '</span>' + por[d].map(x => itemHtml(x, false)).join('') + '</div>').join('') : '<div class="meta">Sin actividades esta semana.</div>') +
+        '<div class="botones" style="margin-top:6px;"><button class="btn-secondary btn-small" id="ini-semana-ver" type="button">Abrir calendario completo</button></div>';
+      $('ini-semana-ver').onclick = () => abrirCalendario();
+    } catch (e) { c.classList.add('oculto'); }
+  }
+  async function calendarioConsultar() {
+    const hoy = hoyLocal(); if (!CAL.ancla) CAL.ancla = hoy;
+    let desde, hasta;
+    if (CAL.modo === 'semana') { desde = lunesDeTexto(CAL.ancla); hasta = sumaDias(desde, 6); }
+    else { const a = fechaDeTexto(CAL.ancla); desde = textoDeFecha(new Date(a.getFullYear(), a.getMonth(), 1)); hasta = textoDeFecha(new Date(a.getFullYear(), a.getMonth() + 1, 0)); }
+    $('cld-rango').textContent = CAL.modo === 'semana' ? (etiquetaDia(desde) + ' – ' + etiquetaDia(hasta)) : (MESES_ES[fechaDeTexto(desde).getMonth()] + ' ' + fechaDeTexto(desde).getFullYear());
+    $('cld-lista').innerHTML = '<p class="meta">Cargando…</p>';
+    const r = await api('calendario_listar', { desde: desde, hasta: hasta });
+    if (!r || !r.ok) { $('cld-lista').innerHTML = '<p>No se pudo cargar el calendario: ' + esc(textoError(r && r.error)) + '</p>'; return; }
+    CAL.datos = r;
+    const por = agruparPorDia(r.items, r.desde, r.hasta), dias = Object.keys(por).sort();
+    $('cld-lista').innerHTML = (r.calendarioOk ? '' : '<div class="aviso">No se pudo leer el calendario de Google (' + esc(r.calendarioError) + '). Se muestran solo los eventos de la app. Si es la primera vez, el administrador debe autorizar el acceso a Calendar al instalar la nueva versión.</div>') +
+      (dias.length ? dias.map(d => '<div style="margin-top:10px;"><b style="' + (d === r.hoy ? 'color:var(--a);' : '') + '">' + esc(etiquetaDia(d)) + (d === r.hoy ? ' · hoy' : '') + '</b>' + por[d].map(x => itemHtml(x, true)).join('') + '</div>').join('') : '<p class="meta">No hay actividades en este periodo.</p>');
+  }
+  function abrirCalendario() { CAL.ancla = hoyLocal(); mostrarVista('vista-calendario'); $('cld-modo').value = CAL.modo; return calendarioConsultar(); }
+  $('btn-calendario').onclick = () => conOcupado(abrirCalendario);
+  $('cld-cerrar').onclick = () => { $('vista-calendario').classList.add('oculto'); window.scrollTo(0, 0); };
+  $('cld-modo').onchange = () => { CAL.modo = $('cld-modo').value; conOcupado(calendarioConsultar); };
+  $('cld-hoy').onclick = () => { CAL.ancla = hoyLocal(); conOcupado(calendarioConsultar); };
+  const calMover = n => { const a = fechaDeTexto(CAL.ancla); if (CAL.modo === 'semana') a.setDate(a.getDate() + 7 * n); else a.setMonth(a.getMonth() + n, 1); CAL.ancla = textoDeFecha(a); return calendarioConsultar(); };
+  $('cld-ant').onclick = () => conOcupado(() => calMover(-1)); $('cld-sig').onclick = () => conOcupado(() => calMover(1));
   $('ini-ver').onclick = () => { if (iniEvento) conOcupado(() => verEvento(iniEvento.idEvento, iniEvento.nombre)); };
   $('ini-confirmar').onclick = () => conOcupado(async () => {
     if (!iniEvento) return;
