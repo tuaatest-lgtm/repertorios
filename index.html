@@ -358,9 +358,8 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
     <div id="g_id_onload"
          data-client_id="397160158654-gtoftldvnl46amfdhbjucg844h5o4e2m.apps.googleusercontent.com"
          data-callback="manejarCredencial" data-auto_select="false"></div>
-    <div class="g_id_signin" id="g-boton" data-type="standard" data-size="large" data-theme="outline"></div>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
     <div id="estado-sesion" class="aviso" role="status" aria-live="polite">Inicie sesión con su cuenta de Google.</div>
-    <button class="btn-primary btn-small oculto" id="btn-reintentar" type="button" style="margin-top:8px;">↻ Reintentar conexión</button>
     <button class="btn-secondary btn-small oculto" id="btn-modulo" style="margin-top:8px;">🔀 Cambiar de módulo</button>
     <button class="btn-secondary btn-small oculto" id="btn-salir" style="margin-top:8px;">Cerrar sesión</button>
   </div>
@@ -1399,6 +1398,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       <label class="sw"><span>Tocar el costado de la pantalla pasa la página</span><input type="checkbox" id="lec-zonas" role="switch"></label>
       <div class="lec-btns">
         <button class="cb oculto" type="button" data-desc="1" data-est="export-orig" title="Descargar esta partitura o letra con marca de agua (sin anotaciones)">⬇ Descargar</button><button class="cb oculto" type="button" data-desc="1" data-est="export-pdf" title="Descargar el PDF con tus anotaciones y la marca de agua">⤓ PDF anotado</button>
+        <button class="cb oculto" type="button" id="btn-sonoro" title="Estudio Sonoro: oír, corregir y exportar (solo administradores)">🎹 Sonoro</button>
         <button class="cb" type="button" data-est="resp-exp" title="Guardar un respaldo de tus anotaciones">⤓ Respaldo</button>
         <button class="cb" type="button" data-est="resp-imp" title="Restaurar anotaciones desde un respaldo">⤒ Restaurar</button>
         <input type="file" id="est-resp-file" accept=".json,application/json" class="oculto">
@@ -1411,6 +1411,79 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   </aside>
 </div>
 <button id="est-flota" class="oculto" type="button" title="Volver al lector de partituras">🎼 Volver al lector <span id="est-flota-t"></span></button>
+
+
+<style id="pm-sonoro">
+#sonoro-panel{position:fixed;inset:0;z-index:1200;background:rgba(8,10,20,.92);display:none;flex-direction:column;color:#f2f3fb;font:14px system-ui,sans-serif}
+#sonoro-panel.abierto{display:flex}
+#sonoro-panel header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#000;border-bottom:3px solid #22d3ee}
+#sonoro-panel header h2{margin:0;font-size:1rem}
+#sonoro-panel .sn-body{flex:1;overflow:auto;padding:10px;max-width:1100px;margin:0 auto;width:100%}
+#sonoro-panel .sn-card{background:#171a2b;border:1px solid #2f3556;border-radius:12px;padding:10px;margin-bottom:10px}
+#sonoro-panel .sn-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#sonoro-panel button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 12px;min-height:40px;cursor:pointer;background:#20243a;color:#f2f3fb}
+#sonoro-panel button.pri{background:#7c5cff;color:#fff}
+#sonoro-panel button.acc{background:#22d3ee;color:#04222a}
+#sonoro-panel button.on{outline:2px solid #22d3ee}
+#sonoro-panel button:disabled{opacity:.4;cursor:not-allowed}
+#sonoro-panel .sn-stage{position:relative;background:#111;border-radius:8px;overflow:auto;max-height:58vh;border:1px solid #2f3556;touch-action:none}
+#sonoro-panel .sn-stage canvas{display:block;max-width:100%}
+#sonoro-ov{position:absolute;left:0;top:0;pointer-events:none}
+#sonoro-panel .aviso{font-size:13px;color:#9aa1c4;margin:6px 0}
+#sonoro-panel .ok{color:#34d399;font-weight:700}
+#sonoro-panel .err{color:#fb7185;font-weight:700}
+#sonoro-panel label.v{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:13px}
+#sonoro-panel select,#sonoro-panel input[type=number]{background:#20243a;color:#f2f3fb;border:1px solid #2f3556;border-radius:8px;padding:8px}
+</style>
+
+<div id="sonoro-panel" aria-hidden="true">
+  <header>
+    <div>
+      <h2>🎹 Estudio Sonoro</h2>
+      <div class="aviso" style="margin:0">PDF del catálogo · oír · corregir · exportar · solo admin</div>
+    </div>
+    <button type="button" id="sonoro-cerrar">✕ Cerrar</button>
+  </header>
+  <div class="sn-body">
+    <div class="sn-card">
+      <div class="aviso" id="sonoro-info">Abra una partitura en el lector y pulse Sonoro, o elija canción/PDF abajo.</div>
+      <div class="sn-row" style="margin-top:8px">
+        <button type="button" class="pri" id="sonoro-usar-lector">Usar PDF del lector</button>
+        <button type="button" id="sonoro-procesar" disabled>Procesar página</button>
+        <label>Pág. <input type="number" id="sonoro-pag" min="1" value="1" style="width:64px"></label>
+        <button type="button" id="sonoro-ir-pag">Ir</button>
+      </div>
+    </div>
+    <div class="sn-card">
+      <div class="sn-row">
+        <button type="button" class="on" data-sn-modo="oir">Oír</button>
+        <button type="button" data-sn-modo="corregir">Corregir</button>
+        <button type="button" data-sn-modo="anadir">Añadir</button>
+        <button type="button" data-sn-modo="borrar">Borrar</button>
+        <label>Clave <select id="sonoro-clave"><option value="sol">Sol</option><option value="fa">Fa</option></select></label>
+        <label>BPM <input type="number" id="sonoro-tempo" min="40" max="220" value="90" style="width:72px"></label>
+        <label>Transp. <input type="number" id="sonoro-tr" min="-12" max="12" value="0" style="width:64px"></label>
+      </div>
+      <div style="margin:8px 0">
+        <label class="v"><input type="checkbox" data-sn-v="S" checked> Soprano</label>
+        <label class="v"><input type="checkbox" data-sn-v="A" checked> Contralto</label>
+        <label class="v"><input type="checkbox" data-sn-v="T" checked> Tenor</label>
+        <label class="v"><input type="checkbox" data-sn-v="B" checked> Bajo</label>
+      </div>
+      <div class="sn-stage" id="sonoro-stage">
+        <canvas id="sonoro-pdf"></canvas>
+        <canvas id="sonoro-ov"></canvas>
+      </div>
+      <p class="aviso" id="sonoro-msg"></p>
+    </div>
+    <div class="sn-card sn-row">
+      <button type="button" class="pri" id="sonoro-play" disabled>▶ Reproducir</button>
+      <button type="button" id="sonoro-stop">⏹</button>
+      <button type="button" class="acc" id="sonoro-wav" disabled>WAV</button>
+      <button type="button" class="acc" id="sonoro-xml" disabled>MusicXML corregido</button>
+    </div>
+  </div>
+</div>
 
 <nav id="tabbar" class="oculto" aria-label="Navegación principal"><div class="tabs">
     <button class="tab on" data-tab="inicio" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Inicio</span></button>
@@ -1437,7 +1510,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxVbGHJ9ClJQF3sv-3W8kvtr0g_jqBYH4o22VPxwLwIcwfioAL11BOhjxOY71Z-cmrY8A/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v6.8.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -1592,15 +1665,9 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     ID_TOKEN = resp.credential;
     SESION = null; lsDel('pm_sesion');          // un inicio de sesión explícito con Google reemplaza la sesión guardada
     log('Sesión de Google recibida.');
-    quienRobusto();
+    quien();
   }
 
-  /* v6.9.0 — Sesión robusta. Solo un rechazo DEFINITIVO del servidor (SESION_*, TOKEN_*) borra la sesión guardada; un fallo de red o una respuesta
-   * transitoria del servidor NUNCA la borra: se reintenta solo y se ofrece «Reintentar». Cada pérdida definitiva queda anotada (sin datos personales). */
-  function anotarPerdidaSesion(error, accion) { try { lsSet('pm_diag_sesion', JSON.stringify({ t: new Date().toISOString(), error: String(error).slice(0, 60), accion: accion, modulo: MODULO || '' })); } catch (e) {} }
-  function ultimaPerdidaSesion() { try { return JSON.parse(lsGet('pm_diag_sesion') || 'null'); } catch (e) { return null; } }
-  const mostrarGoogle = si => { const g = $('g-boton'); if (g) g.classList.toggle('oculto', !si); };
-  const TRANSITORIO = /exception|service|timed? ?out|tiempo|l[ií]mite|quota|cuota|internal|temporar|unavailable|network|overload|sobrecarg/i;
   let ERR_API = '';      // v6.2.1: causa del último fallo de conexión (se muestra al iniciar sesión en lugar de un mensaje genérico)
   async function api(accion, extra, reintento) {
     if (!ID_TOKEN && !SESION) { log('Inicie sesión con Google primero.'); return null; }
@@ -1624,16 +1691,14 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       ultimoContacto = Date.now(); ERR_API = ''; medOk = !!r.ok;
       if (r.sesion) { SESION = r.sesion; lsSet('pm_sesion', SESION); }   // el servidor renueva la ventana en cada respuesta
       if (!r.ok && /^SESION_(INVALIDA|EXPIRADA|REVOCADA)/.test(String(r.error))) {
-        anotarPerdidaSesion(r.error, accion);
         SESION = null; lsDel('pm_sesion');
         if (ID_TOKEN && !reintento) return api(accion, extra, true);     // aún hay credencial de Google en memoria
       }
       if (!r.ok && r.error === 'PARTICIPACION_PENDIENTE' && r.evento) exigirParticipacion(r.evento);
       if (!r.ok && /^(TOKEN_|SIN_TOKEN|SESION_(INVALIDA|EXPIRADA|REVOCADA))/.test(String(r.error))) {
-        if (!/^SESION_/.test(String(r.error))) anotarPerdidaSesion(r.error, accion);
         ID_TOKEN = null; SESION = null; lsDel('pm_sesion');
-        $('menu').classList.add('oculto'); mostrarGoogle(true); $('btn-reintentar').classList.add('oculto');
-        $('estado-sesion').textContent = 'La sesión venció (' + String(r.error).split(':')[0] + '). Pulse el botón de Google para entrar de nuevo.';
+        $('menu').classList.add('oculto');
+        $('estado-sesion').textContent = 'La sesión venció. Pulse el botón de Google para entrar de nuevo.';
         try { google.accounts.id.prompt(); } catch (e) {}
       }
       return r;
@@ -1744,10 +1809,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
 
   async function quien() {
     const r = await resolverModulo();
-    if (r && r.selector) { mostrarGoogle(false); return { selector: true }; }
+    if (r && r.selector) return;
     if (r && r.ok) {
-      mostrarGoogle(false); $('btn-reintentar').classList.add('oculto');
-      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}    // pide al navegador no borrar la sesión guardada por falta de espacio
       ajustarModuloUI(r);
       rol = r.rol;
       permisos = r.permisos || { programar: false, reordenar: false, sincronizar: false, usuarios: false };
@@ -1763,7 +1826,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
       document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);
       GUIA_ACTIVA = r.guiaActiva !== false; pintarToggleGuia();
-      PUEDE_DESCARGAR = !!r.puedeDescargar; PUEDE_ESTUDIO = !!r.estudio; document.querySelectorAll('[data-est="tab-cat"]').forEach(x => x.classList.toggle('oculto', !r.estudio)); $('btn-estudio').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
+      PUEDE_DESCARGAR = !!r.puedeDescargar; PUEDE_ESTUDIO = !!r.estudio; PUEDE_SONORO = !!r.estudioSonoro; (function(){ const b=$('btn-sonoro'); if(b) b.classList.toggle('oculto', !PUEDE_SONORO); })(); document.querySelectorAll('[data-est="tab-cat"]').forEach(x => x.classList.toggle('oculto', !r.estudio)); $('btn-estudio').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
@@ -1773,38 +1836,13 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         log('AVISO: servidor desactualizado. Publique una nueva versión del Código.gs.');
       }
       restaurarEstado();
-      return { ok: true };
     } else {
-      const trans = !r || TRANSITORIO.test(String(r.error || ''));
       $('menu').classList.add('oculto');
       $('btn-salir').classList.add('oculto');
       $('estado-sesion').textContent = r ? textoError(r.error) : ('No se pudo verificar la sesión. ' + ERR_API).trim();
       log($('estado-sesion').textContent);
-      return { ok: false, transitorio: trans && !!(SESION || ID_TOKEN) };
     }
   }
-  /* Entra (o restaura) con hasta 4 intentos escalonados: un fallo momentáneo del servidor no debe sacar a nadie de su sesión. */
-  let quienEnCurso = false;
-  async function quienRobusto() {
-    if (quienEnCurso) return; quienEnCurso = true;
-    try {
-      $('btn-reintentar').classList.add('oculto');
-      if (SESION || ID_TOKEN) mostrarGoogle(false);
-      const esperas = [0, 1500, 4000, 8000]; let res = null;
-      for (let i = 0; i < esperas.length; i++) {
-        if (esperas[i]) { $('estado-sesion').textContent = 'Reconectando con el servidor… (intento ' + (i + 1) + ' de ' + esperas.length + ')'; await new Promise(s => setTimeout(s, esperas[i])); }
-        res = await quien();
-        if (!res || res.ok || res.selector || !res.transitorio) break;
-      }
-      if (res && !res.ok && !res.selector) {
-        if (res.transitorio) {       // sigue sin responder: la sesión se conserva; no se pide Google
-          $('estado-sesion').textContent = ('No se pudo conectar con el servidor. Su sesión sigue guardada: pulse «Reintentar conexión». ' + ERR_API).trim();
-          $('btn-reintentar').classList.remove('oculto'); mostrarGoogle(false);
-        } else { mostrarGoogle(!SESION); }
-      }
-    } finally { quienEnCurso = false; }
-  }
-  $('btn-reintentar').onclick = () => quienRobusto();
 
   /* ---------------- Restaurar lo que se estaba haciendo ---------------- */
   let restaurado = false;
@@ -1843,7 +1881,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   $('btn-salir').onclick = () => {
     if (SESION) { try { fetch(API_URL, { method: 'POST', redirect: 'follow', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'cerrar_sesion', sesion: SESION }) }).catch(() => {}); } catch (e) {} }   // revoca ESTA sesión en el servidor
     SESION = null; ID_TOKEN = null; lsDel('pm_sesion'); lsDel(ESTADO_CLAVE); est = {}; restaurado = false;   // las secuencias (seq_*) se conservan
-    mostrarGoogle(true); $('btn-reintentar').classList.add('oculto'); cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto'); $('btn-modulo').classList.add('oculto'); $('vista-modulos').classList.add('oculto'); MODULO = ''; lsDel('pm_modulo');
+    cerrarPanel(); $('menu').classList.add('oculto'); $('btn-salir').classList.add('oculto'); $('btn-modulo').classList.add('oculto'); $('vista-modulos').classList.add('oculto'); MODULO = ''; lsDel('pm_modulo');
     VISTAS.forEach(v => $(v).classList.add('oculto'));
     try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     $('estado-sesion').textContent = 'Sesión cerrada. Inicie sesión con su cuenta de Google.';
@@ -3048,13 +3086,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     document.querySelectorAll('#tabbar .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   }
   function ocultarVistas() { VISTAS.forEach(v => $(v).classList.add('oculto')); }
-  /* v6.9.0 — «Inicio» deja el menú principal con TODO recogido: calendario contraído (vista Día), listas desplegables del menú cerradas, panel de ensayo cerrado. */
-  function recogerTodo() {
-    calendarioRecoger();
-    document.querySelectorAll('#menu details[open]').forEach(d => d.removeAttribute('open'));
-    if (!$('panel-ensayo').classList.contains('oculto')) cerrarPanel();
-  }
-  function irInicio() { ocultarVistas(); recogerTodo(); setTimeout(ajustarHero, 0); marcarTab(''); estadoGuardar({ vista: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); cargarInicio(); }
+  function irInicio() { ocultarVistas(); setTimeout(ajustarHero, 0); marcarTab(''); estadoGuardar({ vista: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); cargarInicio(); }
   document.querySelectorAll('#tabbar .tab').forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.tab;
     if (t === 'inicio') irInicio();
@@ -3191,12 +3223,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (mi !== CAL.seq) return;       // llegó una respuesta vieja: se ignora
     if (!r || !r.ok) { $('cld-lista').innerHTML = '<p>No se pudo cargar el calendario: ' + esc(textoError(r && r.error)) + '</p>'; return; }
     CAL.cache[clave] = { t: Date.now(), r: r }; CAL.datos = r; CAL.hoy = r.hoy; calPintar();
-  }
-  function calendarioRecoger() {
-    CAL.seq++; CAL.ancla = ''; calModo('dia');
-    if (!CAL.abierto) return;
-    CAL.abierto = false; $('cld-cab').setAttribute('aria-expanded', 'false'); $('cld-cuerpo').classList.add('oculto'); $('cld').classList.remove('abierto');
-    $('cld-sub').textContent = 'Toque para ver'; $('cld-detalle').classList.add('oculto'); $('cld-detalle').innerHTML = '';
   }
   function calModo(m) { CAL.modo = m; document.querySelectorAll('#cld .cld-modos button').forEach(b => b.setAttribute('aria-pressed', b.dataset.modo === m ? 'true' : 'false')); }
   $('cld-cab').onclick = () => {
@@ -3374,7 +3400,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function rendimientoTexto() {
     const nav = navigator.connection ? (navigator.connection.effectiveType || '') : '';
     return 'Rendimiento Palermo Music ' + VERSION_SERVIDOR_ESPERADA + ' · conexión: ' + (nav || 'n/d') + ' · ' + new Date().toISOString() + '\n' +
-      'ultima_perdida_sesion: ' + (function () { const d = ultimaPerdidaSesion(); return d ? d.t + ' · ' + d.error + ' · ' + d.accion + ' · modulo ' + d.modulo : 'ninguna'; })() + '\n' +
       'accion\tveces\tp50ms\tp95ms\tmaxms\tfallos\n' + resumenMedidas().map(x => [x.accion, x.n, x.p50, x.p95, x.max, x.fallos].join('\t')).join('\n');
   }
   $('btn-rendimiento').onclick = () => { mostrarVista('vista-rendimiento'); rendimientoPintar(); };
@@ -5720,8 +5745,441 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   document.addEventListener('keydown', e => { if ((e.key === 'Delete' || e.key === 'Backspace') && EST.tool === 's' && EST.sel && !$('est-lector').classList.contains('oculto') && !/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) { e.preventDefault(); estEliminarSel(); } });
   estHerramienta('mano');
 
+
+  /* ========== ESTUDIO SONORO (complemento integrado) ========== */
+  let PUEDE_SONORO = false;
+  let SN = { pdf: null, page: 1, notes: [], modo: 'oir', nid: 1, selected: null, staves: [], ctx: null, timer: null, scale: 1.35 };
+
+  // Exponer flag desde quien()
+  const _quienSonoro = typeof quien === 'function' ? null : null;
+  (function parcheQuienSonoro() {
+    // Tras cada 'quien' exitoso se actualiza en el flujo existente: buscamos asignación PUEDE_ESTUDIO
+  })();
+
+  // Hook: cuando se procesa respuesta de quien (ya hay PUEDE_ESTUDIO = ...)
+  const _origAsign = null;
+
+  function snLog(m) {
+    const el = $('sonoro-msg');
+    if (el) el.textContent = m;
+    try { log('[Sonoro] ' + m); } catch (e) {}
+  }
+
+  function snShow(si) {
+    const p = $('sonoro-panel');
+    if (!p) return;
+    p.classList.toggle('abierto', !!si);
+    p.setAttribute('aria-hidden', si ? 'false' : 'true');
+  }
+
+  function snMidiFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function snMidiName(m) {
+    const n = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    return n[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+  }
+  function snAudio() {
+    if (!SN.ctx) SN.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (SN.ctx.state === 'suspended') SN.ctx.resume();
+    return SN.ctx;
+  }
+  function snPlayMidi(midi, dur, when, gain) {
+    const ctx = snAudio();
+    const t0 = when != null ? when : ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.value = snMidiFreq(midi);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain == null ? 0.2 : gain, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + Math.max(0.08, dur));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + Math.max(0.1, dur) + 0.05);
+  }
+
+  async function snRenderPage(num) {
+    if (!SN.pdf) return;
+    SN.page = Math.max(1, Math.min(SN.pdf.numPages, num | 0));
+    $('sonoro-pag').value = SN.page;
+    const page = await SN.pdf.getPage(SN.page);
+    const vp = page.getViewport({ scale: SN.scale });
+    const c = $('sonoro-pdf'), ctx = c.getContext('2d');
+    c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    const ov = $('sonoro-ov');
+    ov.width = c.width; ov.height = c.height;
+    SN.notes = []; SN.selected = null; SN.staves = [];
+    snDraw();
+    $('sonoro-procesar').disabled = false;
+    snLog('Página ' + SN.page + ' / ' + SN.pdf.numPages + ' lista. Pulse Procesar página.');
+  }
+
+  function snDetectStaffLines(imageData) {
+    const { width: w, height: h, data } = imageData;
+    const rowInk = new Float32Array(h);
+    for (let y = 0; y < h; y++) {
+      let s = 0;
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if ((data[i] + data[i+1] + data[i+2]) / 3 < 140) s++;
+      }
+      rowInk[y] = s / w;
+    }
+    const sm = new Float32Array(h);
+    for (let y = 2; y < h - 2; y++) sm[y] = (rowInk[y-2]+rowInk[y-1]+rowInk[y]+rowInk[y+1]+rowInk[y+2]) / 5;
+    const thr = 0.22, peaks = [];
+    for (let y = 3; y < h - 3; y++) if (sm[y] > thr && sm[y] >= sm[y-1] && sm[y] >= sm[y+1]) peaks.push(y);
+    const staves = []; let group = [];
+    for (let i = 0; i < peaks.length; i++) {
+      if (!group.length || peaks[i] - group[group.length-1] < h * 0.025) group.push(peaks[i]);
+      else { if (group.length >= 3) staves.push(group.slice()); group = [peaks[i]]; }
+    }
+    if (group.length >= 3) staves.push(group);
+    return staves.map(g => {
+      if (g.length >= 5) {
+        const scored = g.map(y => ({ y, s: sm[y] })).sort((a,b) => b.s - a.s).slice(0, 5);
+        return scored.map(x => x.y).sort((a,b) => a - b);
+      }
+      const top = g[0], bot = g[g.length-1], step = (bot - top) / 4;
+      return [0,1,2,3,4].map(i => Math.round(top + step * i));
+    });
+  }
+
+  function snPitchFromY(y, lines, clave) {
+    if (!lines || lines.length < 2) return clave === 'fa' ? 48 : 67;
+    const top = lines[0], bottom = lines[lines.length-1];
+    const space = (bottom - top) / 4;
+    const fromBottom = (bottom - y) / (space / 2);
+    const base = clave === 'fa' ? 43 : 64;
+    return Math.round(base + fromBottom);
+  }
+
+  function snVoice(staff, midi, clave) {
+    if (clave === 'sol' || staff % 2 === 0) return midi >= 67 ? 'S' : 'A';
+    return midi >= 53 ? 'T' : 'B';
+  }
+
+  function snDetectNotes(imageData, staves) {
+    const { width: w, height: h, data } = imageData;
+    const found = [];
+    staves.forEach((lines, si) => {
+      const top = lines[0] - (lines[1]-lines[0])*1.5;
+      const bot = lines[lines.length-1] + (lines[1]-lines[0])*1.5;
+      const space = (lines[lines.length-1] - lines[0]) / 4;
+      const clave = (si % 2 === 0) ? 'sol' : 'fa';
+      const step = Math.max(2, Math.floor(space * 0.35));
+      for (let y = Math.max(0, top|0); y < Math.min(h, bot|0); y += step) {
+        for (let x = 8; x < w - 8; x += step) {
+          let dark = 0, total = 0;
+          const rad = Math.round(space * 0.4);
+          for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+            if (dx*dx+dy*dy > rad*rad) continue;
+            const yy = y+dy, xx = x+dx;
+            if (yy<0||yy>=h||xx<0||xx>=w) continue;
+            const i = (yy*w+xx)*4;
+            total++;
+            if ((data[i]+data[i+1]+data[i+2])/3 < 120) dark++;
+          }
+          if (total < 8) continue;
+          const ratio = dark / total;
+          if (ratio < 0.45 || ratio > 0.95) continue;
+          const midi = snPitchFromY(y, lines, clave);
+          if (midi < 28 || midi > 96) continue;
+          found.push({ id: SN.nid++, x, y, midi, voice: snVoice(si, midi, clave), staff: si, dur: 0.5 });
+        }
+      }
+    });
+    found.sort((a,b) => a.x - b.x || a.y - b.y);
+    const kept = [], minD = 10;
+    found.forEach(n => { if (!kept.some(k => Math.hypot(k.x-n.x, k.y-n.y) < minD)) kept.push(n); });
+    return kept;
+  }
+
+  function snProcess() {
+    const c = $('sonoro-pdf');
+    if (!c.width) return;
+    const img = c.getContext('2d').getImageData(0, 0, c.width, c.height);
+    SN.staves = snDetectStaffLines(img);
+    SN.notes = snDetectNotes(img, SN.staves);
+    snDraw();
+    $('sonoro-play').disabled = !SN.notes.length;
+    $('sonoro-wav').disabled = !SN.notes.length;
+    $('sonoro-xml').disabled = !SN.notes.length;
+    snLog(SN.staves.length + ' pentagrama(s), ' + SN.notes.length + ' notas. Corrija si hace falta.');
+  }
+
+  function snDraw() {
+    const ov = $('sonoro-ov'), ctx = ov.getContext('2d');
+    ctx.clearRect(0, 0, ov.width, ov.height);
+    const mute = {};
+    document.querySelectorAll('[data-sn-v]').forEach(cb => { mute[cb.getAttribute('data-sn-v')] = !cb.checked; });
+    SN.notes.forEach(n => {
+      if (mute[n.voice]) return;
+      ctx.beginPath(); ctx.arc(n.x, n.y, 7, 0, Math.PI*2);
+      ctx.fillStyle = n.id === SN.selected ? 'rgba(124,92,255,.9)' :
+        n.voice==='S' ? 'rgba(34,211,238,.7)' : n.voice==='A' ? 'rgba(52,211,153,.7)' :
+        n.voice==='T' ? 'rgba(251,191,36,.7)' : 'rgba(251,113,133,.7)';
+      ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+    });
+  }
+
+  function snNoteAt(x, y) {
+    let best = null, bd = 14;
+    SN.notes.forEach(n => { const d = Math.hypot(n.x-x, n.y-y); if (d < bd) { bd = d; best = n; } });
+    return best;
+  }
+
+  function snCoords(ev) {
+    const ov = $('sonoro-ov');
+    const r = ov.getBoundingClientRect();
+    const t = ev.touches && ev.touches[0];
+    const cx = t ? t.clientX : ev.clientX, cy = t ? t.clientY : ev.clientY;
+    return { x: (cx - r.left) * (ov.width / r.width), y: (cy - r.top) * (ov.height / r.height) };
+  }
+
+  function snOnPointer(ev) {
+    ev.preventDefault();
+    const { x, y } = snCoords(ev);
+    const tr = Number($('sonoro-tr').value) || 0;
+    if (SN.modo === 'oir') {
+      const n = snNoteAt(x, y);
+      if (n) { SN.selected = n.id; snPlayMidi(n.midi + tr, 0.45, null, 0.25); snLog('Oír ' + snMidiName(n.midi+tr) + ' (' + n.voice + ')'); snDraw(); }
+      return;
+    }
+    if (SN.modo === 'borrar') {
+      const n = snNoteAt(x, y);
+      if (n) { SN.notes = SN.notes.filter(z => z.id !== n.id); snLog('Borrada ' + snMidiName(n.midi)); snDraw(); }
+      return;
+    }
+    if (SN.modo === 'anadir') {
+      let staff = 0, lines = SN.staves[0], clave = $('sonoro-clave').value === 'fa' ? 'fa' : 'sol';
+      if (SN.staves.length) {
+        let best = 0, bd = 1e9;
+        SN.staves.forEach((ls, i) => {
+          const mid = (ls[0] + ls[ls.length-1]) / 2, d = Math.abs(mid - y);
+          if (d < bd) { bd = d; best = i; lines = ls; }
+        });
+        staff = best; clave = staff % 2 === 0 ? 'sol' : 'fa';
+      }
+      const midi = snPitchFromY(y, lines, clave);
+      const n = { id: SN.nid++, x, y, midi, voice: snVoice(staff, midi, clave), staff, dur: 0.5 };
+      SN.notes.push(n); SN.selected = n.id;
+      snPlayMidi(midi + tr, 0.35, null, 0.22);
+      snLog('Añadida ' + snMidiName(midi)); snDraw();
+      $('sonoro-play').disabled = false; $('sonoro-wav').disabled = false; $('sonoro-xml').disabled = false;
+      return;
+    }
+    if (SN.modo === 'corregir') {
+      const n = snNoteAt(x, y);
+      if (!n) return;
+      SN.selected = n.id;
+      const actual = snMidiName(n.midi);
+      const nuevo = prompt('Nota actual: ' + actual + ' (MIDI ' + n.midi + ')\nNueva (C4, D#3, +1, 60…):', actual);
+      if (nuevo == null || nuevo === '') { snDraw(); return; }
+      const t = nuevo.trim(); let midi = n.midi;
+      if (/^[+-]\d+$/.test(t)) midi = n.midi + parseInt(t, 10);
+      else if (/^\d+$/.test(t)) midi = parseInt(t, 10);
+      else {
+        const m = t.match(/^([A-Ga-g])([#b]?)(-?\d+)$/);
+        if (m) {
+          const map = { C:0,D:2,E:4,F:5,G:7,A:9,B:11 };
+          let pc = map[m[1].toUpperCase()];
+          if (m[2]==='#') pc++; if (m[2]==='b') pc--;
+          midi = (parseInt(m[3],10)+1)*12 + pc;
+        }
+      }
+      midi = Math.max(24, Math.min(96, midi));
+      n.midi = midi;
+      n.voice = snVoice(n.staff, midi, n.staff % 2 === 0 ? 'sol' : 'fa');
+      snPlayMidi(midi + tr, 0.4, null, 0.25);
+      snLog('Corregida → ' + snMidiName(midi)); snDraw();
+    }
+  }
+
+  function snActive() {
+    const mute = {};
+    document.querySelectorAll('[data-sn-v]').forEach(cb => { mute[cb.getAttribute('data-sn-v')] = !cb.checked; });
+    const tr = Number($('sonoro-tr').value) || 0;
+    return SN.notes.filter(n => !mute[n.voice]).map(n => Object.assign({}, n, { midi: n.midi + tr })).sort((a,b) => a.x-b.x||a.y-b.y);
+  }
+
+  function snStop() {
+    if (SN.timer) { clearTimeout(SN.timer); SN.timer = null; }
+    try { if (SN.ctx) { SN.ctx.close(); SN.ctx = null; } } catch (e) {}
+  }
+
+  function snGroups(list) {
+    const groups = [];
+    list.forEach(n => {
+      const g = groups.find(z => Math.abs(z.x - n.x) < 12);
+      if (g) g.notes.push(n); else groups.push({ x: n.x, notes: [n] });
+    });
+    groups.sort((a,b) => a.x - b.x);
+    return groups;
+  }
+
+  async function snUsarLector() {
+    // Usa el PDF ya abierto en EST (lector Palermo)
+    if (typeof EST !== 'undefined' && EST.pdf) {
+      SN.pdf = EST.pdf;
+      await snRenderPage(EST.page || 1);
+      snLog('Usando partitura del lector: ' + (EST.cancion || '') + ' · doc ' + (EST.doc || ''));
+      return;
+    }
+    // Fallback: canción abierta + sel-pdf
+    try {
+      const idC = (typeof cancionAbierta !== 'undefined' && cancionAbierta) || (EST && EST.cancion) || '';
+      const idA = (EST && EST.doc) || ($('sel-pdf') && $('sel-pdf').value) || '';
+      if (!idC || !idA) { snLog('Abra primero una partitura en Partituras / lector.'); return; }
+      const r = await api('pdf', Object.assign({ idCancion: idC, idArchivo: idA }, typeof ctxEns === 'function' ? ctxEns() : {}));
+      if (!r || !r.ok || !r.base64) { snLog('No se pudo cargar el PDF del catálogo.'); return; }
+      const pdfjs = await cargarPdfJs();
+      SN.pdf = await pdfjs.getDocument({ data: aBytes(r.base64), isEvalSupported: false }).promise;
+      await snRenderPage(1);
+      snLog('PDF cargado desde catálogo: ' + idC);
+    } catch (e) { snLog(e.message || String(e)); }
+  }
+
+  function snMidiToStep(midi) {
+    const pc = ((midi % 12) + 12) % 12;
+    const table = [['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]];
+    const [step, alter] = table[pc];
+    return { step, alter, octave: Math.floor(midi / 12) - 1 };
+  }
+
+  function snExportXml() {
+    const tr = Number($('sonoro-tr').value) || 0;
+    const list = snActive().map(n => Object.assign({}, n, { midi: n.midi - tr }));
+    const byVoice = { S: [], A: [], T: [], B: [] };
+    list.forEach(n => { (byVoice[n.voice] || byVoice.S).push(n); });
+    Object.keys(byVoice).forEach(v => byVoice[v].sort((a,b) => a.x - b.x));
+    function notesXml(arr) {
+      if (!arr.length) return '<note><rest/><duration>4</duration><type>whole</type></note>';
+      const cols = [];
+      arr.forEach(n => {
+        const c = cols.find(z => Math.abs(z.x - n.x) < 12);
+        if (c) c.notes.push(n); else cols.push({ x: n.x, notes: [n] });
+      });
+      cols.sort((a,b) => a.x - b.x);
+      let xml = '';
+      cols.forEach(c => {
+        c.notes.forEach((n, ni) => {
+          const { step, alter, octave } = snMidiToStep(n.midi);
+          xml += '<note>';
+          if (ni > 0) xml += '<chord/>';
+          xml += '<pitch><step>' + step + '</step>';
+          if (alter) xml += '<alter>' + alter + '</alter>';
+          xml += '<octave>' + octave + '</octave></pitch><duration>2</duration><type>quarter</type></note>';
+        });
+      });
+      return xml;
+    }
+    const parts = [{ id:'P1', name:'Soprano', v:'S' },{ id:'P2', name:'Alto', v:'A' },{ id:'P3', name:'Tenor', v:'T' },{ id:'P4', name:'Bass', v:'B' }];
+    let body = '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">\n<score-partwise version="3.1">\n  <work><work-title>Estudio Sonoro corregido</work-title></work>\n  <part-list>\n';
+    parts.forEach(p => { body += '    <score-part id="' + p.id + '"><part-name>' + p.name + '</part-name></score-part>\n'; });
+    body += '  </part-list>\n';
+    parts.forEach(p => {
+      const clef = (p.v === 'T' || p.v === 'B') ? ['F',4] : ['G',2];
+      body += '  <part id="' + p.id + '">\n    <measure number="1">\n      <attributes><divisions>2</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>' + clef[0] + '</sign><line>' + clef[1] + '</line></clef></attributes>\n      ' + notesXml(byVoice[p.v]) + '\n    </measure>\n  </part>\n';
+    });
+    body += '</score-partwise>';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([body], { type: 'application/vnd.recordare.musicxml+xml' }));
+    a.download = 'estudio-sonoro-corregido.musicxml';
+    a.click();
+    snLog('MusicXML corregido descargado (' + list.length + ' notas)');
+  }
+
+  // Wiring UI
+  if ($('btn-sonoro')) {
+    $('btn-sonoro').onclick = () => {
+      if (!PUEDE_SONORO) { alert('Estudio Sonoro solo para administradores (y con ESTUDIO_SONORO=1).'); return; }
+      snShow(true);
+      snUsarLector();
+    };
+  }
+  if ($('sonoro-cerrar')) $('sonoro-cerrar').onclick = () => { snStop(); snShow(false); };
+  if ($('sonoro-usar-lector')) $('sonoro-usar-lector').onclick = () => conOcupado(snUsarLector);
+  if ($('sonoro-procesar')) $('sonoro-procesar').onclick = snProcess;
+  if ($('sonoro-ir-pag')) $('sonoro-ir-pag').onclick = () => snRenderPage(Number($('sonoro-pag').value) || 1);
+  document.querySelectorAll('[data-sn-modo]').forEach(b => {
+    b.onclick = () => {
+      SN.modo = b.getAttribute('data-sn-modo');
+      document.querySelectorAll('[data-sn-modo]').forEach(x => x.classList.toggle('on', x === b));
+    };
+  });
+  document.querySelectorAll('[data-sn-v]').forEach(cb => { cb.onchange = snDraw; });
+  if ($('sonoro-stage')) $('sonoro-stage').addEventListener('pointerdown', snOnPointer, { passive: false });
+  if ($('sonoro-stop')) $('sonoro-stop').onclick = () => { snStop(); snLog('Detenido'); };
+  if ($('sonoro-play')) $('sonoro-play').onclick = () => {
+    snStop();
+    const list = snActive();
+    if (!list.length) return;
+    const bpm = Math.max(40, Math.min(220, Number($('sonoro-tempo').value) || 90));
+    const beat = 60 / bpm;
+    snAudio();
+    const t0 = SN.ctx.currentTime + 0.05;
+    const groups = snGroups(list);
+    groups.forEach((g, i) => {
+      const t = t0 + i * beat * 0.5;
+      g.notes.forEach(n => snPlayMidi(n.midi, beat * 0.45, t, 0.16));
+    });
+    SN.timer = setTimeout(() => { SN.timer = null; snLog('Fin'); }, (groups.length * beat * 0.5 + 0.5) * 1000);
+    snLog('Reproduciendo ' + list.length + ' notas');
+  };
+  if ($('sonoro-wav')) $('sonoro-wav').onclick = async () => {
+    const list = snActive();
+    if (!list.length) return;
+    const bpm = Math.max(40, Math.min(220, Number($('sonoro-tempo').value) || 90));
+    const beat = 60 / bpm;
+    const groups = snGroups(list);
+    const end = groups.length * beat * 0.5 + 0.5;
+    const sr = 44100;
+    const offline = new OfflineAudioContext(1, Math.ceil(end * sr), sr);
+    groups.forEach((g, i) => {
+      const t = i * beat * 0.5;
+      g.notes.forEach(n => {
+        const o = offline.createOscillator(), gain = offline.createGain();
+        o.type = 'triangle'; o.frequency.value = snMidiFreq(n.midi);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + beat * 0.4);
+        o.connect(gain); gain.connect(offline.destination);
+        o.start(t); o.stop(t + beat * 0.45);
+      });
+    });
+    const buf = await offline.startRendering();
+    // reutilizar lógica wav mínima
+    const numOfChan = 1, length = buf.length * 2 + 44;
+    const buffer = new ArrayBuffer(length);
+    const view = new DataView(buffer);
+    let pos = 0;
+    const u16 = d => { view.setUint16(pos, d, true); pos += 2; };
+    const u32 = d => { view.setUint32(pos, d, true); pos += 4; };
+    u32(0x46464952); u32(length-8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(1);
+    u32(sr); u32(sr*2); u16(2); u16(16); u32(0x61746164); u32(length-pos-4);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) {
+      let s = Math.max(-1, Math.min(1, ch[i]));
+      view.setInt16(pos, s < 0 ? s * 0x8000 : s * 0x7FFF, true); pos += 2;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+    a.download = 'estudio-sonoro.wav'; a.click();
+    snLog('WAV descargado');
+  };
+  if ($('sonoro-xml')) $('sonoro-xml').onclick = snExportXml;
+
+  // Parche del flujo quien: activar botón si r.estudioSonoro
+  // Se engancha observando la asignación existente de PUEDE_ESTUDIO
+  (function () {
+    let _pe = false;
+    Object.defineProperty(window, '__PUEDE_SONORO_SET', {
+      set: function (v) { PUEDE_SONORO = !!v; const b = $('btn-sonoro'); if (b) b.classList.toggle('oculto', !PUEDE_SONORO); },
+      get: function () { return PUEDE_SONORO; }
+    });
+  })();
+
+
   // Arranque: si hay una sesión guardada y vigente, entra sin volver a pedir Google
-  if (SESION) { $('estado-sesion').textContent = 'Restaurando su sesión…'; mostrarGoogle(false); quienRobusto(); }
+  if (SESION) { $('estado-sesion').textContent = 'Restaurando su sesión…'; quien(); }
 </script>
 
 </body>
