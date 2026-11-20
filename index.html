@@ -1032,6 +1032,15 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
 .uno-rec .par{background:rgba(255,255,255,.06); color:var(--text-secondary); border-radius:var(--radius-pill)}
 </style>
     <h2>🎼 Partituras</h2>
+    <div id="sonoro-banner" class="oculto est-claro" style="margin-bottom:10px;border:1px solid var(--ev,#7D55C7);padding:10px;border-radius:12px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
+        <div>
+          <b>🎹 Estudio Sonoro</b>
+          <div class="aviso" style="margin:4px 0 0">Oír notas del PDF, corregir y exportar MusicXML / WAV (administradores).</div>
+        </div>
+        <button type="button" class="eb on" id="btn-sonoro-partituras" style="flex:0 0 auto">Abrir Estudio Sonoro</button>
+      </div>
+    </div>
     <div id="est-admin" class="oculto est-claro" style="margin-bottom:10px">
       <h3>Acceso a Partituras (administrador)</h3>
       <label class="est-sw"><input type="checkbox" id="est-instr"> Habilitar a todos los instrumentistas</label>
@@ -1510,7 +1519,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyb6clGB_Kiv_Uss6c7sj2tDPwVwb62L58Z7xWREV0N4hUQAjFZSy4bKfb67YYUzOjsTw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v6.8.0';
   let MODULO = '';                 // módulo activo: '' (aún sin elegir) | 'Worship' | 'Coro'
@@ -1826,7 +1835,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       const sinCalent = !permisos.programar && r.clasificacion && r.clasificacion.tipo === 'instrumentista';     // el calentamiento vocal no aplica a instrumentistas
       document.querySelector('#tabbar .tab[data-tab="calentar"]').classList.toggle('oculto', !!sinCalent);
       GUIA_ACTIVA = r.guiaActiva !== false; pintarToggleGuia();
-      PUEDE_DESCARGAR = !!r.puedeDescargar; PUEDE_ESTUDIO = !!r.estudio; PUEDE_SONORO = !!r.estudioSonoro; (function(){ const b=$('btn-sonoro'); if(b) b.classList.toggle('oculto', !PUEDE_SONORO); })(); document.querySelectorAll('[data-est="tab-cat"]').forEach(x => x.classList.toggle('oculto', !r.estudio)); $('btn-estudio').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
+      PUEDE_DESCARGAR = !!r.puedeDescargar; PUEDE_ESTUDIO = !!r.estudio; PUEDE_SONORO = !!(r.estudioSonoro || r.adminGeneral || r.rol === 'admin' || (r.permisos && r.permisos.usuarios)); (function(){ const b=$('btn-sonoro'); if(b) b.classList.toggle('oculto', !PUEDE_SONORO); const ban=$('sonoro-banner'); if(ban) ban.classList.toggle('oculto', !PUEDE_SONORO); })(); document.querySelectorAll('[data-est="tab-cat"]').forEach(x => x.classList.toggle('oculto', !r.estudio)); $('btn-estudio').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); document.querySelector('#tabbar .tab[data-tab="lectura"]').classList.toggle('oculto', !(r.estudio || r.puedeDescargar)); $('btn-estudiar').classList.toggle('oculto', !r.estudio); EST_MODS = r.modulos || [MODULO]; window.__correoActual = r.email || ''; refrescarBotonesDescarga(); actualizarInsigniaOpinion();
       mostrarPopupInicio(); revisarPendientes(); iniciarInicio(r);
       $('btn-salir').classList.remove('oculto');
       log('Perfil verificado: ' + r.rol + (r.version ? ' · servidor ' + r.version : ''));
@@ -6088,13 +6097,16 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   }
 
   // Wiring UI
-  if ($('btn-sonoro')) {
-    $('btn-sonoro').onclick = () => {
-      if (!PUEDE_SONORO) { alert('Estudio Sonoro solo para administradores (y con ESTUDIO_SONORO=1).'); return; }
-      snShow(true);
-      snUsarLector();
-    };
+  function snAbrirDesdeApp() {
+    if (!PUEDE_SONORO) {
+      alert('Estudio Sonoro no está disponible.\n\n1) Debe ser administrador del módulo.\n2) En Apps Script, la propiedad ESTUDIO_SONORO no debe ser "0".\n3) Ejecute estudioSonoroEncenderSoloAdmin() y publique una nueva versión del despliegue.');
+      return;
+    }
+    snShow(true);
+    snUsarLector();
   }
+  if ($('btn-sonoro')) $('btn-sonoro').onclick = snAbrirDesdeApp;
+  if ($('btn-sonoro-partituras')) $('btn-sonoro-partituras').onclick = snAbrirDesdeApp;
   if ($('sonoro-cerrar')) $('sonoro-cerrar').onclick = () => { snStop(); snShow(false); };
   if ($('sonoro-usar-lector')) $('sonoro-usar-lector').onclick = () => conOcupado(snUsarLector);
   if ($('sonoro-procesar')) $('sonoro-procesar').onclick = snProcess;
