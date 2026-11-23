@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbx6_7ikhn1P8kuPDJSZFsNoAcUEZKrZJUkvYAPiTl7itBqjQBHu4Teom0jev-h-Ti_8lw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwJivHSYjEzoCQNvQwfEWPrs0V96wcNDTXxH9N8x2pw_Ytf6TA99Qc-lXt-iRvOq-SAVg/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5806,6 +5806,29 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       mezcla.connect(g);
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.3, t + 0.07); g.gain.setValueAtTime(vol * 0.3, Math.max(t + 0.08, fin - 0.08)); g.gain.linearRampToValueAtTime(0.0001, fin + 0.1);
       o.start(t); lfo.start(t); o.stop(fin + 0.15); lfo.stop(fin + 0.15); if (nodos) nodos.push(o, lfo);
+    } else if (instr === 'organo' || instr === 'trompeta' || instr === 'violin' || instr === 'chelo') {
+      const dur2 = Math.max(0.12, dur), fin2 = t + dur2, tail = instr === 'organo' ? 0.09 : 0.12, atk = { organo: 0.02, trompeta: 0.045, violin: 0.07, chelo: 0.1 }[instr], niv = { organo: 0.17, trompeta: 0.2, violin: 0.2, chelo: 0.24 }[instr] * vol;
+      const salida = ctx.createGain(); salida.connect(g);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(niv, t + atk); g.gain.setValueAtTime(niv, Math.max(t + atk + 0.01, fin2 - tail)); g.gain.linearRampToValueAtTime(0.0001, fin2 + tail);
+      const iniciar = (o, hasta) => { o.start(t); o.stop(hasta); if (nodos) nodos.push(o); };
+      if (instr === 'organo') {   // órgano: barras de registro (8', 4', 2 2/3', 2', 1 3/5', 1') + vibrato leve de «Leslie»
+        const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 6.2; lg.gain.value = f * 0.0025; lfo.connect(lg); iniciar(lfo, fin2 + tail + 0.1);
+        [[1, 1], [2, 0.8], [3, 0.45], [4, 0.5], [5, 0.2], [8, 0.12]].forEach(c => { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * c[0]; lg.connect(o.frequency); const gg = ctx.createGain(); gg.gain.value = c[1] / 3; o.connect(gg); gg.connect(salida); iniciar(o, fin2 + tail + 0.1); });
+      } else {
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; o.connect(flt); flt.connect(salida);
+        const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.connect(lg); lg.connect(o.frequency); iniciar(lfo, fin2 + tail + 0.1);
+        if (instr === 'trompeta') {   // metal: el filtro «abre» tras el ataque (brillo del soplido) y vibrato muy leve al final de notas largas
+          flt.Q.value = 1.2; flt.frequency.setValueAtTime(f * 1.6, t); flt.frequency.linearRampToValueAtTime(Math.min(7000, f * 7), t + 0.07); flt.frequency.linearRampToValueAtTime(Math.min(5000, f * 5), t + 0.2);
+          lfo.frequency.value = 5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.004, t + Math.max(0.4, dur2 * 0.7));
+        } else if (instr === 'violin') {   // arco: ataque suave, vibrato que entra a los ~0,2 s, resonancia de caja
+          flt.frequency.value = Math.min(6500, 1400 + f * 3.2); flt.Q.value = 0.8; lfo.frequency.value = 5.6; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.009, t + 0.25);
+          const cuerpo = ctx.createBiquadFilter(); cuerpo.type = 'peaking'; cuerpo.frequency.value = 3000; cuerpo.gain.value = 4; flt.disconnect(); flt.connect(cuerpo); cuerpo.connect(salida);
+        } else {   // violonchelo: más oscuro y con cuerpo en graves
+          flt.frequency.value = Math.min(3200, 700 + f * 4); flt.Q.value = 0.9; lfo.frequency.value = 5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.007, t + 0.3);
+          const cuerpo = ctx.createBiquadFilter(); cuerpo.type = 'peaking'; cuerpo.frequency.value = 220; cuerpo.gain.value = 5; flt.disconnect(); flt.connect(cuerpo); cuerpo.connect(salida);
+        }
+        iniciar(o, fin2 + tail + 0.1);
+      }
     } else {
       const comp = [[1, 1], [2, 0.5], [3, 0.28], [4, 0.14], [5, 0.07]], flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = Math.min(9000, 1800 + f * 4); flt.connect(g);
       const tau = Math.max(0.35, 2.2 - midi / 60), end = t + Math.max(dur, 0.3) + 0.25;
@@ -5964,7 +5987,14 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function sonProgramar(ctx, dest, lt, t0, nodos, filtro) {
     sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, v * sonVol(n), nodos); });
   }
-  function sonSegmento(res, lt, t0, pag) { sonSimul(lt); const ns = lt.notas.filter(n => sonPeso(n) > 0).sort((a, b) => a.seg - b.seg); return { res: res, lt: lt, t0: t0, ini: t0, ns: ns, i: 0, pag: pag, fin: Math.max.apply(null, ns.map(n => n.seg + n.durSeg).concat([0])) }; }
+  function sonSegmento(res, lt, t0, pag) { sonSimul(lt); const ns = lt.notas.filter(n => sonPeso(n) > 0).sort((a, b) => a.seg - b.seg); return { res: res, lt: lt, t0: t0, ini: t0, ns: ns, i: 0, pag: pag, fin: Math.max(Math.max.apply(null, ns.map(n => n.seg + n.durSeg).concat([0])), (lt.totalQ || 0) * lt.segQ - 0.001) }; }
+  /* Calidad de lectura de una página: % de compases cuyo ritmo suma lo que dice el compás. Es la medida honesta de «qué tan fiable es lo que va a sonar». */
+  function sonCalidad(lt) { const i = lt && lt.informe; if (!i || !i.compases) return { pct: 100, txt: '' }; const pct = Math.round(100 * i.validos / i.compases); return { pct: pct, txt: i.validos + '/' + i.compases + ' compases verificados (' + pct + ' %)' }; }
+  function sonAvisoPagina(pag, lt) { const q = sonCalidad(lt); const m = 'Pág. ' + pag + ' lista: ' + q.txt + (q.pct < 85 ? ' — lectura DUDOSA: el ritmo de algunos compases puede sonar distinto a lo impreso' : ''); SON.calidadMsg = m; if (SON.tocando) sonEstado(m); return q; }
+  function sonPrever(pag) {            // mientras suena la página actual, lee y valida la siguiente (no espera a los últimos segundos)
+    if (SON.pre && SON.pre.pag === pag) return SON.pre.p;
+    const tok = EST.tok, p = sonSiguiente(pag, 0).then(x => { if (tok === EST.tok) sonAvisoPagina(pag, x.lt); return x; }); SON.pre = { pag: pag, p: p, tok: tok }; return p;
+  }
   async function sonSiguiente(pag, t0) { const r = await sonAnalizar(pag); const est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; return sonSegmento(r, window.SonoroMotor.lineaTiempo(r, est), t0, pag); }
   function sonQuedaMas() { const l = SON.segs[SON.segs.length - 1]; return !SON.completa && SON.cont === 'seguir' && !SON.sinSig && l && l.pag < EST.pdf.numPages; }
   function sonRodar() {                      // planificador: programa solo ~1,6 s por delante (evita miles de nodos de audio a la vez)
@@ -5974,7 +6004,10 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
     const l = SON.segs[SON.segs.length - 1];
-    if (sonQuedaMas() && !SON.preparando && l.t0 + l.fin - ctx.currentTime < 5) { SON.preparando = true; sonSiguiente(l.pag + 1, l.t0 + l.fin).then(x => { if (SON.tocando) SON.segs.push(x); SON.preparando = false; }).catch(() => { SON.preparando = false; SON.sinSig = true; }); }
+    if (sonQuedaMas() && !SON.preparando) {
+      const pp = sonPrever(l.pag + 1); if (pp && !SON.pre.cap) { SON.pre.cap = true; pp.catch(() => { SON.sinSig = true; }); }
+      if (l.t0 + l.fin - ctx.currentTime < 5 && SON.pre && SON.pre.pag === l.pag + 1) { SON.preparando = true; const pr = SON.pre; pr.p.then(x => { if (SON.tocando && pr.tok === EST.tok) { const t = l.t0 + l.fin; x.t0 = t; x.ini = t; SON.segs.push(x); } SON.preparando = false; SON.pre = null; }).catch(() => { SON.preparando = false; SON.sinSig = true; }); }
+    }
   }
   function sonPaso() {
     if (!SON.tocando) return; const ctx = SON.ctx, now = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
@@ -6026,7 +6059,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       const s0 = (lt.slotT[ra.sist + '|' + ra.m] || 0) * lt.segQ, s1 = (lt.slotT[rb.sist + '|' + rb.m] || 0) * lt.segQ + lt.largoQ * lt.segQ;
       sonSimul(lt); const ns = lt.notas.filter(n => n.seg >= s0 - 1e-6 && n.seg < s1 - 1e-6 && sonPeso(n) > 0).sort((a, b) => a.seg - b.seg);
       segs.push({ res: res, lt: lt, t0: T - s0, ini: T, ns: ns, i: 0, pag: ra.pag, fin: s1 }); T += s1 - s0; k = k2 + 1; }
-    SON.segs = segs; $('son-play').textContent = '⏹ Detener'; sonEstado(E.avisos.length ? 'Avisos: ' + E.avisos.join(' · ') : 'Tocando la pieza completa en el orden de ejecución');
+    const dud = []; Array.from(new Set(segs.map(x => x.pag))).forEach(pg => { const q = sonCalidad(sonLtDe(pg)); if (q.pct < 85) dud.push('pág. ' + pg + ' ' + q.pct + ' %'); });
+    SON.segs = segs; $('son-play').textContent = '⏹ Detener'; sonEstado((E.avisos.length ? 'Avisos: ' + E.avisos.join(' · ') + ' · ' : '') + (dud.length ? 'Lectura DUDOSA (ritmo verificado): ' + dud.join(', ') : 'Todas las páginas con ritmo verificado ≥ 85 %') + ' · orden de ejecución completo');
     if (SON.auto) sonMin(true);
     SON.timer = setInterval(sonRodar, 200); sonRodar(); SON.raf = requestAnimationFrame(sonPaso);
   }
@@ -6035,7 +6069,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (SON.orden === 'correcto') { await sonReproducirCompleta(); return; }
     const res = await sonPrepararPagina(); if (!res || !SON.lt) return; const lt = SON.lt, ctx = sonAudio();
     if (!lt.notas.length) { sonEstado('No encontré notas en esta página'); return; }
-    SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = []; SON.tocando = true; SON.preparando = false; SON.sinSig = false;
+    SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = []; SON.tocando = true; SON.preparando = false; SON.sinSig = false; SON.pre = null;
     SON.segs = [sonSegmento(res, lt, ctx.currentTime + 0.2, EST.page)]; $('son-play').textContent = '⏹ Detener';
     if (SON.auto) sonMin(true);
     SON.timer = setInterval(sonRodar, 200); sonRodar(); SON.raf = requestAnimationFrame(sonPaso);
@@ -6091,7 +6125,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     let p = $('son-panel'); if (p) return p; p = document.createElement('div'); p.id = 'son-panel';
     p.innerHTML = '<div class="son-f"><span class="son-t"><b>🎹<span class="son-tx"> Estudio Sonoro</span></b> <span class="son-tag">alfa</span></span><button type="button" id="son-play">▶ Reproducir</button><button type="button" id="son-min" title="Ocultar controles (ver la partitura completa)">▾</button><button type="button" id="son-x" title="Cerrar el estudio">✕</button></div>' +
       '<div class="son-f"><label>♩= <input id="son-bpm" type="number" min="30" max="220" step="1"></label>' +
-      '<label>Sonido <select id="son-instr"><option value="piano">Piano</option><option value="voz">Voz «aah»</option></select></label>' +
+      '<label>Sonido <select id="son-instr"><option value="piano">Piano</option><option value="organo">Órgano</option><option value="trompeta">Trompeta</option><option value="violin">Violín</option><option value="chelo">Violonchelo</option><option value="voz">Voz «aah»</option></select></label>' +
       '<label>Voz <select id="son-voz"><option value="todas">Todas las voces</option></select></label>' +
       '<label>Resto <select id="son-resto"><option value="suave">suave</option><option value="mudo">en silencio</option></select></label>' +
       '<label>Al terminar la página <select id="son-cont"><option value="parar">se detiene</option><option value="seguir">sigue con la siguiente</option></select></label>' +
@@ -6286,7 +6320,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       // barras de compás (verticales que cubren todo el pentagrama)
       if (geo.lwPlica === undefined) { const l = geo.V.filter(s => { const L = Math.abs(s.y2 - s.y1); return L > 2.8 * sp && L < 3.8 * sp; }).map(s => s.lw).sort((a, b) => a - b); geo.lwPlica = l.length ? l[Math.floor(l.length / 2)] : 0; }
       const enLinea = y => pent.some(q => q.ys.some(l => Math.abs(l - y) < 0.12 * sp));
-      const esBarra = s => { const y0 = Math.min(s.y1, s.y2), y1 = Math.max(s.y1, s.y2); return s.x1 > p.x0 - 1 && s.x1 <= p.x1 + 1 && y0 <= bot + 0.4 * sp && y1 >= top - 0.4 * sp && (enLinea(y0) && enLinea(y1) || s.lw >= geo.lwPlica * 1.25); };
+      const esBarra = s => { const y0 = Math.min(s.y1, s.y2), y1 = Math.max(s.y1, s.y2); return s.x1 > p.x0 - 1 && s.x1 <= p.x1 + 1 && y0 <= bot + 0.4 * sp && y1 >= top - 0.4 * sp && (enLinea(y0) && enLinea(y1) || s.lw >= geo.lwPlica * 1.25) && !(cabezas.some(h => s.x1 >= h.x - 0.8 && s.x1 <= h.x + h.w + 0.8 && (Math.abs(h.y - y0) < 0.6 * sp || Math.abs(h.y - y1) < 0.6 * sp))); };   // una plica de acorde largo (de cabeza a punta) NO es barra de compás
       const bar = geo.V.filter(s => esBarra(s) && s.x1 > p.x0 + 1).map(s => s.x1).sort((a, b) => a - b);
       const barras = [], barras2 = []; bar.forEach(x => { if (!barras.length || x - barras[barras.length - 1] > 1.5 * sp) { barras.push(x); barras2.push(x); } else barras2[barras2.length - 1] = x; });
       st.barras = barras; st.barras2 = barras2;
@@ -6420,7 +6454,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         const gancho = geo.V.some(v => Math.abs(v.x1 - xa) < 1.2 && Math.max(v.y1, v.y2) >= h.y1 - 1.2 && Math.max(v.y1, v.y2) <= h.y1 + 1.2 && Math.abs(v.y2 - v.y1) > 1.2 * sp);
         if (!gancho) return;
         const tx = geo.textos.filter(t => t.x >= xa - 2 && t.x <= xa + 14 * sp && t.y < h.y1 + 0.5 && t.y > h.y1 - 14 * sp).map(t => ({ t: t, c: claseTexto(t.s) })).find(o => o.c && o.c.tipo === 'volta');
-        if (!tx) return; sl.forEach(s => { if (s.x0 >= xa - 3 && s.x1 <= xb + 3) s.volta = tx.c.nums; });
+        if (!tx) return; sl.forEach(s => { const cm = (s.x0 + s.x1) / 2; if (cm >= xa - 1 && cm <= xb + 1) s.volta = tx.c.nums; });   // el compás cae bajo la casilla aunque la barra final sobresalga unos puntos
       });
       // textos de estructura (secciones, letras de ensayo, saltos)
       geo.textos.forEach(t => { if (t.st !== ref.id && !ps.some(p => p.id === t.st)) return; const c = claseTexto(t.s); if (!c || c.tipo === 'volta') return;
