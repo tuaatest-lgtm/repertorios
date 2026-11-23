@@ -266,6 +266,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
 .lec-aviso.v{animation:lecfade 1s ease-out forwards}
 #est-lector.son .lec-z{pointer-events:none}
 #son-panel{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:40;width:min(96%,720px);box-sizing:border-box;background:rgba(10,47,108,.96);color:#fff;border-radius:12px;padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.35);font-size:14px}
+#son-panel .son-cant{font-size:12px;flex:1 1 100%;min-height:15px}#son-panel .son-cant.bien{color:#86efac}#son-panel .son-cant.mal{color:#fdba74}
 #son-panel .son-f{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:2px 0}
 #son-panel button{width:auto;min-width:0;margin:0;background:#fff;color:#0a2f6c;border:0;border-radius:8px;padding:6px 12px;font-weight:700;font-size:14px}
 #son-panel #son-x,#son-panel #son-min{background:transparent;color:#fff;font-size:18px;padding:0 6px}#son-panel #son-min{margin-left:auto}#son-panel.min{width:auto;padding:5px 8px}#son-panel.min .son-f:not(:first-child),#son-panel.min .son-t{display:none}#son-panel input[type=checkbox]{width:auto}#son-panel button{white-space:nowrap}#son-panel{max-height:52vh;overflow:auto}#son-ruta{font-size:12px;line-height:1.35;max-height:110px;overflow:auto;width:100%}#son-ruta:empty{display:none}#son-panel.min #son-ruta{display:none}#son-panel .son-f:first-child{flex-wrap:nowrap}#son-panel.min .son-f:first-child{gap:8px}@media(max-width:520px){#son-panel .son-tx{display:none}}
@@ -1452,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxMntALAr8PJzOd6h_aSYq4OP_7DXNpdv5HjnvFN6WJNrbHP4GM-a3ttPMQzgy5Qs-d4w/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx6_7ikhn1P8kuPDJSZFsNoAcUEZKrZJUkvYAPiTl7itBqjQBHu4Teom0jev-h-Ti_8lw/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5780,10 +5781,19 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   /* ---- aviso translúcido (deja ver la partitura mientras se desvanece) y toques ---- */
   function lecAviso(t) { const el = $('lec-aviso'); el.classList.remove('v'); el.textContent = t; void el.offsetWidth; el.classList.add('v'); }
   /* ===== v7.0.0 · ESTUDIO SONORO (alfa) — solo si el servidor lo habilita (por defecto: administrador general) ===== */
-  const SON = { orden: 'impreso', segnoN: 0, repTras: false, estr: null, ltc: {}, completa: false, cont: 'parar', auto: true, min: false, segs: [], on: false, tok: -1, pag: {}, estado: {}, res: null, lt: null, ctx: null, instr: 'piano', voz: 'todas', resto: 'suave', bpm: 0, nodos: [], raf: 0, t0: 0, tocando: false, sel: null, estadoMsg: '' };
+  const SON = { orden: 'impreso', segnoN: 0, repTras: false, estr: null, ltc: {}, completa: false, cont: 'parar', auto: true, min: false, segs: [], on: false, tok: -1, pag: {}, estado: {}, res: null, lt: null, ctx: null, instr: 'piano', voz: 'todas', resto: 'suave', bpm: 0, nodos: [], raf: 0, t0: 0, tocando: false, sel: null, estadoMsg: '', solFa: false, elegidas: new Set(), metro: false, metroRe: false, mnodos: [], mic: null, canto: { obj: null, n: 0, ok: 0 } };
+  if (window.__SON_TEST) window.__SONTEST = { get: () => ({ sonNota: sonNota, sonSalida: sonSalida, sonFrec: sonFrec, sonYin: sonYin, sonClic: sonClic, sonPulso: sonPulso, sonMetro: sonMetro, sonSatb: sonSatb, SON: SON }) };
   const SON_CLAVES_MAYOR = { '-7': 'Do♭', '-6': 'Sol♭', '-5': 'Re♭', '-4': 'La♭', '-3': 'Mi♭', '-2': 'Si♭', '-1': 'Fa', '0': 'Do', '1': 'Sol', '2': 'Re', '3': 'La', '4': 'Mi', '5': 'Si', '6': 'Fa♯', '7': 'Do♯' };
   const SON_CLAVES_MENOR = { '-7': 'La♭', '-6': 'Mi♭', '-5': 'Si♭', '-4': 'Fa', '-3': 'Do', '-2': 'Sol', '-1': 'Re', '0': 'La', '1': 'Mi', '2': 'Si', '3': 'Fa♯', '4': 'Do♯', '5': 'Sol♯', '6': 'Re♯', '7': 'La♯' };
   const sonFrec = m => 440 * Math.pow(2, (m - 69) / 12);
+  /* Salida común: ganancia de entrada → compresor suave → limitador → ganancia final. Evita la saturación al sumar acordes. */
+  function sonSalida(ctx) {
+    if (ctx.__sonSal) return ctx.__sonSal;
+    const ent = ctx.createGain(); ent.gain.value = 0.7;
+    const c1 = ctx.createDynamicsCompressor(); c1.threshold.value = -22; c1.knee.value = 16; c1.ratio.value = 4; c1.attack.value = 0.006; c1.release.value = 0.25;
+    const lim = ctx.createDynamicsCompressor(); lim.threshold.value = -4; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.1;
+    const sal = ctx.createGain(); sal.gain.value = 0.85; ent.connect(c1); c1.connect(lim); lim.connect(sal); sal.connect(ctx.destination); ctx.__sonSal = ent; return ent;
+  }
   function sonAudio() { if (!SON.ctx) { const AC = window.AudioContext || window.webkitAudioContext; SON.ctx = new AC(); } if (SON.ctx.state === 'suspended') SON.ctx.resume(); return SON.ctx; }
   /* Instrumentos sintetizados en el propio navegador (sin descargar archivos). Piano: parciales con decaimiento; Voz «aah»: sierra + 3 formantes + vibrato. */
   function sonNota(ctx, dest, midi, t, dur, instr, vol, nodos) {
@@ -5794,17 +5804,67 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       const mezcla = ctx.createGain(); mezcla.gain.value = 1;
       [[800, 9, 1], [1150, 10, 0.5], [2900, 12, 0.25]].forEach(fo => { const b = ctx.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = fo[0]; b.Q.value = fo[1]; const gg = ctx.createGain(); gg.gain.value = fo[2]; o.connect(b); b.connect(gg); gg.connect(mezcla); });
       mezcla.connect(g);
-      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.9, t + 0.07); g.gain.setValueAtTime(vol * 0.9, Math.max(t + 0.08, fin - 0.08)); g.gain.linearRampToValueAtTime(0.0001, fin + 0.1);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.3, t + 0.07); g.gain.setValueAtTime(vol * 0.3, Math.max(t + 0.08, fin - 0.08)); g.gain.linearRampToValueAtTime(0.0001, fin + 0.1);
       o.start(t); lfo.start(t); o.stop(fin + 0.15); lfo.stop(fin + 0.15); if (nodos) nodos.push(o, lfo);
     } else {
       const comp = [[1, 1], [2, 0.5], [3, 0.28], [4, 0.14], [5, 0.07]], flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = Math.min(9000, 1800 + f * 4); flt.connect(g);
       const tau = Math.max(0.35, 2.2 - midi / 60), end = t + Math.max(dur, 0.3) + 0.25;
-      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.55, t + 0.006); g.gain.setTargetAtTime(0.0001, t + 0.01, tau * 0.45);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.2, t + 0.012); g.gain.setTargetAtTime(0.0001, t + 0.02, tau * 0.45);
       if (dur < tau * 2) { g.gain.cancelScheduledValues(t + dur); g.gain.setTargetAtTime(0.0001, t + dur, 0.09); }
       comp.forEach((c, i) => { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * c[0] * (1 + i * 0.0004); const gg = ctx.createGain(); gg.gain.value = c[1]; o.connect(gg); gg.connect(flt); o.start(t); o.stop(end + 0.5); if (nodos) nodos.push(o); });
     }
   }
-  function sonDetener() { SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
+
+  /* ---------- metrónomo (sincronizado con ♩= y el compás; se enciende/apaga en vivo) ---------- */
+  function sonPulso(lt) { const c = (lt && lt.comp) || [4, 4], n = c[0], d = c[1]; return (d === 8 && n % 3 === 0 && n > 3) ? { q: 1.5, n: n / 3 } : { q: 4 / d, n: n }; }
+  function sonClic(ctx, t, acento) {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = acento ? 1568 : 1046;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(acento ? 0.32 : 0.2, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    o.connect(g); g.connect(SON.master || ctx.destination); o.start(t); o.stop(t + 0.08); SON.mnodos.push(o); if (SON.mnodos.length > 60) SON.mnodos = SON.mnodos.slice(-30);
+  }
+  function sonMetro(ctx, lim) {
+    if (!SON.metro) return;
+    SON.segs.forEach(s => { const p = sonPulso(s.lt), b = p.q * s.lt.segQ; if (s.mi === undefined || SON.metroRe) s.mi = Math.max(0, Math.ceil((ctx.currentTime - s.t0 - 0.02) / b));
+      while (s.t0 + s.mi * b < lim && s.mi * b < s.fin - 0.01) { sonClic(ctx, Math.max(ctx.currentTime, s.t0 + s.mi * b), s.mi % p.n === 0); s.mi++; } });
+    SON.metroRe = false;
+  }
+  function sonMetroSet(on) { SON.metro = on; SON.metroRe = true; if (!on) { SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; } }
+  /* ---------- «cantar con la nota»: micrófono + detector de altura (YIN) ---------- */
+  function sonYin(b, sr) {
+    const N = b.length, H = N >> 1; let rms = 0; for (let i = 0; i < N; i++) rms += b[i] * b[i]; if (Math.sqrt(rms / N) < 0.01) return 0;
+    const d = new Float32Array(H); for (let t = 1; t < H; t++) { let q = 0; for (let i = 0; i < H; i++) { const x = b[i] - b[i + t]; q += x * x; } d[t] = q; }
+    let run = 0; d[0] = 1; for (let t = 1; t < H; t++) { run += d[t]; d[t] = run ? d[t] * t / run : 1; }
+    const lo = Math.max(2, Math.floor(sr / 1100)), hi = Math.min(H - 2, Math.floor(sr / 65)); let tau = -1;
+    for (let t = lo; t < hi; t++) { if (d[t] < 0.15) { while (t + 1 < hi && d[t + 1] < d[t]) t++; tau = t; break; } }
+    if (tau < 0) return 0; const a = d[tau - 1], c = d[tau + 1], m = d[tau], den = a + c - 2 * m, sh = den ? (a - c) / (2 * den) : 0; return sr / (tau + sh);
+  }
+  function sonCantoMostrar(txt, cls) { const e = $('son-canto'); if (e) { e.textContent = txt; e.className = 'son-cant ' + (cls || ''); }
+    let f = $('son-flot'); if (!SON.mic) { if (f) f.remove(); return; }
+    if (!f) { f = document.createElement('div'); f.id = 'son-flot'; f.style.cssText = 'position:fixed;right:8px;top:8px;z-index:60;max-width:46vw;padding:5px 9px;border-radius:10px;font:600 12px/1.3 sans-serif;color:#fff;background:rgba(30,41,59,.55);pointer-events:none;backdrop-filter:blur(2px)'; document.body.appendChild(f); }
+    f.style.background = cls === 'bien' ? 'rgba(22,101,52,.62)' : cls === 'mal' ? 'rgba(153,27,27,.55)' : 'rgba(30,41,59,.55)'; f.textContent = txt.split(' · ').slice(0, 3).join(' · '); }
+  async function sonCantoOn() {
+    try {
+      const ctx = sonAudio(); const st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      const an = ctx.createAnalyser(); an.fftSize = 2048; const src = ctx.createMediaStreamSource(st); src.connect(an);
+      SON.mic = { st: st, src: src, an: an, buf: new Float32Array(2048), timer: setInterval(sonCantoPaso, 50) }; SON.canto = { obj: null, n: 0, ok: 0 };
+      sonCantoMostrar('Micrófono activo — use audífonos para que el micrófono no capte el piano. Pulse ▶ y cante la voz elegida.', '');
+    } catch (e) { const c = $('son-cantar'); if (c) c.checked = false; sonCantoMostrar('No se pudo abrir el micrófono (' + (e && e.name || 'error') + '). Revise el permiso del navegador.', 'mal'); }
+  }
+  function sonCantoOff() { const m = SON.mic; if (m) { clearInterval(m.timer); try { m.src.disconnect(); } catch (e) { } try { m.st.getTracks().forEach(t => t.stop()); } catch (e) { } } SON.mic = null; sonCantoMostrar('', ''); }
+  function sonCantoPaso() {
+    const m = SON.mic, ctx = SON.ctx; if (!m || !ctx) return; m.an.getFloatTimeDomainData(m.buf); const f = sonYin(m.buf, ctx.sampleRate), tNow = ctx.currentTime - m.buf.length / ctx.sampleRate / 2;
+    let obj = null, cur = null; if (SON.tocando) { const now = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0); SON.segs.forEach(s => { if (now >= s.ini) cur = s; });
+      if (cur) { const t = now - cur.t0, act = cur.ns.filter(n => sonPeso(n) === 1 && t >= n.seg && t < n.seg + n.durSeg); if (act.length) obj = act.reduce((a, b) => b.midi > a.midi ? b : a); } }
+    const C = SON.canto; if (!obj) { sonCantoMostrar(SON.tocando ? '— sin nota que seguir en este instante' : 'Pulse ▶ para empezar; cante la voz elegida', ''); return; }
+    if (C.obj !== obj) { C.obj = obj; C.exp = cur.t0 + obj.seg; C.t = null; C.dt = null; }
+    if (!f) { sonCantoMostrar('Objetivo ' + obj.nombre + ' · no se oye voz', 'mal'); return; }
+    let c = 1200 * Math.log2(f / sonFrec(obj.midi)); c = ((c + 600) % 1200 + 1200) % 1200 - 600;     // se pliega a la octava: cantar una octava abajo también cuenta
+    if (C.t === null && Math.abs(c) <= 100) { C.t = tNow; C.dt = (tNow - C.exp) * 1000; }
+    C.n++; const ok = Math.abs(c) <= 30; if (ok) C.ok++;
+    const afin = ok ? '✔ igualando la nota' : c > 0 ? '▲ más alto' : '▼ más bajo', tm = C.dt === null ? 'tiempo: aún no entra' : Math.abs(C.dt) <= 150 ? 'tiempo: ✔ sincronizado (' + Math.round(C.dt) + ' ms)' : C.dt > 0 ? 'tiempo: atrasado ' + Math.round(C.dt) + ' ms' : 'tiempo: adelantado ' + Math.round(-C.dt) + ' ms';
+    sonCantoMostrar(afin + ' (' + (c > 0 ? '+' : '') + Math.round(c) + '¢) · objetivo ' + obj.nombre + ' · usted ' + Math.round(f) + ' Hz · ' + tm + ' · afinado ' + Math.round(100 * C.ok / C.n) + '%', ok && (C.dt === null || Math.abs(C.dt) <= 150) ? 'bien' : 'mal');
+  }
+  function sonDetener() { SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
   /* ---------- análisis de la página con el motor ---------- */
   async function sonAnalizar(n) {
     if (!window.SonoroMotor || !EST.pdf) return null;
@@ -5817,12 +5877,34 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     }
     return SON.pag[n];
   }
+  /* Voces SATB globales (sol + fa unidos): por cada instante, se apilan TODAS las notas de la pareja de pentagramas.
+     Soprano = la más alta · Bajo = la más baja · Alto = la 2.ª desde arriba · Tenor = la más alta de la clave de fa (si es distinta del bajo; si no, la 3.ª desde arriba).
+     Con más de 4 notas apiladas, las sobrantes quedan sin voz fija: se eligen con el puntero (opción «Notas elegidas»). */
+  function sonSatb(lt) {
+    if (lt.__satb) return; const g = {};
+    lt.notas.forEach(n => { n.satb = null; const k = n.sist + '|' + Math.round(n.tq * 48); (g[k] = g[k] || []).push(n); });
+    let extras = 0;
+    Object.keys(g).forEach(k => {
+      const a = g[k].slice().sort((x, y) => y.midi - x.midi); if (!a.length) return;
+      const S = a[0], B = a.length > 1 ? a[a.length - 1] : null; S.satb = 'S'; if (B) B.satb = 'B';
+      let A = null, T = null; const med = a.slice(1, a.length - 1);
+      if (a.length >= 3) A = a[1];
+      const fa = a.filter(n => !n.claveSol && n !== B);
+      if (a.length >= 4) T = fa.length ? fa[0] : (a.length >= 4 ? a[2] : null);
+      if (T && T === A) T = med.find(n => n !== A) || null;
+      if (A) A.satb = 'A'; if (T) T.satb = 'T';
+      a.forEach(n => { if (!n.satb) { n.satb = 'x'; extras++; } });
+    });
+    lt.__satb = true; lt.extras = extras;
+  }
+  const SON_SATB_NOM = { S: 'Soprano (la más alta de cada acorde)', A: 'Alto (2.ª desde arriba)', T: 'Tenor (la más alta de la clave de fa)', B: 'Bajo (la más baja)', RH: 'Mano derecha · acordes (clave de sol)', LH: 'Mano izquierda · acordes (clave de fa)', sel: 'Notas elegidas con el puntero' };
   function sonVocesDe(res) {                     // etiquetas de las voces: por pentagrama y rango dentro del acorde
     const out = {}; const conNotas = res.pent.filter(s => s.notas && s.notas.length);
-    const solFa = conNotas.length === 2 && conNotas[0].clave === 'sol' && conNotas[1].clave === 'fa' && !conNotas[0].etiqueta && !conNotas[1].etiqueta;
-    conNotas.forEach((s, k) => { const maxR = Math.max.apply(null, SON.lt.notas.filter(n => n.pent === s.id).map(n => n.rango).concat([0]));
+    const solFa = conNotas.some(x => x.clave === 'sol') && conNotas.some(x => x.clave === 'fa') && !conNotas.some(x => x.etiqueta);   // piano / coro sin rótulos: cada sistema se apila (sol + fa)
+    if (!solFa) conNotas.forEach((s, k) => { const maxR = Math.max.apply(null, SON.lt.notas.filter(n => n.pent === s.id).map(n => n.rango).concat([0]));
       for (let r = 0; r <= Math.min(maxR, 3); r++) { let nom = s.etiqueta || ('Pentagrama ' + (k + 1)); if (solFa) nom = (k === 0 ? ['Soprano', 'Contralto'] : ['Tenor', 'Bajo'])[r] || (nom + ' ' + (r + 1)); else if (maxR > 0) nom += ' · voz ' + (r + 1); out[s.id + '#' + r] = nom; } });
-    return out;
+    if (solFa && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); if (SON.lt.extras) o2.sel = SON_SATB_NOM.sel; return o2; }
+    SON.solFa = false; return out;
   }
   function sonClaveTexto(res) {
     const s = res.pent.find(p => p.arm); if (!s) return ''; const n = s.arm.sig * s.arm.n, may = SON_CLAVES_MAYOR[n], men = SON_CLAVES_MENOR[n];
@@ -5864,8 +5946,9 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     let mejor = null, md = 1e9; r.notas.forEach(n => { const d = Math.hypot(n.x + 3 - x, n.y - y); if (d < md) { md = d; mejor = n; } });
     const sp = mejor ? r.pent[mejor.st].sp : 5; if (!mejor || md > sp * 1.6) { SON.sel = null; sonRepintar(); return; }
     e.preventDefault(); e.stopPropagation();
+    if (SON.voz === 'sel') { if (SON.elegidas.has(mejor)) SON.elegidas.delete(mejor); else SON.elegidas.add(mejor); const c0 = sonAudio(); sonNota(c0, sonSalida(c0), mejor.midi, c0.currentTime + 0.01, 0.9, SON.instr, 0.7, null); SON.sel = Array.from(SON.elegidas); sonRepintar(); sonEstado(SON.elegidas.size + ' nota(s) elegida(s) para la voz «Notas elegidas»: ' + mejor.nombre + (SON.elegidas.has(mejor) ? ' añadida' : ' quitada')); return; }
     const grupo = r.notas.filter(n => n.st === mejor.st && Math.abs(n.x - mejor.x) < 8).sort((a, b) => a.midi - b.midi);
-    const ctx = sonAudio(); grupo.forEach(n => sonNota(ctx, ctx.destination, n.midi, ctx.currentTime + 0.01, 0.9, SON.instr, 0.9 / Math.sqrt(grupo.length), null));
+    const ctx = sonAudio(); grupo.forEach(n => sonNota(ctx, sonSalida(ctx), n.midi, ctx.currentTime + 0.01, 0.9, SON.instr, 0.9 / Math.sqrt(grupo.length), null));
     SON.sel = grupo; sonRepintar();
     const L = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si'][((mejor.d % 7) + 7) % 7], arm = r.pent[mejor.st].arm;
     let why = mejor.alt === -1 ? 'bemol escrito junto a la nota' : mejor.alt === 1 ? 'sostenido escrito junto a la nota' : mejor.alt === 0 ? 'becuadro escrito: anula la armadura' : mejor.alt === 2 ? 'doble sostenido escrito' : (arm.alt[((mejor.d % 7) + 7) % 7] ? 'altera la armadura (' + (arm.sig < 0 ? '♭' : '♯') + ' en ' + L + ')' : (mejor.altFinal ? 'alteración vigente en el compás' : 'natural, la armadura no la altera'));
@@ -5873,16 +5956,21 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     sonEstado(msg); if (SON.min) lecAviso(grupo.length > 1 ? 'Acorde: ' + grupo.map(n => n.nombre).join(' + ') : mejor.nombre);
   }
   /* ---------- reproducir ---------- */
-  function sonPeso(n) { if (SON.voz === 'todas') return 1; const k = n.pent + '#' + Math.min(n.rango, 3); return k === SON.voz ? 1 : (SON.resto === 'mudo' ? 0 : 0.22); }
+  function sonPeso(n) { if (n.ligada) return 0; if (SON.voz === 'todas') return n.dup ? 0 : 1; if (SON.solFa) { const v = SON.voz, ok = v === 'RH' ? n.claveSol : v === 'LH' ? !n.claveSol : v === 'sel' ? SON.elegidas.has(n.nota) : n.satb === v; return ok ? 1 : (SON.resto === 'mudo' ? 0 : 0.22); } const k = n.pent + '#' + Math.min(n.rango, 3); return k === SON.voz ? 1 : (SON.resto === 'mudo' ? 0 : 0.22); }
+  function sonSimul(lt) { if (lt.__simul) return; const m = {}; lt.notas.forEach(n => { const k = Math.round(n.seg * 40); m[k] = (m[k] || 0) + 1; }); const vis = {}; lt.notas.forEach(n => { n.dup = false; const k = n.sist + '|' + Math.round(n.seg * 40) + '|' + n.midi; (vis[k] = vis[k] || []).push(n); });
+    Object.values(vis).forEach(a => { if (a.length > 1) { a.sort((x, y) => y.durSeg - x.durSeg); a.slice(1).forEach(n => { n.dup = true; }); } });   // unísonos (cuerdas/voces que repiten la misma nota): suenan una sola vez
+    const m2 = {}; lt.notas.forEach(n => { if (!n.dup) { const k = Math.round(n.seg * 40); m2[k] = (m2[k] || 0) + 1; } }); lt.notas.forEach(n => { n.simul = m2[Math.round(n.seg * 40)] || 1; }); lt.__simul = true; }
+  const sonVol = n => 0.8 / Math.sqrt(Math.max(1, n.simul || 1));
   function sonProgramar(ctx, dest, lt, t0, nodos, filtro) {
-    lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg * 0.96), SON.instr, v * 0.8, nodos); });
+    sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, v * sonVol(n), nodos); });
   }
-  function sonSegmento(res, lt, t0, pag) { const ns = lt.notas.filter(n => sonPeso(n) > 0).sort((a, b) => a.seg - b.seg); return { res: res, lt: lt, t0: t0, ini: t0, ns: ns, i: 0, pag: pag, fin: Math.max.apply(null, ns.map(n => n.seg + n.durSeg).concat([0])) }; }
+  function sonSegmento(res, lt, t0, pag) { sonSimul(lt); const ns = lt.notas.filter(n => sonPeso(n) > 0).sort((a, b) => a.seg - b.seg); return { res: res, lt: lt, t0: t0, ini: t0, ns: ns, i: 0, pag: pag, fin: Math.max.apply(null, ns.map(n => n.seg + n.durSeg).concat([0])) }; }
   async function sonSiguiente(pag, t0) { const r = await sonAnalizar(pag); const est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; return sonSegmento(r, window.SonoroMotor.lineaTiempo(r, est), t0, pag); }
   function sonQuedaMas() { const l = SON.segs[SON.segs.length - 1]; return !SON.completa && SON.cont === 'seguir' && !SON.sinSig && l && l.pag < EST.pdf.numPages; }
   function sonRodar() {                      // planificador: programa solo ~1,6 s por delante (evita miles de nodos de audio a la vez)
     if (!SON.tocando) return; const ctx = SON.ctx, lim = ctx.currentTime + 1.6, t0m = performance.now();
-    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg * 0.96), SON.instr, sonPeso(n) * 0.8, SON.nodos); } });
+    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, sonPeso(n) * sonVol(n), SON.nodos); } });
+    sonMetro(ctx, lim);
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
     const l = SON.segs[SON.segs.length - 1];
@@ -5931,12 +6019,12 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function sonLtDe(pag) { SON.ltc = SON.ltc || {}; const k = pag + '|' + (SON.bpm || 0); if (!SON.ltc[k]) { const r = SON.pag[pag], est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; SON.ltc[k] = window.SonoroMotor.lineaTiempo(r, est); } return SON.ltc[k]; }
   async function sonReproducirCompleta() {
     const E = await sonEstructura(); if (!E || !E.orden.length) { sonEstado('No encontré compases que tocar'); return; }
-    const ctx = sonAudio(); SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(ctx.destination); SON.nodos = []; SON.tocando = true; SON.completa = true; SON.preparando = false;
+    const ctx = sonAudio(); SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = []; SON.tocando = true; SON.completa = true; SON.preparando = false;
     let T = ctx.currentTime + 0.25; const segs = [], o = E.orden;
     for (let k = 0; k < o.length;) { let k2 = k; while (k2 + 1 < o.length && o[k2 + 1] === o[k2] + 1 && E.ref[o[k2 + 1]].pag === E.ref[o[k]].pag) k2++;
       const ra = E.ref[o[k]], rb = E.ref[o[k2]], lt = sonLtDe(ra.pag), res = SON.pag[ra.pag];
       const s0 = (lt.slotT[ra.sist + '|' + ra.m] || 0) * lt.segQ, s1 = (lt.slotT[rb.sist + '|' + rb.m] || 0) * lt.segQ + lt.largoQ * lt.segQ;
-      const ns = lt.notas.filter(n => n.seg >= s0 - 1e-6 && n.seg < s1 - 1e-6 && sonPeso(n) > 0).sort((a, b) => a.seg - b.seg);
+      sonSimul(lt); const ns = lt.notas.filter(n => n.seg >= s0 - 1e-6 && n.seg < s1 - 1e-6 && sonPeso(n) > 0).sort((a, b) => a.seg - b.seg);
       segs.push({ res: res, lt: lt, t0: T - s0, ini: T, ns: ns, i: 0, pag: ra.pag, fin: s1 }); T += s1 - s0; k = k2 + 1; }
     SON.segs = segs; $('son-play').textContent = '⏹ Detener'; sonEstado(E.avisos.length ? 'Avisos: ' + E.avisos.join(' · ') : 'Tocando la pieza completa en el orden de ejecución');
     if (SON.auto) sonMin(true);
@@ -5947,7 +6035,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (SON.orden === 'correcto') { await sonReproducirCompleta(); return; }
     const res = await sonPrepararPagina(); if (!res || !SON.lt) return; const lt = SON.lt, ctx = sonAudio();
     if (!lt.notas.length) { sonEstado('No encontré notas en esta página'); return; }
-    SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(ctx.destination); SON.nodos = []; SON.tocando = true; SON.preparando = false; SON.sinSig = false;
+    SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = []; SON.tocando = true; SON.preparando = false; SON.sinSig = false;
     SON.segs = [sonSegmento(res, lt, ctx.currentTime + 0.2, EST.page)]; $('son-play').textContent = '⏹ Detener';
     if (SON.auto) sonMin(true);
     SON.timer = setInterval(sonRodar, 200); sonRodar(); SON.raf = requestAnimationFrame(sonPaso);
@@ -5966,7 +6054,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   async function sonExportarWav() {
     const res = await sonPrepararPagina(); if (!res || !SON.lt || !SON.lt.notas.length) { sonEstado('No hay notas para exportar'); return; }
     sonEstado('Generando audio…'); const lt = SON.lt, dur = Math.max.apply(null, lt.notas.map(n => n.seg + n.durSeg)) + 2, sr = 44100;
-    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext, oc = new OAC(2, Math.ceil(dur * sr), sr), m = oc.createGain(); m.gain.value = 0.9; m.connect(oc.destination);
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext, oc = new OAC(2, Math.ceil(dur * sr), sr), m = oc.createGain(); m.gain.value = 0.9; m.connect(sonSalida(oc));
     sonProgramar(oc, m, lt, 0.05, null, true); const buf = await oc.startRendering();
     sonBajar(sonWav(buf), sonNombreArchivo() + ' - pág ' + EST.page + (SON.voz === 'todas' ? '' : ' - ' + $('son-voz').selectedOptions[0].textContent) + '.wav'); sonEstado('Audio WAV generado');
   }
@@ -6008,8 +6096,10 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       '<label>Resto <select id="son-resto"><option value="suave">suave</option><option value="mudo">en silencio</option></select></label>' +
       '<label>Al terminar la página <select id="son-cont"><option value="parar">se detiene</option><option value="seguir">sigue con la siguiente</option></select></label>' +
       '<label><input type="checkbox" id="son-auto" checked> Ocultar controles al reproducir</label></div>' +
+      '<div class="son-f"><label><input type="checkbox" id="son-metro"> 🥁 Metrónomo</label><label><input type="checkbox" id="son-cantar"> 🎤 Cantar con la nota (micrófono)</label><span id="son-canto" class="son-cant" aria-live="polite"></span></div>' +
       '<div class="son-f"><button type="button" id="son-estr" title="Lee repeticiones, casillas, D.C./D.S., Coda y secciones de toda la pieza">🧭 Estructura</button><label>Orden <select id="son-orden"><option value="impreso">como está impreso</option><option value="correcto">como se debe tocar (pieza completa)</option></select></label><label>Segno en compás <input id="son-segno" type="number" min="1" placeholder="auto" style="width:64px"></label><label><input type="checkbox" id="son-reptras"> repetir tras D.S./D.C.</label></div><div id="son-ruta"></div><div class="son-f"><button type="button" id="son-wav">⬇ Audio WAV</button><button type="button" id="son-xml">⬇ MusicXML</button><span id="son-info"></span></div>';
     $('est-lector').appendChild(p);
+    $('son-metro').onchange = e => sonMetroSet(e.target.checked); $('son-cantar').onchange = e => { if (e.target.checked) sonCantoOn(); else sonCantoOff(); };
     $('son-x').onclick = () => sonCerrar(); $('son-min').onclick = () => sonMin(!SON.min); $('son-estr').onclick = async () => { await sonEstructura(); }; $('son-orden').onchange = e => { SON.orden = e.target.value; if (SON.orden === 'correcto') sonEstructura(); }; $('son-segno').onchange = e => { SON.segnoN = parseInt(e.target.value, 10) || 0; sonReexpandir(); sonRepintar(); }; $('son-reptras').onchange = e => { SON.repTras = e.target.checked; sonReexpandir(); }; $('son-cont').onchange = e => { SON.cont = e.target.value; }; $('son-auto').onchange = e => { SON.auto = e.target.checked; }; $('son-play').onclick = sonReproducir; $('son-wav').onclick = sonExportarWav; $('son-xml').onclick = sonExportarXml;
     $('son-instr').onchange = e => { SON.instr = e.target.value; }; $('son-voz').onchange = e => { SON.voz = e.target.value; }; $('son-resto').onchange = e => { SON.resto = e.target.value; };
     $('son-bpm').onchange = async e => { SON.bpm = Math.max(30, Math.min(220, +e.target.value || 0)); if (SON.tocando) sonDetener(); await sonPrepararPagina(); };
@@ -6022,7 +6112,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (r && !r.notas.length) sonEstado('No encontré notas legibles en esta página (¿es un escaneo?). Este módulo solo lee PDF vectoriales.');
     sonRepintar();
   }
-  function sonCerrar() { sonDetener(); sonMin(false); SON.on = false; SON.sel = null; const p = $('son-panel'); if (p) p.classList.add('oculto'); $('est-lector').classList.remove('son'); sonRepintar(); }
+  function sonCerrar() { sonDetener(); sonCantoOff(); const cc = $('son-cantar'); if (cc) cc.checked = false; sonMin(false); SON.on = false; SON.sel = null; const p = $('son-panel'); if (p) p.classList.add('oculto'); $('est-lector').classList.remove('son'); sonRepintar(); }
   async function sonPaginaCambio() { if (!SON.on) return; if (SON.res && SON.pagN === EST.page && SON.tokN === EST.tok) { sonRepintar(); return; } if (SON.tocando) sonDetener(); SON.sel = null; SON.res = null; sonRepintar(); await sonPrepararPagina(); sonRepintar(); }
   $('est-wrap').addEventListener('pointerdown', sonToque, true);
   const TQ = { n: 0, d: 0, t: null, orig: null };
@@ -6106,25 +6196,26 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     let ctm = [1, 0, 0, 1, 0, 0]; const st = [];
     const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3], a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
     const ap = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
-    const H = [], V = [], B = []; let lw = 1;
+    const H = [], V = [], B = [], C = []; let lw = 1;
     for (let i = 0; i < ol.fnArray.length; i++) {
       const f = ol.fnArray[i], a = ol.argsArray[i];
       if (f === O.save) st.push(ctm.slice()); else if (f === O.restore) ctm = st.pop() || ctm;
       else if (f === O.transform) ctm = mul(ctm, a); else if (f === O.setLineWidth) lw = a[0];
       else if (f === O.constructPath) {
         const pint = ol.fnArray[i + 1], relleno = pint === O.fill || pint === O.eoFill || pint === O.fillStroke || pint === O.eoFillStroke;
-        const ops = a[0], c = a[1]; let k = 0, cur = null; const pts = [];
+        const ops = a[0], c = a[1]; let k = 0, cur = null, tieneCurva = false; const pts = [];
         for (const op of ops) {
           if (op === O.moveTo) { cur = ap(ctm, c[k], c[k + 1]); k += 2; pts.push(cur); }
           else if (op === O.lineTo) { const q = ap(ctm, c[k], c[k + 1]); k += 2; if (!cur) { cur = q; pts.push(q); continue; }
             if (!relleno) { const s = { x1: cur[0], y1: cur[1], x2: q[0], y2: q[1], lw: lw * Math.hypot(ctm[0], ctm[1]) };
               if (Math.abs(s.y1 - s.y2) < 0.05) H.push(s); else if (Math.abs(s.x1 - s.x2) < 0.05) V.push(s); }
             cur = q; pts.push(q); }
-          else if (op === O.curveTo) k += 6; else if (op === O.curveTo2 || op === O.curveTo3) k += 4;
+          else if (op === O.curveTo || op === O.curveTo2 || op === O.curveTo3) { const n6 = op === O.curveTo ? 6 : 4; for (let q = 0; q < n6; q += 2) { const P = ap(ctm, c[k + q], c[k + q + 1]); pts.push(P); cur = P; } k += n6; tieneCurva = true; }
           else if (op === O.rectangle) { const A = ap(ctm, c[k], c[k + 1]), D = ap(ctm, c[k] + c[k + 2], c[k + 1] + c[k + 3]); k += 4;
             if (relleno) B.push({ x0: Math.min(A[0], D[0]), x1: Math.max(A[0], D[0]), y0: Math.min(A[1], D[1]), y1: Math.max(A[1], D[1]) }); }
         }
-        if (relleno && pts.length >= 4 && pts.length <= 6) { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); B.push({ x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), poli: true }); }
+        if (relleno && tieneCurva && pts.length >= 6) { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); C.push({ x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), n: pts.length }); }
+        if (relleno && !tieneCurva && pts.length >= 4 && pts.length <= 6) { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); B.push({ x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), poli: true }); }
       }
     }
     const tc = await page.getTextContent(), glifos = [], textos = [];
@@ -6136,7 +6227,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (esFuenteMusical(nm)) { const ch = it.str.trim()[0], k = it.str.indexOf(ch); glifos.push({ c: ch, x: it.transform[4] + k * (it.width / it.str.length), y: it.transform[5], w: it.width / it.str.length, tam, esp: /Special/i.test(nm) }); }
       else textos.push({ s: it.str, x: it.transform[4], y: it.transform[5], w: it.width, tam });
     }
-    return { H, V, B, glifos, textos, w: page.view[2] - page.view[0], h: page.view[3] - page.view[1] };
+    return { H, V, B, C, glifos, textos, w: page.view[2] - page.view[0], h: page.view[3] - page.view[1] };
   }
 
   function hallarPentagramas(H) {
@@ -6249,7 +6340,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       st.etiqueta = et;
       res.pent.push(st); notasP.forEach(n => res.notas.push(n));
     });
-    res.estr = estructuraPagina(geo, res); tempoDe(geo.textos, estado); res.estado = estado; if (estado.__dbg) res.dbgV = geo.V.map(v => ({ x: +v.x1.toFixed(1), y0: +v.y1.toFixed(1), y1: +v.y2.toFixed(1), lw: +v.lw.toFixed(2) })); return res;
+    res.estr = estructuraPagina(geo, res); res.ligaduras = ligaduras(geo, res); tempoDe(geo.textos, estado); res.estado = estado; if (estado.__dbg) res.dbgV = geo.V.map(v => ({ x: +v.x1.toFixed(1), y0: +v.y1.toFixed(1), y1: +v.y2.toFixed(1), lw: +v.lw.toFixed(2) })); return res;
   }
 
   // ---- Línea de tiempo: compases, carriles (plica arriba/abajo), duración acumulada y control «el compás suma lo que dice la cifra» ----
@@ -6263,6 +6354,35 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     }
   }
 
+
+  /* Ligaduras: la de unión (tie) une dos notas de la MISMA altura y prolonga el sonido; la de expresión (slur) une notas distintas y solo liga (legato). */
+  function ligaduras(geo, res) {
+    const ties = [], slurs = [], sp0 = res.pent.length ? res.pent[0].sp : 5;
+    res.notas.forEach(n => { n.tieA = null; n.leg = false; });
+    const vistas = new Set(); let sobran = 0;
+    (geo.C || []).forEach(c => {
+      const kk = Math.round(c.x0) + ',' + Math.round(c.x1) + ',' + Math.round(c.y0) + ',' + Math.round(c.y1); if (vistas.has(kk)) return; vistas.add(kk);
+      const w = c.x1 - c.x0, h = c.y1 - c.y0; let mejor = null, md = 1e9;
+      res.pent.forEach(p => { const yc = (c.y0 + c.y1) / 2, d = yc > p.ys[0] ? yc - p.ys[0] : yc < p.ys[4] ? p.ys[4] - yc : 0; if (d < md) { md = d; mejor = p; } });
+      if (!mejor || md > 7 * mejor.sp) return; const sp = mejor.sp; if (w < 2 * sp || h > 5 * sp) return;
+      const nots = res.notas.filter(n => n.st === mejor.id).sort((a, b) => a.x - b.x);
+      const alIni = nots.filter(n => n.x > c.x0 - 2.2 * sp && n.x < c.x0 + 1.6 * sp && Math.abs(n.y - (n.y > (c.y0 + c.y1) / 2 ? n.y : n.y)) >= 0);
+      const alFin = nots.filter(n => n.x > c.x1 - 2.4 * sp && n.x < c.x1 + 1.6 * sp);
+      // empareja por altura (tie) y que la curva quede pegada a la cabeza (≤ 2 sp en vertical)
+      let hecho = false;
+      alIni.forEach(A => { const B = alFin.find(b => b !== A && b.midi === A.midi && b.x > A.x + sp); const pegada = Math.min(Math.abs(c.y0 - A.y), Math.abs(c.y1 - A.y)) < 2.2 * sp;
+        if (B && pegada && h < 2.2 * sp && !A.tieA) { A.tieA = B; ties.push({ a: A, b: B, x0: c.x0, x1: c.x1 }); hecho = true; } });
+      if (hecho) return;
+      // tie que sale del final del sistema (sin nota destino aquí): se une a la primera nota igual del siguiente sistema
+      if (c.x1 > mejor.x1 - 3 * sp && h < 2.2 * sp) { const A = alIni.find(a => Math.min(Math.abs(c.y0 - a.y), Math.abs(c.y1 - a.y)) < 2.2 * sp); if (A) { A.tieSale = true; ties.push({ a: A, b: null, x0: c.x0, x1: c.x1, sale: true }); } return; }
+      // slur: las notas bajo la curva (menos la última) se tocan ligadas
+      const bajo = nots.filter(n => n.x >= c.x0 - 1.5 * sp && n.x <= c.x1 + 1.5 * sp); if (bajo.length >= 2 && !hecho) { const ult = Math.max.apply(null, bajo.map(n => n.x)); bajo.forEach(n => { if (n.x < ult - 0.5) n.leg = true; }); slurs.push({ x0: c.x0, x1: c.x1, n: bajo.length }); }
+    });
+    // ties que salen del sistema → primera nota de igual altura en el pentagrama equivalente del sistema siguiente
+    ties.filter(t => t.sale && !t.b).forEach(t => { const pA = res.pent[t.a.st], idx = res.pent.filter(p => p.sist === pA.sist).indexOf(pA), sigs = res.pent.filter(p => p.sist === pA.sist + 1); const pB = sigs[idx]; if (!pB) return;
+      const B = res.notas.filter(n => n.st === pB.id && n.midi === t.a.midi).sort((a, b) => a.x - b.x)[0]; if (B && B.x < pB.x0 + 14 * pB.sp) { t.a.tieA = B; t.b = B; t.sale = false; } });
+    return { ties: ties.filter(t => t.b), slurs: slurs, sueltas: ties.filter(t => !t.b).length, curvas: vistas.size };
+  }
   /* ===== Fase A · ESTRUCTURA: compases, repeticiones, casillas, saltos y secciones ===== */
   const RE_SECCION = /^(intro(ducci[oó]n)?|coro|estribillo|estrofa|verso|puente|interludio|instrumental|final|pre-?coro|tag|outro|cambio|tema)\b/i;
   function claseTexto(txt) {
@@ -6399,13 +6519,17 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const nSl = {}; ((res.estr && res.estr.slots) || []).forEach(sl => { nSl[sl.sist] = (nSl[sl.sist] || 0) + 1; });
     const slotT = {}; (Object.keys(nSl).map(Number).concat(ordenS).filter((v, i, a) => a.indexOf(v) === i)).sort((a, b) => a - b).forEach(sId => { base[sId] = acum; const mx = Math.max(notas.filter(n => n.sist === sId).reduce((m, n) => Math.max(m, n.compas + 1), 0), nSl[sId] || 0); for (let m = 0; m < mx; m++) slotT[sId + '|' + m] = acum + m * largo; acum += mx * largo; });
     notas.forEach(n => { n.tq = base[n.sist] + n.compas * largo + n.t; n.seg = n.tq * segQ; n.durSeg = n.dur * segQ; });
+    // ligaduras de unión: la primera nota suena toda la suma y las siguientes no se vuelven a atacar
+    const porRaw = new Map(); notas.forEach(n => porRaw.set(n.nota, n)); const entra = new Set();
+    notas.forEach(n => { if (n.nota && n.nota.tieA) { const b = porRaw.get(n.nota.tieA); if (b) entra.add(b); } });
+    notas.forEach(n => { if (entra.has(n)) return; let fin = n, cnt = 0; while (fin.nota && fin.nota.tieA && cnt++ < 12) { const b = porRaw.get(fin.nota.tieA); if (!b || b.seg < fin.seg + fin.durSeg - 0.05 || b.seg > fin.seg + fin.durSeg + 0.6) break; b.ligada = true; fin = b; }
+      if (fin !== n) { n.durSeg = fin.seg + fin.durSeg - n.seg; n.dur = n.durSeg / segQ; n.unida = cnt; } });
     return { slotT: slotT, totalQ: acum, notas: notas, informe: informe, bpm: bpm, comp: comp, largoQ: largo, segQ: segQ };
   }
   function sistemaDe(res, ip) { let s = 0; for (let i = 1; i <= ip; i++) { const a = res.pent[i - 1], b = res.pent[i]; if (a.ys[4] - b.ys[0] > 10 * a.sp) s++; } return s; }
   const API = { estructuraPagina, expandir, claseTexto, geometria, lineaTiempo, tempoDe, analizarPagina, hallarPentagramas, midiDe, nombreNota, G, NOMBRES_ES };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.SonoroMotor = API;
 })(typeof window !== 'undefined' ? window : this);
-
 </script>
 </body>
 </html>
