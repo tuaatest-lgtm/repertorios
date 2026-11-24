@@ -6572,21 +6572,33 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         ['u', 'd'].forEach(k => {
           const it = carriles[k].sort((a, b) => a.x - b.x); if (!it.length) return;
           let t = 0, i = 0;
-          while (i < it.length) {                         // acordes: cabezas del mismo carril casi en la misma x (o con la misma plica) suenan juntas
-            const g = [it[i]]; let j = i + 1;
-            while (j < it.length && it[j].tipo === 'n' && g[0].tipo === 'n' && Math.abs(it[j].x - g[0].x) < 8) g.push(it[j++]);
+          while (i < it.length) {                         // acorde = misma plica; no confundir semicorcheas cercanas
+            const g = [it[i]], first = it[i]; let j = i + 1;
+            while (j < it.length && it[j].tipo === 'n' && first.tipo === 'n') {
+              const a = first.n && first.n.plica && first.n.plica.id;
+              const b = it[j].n && it[j].n.plica && it[j].n.plica.id;
+              const mismaPlica = !!a && !!b && a === b;
+              const cabezasCoinciden = (!a || !b) && Math.abs(it[j].x - first.x) < 2.2;
+              if (!mismaPlica && !cabezasCoinciden) break;
+              g.push(it[j++]);
+            }
             g.forEach(e => { e.t = t; });
             t += g[0].dur; i = j;
           }
-          lan.push({ k: k, total: t, items: it }); if (Math.abs(t - largo) > 0.06 && !(m === 0 && t < largo)) ok = false;
+          // La validez se decide por carril, no por pentagrama completo: un carril
+          // imperfecto no debe empujar a la otra voz al respaldo proporcional.
+          const laneOk = Math.abs(t - largo) <= 0.06 || (m === 0 && t < largo);
+          lan.push({ k: k, total: t, items: it, exact: laneOk });
+          if (!laneOk) ok = false;
         });
         informe.compases++; if (ok) informe.validos++; else informe.dudosos.push({ pent: st.id, etiqueta: st.etiqueta, compas: m + 1, sumas: lan.map(l => l.total), esperado: largo });
-        // posición proporcional de respaldo (si la suma no cuadra)
+        // Posición proporcional solo para el carril cuya suma no valida; los demás
+        // conservan su secuencia rítmica exacta.
         const x0 = m === 0 ? Math.min.apply(null, ns.concat(rs).map(e => e.x)) - 2 : st.barras[m - 1], x1 = m < st.barras.length ? st.barras[m] : st.x1;
         lan.forEach(l => l.items.forEach(e => {
           if (e.tipo !== 'n') return; const n = e.n;
-          const tt = ok ? e.t : ((n.x - x0) / Math.max(1, x1 - x0)) * largo, du = ok ? e.dur : Math.min(e.dur, 1);
-          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, claveSol: st.clave === 'sol', exacto: ok, etiqueta: st.etiqueta, carril: l.k, nota: n });
+          const tt = l.exact ? e.t : ((n.x - x0) / Math.max(1, x1 - x0)) * largo, du = l.exact ? e.dur : Math.min(e.dur, 1);
+          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, claveSol: st.clave === 'sol', exacto: l.exact, etiqueta: st.etiqueta, carril: l.k, nota: n });
         }));
       }
     });
@@ -6602,44 +6614,77 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const slotT = {}; (Object.keys(nSl).map(Number).concat(ordenS).filter((v, i, a) => a.indexOf(v) === i)).sort((a, b) => a - b).forEach(sId => { base[sId] = acum; const mx = Math.max(notas.filter(n => n.sist === sId).reduce((m, n) => Math.max(m, n.compas + 1), 0), nSl[sId] || 0); for (let m = 0; m < mx; m++) slotT[sId + '|' + m] = acum + m * largo; acum += mx * largo; });
     notas.forEach(n => { n.tq = base[n.sist] + n.compas * largo + n.t; n.seg = n.tq * segQ; n.durSeg = n.dur * segQ; });
     // SINCRONIZACIÓN ENTRE PENTAGRAMAS:
-    // Las notas que ocupan la misma columna horizontal dentro del mismo sistema y compás
-    // representan un mismo instante musical, aunque el cálculo rítmico independiente de
-    // cada pentagrama haya producido tiempos ligeramente distintos. Se usa el eje de la
-    // plica (más estable para acordes) y, si no existe, el centro de la cabeza.
-    // La duración de cada nota NO se modifica; las ligaduras se procesan después.
-    const columnas = new Map();
+    // Se comparan centros de cabezas (no ejes de plicas). Primero se forman
+    // columnas locales por pentagrama usando la plica compartida de un acorde;
+    // después se emparejan columnas entre pentagramas, sin fusionar dos eventos
+    // distintos de una misma voz. Si un carril tiene tiempo validado, prevalece
+    // sobre el tiempo aproximado del otro. Las duraciones nunca se alteran aquí.
+    const porSistemaCompas = new Map();
     notas.forEach(n => {
-      const raw = n.nota || {}, eje = raw.plica && Number.isFinite(raw.plica.x) ? raw.plica.x : n.x;
       const k = n.sist + '|' + n.compas;
-      if (!columnas.has(k)) columnas.set(k, []);
-      columnas.get(k).push({ n: n, x: eje });
+      if (!porSistemaCompas.has(k)) porSistemaCompas.set(k, []);
+      porSistemaCompas.get(k).push(n);
     });
     let columnasAlineadas = 0, desfaseMaxQ = 0;
-    columnas.forEach(lista => {
-      lista.sort((a, b) => a.x - b.x);
-      const grupos = [];
-      lista.forEach(e => {
-        let g = grupos[grupos.length - 1];
-        if (!g || e.x - g.x0 > 3.5) { g = { x0: e.x, items: [] }; grupos.push(g); }
-        g.items.push(e.n);
+    porSistemaCompas.forEach(lista => {
+      const porPent = new Map();
+      lista.forEach(n => {
+        if (!porPent.has(n.pent)) porPent.set(n.pent, []);
+        porPent.get(n.pent).push(n);
       });
-      grupos.forEach(g => {
-        const porPent = new Map();
-        g.items.forEach(n => {
-          if (!porPent.has(n.pent)) porPent.set(n.pent, []);
-          porPent.get(n.pent).push(n.t);
+      const eventos = [];
+      porPent.forEach((arr, pentId) => {
+        const st = res.pent[pentId], sp = st && st.sp ? st.sp : 10;
+        const ancho = arr.map(n => (n.nota && n.nota.w) || 6).sort((a,b)=>a-b);
+        const tolLocal = Math.max(1.5, Math.min(sp * 0.28, (ancho[Math.floor(ancho.length/2)] || 6) * 0.42));
+        arr.sort((a,b) => ((a.nota.x + (a.nota.w || 6)/2) - (b.nota.x + (b.nota.w || 6)/2)));
+        const grupos = [];
+        arr.forEach(n => {
+          const raw = n.nota || {}, center = raw.x + (raw.w || 6)/2;
+          const pid = raw.plica && raw.plica.id ? raw.plica.id : null;
+          let g = null;
+          if (pid) g = grupos.find(x => x.plicaId === pid);
+          if (!g) {
+            const last = grupos[grupos.length-1];
+            if (last && !pid && Math.abs(center-last.x) <= tolLocal) g = last;
+          }
+          if (!g) { g = { pent: pentId, x: center, plicaId: pid, items: [] }; grupos.push(g); }
+          g.items.push(n);
+          g.x = g.items.reduce((sum,q)=>sum + q.nota.x + (q.nota.w || 6)/2,0)/g.items.length;
         });
-        // Solo se corrigen columnas compartidas por al menos dos pentagramas.
-        if (porPent.size < 2) return;
-        const tiempos = Array.from(porPent.values()).map(a => a.reduce((s, v) => s + v, 0) / a.length).sort((a, b) => a - b);
-        const mitad = Math.floor(tiempos.length / 2);
-        const comun = tiempos.length % 2 ? tiempos[mitad] : (tiempos[mitad - 1] + tiempos[mitad]) / 2;
-        g.items.forEach(n => {
-          desfaseMaxQ = Math.max(desfaseMaxQ, Math.abs(n.t - comun));
+        grupos.forEach(g => {
+          const ts = g.items.map(n=>n.t).sort((a,b)=>a-b);
+          g.t = ts[Math.floor(ts.length/2)];
+          g.exacto = g.items.some(n=>n.exacto);
+          g.sp = sp;
+          eventos.push(g);
+        });
+      });
+      // Emparejamiento uno-a-uno entre pentagramas. Una columna nunca puede
+      // absorber dos ataques distintos del mismo pentagrama.
+      const usados = new Set();
+      eventos.sort((a,b)=>a.x-b.x);
+      eventos.forEach(a => {
+        if (usados.has(a)) return;
+        let mejor = null, md = Infinity;
+        eventos.forEach(b => {
+          if (b === a || b.pent === a.pent || usados.has(b)) return;
+          const tol = Math.max(2.0, Math.min(a.sp,b.sp) * 0.42);
+          const d = Math.abs(a.x-b.x);
+          if (d <= tol && d < md) { mejor=b; md=d; }
+        });
+        if (!mejor) return;
+        usados.add(a); usados.add(mejor);
+        let comun;
+        if (a.exacto && !mejor.exacto) comun = a.t;
+        else if (!a.exacto && mejor.exacto) comun = mejor.t;
+        else comun = (a.t + mejor.t) / 2;
+        [a,mejor].forEach(g => g.items.forEach(n => {
+          desfaseMaxQ = Math.max(desfaseMaxQ, Math.abs(n.t-comun));
           n.t = comun;
-          n.tq = base[n.sist] + n.compas * largo + comun;
-          n.seg = n.tq * segQ;
-        });
+          n.tq = base[n.sist] + n.compas*largo + comun;
+          n.seg = n.tq*segQ;
+        }));
         columnasAlineadas++;
       });
     });
