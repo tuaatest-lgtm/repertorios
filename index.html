@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwdzlSSkEQcdMr_hKamQ5e2WABETGe0Aw7hvOmgpm6vaa79VuuZk4hm-9x4WrUS2tJL8w/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxj4mUYg9SPnqROwrbiIJ6cCQhJ1Yn6eroHqmyTthrvgE7Ka4SWl_4Hw-0PUbAKegtbnA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5945,21 +5945,34 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
      Soprano = la más alta · Bajo = la más baja · Alto = la 2.ª desde arriba · Tenor = la más alta de la clave de fa (si es distinta del bajo; si no, la 3.ª desde arriba).
      Con más de 4 notas apiladas, las sobrantes quedan sin voz fija: se eligen con el puntero (opción «Notas elegidas»). */
   function sonSatb(lt) {
-    if (lt.__satb) return; const g = {};
-    lt.notas.forEach(n => { n.satb = null; const k = n.sist + '|' + Math.round(n.tq * 48); (g[k] = g[k] || []).push(n); });
-    let extras = 0;
-    Object.keys(g).forEach(k => {
-      const a = g[k].slice().sort((x, y) => y.midi - x.midi); if (!a.length) return;
-      const S = a[0], B = a.length > 1 ? a[a.length - 1] : null; S.satb = 'S'; if (B) B.satb = 'B';
-      let A = null, T = null; const med = a.slice(1, a.length - 1);
-      if (a.length >= 3) A = a[1];
-      const fa = a.filter(n => !n.claveSol && n !== B);
-      if (a.length >= 4) T = fa.length ? fa[0] : (a.length >= 4 ? a[2] : null);
-      if (T && T === A) T = med.find(n => n !== A) || null;
-      if (A) A.satb = 'A'; if (T) T.satb = 'T';
-      a.forEach(n => { if (!n.satb) { n.satb = 'x'; extras++; } });
+    if (lt.__satb) return;
+    // SATB se asigna por pentagrama y dirección de plica, no por exigir
+    // que las cuatro voces ataquen exactamente en el mismo instante.
+    // En notación coral habitual: plica arriba = S/T; plica abajo = A/B.
+    // Si falta la dirección, se usa el rango de las notas simultáneas.
+    const grupos = new Map();
+    lt.notas.forEach(n => {
+      const k = n.pent + '|' + Math.round(n.tq * 48);
+      if (!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push(n);
     });
-    lt.__satb = true; lt.extras = extras;
+    lt.notas.forEach(n => {
+      const esSol = !!n.claveSol;
+      const grupo = grupos.get(n.pent + '|' + Math.round(n.tq * 48)) || [n];
+      const direcciones = grupo.map(x => Number(x.nota && x.nota.dir) || 0);
+      const tieneDosDirecciones = direcciones.some(d => d > 0) && direcciones.some(d => d < 0);
+      let arriba;
+      const dir = Number(n.nota && n.nota.dir) || 0;
+      if (tieneDosDirecciones && dir !== 0) arriba = dir > 0;
+      else if (dir !== 0) arriba = dir > 0;
+      else {
+        const orden = grupo.slice().sort((a, b) => b.midi - a.midi);
+        arriba = orden.indexOf(n) === 0;
+      }
+      n.satb = esSol ? (arriba ? 'S' : 'A') : (arriba ? 'T' : 'B');
+    });
+    lt.__satb = true;
+    lt.extras = 0;
   }
   const SON_SATB_NOM = { S: 'Soprano', A: 'Alto', T: 'Tenor', B: 'Bajo', RH: 'Mano derecha', LH: 'Mano izquierda' };
   function sonVocesDe(res) {                     // etiquetas de las voces: por pentagrama y rango dentro del acorde
@@ -5976,8 +5989,13 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const ltAnterior = SON.lt, solFaAnterior = SON.solFa;
     SON.lt = lt;
     const voces = sonVocesDe(res);
+    // La clasificación SATB no puede depender de que cada página contenga
+    // simultáneamente clave de sol Y clave de fa. Al continuar una voz coral,
+    // la página siguiente puede empezar con un solo pentagrama.
+    const vozSATB = ['S', 'A', 'T', 'B'].includes(SON.voz);
+    if (vozSATB && !lt.__satb) sonSatb(lt);
     lt.__voces = voces;
-    lt.__usaSatb = SON.solFa;
+    lt.__usaSatb = !!lt.__satb || !!SON.solFa;
     SON.lt = ltAnterior;
     SON.solFa = solFaAnterior;
     return voces;
