@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwtFY7m3vcMaLAar_lk_ryaFoBJtrixow6W_OdPsuSAXOEpZ3ypcGMzUNwedw0sFLqhsQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbykmuqsPQo6p4Pfmyone0CQcaI5tBDiMCMZIsrkUAPYj579LuHC2IUKAn1W225dU5R_QQ/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -6030,7 +6030,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const m2 = {}; lt.notas.forEach(n => { if (!n.dup) { const k = Math.round(n.seg * 40); m2[k] = (m2[k] || 0) + 1; } }); lt.notas.forEach(n => { n.simul = m2[Math.round(n.seg * 40)] || 1; }); lt.__simul = true; }
   const sonVol = n => 0.8 / Math.sqrt(Math.max(1, n.simul || 1));
   function sonProgramar(ctx, dest, lt, t0, nodos, filtro) {
-    sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, v * sonVol(n), nodos); });
+    sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg), SON.instr, v * sonVol(n), nodos); });
   }
   function sonSegmento(res, lt, t0, pag) { sonSimul(lt); const ns = lt.notas.filter(n => sonPeso(n) > 0).sort((a, b) => a.seg - b.seg); return { res: res, lt: lt, t0: t0, ini: t0, ns: ns, i: 0, pag: pag, fin: Math.max(Math.max.apply(null, ns.map(n => n.seg + n.durSeg).concat([0])), (lt.totalQ || 0) * lt.segQ - 0.001) }; }
   /* Calidad de lectura de una página: % de compases cuyo ritmo suma lo que dice el compás. Es la medida honesta de «qué tan fiable es lo que va a sonar». */
@@ -6044,7 +6044,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function sonQuedaMas() { const l = SON.segs[SON.segs.length - 1]; return !SON.completa && SON.cont === 'seguir' && !SON.sinSig && l && l.pag < EST.pdf.numPages; }
   function sonRodar() {                      // planificador: programa solo ~1,6 s por delante (evita miles de nodos de audio a la vez)
     if (!SON.tocando) return; const ctx = SON.ctx, lim = ctx.currentTime + 1.6, t0m = performance.now();
-    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, sonPeso(n) * sonVol(n), SON.nodos); } });
+    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos); } });
     sonMetro(ctx, lim);
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
@@ -6471,8 +6471,33 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (hecho) return;
       // tie que sale del final del sistema (sin nota destino aquí): se une a la primera nota igual del siguiente sistema
       if (c.x1 > mejor.x1 - 3 * sp && h < 2.2 * sp) { const A = alIni.find(a => Math.min(Math.abs(c.y0 - a.y), Math.abs(c.y1 - a.y)) < 2.2 * sp); if (A) { A.tieSale = true; ties.push({ a: A, b: null, x0: c.x0, x1: c.x1, sale: true }); } return; }
-      // slur: las notas bajo la curva (menos la última) se tocan ligadas
-      const bajo = nots.filter(n => n.x >= c.x0 - 1.5 * sp && n.x <= c.x1 + 1.5 * sp); if (bajo.length >= 2 && !hecho) { const ult = Math.max.apply(null, bajo.map(n => n.x)); bajo.forEach(n => { if (n.x < ult - 0.5) n.leg = true; }); slurs.push({ x0: c.x0, x1: c.x1, n: bajo.length }); }
+      // Slur: group chord heads into onset columns. Every note in a source
+      // column is connected to the next column; do not mark only one head of a chord.
+      // This keeps chordal reggae patterns legato without merging distinct attacks.
+      const bajo = nots.filter(n => n.x >= c.x0 - 1.5 * sp && n.x <= c.x1 + 1.5 * sp)
+        .sort((a, b) => a.x - b.x);
+      if (bajo.length >= 2 && !hecho) {
+        const cols = [];
+        bajo.forEach(n => {
+          const pid = n.plica && n.plica.id ? n.plica.id : null;
+          let col = pid ? cols.find(q => q.plicaId === pid) : null;
+          if (!col) {
+            const last = cols[cols.length - 1];
+            const tol = Math.max(1.2, sp * 0.24);
+            if (last && !pid && !last.plicaId && Math.abs(n.x - last.x) <= tol) col = last;
+          }
+          if (!col) { col = { x: n.x, plicaId: pid, notes: [] }; cols.push(col); }
+          col.notes.push(n);
+          col.x = col.notes.reduce((v, q) => v + q.x, 0) / col.notes.length;
+        });
+        cols.sort((a, b) => a.x - b.x);
+        if (cols.length >= 2) {
+          for (let ci = 0; ci < cols.length - 1; ci++) {
+            cols[ci].notes.forEach(n => { n.leg = true; n.legHastaX = cols[ci + 1].x; });
+          }
+          slurs.push({ x0: c.x0, x1: c.x1, n: bajo.length, columnas: cols.length });
+        }
+      }
     });
     // ties que salen del sistema → primera nota de igual altura en el pentagrama equivalente del sistema siguiente
     ties.filter(t => t.sale && !t.b).forEach(t => { const pA = res.pent[t.a.st], idx = res.pent.filter(p => p.sist === pA.sist).indexOf(pA), sigs = res.pent.filter(p => p.sist === pA.sist + 1); const pB = sigs[idx]; if (!pB) return;
@@ -6645,6 +6670,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     // distintos de una misma voz. Si un carril tiene tiempo validado, prevalece
     // sobre el tiempo aproximado del otro. Las duraciones nunca se alteran aquí.
     const porSistemaCompas = new Map();
+    const pentPorIdSync = new Map(res.pent.map(st => [String(st.id), st]));
     notas.forEach(n => {
       const k = n.sist + '|' + n.compas;
       if (!porSistemaCompas.has(k)) porSistemaCompas.set(k, []);
@@ -6659,7 +6685,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       });
       const eventos = [];
       porPent.forEach((arr, pentId) => {
-        const st = res.pent[pentId], sp = st && st.sp ? st.sp : 10;
+        const st = pentPorIdSync.get(String(pentId)), sp = st && st.sp ? st.sp : 10;
         const ancho = arr.map(n => (n.nota && n.nota.w) || 6).sort((a,b)=>a-b);
         const tolLocal = Math.max(1.5, Math.min(sp * 0.28, (ancho[Math.floor(ancho.length/2)] || 6) * 0.42));
         arr.sort((a,b) => ((a.nota.x + (a.nota.w || 6)/2) - (b.nota.x + (b.nota.w || 6)/2)));
@@ -6715,11 +6741,40 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     });
     informe.columnasAlineadas = columnasAlineadas;
     informe.desfaseMaxQ = Math.round(desfaseMaxQ * 1000) / 1000;
-    // ligaduras de unión: la primera nota suena toda la suma y las siguientes no se vuelven a atacar
+    // Ligadura de unión (tie): mismo MIDI, un solo ataque y duración acumulada.
+    // La nota de destino debe comenzar prácticamente al final de la anterior;
+    // una tolerancia amplia aquí confundía notas vecinas en pasajes rápidos.
     const porRaw = new Map(); notas.forEach(n => porRaw.set(n.nota, n)); const entra = new Set();
     notas.forEach(n => { if (n.nota && n.nota.tieA) { const b = porRaw.get(n.nota.tieA); if (b) entra.add(b); } });
-    notas.forEach(n => { if (entra.has(n)) return; let fin = n, cnt = 0; while (fin.nota && fin.nota.tieA && cnt++ < 12) { const b = porRaw.get(fin.nota.tieA); if (!b || b.seg < fin.seg + fin.durSeg - 0.05 || b.seg > fin.seg + fin.durSeg + 0.6) break; b.ligada = true; fin = b; }
-      if (fin !== n) { n.durSeg = fin.seg + fin.durSeg - n.seg; n.dur = n.durSeg / segQ; n.unida = cnt; } });
+    notas.forEach(n => {
+      if (entra.has(n)) return;
+      let fin = n, cnt = 0;
+      while (fin.nota && fin.nota.tieA && cnt++ < 24) {
+        const b = porRaw.get(fin.nota.tieA);
+        if (!b || b.midi !== n.midi) break;
+        const esperado = fin.seg + fin.durSeg;
+        if (Math.abs(b.seg - esperado) > Math.max(0.09, segQ * 0.12)) break;
+        b.ligada = true; fin = b;
+      }
+      if (fin !== n) { n.durSeg = fin.seg + fin.durSeg - n.seg; n.dur = n.durSeg / segQ; n.unida = cnt; }
+    });
+    // Ligadura de expresión (slur): mantiene la duración escrita de cada nota,
+    // pero rellena cualquier microhueco hasta el siguiente ataque de la frase.
+    // Las alturas siguen siendo eventos separados y cada una conserva su ataque.
+    notas.forEach(n => {
+      const raw = n.nota;
+      if (!raw || !raw.leg || !Number.isFinite(raw.legHastaX) || raw.tieA) return;
+      const sp = (pentPorIdSync.get(String(n.pent)) || {}).sp || 5;
+      const tolX = Math.max(1.2, sp * 0.3);
+      const siguientes = notas.filter(q => q.pent === n.pent && q.nota &&
+        q.nota.x >= raw.legHastaX - tolX && q.nota.x <= raw.legHastaX + tolX &&
+        q.seg >= n.seg - 0.001 && !q.ligada);
+      if (!siguientes.length) return;
+      const ataque = Math.min.apply(null, siguientes.map(q => q.seg));
+      const hasta = Math.max(0, ataque - n.seg) + 0.018;
+      if (hasta > n.durSeg) { n.durSeg = hasta; n.dur = n.durSeg / segQ; }
+      n.slurHastaSeg = ataque;
+    });
     return { slotT: slotT, totalQ: acum, notas: notas, informe: informe, bpm: bpm, comp: comp, largoQ: largo, segQ: segQ };
   }
   function sistemaDe(res, ip) { let s = 0; for (let i = 1; i <= ip; i++) { const a = res.pent[i - 1], b = res.pent[i]; if (a.ys[4] - b.ys[0] > 10 * a.sp) s++; } return s; }
