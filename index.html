@@ -264,7 +264,7 @@ body[data-sec="inicio"]{--sec:var(--c-inicio)}
 .lec-chip{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);z-index:6;background:rgba(10,47,108,.32);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;pointer-events:none;white-space:nowrap}
 .lec-aviso{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);z-index:35;background:rgba(10,47,108,.14);color:rgba(10,47,108,.62);text-shadow:0 0 3px rgba(255,255,255,.9);border-radius:14px;padding:6px 18px;font-size:26px;font-weight:800;text-align:center;max-width:86vw;opacity:0;pointer-events:none}
 .lec-aviso.v{animation:lecfade 1s ease-out forwards}
-/* La navegación lateral sigue disponible también con el panel Sonoro abierto. */
+#est-lector.son .lec-z{pointer-events:none}
 #son-panel{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:40;width:min(96%,720px);box-sizing:border-box;background:rgba(10,47,108,.96);color:#fff;border-radius:12px;padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.35);font-size:14px}
 #son-panel .son-cant{font-size:12px;flex:1 1 100%;min-height:15px}#son-panel .son-cant.bien{color:#86efac}#son-panel .son-cant.mal{color:#fdba74}
 #son-panel .son-f{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:2px 0}
@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbykmuqsPQo6p4Pfmyone0CQcaI5tBDiMCMZIsrkUAPYj579LuHC2IUKAn1W225dU5R_QQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwfj3WAwnYpjbr8gQ9dhYU_L9lJYPFD5xsvGo_eX0kGcNx2nOa0cvTbqPRQzKzIie0xNw/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5370,8 +5370,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function estLimpiarCaches(todo) { PC.clear(); pcBytes = 0; EST.geo = {}; if (todo) PDFC.clear(); }
   async function estAbrir(idCancion, idArchivo, pagina, modulo, ctx) {
     const m = modulo || MODULO, t0 = performance.now();
-    // Al cambiar de canción, nunca conservar el reloj, segmentos ni análisis del tema anterior.
-    if (typeof sonCambioPartitura === 'function') sonCambioPartitura();
     await estFlush();
     const ev = EST.seq[EST.idx] && EST.seq[EST.idx].ev, hit = PDFC.has(pdfClave(m, idCancion, idArchivo));
     const ent = estPdfObtener(idCancion, idArchivo, m, ev, false);
@@ -5798,8 +5796,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   }
   function sonAudio() { if (!SON.ctx) { const AC = window.AudioContext || window.webkitAudioContext; SON.ctx = new AC(); } if (SON.ctx.state === 'suspended') SON.ctx.resume(); return SON.ctx; }
   /* Instrumentos sintetizados en el propio navegador (sin descargar archivos). Piano: parciales con decaimiento; Voz «aah»: sierra + 3 formantes + vibrato. */
-  function sonNota(ctx, dest, midi, t, dur, instr, vol, nodos) {
-    const f = sonFrec(midi), g = ctx.createGain(); g.connect(dest); const fin = t + Math.max(0.12, dur);
+  function sonNota(ctx, dest, midi, t, dur, instr, vol, nodos, sostener) {
+    const f = sonFrec(midi), g = ctx.createGain(); g.connect(dest); const fin = t + Math.max(0.01, dur);
     if (instr === 'voz') {
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
       const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.3; lg.gain.value = f * 0.007; lfo.connect(lg); lg.connect(o.frequency);
@@ -5809,7 +5807,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.3, t + 0.07); g.gain.setValueAtTime(vol * 0.3, Math.max(t + 0.08, fin - 0.08)); g.gain.linearRampToValueAtTime(0.0001, fin + 0.1);
       o.start(t); lfo.start(t); o.stop(fin + 0.15); lfo.stop(fin + 0.15); if (nodos) nodos.push(o, lfo);
     } else if (instr === 'organo' || instr === 'trompeta' || instr === 'violin' || instr === 'chelo') {
-      const dur2 = Math.max(0.12, dur), fin2 = t + dur2, tail = instr === 'organo' ? 0.09 : 0.12, atk = { organo: 0.02, trompeta: 0.045, violin: 0.07, chelo: 0.1 }[instr], niv = { organo: 0.17, trompeta: 0.2, violin: 0.2, chelo: 0.24 }[instr] * vol;
+      const dur2 = Math.max(0.01, dur), fin2 = t + dur2, tail = instr === 'organo' ? 0.09 : 0.12, atk = { organo: 0.02, trompeta: 0.045, violin: 0.07, chelo: 0.1 }[instr], niv = { organo: 0.17, trompeta: 0.2, violin: 0.2, chelo: 0.24 }[instr] * vol;
       const salida = ctx.createGain(); salida.connect(g);
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(niv, t + atk); g.gain.setValueAtTime(niv, Math.max(t + atk + 0.01, fin2 - tail)); g.gain.linearRampToValueAtTime(0.0001, fin2 + tail);
       const iniciar = (o, hasta) => { o.start(t); o.stop(hasta); if (nodos) nodos.push(o); };
@@ -5834,8 +5832,19 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     } else {
       const comp = [[1, 1], [2, 0.5], [3, 0.28], [4, 0.14], [5, 0.07]], flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = Math.min(9000, 1800 + f * 4); flt.connect(g);
       const tau = Math.max(0.35, 2.2 - midi / 60), end = t + Math.max(dur, 0.3) + 0.25;
-      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.2, t + 0.012); g.gain.setTargetAtTime(0.0001, t + 0.02, tau * 0.45);
-      if (dur < tau * 2) { g.gain.cancelScheduledValues(t + dur); g.gain.setTargetAtTime(0.0001, t + dur, 0.09); }
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.2, t + 0.012);
+      if (sostener) {
+        // Nota ligada: no aplicar el decaimiento natural del piano durante la cadena.
+        // Mantener un nivel de sustain hasta el final musical acumulado y liberar después.
+        const finMusical = t + Math.max(0.01, dur);
+        const nivel = Math.max(0.0001, vol * 0.14);
+        g.gain.setValueAtTime(nivel, t + 0.035);
+        g.gain.setValueAtTime(nivel, Math.max(t + 0.04, finMusical - 0.075));
+        g.gain.linearRampToValueAtTime(0.0001, finMusical + 0.045);
+      } else {
+        g.gain.setTargetAtTime(0.0001, t + 0.02, tau * 0.45);
+        if (dur < tau * 2) { g.gain.cancelScheduledValues(t + dur); g.gain.setTargetAtTime(0.0001, t + dur, 0.09); }
+      }
       comp.forEach((c, i) => { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * c[0] * (1 + i * 0.0004); const gg = ctx.createGain(); gg.gain.value = c[1]; o.connect(gg); gg.connect(flt); o.start(t); o.stop(end + 0.5); if (nodos) nodos.push(o); });
     }
   }
@@ -5919,19 +5928,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const afin = ok ? '✔ igualando la nota' : c > 0 ? '▲ más alto' : '▼ más bajo', tm = C.dt === null ? 'tiempo: aún no entra' : Math.abs(C.dt) <= 150 ? 'tiempo: ✔ sincronizado (' + Math.round(C.dt) + ' ms)' : C.dt > 0 ? 'tiempo: atrasado ' + Math.round(C.dt) + ' ms' : 'tiempo: adelantado ' + Math.round(-C.dt) + ' ms';
     sonCantoMostrar(afin + ' (' + (c > 0 ? '+' : '') + Math.round(c) + '¢) · objetivo ' + obj.nombre + ' · usted ' + Math.round(f) + ' Hz · ' + tm + ' · afinado ' + Math.round(100 * C.ok / C.n) + '%', ok && (C.dt === null || Math.abs(C.dt) <= 150) ? 'bien' : 'mal');
   }
-  function sonDetener() { SON._lastPaint = 0; SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
-  // Reinicio transaccional del reproductor al abrir otra partitura. Mantiene el panel visible,
-  // pero invalida por completo la partitura, los segmentos y las páginas analizadas anteriormente.
-  function sonCambioPartitura() {
-    sonDetener();
-    SON.pre = null; SON.preparando = false; SON.sinSig = false;
-    SON.pag = {}; SON.estado = {}; SON.ltc = {}; SON.estr = null;
-    SON.res = null; SON.lt = null; SON.pagN = 0; SON.tokN = -1; SON.tok = -1;
-    SON.sel = null; SON.segs = []; SON.completa = false;
-    const ruta = $('son-ruta'); if (ruta) ruta.textContent = '';
-    const info = $('son-info'); if (info) info.textContent = 'Partitura cambiada: lista para analizar';
-    sonRepintar();
-  }
+  function sonDetener() { SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
   /* ---------- análisis de la página con el motor ---------- */
   async function sonAnalizar(n) {
     if (!window.SonoroMotor || !EST.pdf) return null;
@@ -6030,7 +6027,9 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const m2 = {}; lt.notas.forEach(n => { if (!n.dup) { const k = Math.round(n.seg * 40); m2[k] = (m2[k] || 0) + 1; } }); lt.notas.forEach(n => { n.simul = m2[Math.round(n.seg * 40)] || 1; }); lt.__simul = true; }
   const sonVol = n => 0.8 / Math.sqrt(Math.max(1, n.simul || 1));
   function sonProgramar(ctx, dest, lt, t0, nodos, filtro) {
-    sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg), SON.instr, v * sonVol(n), nodos); });
+    // Polifonía: cada nota se agenda como evento independiente y conserva su duración musical exacta.
+    // Las ligaduras de unión ya llegan acumuladas en n.durSeg; no se recorta ni se alarga por articulación.
+    sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.01, n.durSeg), SON.instr, v * sonVol(n), nodos, !!n.unida); });
   }
   function sonSegmento(res, lt, t0, pag) { sonSimul(lt); const ns = lt.notas.filter(n => sonPeso(n) > 0).sort((a, b) => a.seg - b.seg); return { res: res, lt: lt, t0: t0, ini: t0, ns: ns, i: 0, pag: pag, fin: Math.max(Math.max.apply(null, ns.map(n => n.seg + n.durSeg).concat([0])), (lt.totalQ || 0) * lt.segQ - 0.001) }; }
   /* Calidad de lectura de una página: % de compases cuyo ritmo suma lo que dice el compás. Es la medida honesta de «qué tan fiable es lo que va a sonar». */
@@ -6042,9 +6041,10 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   }
   async function sonSiguiente(pag, t0) { const r = await sonAnalizar(pag); const est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; return sonSegmento(r, window.SonoroMotor.lineaTiempo(r, est), t0, pag); }
   function sonQuedaMas() { const l = SON.segs[SON.segs.length - 1]; return !SON.completa && SON.cont === 'seguir' && !SON.sinSig && l && l.pag < EST.pdf.numPages; }
-  function sonRodar() {                      // planificador: programa solo ~1,6 s por delante (evita miles de nodos de audio a la vez)
+  function sonRodar() {                      // planificador polifónico: cada nota conserva ataque y duración independientes; ventana de 1,6 s
+
     if (!SON.tocando) return; const ctx = SON.ctx, lim = ctx.currentTime + 1.6, t0m = performance.now();
-    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos); } });
+    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.01, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos, !!n.unida); } });
     sonMetro(ctx, lim);
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
@@ -6059,22 +6059,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     let cur = null; SON.segs.forEach(s => { if (now >= s.ini) cur = s; });
     if (cur && cur.pag !== SON.pagN) { SON.res = cur.res; SON.lt = cur.lt; SON.pagN = cur.pag; SON.tokN = EST.tok; SON.sel = null; estIrPagina(cur.pag); sonEstado(); }
     if (cur) { while (SON.segs.length > 2 && SON.segs[0] !== cur && SON.segs[1].ini <= now - 1) SON.segs.shift(); }
-    const t = cur ? now - cur.t0 : -1;
-    let act = [];
-    if (cur) {
-      // Índice incremental: evita recorrer todas las notas a cada frame.
-      if (cur._lastT === undefined || t < cur._lastT) { cur._playheadIndex = 0; cur._activeNotes = []; }
-      cur._lastT = t;
-      const active = cur._activeNotes || (cur._activeNotes = []);
-      let ix = cur._playheadIndex || 0;
-      while (ix < cur.ns.length && cur.ns[ix].seg <= t) active.push(cur.ns[ix++]);
-      cur._playheadIndex = ix;
-      for (let j = active.length - 1; j >= 0; j--) if (t >= active[j].seg + active[j].durSeg) active.splice(j, 1);
-      act = active.map(n => n.nota);
-    }
-    // Repintar como máximo a ~30 fps; el reloj de audio sigue en AudioContext.
-    const stamp = performance.now();
-    if (!SON._lastPaint || stamp - SON._lastPaint >= 32) { SON._lastPaint = stamp; sonRepintar(act); }
+    const t = cur ? now - cur.t0 : -1, act = cur ? cur.ns.filter(n => t >= n.seg && t < n.seg + n.durSeg).map(n => n.nota) : [];
+    sonRepintar(act);
     const l = SON.segs[SON.segs.length - 1];
     if (!SON.preparando && !sonQuedaMas() && now > l.t0 + l.fin + 0.4) { sonDetener(); return; }
     SON.raf = requestAnimationFrame(sonPaso);
@@ -6310,8 +6296,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         if (relleno && tieneCurva && pts.length >= 6) { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); C.push({ x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), n: pts.length }); }
         if (relleno && !tieneCurva && pts.length >= 4 && pts.length <= 6) { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); B.push({ x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), poli: true }); }
       }
-      // Ceder el hilo principal periódicamente en PDFs vectoriales densos.
-      if (i > 0 && i % 1800 === 0) await new Promise(resolve => setTimeout(resolve, 0));
     }
     const tc = await page.getTextContent(), glifos = [], textos = [];
     for (const it of tc.items) {
@@ -6321,7 +6305,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (/^\d{1,2}$/.test(it.str.trim())) textos.push({ s: it.str.trim(), x: it.transform[4], y: it.transform[5], w: it.width, tam });
       if (esFuenteMusical(nm)) { const ch = it.str.trim()[0], k = it.str.indexOf(ch); glifos.push({ c: ch, x: it.transform[4] + k * (it.width / it.str.length), y: it.transform[5], w: it.width / it.str.length, tam, esp: /Special/i.test(nm) }); }
       else textos.push({ s: it.str, x: it.transform[4], y: it.transform[5], w: it.width, tam });
-      if (glifos.length > 0 && glifos.length % 700 === 0) await new Promise(resolve => setTimeout(resolve, 0));
     }
     return { H, V, B, C, glifos, textos, w: page.view[2] - page.view[0], h: page.view[3] - page.view[1] };
   }
@@ -6471,33 +6454,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (hecho) return;
       // tie que sale del final del sistema (sin nota destino aquí): se une a la primera nota igual del siguiente sistema
       if (c.x1 > mejor.x1 - 3 * sp && h < 2.2 * sp) { const A = alIni.find(a => Math.min(Math.abs(c.y0 - a.y), Math.abs(c.y1 - a.y)) < 2.2 * sp); if (A) { A.tieSale = true; ties.push({ a: A, b: null, x0: c.x0, x1: c.x1, sale: true }); } return; }
-      // Slur: group chord heads into onset columns. Every note in a source
-      // column is connected to the next column; do not mark only one head of a chord.
-      // This keeps chordal reggae patterns legato without merging distinct attacks.
-      const bajo = nots.filter(n => n.x >= c.x0 - 1.5 * sp && n.x <= c.x1 + 1.5 * sp)
-        .sort((a, b) => a.x - b.x);
-      if (bajo.length >= 2 && !hecho) {
-        const cols = [];
-        bajo.forEach(n => {
-          const pid = n.plica && n.plica.id ? n.plica.id : null;
-          let col = pid ? cols.find(q => q.plicaId === pid) : null;
-          if (!col) {
-            const last = cols[cols.length - 1];
-            const tol = Math.max(1.2, sp * 0.24);
-            if (last && !pid && !last.plicaId && Math.abs(n.x - last.x) <= tol) col = last;
-          }
-          if (!col) { col = { x: n.x, plicaId: pid, notes: [] }; cols.push(col); }
-          col.notes.push(n);
-          col.x = col.notes.reduce((v, q) => v + q.x, 0) / col.notes.length;
-        });
-        cols.sort((a, b) => a.x - b.x);
-        if (cols.length >= 2) {
-          for (let ci = 0; ci < cols.length - 1; ci++) {
-            cols[ci].notes.forEach(n => { n.leg = true; n.legHastaX = cols[ci + 1].x; });
-          }
-          slurs.push({ x0: c.x0, x1: c.x1, n: bajo.length, columnas: cols.length });
-        }
-      }
+      // slur: las notas bajo la curva (menos la última) se tocan ligadas
+      const bajo = nots.filter(n => n.x >= c.x0 - 1.5 * sp && n.x <= c.x1 + 1.5 * sp); if (bajo.length >= 2 && !hecho) { const ult = Math.max.apply(null, bajo.map(n => n.x)); bajo.forEach(n => { if (n.x < ult - 0.5) n.leg = true; }); slurs.push({ x0: c.x0, x1: c.x1, n: bajo.length }); }
     });
     // ties que salen del sistema → primera nota de igual altura en el pentagrama equivalente del sistema siguiente
     ties.filter(t => t.sale && !t.b).forEach(t => { const pA = res.pent[t.a.st], idx = res.pent.filter(p => p.sist === pA.sist).indexOf(pA), sigs = res.pent.filter(p => p.sist === pA.sist + 1); const pB = sigs[idx]; if (!pB) return;
@@ -6611,170 +6569,91 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         ['u', 'd'].forEach(k => {
           const it = carriles[k].sort((a, b) => a.x - b.x); if (!it.length) return;
           let t = 0, i = 0;
-          while (i < it.length) {                         // acorde = misma plica; no confundir semicorcheas cercanas
-            const g = [it[i]], first = it[i]; let j = i + 1;
-            while (j < it.length && it[j].tipo === 'n' && first.tipo === 'n') {
-              const a = first.n && first.n.plica && first.n.plica.id;
-              const b = it[j].n && it[j].n.plica && it[j].n.plica.id;
-              const mismaPlica = !!a && !!b && a === b;
-              const cabezasCoinciden = (!a || !b) && Math.abs(it[j].x - first.x) < 2.2;
-              if (!mismaPlica && !cabezasCoinciden) break;
-              g.push(it[j++]);
-            }
+          while (i < it.length) {                         // acordes: cabezas del mismo carril casi en la misma x (o con la misma plica) suenan juntas
+            const g = [it[i]]; let j = i + 1;
+            while (j < it.length && it[j].tipo === 'n' && g[0].tipo === 'n' && Math.abs(it[j].x - g[0].x) < 8) g.push(it[j++]);
             g.forEach(e => { e.t = t; });
             t += g[0].dur; i = j;
           }
-          // La validez se decide por carril, no por pentagrama completo: un carril
-          // imperfecto no debe empujar a la otra voz al respaldo proporcional.
-          const laneOk = Math.abs(t - largo) <= 0.06 || (m === 0 && t < largo);
-          lan.push({ k: k, total: t, items: it, exact: laneOk });
-          if (!laneOk) ok = false;
+          lan.push({ k: k, total: t, items: it }); if (Math.abs(t - largo) > 0.06 && !(m === 0 && t < largo)) ok = false;
         });
         informe.compases++; if (ok) informe.validos++; else informe.dudosos.push({ pent: st.id, etiqueta: st.etiqueta, compas: m + 1, sumas: lan.map(l => l.total), esperado: largo });
-        // Posición proporcional solo para el carril cuya suma no valida; los demás
-        // conservan su secuencia rítmica exacta.
+        // posición proporcional de respaldo (si la suma no cuadra)
         const x0 = m === 0 ? Math.min.apply(null, ns.concat(rs).map(e => e.x)) - 2 : st.barras[m - 1], x1 = m < st.barras.length ? st.barras[m] : st.x1;
         lan.forEach(l => l.items.forEach(e => {
           if (e.tipo !== 'n') return; const n = e.n;
-          const tt = l.exact ? e.t : ((n.x - x0) / Math.max(1, x1 - x0)) * largo, du = l.exact ? e.dur : Math.min(e.dur, 1);
-          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, claveSol: st.clave === 'sol', exacto: l.exact, etiqueta: st.etiqueta, carril: l.k, nota: n });
+          const tt = ok ? e.t : ((n.x - x0) / Math.max(1, x1 - x0)) * largo, du = ok ? e.dur : Math.min(e.dur, 1);
+          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, claveSol: st.clave === 'sol', exacto: ok, etiqueta: st.etiqueta, carril: l.k, nota: n });
         }));
       }
+    });
+    // Sincronización de acordes entre pentagramas del mismo sistema y compás.
+    // Cuando una columna visual contiene notas en más de un pentagrama, todas
+    // comparten el mismo instante de ataque. Las duraciones individuales no cambian.
+    // La agrupación es uno-a-uno por columna y usa la misma tolerancia horizontal
+    // que el detector de cabezas de acorde del análisis de cada pentagrama.
+    const columnasPorSistemaCompas = new Map();
+    notas.forEach(n => {
+      const clave = res.pent[n.pent].sist + '|' + n.compas;
+      if (!columnasPorSistemaCompas.has(clave)) columnasPorSistemaCompas.set(clave, []);
+      columnasPorSistemaCompas.get(clave).push(n);
+    });
+    columnasPorSistemaCompas.forEach(lista => {
+      const porPentagrama = new Map();
+      lista.forEach(n => {
+        if (!porPentagrama.has(n.pent)) porPentagrama.set(n.pent, []);
+        porPentagrama.get(n.pent).push(n);
+      });
+      const columnas = [];
+      porPentagrama.forEach((arr, pent) => {
+        arr.sort((a, b) => a.x - b.x);
+        let grupo = [];
+        const guardar = () => {
+          if (!grupo.length) return;
+          columnas.push({ pent: pent, x: grupo.reduce((s, n) => s + n.x, 0) / grupo.length, notas: grupo });
+          grupo = [];
+        };
+        arr.forEach(n => {
+          if (grupo.length && Math.abs(n.x - grupo[grupo.length - 1].x) >= 8) guardar();
+          grupo.push(n);
+        });
+        guardar();
+      });
+      columnas.sort((a, b) => a.x - b.x);
+      const usadas = new Set();
+      columnas.forEach((col, i) => {
+        if (usadas.has(i)) return;
+        const coincidentes = [{ columna: col, indice: i }];
+        for (let j = i + 1; j < columnas.length; j++) {
+          const otra = columnas[j];
+          if (otra.x - col.x > 8) break;
+          if (usadas.has(j) || coincidentes.some(c => c.columna.pent === otra.pent)) continue;
+          coincidentes.push({ columna: otra, indice: j });
+        }
+        if (coincidentes.length < 2) return;
+        coincidentes.forEach(c => usadas.add(c.indice));
+        const tiempos = coincidentes.map(c => c.columna.notas.reduce((s, n) => s + n.t, 0) / c.columna.notas.length).sort((a, b) => a - b);
+        const mitad = Math.floor(tiempos.length / 2);
+        const tiempoComun = tiempos.length % 2 ? tiempos[mitad] : (tiempos[mitad - 1] + tiempos[mitad]) / 2;
+        coincidentes.forEach(c => c.columna.notas.forEach(n => { n.t = tiempoComun; n.sincronizadoEntrePentagramas = true; }));
+      });
     });
     // voces: por pentagrama y momento, de la nota más aguda a la más grave
     const gr = {}; notas.forEach(n => { const k = n.pent + '|' + n.compas + '|' + n.t.toFixed(2); (gr[k] = gr[k] || []).push(n); });
     Object.values(gr).forEach(a => { a.sort((x, y) => y.midi - x.midi); a.forEach((n, i) => { n.rango = i; }); });
     // compases de inicio de cada compás del sistema (para ordenar en el tiempo global): se alinean por índice de compás
     const ordenSist = []; res.pent.forEach(st => { ordenSist.push(st); });
-    // `n.pent` guarda el identificador del pentagrama (st.id), no su índice
-    // dentro de res.pent. Resolver por ID evita acceder a res.pent[undefined]
-    // cuando el identificador no coincide con la posición del array.
-    const pentPorId = new Map(res.pent.map(st => [String(st.id), st]));
-    const compIni = {};
-    notas.forEach(n => {
-      const st = pentPorId.get(String(n.pent));
-      if (!st) throw new Error('No se encontró el pentagrama de la nota (id: ' + n.pent + ')');
-      const sId = st.sist;
-      compIni[sId + '|' + n.compas] = n.compas * largo;
-      n.sist = sId;
-      n.tAbs = n.sist * 1e4 + n.compas * largo + n.t;
-    });
+    const compIni = {}; notas.forEach(n => { const sId = res.pent[n.pent].sist; compIni[sId + '|' + n.compas] = n.compas * largo; });
+    notas.forEach(n => { n.sist = res.pent[n.pent].sist; n.tAbs = n.sist * 1e4 + n.compas * largo + n.t; });
     const ordenS = Array.from(new Set(notas.map(n => n.sist))).sort((a, b) => a - b); const base = {}; let acum = 0;
     const nSl = {}; ((res.estr && res.estr.slots) || []).forEach(sl => { nSl[sl.sist] = (nSl[sl.sist] || 0) + 1; });
     const slotT = {}; (Object.keys(nSl).map(Number).concat(ordenS).filter((v, i, a) => a.indexOf(v) === i)).sort((a, b) => a - b).forEach(sId => { base[sId] = acum; const mx = Math.max(notas.filter(n => n.sist === sId).reduce((m, n) => Math.max(m, n.compas + 1), 0), nSl[sId] || 0); for (let m = 0; m < mx; m++) slotT[sId + '|' + m] = acum + m * largo; acum += mx * largo; });
     notas.forEach(n => { n.tq = base[n.sist] + n.compas * largo + n.t; n.seg = n.tq * segQ; n.durSeg = n.dur * segQ; });
-    // SINCRONIZACIÓN ENTRE PENTAGRAMAS:
-    // Se comparan centros de cabezas (no ejes de plicas). Primero se forman
-    // columnas locales por pentagrama usando la plica compartida de un acorde;
-    // después se emparejan columnas entre pentagramas, sin fusionar dos eventos
-    // distintos de una misma voz. Si un carril tiene tiempo validado, prevalece
-    // sobre el tiempo aproximado del otro. Las duraciones nunca se alteran aquí.
-    const porSistemaCompas = new Map();
-    const pentPorIdSync = new Map(res.pent.map(st => [String(st.id), st]));
-    notas.forEach(n => {
-      const k = n.sist + '|' + n.compas;
-      if (!porSistemaCompas.has(k)) porSistemaCompas.set(k, []);
-      porSistemaCompas.get(k).push(n);
-    });
-    let columnasAlineadas = 0, desfaseMaxQ = 0;
-    porSistemaCompas.forEach(lista => {
-      const porPent = new Map();
-      lista.forEach(n => {
-        if (!porPent.has(n.pent)) porPent.set(n.pent, []);
-        porPent.get(n.pent).push(n);
-      });
-      const eventos = [];
-      porPent.forEach((arr, pentId) => {
-        const st = pentPorIdSync.get(String(pentId)), sp = st && st.sp ? st.sp : 10;
-        const ancho = arr.map(n => (n.nota && n.nota.w) || 6).sort((a,b)=>a-b);
-        const tolLocal = Math.max(1.5, Math.min(sp * 0.28, (ancho[Math.floor(ancho.length/2)] || 6) * 0.42));
-        arr.sort((a,b) => ((a.nota.x + (a.nota.w || 6)/2) - (b.nota.x + (b.nota.w || 6)/2)));
-        const grupos = [];
-        arr.forEach(n => {
-          const raw = n.nota || {}, center = raw.x + (raw.w || 6)/2;
-          const pid = raw.plica && raw.plica.id ? raw.plica.id : null;
-          let g = null;
-          if (pid) g = grupos.find(x => x.plicaId === pid);
-          if (!g) {
-            const last = grupos[grupos.length-1];
-            if (last && !pid && Math.abs(center-last.x) <= tolLocal) g = last;
-          }
-          if (!g) { g = { pent: pentId, x: center, plicaId: pid, items: [] }; grupos.push(g); }
-          g.items.push(n);
-          g.x = g.items.reduce((sum,q)=>sum + q.nota.x + (q.nota.w || 6)/2,0)/g.items.length;
-        });
-        grupos.forEach(g => {
-          const ts = g.items.map(n=>n.t).sort((a,b)=>a-b);
-          g.t = ts[Math.floor(ts.length/2)];
-          g.exacto = g.items.some(n=>n.exacto);
-          g.sp = sp;
-          eventos.push(g);
-        });
-      });
-      // Emparejamiento uno-a-uno entre pentagramas. Una columna nunca puede
-      // absorber dos ataques distintos del mismo pentagrama.
-      const usados = new Set();
-      eventos.sort((a,b)=>a.x-b.x);
-      eventos.forEach(a => {
-        if (usados.has(a)) return;
-        let mejor = null, md = Infinity;
-        eventos.forEach(b => {
-          if (b === a || b.pent === a.pent || usados.has(b)) return;
-          const tol = Math.max(2.0, Math.min(a.sp,b.sp) * 0.42);
-          const d = Math.abs(a.x-b.x);
-          if (d <= tol && d < md) { mejor=b; md=d; }
-        });
-        if (!mejor) return;
-        usados.add(a); usados.add(mejor);
-        let comun;
-        if (a.exacto && !mejor.exacto) comun = a.t;
-        else if (!a.exacto && mejor.exacto) comun = mejor.t;
-        else comun = (a.t + mejor.t) / 2;
-        [a,mejor].forEach(g => g.items.forEach(n => {
-          desfaseMaxQ = Math.max(desfaseMaxQ, Math.abs(n.t-comun));
-          n.t = comun;
-          n.tq = base[n.sist] + n.compas*largo + comun;
-          n.seg = n.tq*segQ;
-        }));
-        columnasAlineadas++;
-      });
-    });
-    informe.columnasAlineadas = columnasAlineadas;
-    informe.desfaseMaxQ = Math.round(desfaseMaxQ * 1000) / 1000;
-    // Ligadura de unión (tie): mismo MIDI, un solo ataque y duración acumulada.
-    // La nota de destino debe comenzar prácticamente al final de la anterior;
-    // una tolerancia amplia aquí confundía notas vecinas en pasajes rápidos.
+    // ligaduras de unión: la primera nota suena toda la suma y las siguientes no se vuelven a atacar
     const porRaw = new Map(); notas.forEach(n => porRaw.set(n.nota, n)); const entra = new Set();
     notas.forEach(n => { if (n.nota && n.nota.tieA) { const b = porRaw.get(n.nota.tieA); if (b) entra.add(b); } });
-    notas.forEach(n => {
-      if (entra.has(n)) return;
-      let fin = n, cnt = 0;
-      while (fin.nota && fin.nota.tieA && cnt++ < 24) {
-        const b = porRaw.get(fin.nota.tieA);
-        if (!b || b.midi !== n.midi) break;
-        const esperado = fin.seg + fin.durSeg;
-        if (Math.abs(b.seg - esperado) > Math.max(0.09, segQ * 0.12)) break;
-        b.ligada = true; fin = b;
-      }
-      if (fin !== n) { n.durSeg = fin.seg + fin.durSeg - n.seg; n.dur = n.durSeg / segQ; n.unida = cnt; }
-    });
-    // Ligadura de expresión (slur): mantiene la duración escrita de cada nota,
-    // pero rellena cualquier microhueco hasta el siguiente ataque de la frase.
-    // Las alturas siguen siendo eventos separados y cada una conserva su ataque.
-    notas.forEach(n => {
-      const raw = n.nota;
-      if (!raw || !raw.leg || !Number.isFinite(raw.legHastaX) || raw.tieA) return;
-      const sp = (pentPorIdSync.get(String(n.pent)) || {}).sp || 5;
-      const tolX = Math.max(1.2, sp * 0.3);
-      const siguientes = notas.filter(q => q.pent === n.pent && q.nota &&
-        q.nota.x >= raw.legHastaX - tolX && q.nota.x <= raw.legHastaX + tolX &&
-        q.seg >= n.seg - 0.001 && !q.ligada);
-      if (!siguientes.length) return;
-      const ataque = Math.min.apply(null, siguientes.map(q => q.seg));
-      const hasta = Math.max(0, ataque - n.seg) + 0.018;
-      if (hasta > n.durSeg) { n.durSeg = hasta; n.dur = n.durSeg / segQ; }
-      n.slurHastaSeg = ataque;
-    });
+    notas.forEach(n => { if (entra.has(n)) return; let fin = n, cnt = 0; while (fin.nota && fin.nota.tieA && cnt++ < 12) { const b = porRaw.get(fin.nota.tieA); if (!b || b.seg < fin.seg + fin.durSeg - 0.05 || b.seg > fin.seg + fin.durSeg + 0.6) break; b.ligada = true; fin = b; }
+      if (fin !== n) { n.durSeg = fin.seg + fin.durSeg - n.seg; n.dur = n.durSeg / segQ; n.unida = cnt; } });
     return { slotT: slotT, totalQ: acum, notas: notas, informe: informe, bpm: bpm, comp: comp, largoQ: largo, segQ: segQ };
   }
   function sistemaDe(res, ip) { let s = 0; for (let i = 1; i <= ip; i++) { const a = res.pent[i - 1], b = res.pent[i]; if (a.ys[4] - b.ys[0] > 10 * a.sp) s++; } return s; }
