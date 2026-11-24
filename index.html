@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyp-lVnUx_C3D2BZlcQKfM3SQm68FbmjjyzG8AuXGvk1P1-Ghc8JhMb8HVGec_rtyPVhQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -6601,6 +6601,50 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const nSl = {}; ((res.estr && res.estr.slots) || []).forEach(sl => { nSl[sl.sist] = (nSl[sl.sist] || 0) + 1; });
     const slotT = {}; (Object.keys(nSl).map(Number).concat(ordenS).filter((v, i, a) => a.indexOf(v) === i)).sort((a, b) => a - b).forEach(sId => { base[sId] = acum; const mx = Math.max(notas.filter(n => n.sist === sId).reduce((m, n) => Math.max(m, n.compas + 1), 0), nSl[sId] || 0); for (let m = 0; m < mx; m++) slotT[sId + '|' + m] = acum + m * largo; acum += mx * largo; });
     notas.forEach(n => { n.tq = base[n.sist] + n.compas * largo + n.t; n.seg = n.tq * segQ; n.durSeg = n.dur * segQ; });
+    // SINCRONIZACIÓN ENTRE PENTAGRAMAS:
+    // Las notas que ocupan la misma columna horizontal dentro del mismo sistema y compás
+    // representan un mismo instante musical, aunque el cálculo rítmico independiente de
+    // cada pentagrama haya producido tiempos ligeramente distintos. Se usa el eje de la
+    // plica (más estable para acordes) y, si no existe, el centro de la cabeza.
+    // La duración de cada nota NO se modifica; las ligaduras se procesan después.
+    const columnas = new Map();
+    notas.forEach(n => {
+      const raw = n.nota || {}, eje = raw.plica && Number.isFinite(raw.plica.x) ? raw.plica.x : n.x;
+      const k = n.sist + '|' + n.compas;
+      if (!columnas.has(k)) columnas.set(k, []);
+      columnas.get(k).push({ n: n, x: eje });
+    });
+    let columnasAlineadas = 0, desfaseMaxQ = 0;
+    columnas.forEach(lista => {
+      lista.sort((a, b) => a.x - b.x);
+      const grupos = [];
+      lista.forEach(e => {
+        let g = grupos[grupos.length - 1];
+        if (!g || e.x - g.x0 > 3.5) { g = { x0: e.x, items: [] }; grupos.push(g); }
+        g.items.push(e.n);
+      });
+      grupos.forEach(g => {
+        const porPent = new Map();
+        g.items.forEach(n => {
+          if (!porPent.has(n.pent)) porPent.set(n.pent, []);
+          porPent.get(n.pent).push(n.t);
+        });
+        // Solo se corrigen columnas compartidas por al menos dos pentagramas.
+        if (porPent.size < 2) return;
+        const tiempos = Array.from(porPent.values()).map(a => a.reduce((s, v) => s + v, 0) / a.length).sort((a, b) => a - b);
+        const mitad = Math.floor(tiempos.length / 2);
+        const comun = tiempos.length % 2 ? tiempos[mitad] : (tiempos[mitad - 1] + tiempos[mitad]) / 2;
+        g.items.forEach(n => {
+          desfaseMaxQ = Math.max(desfaseMaxQ, Math.abs(n.t - comun));
+          n.t = comun;
+          n.tq = base[n.sist] + n.compas * largo + comun;
+          n.seg = n.tq * segQ;
+        });
+        columnasAlineadas++;
+      });
+    });
+    informe.columnasAlineadas = columnasAlineadas;
+    informe.desfaseMaxQ = Math.round(desfaseMaxQ * 1000) / 1000;
     // ligaduras de unión: la primera nota suena toda la suma y las siguientes no se vuelven a atacar
     const porRaw = new Map(); notas.forEach(n => porRaw.set(n.nota, n)); const entra = new Set();
     notas.forEach(n => { if (n.nota && n.nota.tieA) { const b = porRaw.get(n.nota.tieA); if (b) entra.add(b); } });
