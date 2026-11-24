@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwfj3WAwnYpjbr8gQ9dhYU_L9lJYPFD5xsvGo_eX0kGcNx2nOa0cvTbqPRQzKzIie0xNw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxZII7sg3-nWrAK7H72e3oTwa66dr8Mc-FjuI_bDerN5yEymtqDAZiMpJEr8ZvEUUHKKA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5961,14 +5961,26 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     });
     lt.__satb = true; lt.extras = extras;
   }
-  const SON_SATB_NOM = { S: 'Soprano (la más alta de cada acorde)', A: 'Alto (2.ª desde arriba)', T: 'Tenor (la más alta de la clave de fa)', B: 'Bajo (la más baja)', RH: 'Mano derecha · acordes (clave de sol)', LH: 'Mano izquierda · acordes (clave de fa)', sel: 'Notas elegidas con el puntero' };
+  const SON_SATB_NOM = { S: 'Soprano', A: 'Alto', T: 'Tenor', B: 'Bajo', RH: 'Mano derecha', LH: 'Mano izquierda' };
   function sonVocesDe(res) {                     // etiquetas de las voces: por pentagrama y rango dentro del acorde
     const out = {}; const conNotas = res.pent.filter(s => s.notas && s.notas.length);
     const solFa = conNotas.some(x => x.clave === 'sol') && conNotas.some(x => x.clave === 'fa') && !conNotas.some(x => x.etiqueta);   // piano / coro sin rótulos: cada sistema se apila (sol + fa)
     if (!solFa) conNotas.forEach((s, k) => { const maxR = Math.max.apply(null, SON.lt.notas.filter(n => n.pent === s.id).map(n => n.rango).concat([0]));
       for (let r = 0; r <= Math.min(maxR, 3); r++) { let nom = s.etiqueta || ('Pentagrama ' + (k + 1)); if (solFa) nom = (k === 0 ? ['Soprano', 'Contralto'] : ['Tenor', 'Bajo'])[r] || (nom + ' ' + (r + 1)); else if (maxR > 0) nom += ' · voz ' + (r + 1); out[s.id + '#' + r] = nom; } });
-    if (solFa && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); if (SON.lt.extras) o2.sel = SON_SATB_NOM.sel; return o2; }
+    if (solFa && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); return o2; }
     SON.solFa = false; return out;
+  }
+  // Etiqueta las notas de cada página por separado. Esto evita que la selección SATB
+  // dependa del último pentagrama/página que haya actualizado el estado global.
+  function sonEtiquetarVoces(res, lt) {
+    const ltAnterior = SON.lt, solFaAnterior = SON.solFa;
+    SON.lt = lt;
+    const voces = sonVocesDe(res);
+    lt.__voces = voces;
+    lt.__usaSatb = SON.solFa;
+    SON.lt = ltAnterior;
+    SON.solFa = solFaAnterior;
+    return voces;
   }
   function sonClaveTexto(res) {
     const s = res.pent.find(p => p.arm); if (!s) return ''; const n = s.arm.sig * s.arm.n, may = SON_CLAVES_MAYOR[n], men = SON_CLAVES_MENOR[n];
@@ -5978,7 +5990,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const res = await sonAnalizar(EST.page); if (!res) return null;
     SON.res = res; SON.pagN = EST.page; SON.tokN = EST.tok; const est = Object.assign({}, res.estado); if (SON.bpm) { est.bpm = SON.bpm; } SON.lt = window.SonoroMotor.lineaTiempo(res, est);
     const bpmI = $('son-bpm'); if (bpmI && !SON.bpm) bpmI.value = Math.round(SON.lt.bpm / (res.estado.comp && res.estado.comp[1] === 8 ? 1 : 1));
-    const sv = $('son-voz'); if (sv) { const v = sonVocesDe(res), act = SON.voz; sv.innerHTML = '<option value="todas">Todas las voces</option>' + Object.keys(v).map(k => '<option value="' + esc(k) + '">' + esc(v[k]) + '</option>').join(''); sv.value = v[act] !== undefined || act === 'todas' ? act : 'todas'; SON.voz = sv.value; }
+    const v = sonEtiquetarVoces(res, SON.lt);
+    const sv = $('son-voz'); if (sv) { const act = SON.voz; sv.innerHTML = '<option value="todas">Todos</option>' + Object.keys(v).map(k => '<option value="' + esc(k) + '">' + esc(v[k]) + '</option>').join(''); sv.value = v[act] !== undefined || act === 'todas' ? act : 'todas'; SON.voz = sv.value; }
     sonEstado();
     return res;
   }
@@ -6021,10 +6034,49 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     sonEstado(msg); if (SON.min) lecAviso(grupo.length > 1 ? 'Acorde: ' + grupo.map(n => n.nombre).join(' + ') : mejor.nombre);
   }
   /* ---------- reproducir ---------- */
-  function sonPeso(n) { if (n.ligada) return 0; if (SON.voz === 'todas') return n.dup ? 0 : 1; if (SON.solFa) { const v = SON.voz, ok = v === 'RH' ? n.claveSol : v === 'LH' ? !n.claveSol : v === 'sel' ? SON.elegidas.has(n.nota) : n.satb === v; return ok ? 1 : (SON.resto === 'mudo' ? 0 : 0.22); } const k = n.pent + '#' + Math.min(n.rango, 3); return k === SON.voz ? 1 : (SON.resto === 'mudo' ? 0 : 0.22); }
-  function sonSimul(lt) { if (lt.__simul) return; const m = {}; lt.notas.forEach(n => { const k = Math.round(n.seg * 40); m[k] = (m[k] || 0) + 1; }); const vis = {}; lt.notas.forEach(n => { n.dup = false; const k = n.sist + '|' + Math.round(n.seg * 40) + '|' + n.midi; (vis[k] = vis[k] || []).push(n); });
-    Object.values(vis).forEach(a => { if (a.length > 1) { a.sort((x, y) => y.durSeg - x.durSeg); a.slice(1).forEach(n => { n.dup = true; }); } });   // unísonos (cuerdas/voces que repiten la misma nota): suenan una sola vez
-    const m2 = {}; lt.notas.forEach(n => { if (!n.dup) { const k = Math.round(n.seg * 40); m2[k] = (m2[k] || 0) + 1; } }); lt.notas.forEach(n => { n.simul = m2[Math.round(n.seg * 40)] || 1; }); lt.__simul = true; }
+  function sonPeso(n) {
+    if (n.ligada) return 0;
+    if (SON.voz === 'todas') return n.dup ? 0 : 1;
+    const v = SON.voz;
+    let esVozElegida;
+    if (v === 'RH') esVozElegida = !!n.claveSol;
+    else if (v === 'LH') esVozElegida = !n.claveSol;
+    else if (v === 'sel') esVozElegida = SON.elegidas.has(n.nota);
+    else if (v === 'S' || v === 'A' || v === 'T' || v === 'B') esVozElegida = n.satb === v;
+    else { const k = n.pent + '#' + Math.min(n.rango, 3); esVozElegida = k === v; }
+    if (esVozElegida) return 1;
+    return SON.resto === 'mudo' ? 0 : 0.12;
+  }
+  function sonSimul(lt) {
+    // Recalcula la mezcla al cambiar de voz o de modo de acompañamiento.
+    const clave = SON.voz + '|' + SON.resto;
+    if (lt.__simulKey === clave) return;
+    const vis = {};
+    lt.notas.forEach(n => {
+      n.dup = false;
+      const k = n.sist + '|' + Math.round(n.seg * 40) + '|' + n.midi;
+      (vis[k] = vis[k] || []).push(n);
+    });
+    // En «Todos» los unísonos se reproducen una sola vez. Al ensayar una voz,
+    // no se descarta una nota por coincidir con otra voz distinta.
+    if (SON.voz === 'todas') Object.values(vis).forEach(a => {
+      if (a.length > 1) { a.sort((x, y) => y.durSeg - x.durSeg); a.slice(1).forEach(n => { n.dup = true; }); }
+    });
+    const conteos = {};
+    lt.notas.forEach(n => {
+      const k = Math.round(n.seg * 40), peso = sonPeso(n);
+      if (peso > 0) { const c = conteos[k] || (conteos[k] = { principal: 0, total: 0 }); c.total++; if (peso >= 0.99) c.principal++; }
+    });
+    lt.notas.forEach(n => {
+      const c = conteos[Math.round(n.seg * 40)] || { principal: 0, total: 1 };
+      const peso = sonPeso(n);
+      // La voz ensayada se normaliza sin que las otras voces la apaguen;
+      // el acompañamiento suave se mezcla a menor nivel.
+      n.simul = SON.voz === 'todas' ? c.total : (peso >= 0.99 ? c.principal : c.total);
+      if (!n.simul) n.simul = 1;
+    });
+    lt.__simulKey = clave;
+  }
   const sonVol = n => 0.8 / Math.sqrt(Math.max(1, n.simul || 1));
   function sonProgramar(ctx, dest, lt, t0, nodos, filtro) {
     // Polifonía: cada nota se agenda como evento independiente y conserva su duración musical exacta.
@@ -6094,7 +6146,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const S = [], ref = [], off = {}; for (let i = 1; i <= N; i++) { off[i] = S.length; SON.pag[i].estr.slots.forEach((x, j) => { S.push(x); ref.push({ pag: i, j: j, sist: x.sist, m: x.m }); }); }
     SON.estr = { S: S, ref: ref, off: off, orden: [], avisos: [] }; sonReexpandir(); sonEstado(); sonRepintar(); return SON.estr;
   }
-  function sonLtDe(pag) { SON.ltc = SON.ltc || {}; const k = pag + '|' + (SON.bpm || 0); if (!SON.ltc[k]) { const r = SON.pag[pag], est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; SON.ltc[k] = window.SonoroMotor.lineaTiempo(r, est); } return SON.ltc[k]; }
+  function sonLtDe(pag) { SON.ltc = SON.ltc || {}; const k = pag + '|' + (SON.bpm || 0); if (!SON.ltc[k]) { const r = SON.pag[pag], est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; const lt = window.SonoroMotor.lineaTiempo(r, est); sonEtiquetarVoces(r, lt); SON.ltc[k] = lt; } return SON.ltc[k]; }
   async function sonReproducirCompleta() {
     const E = await sonEstructura(); if (!E || !E.orden.length) { sonEstado('No encontré compases que tocar'); return; }
     const ctx = sonAudio(); SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = []; SON.tocando = true; SON.completa = true; SON.preparando = false;
@@ -6171,8 +6223,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     p.innerHTML = '<div class="son-f"><span class="son-t"><b>🎹<span class="son-tx"> Estudio Sonoro</span></b> <span class="son-tag">alfa</span></span><button type="button" id="son-play">▶ Reproducir</button><button type="button" id="son-min" title="Ocultar controles (ver la partitura completa)">▾</button><button type="button" id="son-x" title="Cerrar el estudio">✕</button></div>' +
       '<div class="son-f"><label>♩= <input id="son-bpm" type="number" min="30" max="220" step="1"></label>' +
       '<label>Sonido <select id="son-instr"><option value="piano">Piano</option><option value="organo">Órgano</option><option value="trompeta">Trompeta</option><option value="violin">Violín</option><option value="chelo">Violonchelo</option><option value="voz">Voz «aah»</option></select></label>' +
-      '<label>Voz <select id="son-voz"><option value="todas">Todas las voces</option></select></label>' +
-      '<label>Resto <select id="son-resto"><option value="suave">suave</option><option value="mudo">en silencio</option></select></label>' +
+      '<label>Voz <select id="son-voz"><option value="todas">Todos</option></select></label>' +
+      '<label>Otras voces <select id="son-resto"><option value="suave">Suaves</option><option value="mudo">En silencio</option></select></label>' +
       '<label>Al terminar la página <select id="son-cont"><option value="parar">se detiene</option><option value="seguir">sigue con la siguiente</option></select></label>' +
       '<label><input type="checkbox" id="son-auto" checked> Ocultar controles al reproducir</label></div>' +
       '<div class="son-f"><label><input type="checkbox" id="son-metro"> 🥁 Metrónomo</label><label title="Marcación anticipada: compases completos de clic antes de la primera nota (solo con el metrónomo encendido)">conteo <select id="son-conteo"><option value="0">sin</option><option value="1" selected>1 compás</option><option value="2">2 compases</option></select></label><label title="Subdivisión suave: corcheas en compases simples, tres por pulso en compuestos"><input type="checkbox" id="son-msub"> subdividir</label><span id="son-mtxt" class="son-tx" style="font-size:11px;opacity:.8"></span><label><input type="checkbox" id="son-cantar"> 🎤 Cantar con la nota (micrófono)</label><span id="son-canto" class="son-cant" aria-live="polite"></span></div>' +
