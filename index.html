@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxZII7sg3-nWrAK7H72e3oTwa66dr8Mc-FjuI_bDerN5yEymtqDAZiMpJEr8ZvEUUHKKA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwdzlSSkEQcdMr_hKamQ5e2WABETGe0Aw7hvOmgpm6vaa79VuuZk4hm-9x4WrUS2tJL8w/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -6091,7 +6091,16 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (SON.pre && SON.pre.pag === pag) return SON.pre.p;
     const tok = EST.tok, p = sonSiguiente(pag, 0).then(x => { if (tok === EST.tok) sonAvisoPagina(pag, x.lt); return x; }); SON.pre = { pag: pag, p: p, tok: tok }; return p;
   }
-  async function sonSiguiente(pag, t0) { const r = await sonAnalizar(pag); const est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; return sonSegmento(r, window.SonoroMotor.lineaTiempo(r, est), t0, pag); }
+  async function sonSiguiente(pag, t0) {
+    const r = await sonAnalizar(pag);
+    const est = Object.assign({}, r.estado);
+    if (SON.bpm) est.bpm = SON.bpm;
+    const lt = window.SonoroMotor.lineaTiempo(r, est);
+    // Cada página debe etiquetar sus propias notas ANTES de filtrar por la voz elegida.
+    // Sin esto, S/A/T/B no coinciden en la página siguiente y la reproducción puede quedar muda.
+    sonEtiquetarVoces(r, lt);
+    return sonSegmento(r, lt, t0, pag);
+  }
   function sonQuedaMas() { const l = SON.segs[SON.segs.length - 1]; return !SON.completa && SON.cont === 'seguir' && !SON.sinSig && l && l.pag < EST.pdf.numPages; }
   function sonRodar() {                      // planificador polifónico: cada nota conserva ataque y duración independientes; ventana de 1,6 s
 
@@ -6102,8 +6111,34 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     medir('sonoro:programar', performance.now() - t0m, true);
     const l = SON.segs[SON.segs.length - 1];
     if (sonQuedaMas() && !SON.preparando) {
-      const pp = sonPrever(l.pag + 1); if (pp && !SON.pre.cap) { SON.pre.cap = true; pp.catch(() => { SON.sinSig = true; }); }
-      if (l.t0 + l.fin - ctx.currentTime < 5 && SON.pre && SON.pre.pag === l.pag + 1) { SON.preparando = true; const pr = SON.pre; pr.p.then(x => { if (SON.tocando && pr.tok === EST.tok) { const t = l.t0 + l.fin; x.t0 = t; x.ini = t; SON.segs.push(x); } SON.preparando = false; SON.pre = null; }).catch(() => { SON.preparando = false; SON.sinSig = true; }); }
+      // Iniciar la lectura anticipada tan pronto como se detecta la página siguiente.
+      // Al terminar, anexarla una sola vez; si la lectura llegó tarde, reanudar desde ahora
+      // en vez de programar retroactivamente todas las notas en el mismo instante.
+      const pp = sonPrever(l.pag + 1);
+      if (pp && SON.pre && SON.pre.pag === l.pag + 1 && !SON.pre.cap) {
+        SON.pre.cap = true;
+        SON.preparando = true;
+        const pr = SON.pre;
+        pr.p.then(x => {
+          if (SON.tocando && pr.tok === EST.tok && !pr.adjunta) {
+            const ultimo = SON.segs[SON.segs.length - 1];
+            if (ultimo && ultimo.pag + 1 === pr.pag) {
+              const previsto = ultimo.t0 + ultimo.fin;
+              const inicio = Math.max(previsto, ctx.currentTime + 0.06);
+              x.t0 = inicio;
+              x.ini = inicio;
+              SON.segs.push(x);
+              pr.adjunta = true;
+            }
+          }
+          SON.preparando = false;
+          if (SON.pre === pr) SON.pre = null;
+        }).catch(() => {
+          SON.preparando = false;
+          SON.sinSig = true;
+          if (SON.pre === pr) SON.pre = null;
+        });
+      }
     }
   }
   function sonPaso() {
