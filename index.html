@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbz9tt3Sxw8b8GxsRe7qPLgdBtaNt6GRT4Mndgriy5JjmeenUI2KPOlFLpFUSvY-xnR-gQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwtFY7m3vcMaLAar_lk_ryaFoBJtrixow6W_OdPsuSAXOEpZ3ypcGMzUNwedw0sFLqhsQ/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -6621,8 +6621,19 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     Object.values(gr).forEach(a => { a.sort((x, y) => y.midi - x.midi); a.forEach((n, i) => { n.rango = i; }); });
     // compases de inicio de cada compás del sistema (para ordenar en el tiempo global): se alinean por índice de compás
     const ordenSist = []; res.pent.forEach(st => { ordenSist.push(st); });
-    const compIni = {}; notas.forEach(n => { const sId = res.pent[n.pent].sist; compIni[sId + '|' + n.compas] = n.compas * largo; });
-    notas.forEach(n => { n.sist = res.pent[n.pent].sist; n.tAbs = n.sist * 1e4 + n.compas * largo + n.t; });
+    // `n.pent` guarda el identificador del pentagrama (st.id), no su índice
+    // dentro de res.pent. Resolver por ID evita acceder a res.pent[undefined]
+    // cuando el identificador no coincide con la posición del array.
+    const pentPorId = new Map(res.pent.map(st => [String(st.id), st]));
+    const compIni = {};
+    notas.forEach(n => {
+      const st = pentPorId.get(String(n.pent));
+      if (!st) throw new Error('No se encontró el pentagrama de la nota (id: ' + n.pent + ')');
+      const sId = st.sist;
+      compIni[sId + '|' + n.compas] = n.compas * largo;
+      n.sist = sId;
+      n.tAbs = n.sist * 1e4 + n.compas * largo + n.t;
+    });
     const ordenS = Array.from(new Set(notas.map(n => n.sist))).sort((a, b) => a - b); const base = {}; let acum = 0;
     const nSl = {}; ((res.estr && res.estr.slots) || []).forEach(sl => { nSl[sl.sist] = (nSl[sl.sist] || 0) + 1; });
     const slotT = {}; (Object.keys(nSl).map(Number).concat(ordenS).filter((v, i, a) => a.indexOf(v) === i)).sort((a, b) => a - b).forEach(sId => { base[sId] = acum; const mx = Math.max(notas.filter(n => n.sist === sId).reduce((m, n) => Math.max(m, n.compas + 1), 0), nSl[sId] || 0); for (let m = 0; m < mx; m++) slotT[sId + '|' + m] = acum + m * largo; acum += mx * largo; });
