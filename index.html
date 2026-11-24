@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbx1aP_R1sWBaJNVnNdev0EG6uFdQg7WYyKi2fI765NOs2COlInVTw1ygpxH-C9aGvSjvA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5917,7 +5917,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const afin = ok ? '✔ igualando la nota' : c > 0 ? '▲ más alto' : '▼ más bajo', tm = C.dt === null ? 'tiempo: aún no entra' : Math.abs(C.dt) <= 150 ? 'tiempo: ✔ sincronizado (' + Math.round(C.dt) + ' ms)' : C.dt > 0 ? 'tiempo: atrasado ' + Math.round(C.dt) + ' ms' : 'tiempo: adelantado ' + Math.round(-C.dt) + ' ms';
     sonCantoMostrar(afin + ' (' + (c > 0 ? '+' : '') + Math.round(c) + '¢) · objetivo ' + obj.nombre + ' · usted ' + Math.round(f) + ' Hz · ' + tm + ' · afinado ' + Math.round(100 * C.ok / C.n) + '%', ok && (C.dt === null || Math.abs(C.dt) <= 150) ? 'bien' : 'mal');
   }
-  function sonDetener() { SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
+  function sonDetener() { SON._lastPaint = 0; SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
   /* ---------- análisis de la página con el motor ---------- */
   async function sonAnalizar(n) {
     if (!window.SonoroMotor || !EST.pdf) return null;
@@ -6045,8 +6045,22 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     let cur = null; SON.segs.forEach(s => { if (now >= s.ini) cur = s; });
     if (cur && cur.pag !== SON.pagN) { SON.res = cur.res; SON.lt = cur.lt; SON.pagN = cur.pag; SON.tokN = EST.tok; SON.sel = null; estIrPagina(cur.pag); sonEstado(); }
     if (cur) { while (SON.segs.length > 2 && SON.segs[0] !== cur && SON.segs[1].ini <= now - 1) SON.segs.shift(); }
-    const t = cur ? now - cur.t0 : -1, act = cur ? cur.ns.filter(n => t >= n.seg && t < n.seg + n.durSeg).map(n => n.nota) : [];
-    sonRepintar(act);
+    const t = cur ? now - cur.t0 : -1;
+    let act = [];
+    if (cur) {
+      // Índice incremental: evita recorrer todas las notas a cada frame.
+      if (cur._lastT === undefined || t < cur._lastT) { cur._playheadIndex = 0; cur._activeNotes = []; }
+      cur._lastT = t;
+      const active = cur._activeNotes || (cur._activeNotes = []);
+      let ix = cur._playheadIndex || 0;
+      while (ix < cur.ns.length && cur.ns[ix].seg <= t) active.push(cur.ns[ix++]);
+      cur._playheadIndex = ix;
+      for (let j = active.length - 1; j >= 0; j--) if (t >= active[j].seg + active[j].durSeg) active.splice(j, 1);
+      act = active.map(n => n.nota);
+    }
+    // Repintar como máximo a ~30 fps; el reloj de audio sigue en AudioContext.
+    const stamp = performance.now();
+    if (!SON._lastPaint || stamp - SON._lastPaint >= 32) { SON._lastPaint = stamp; sonRepintar(act); }
     const l = SON.segs[SON.segs.length - 1];
     if (!SON.preparando && !sonQuedaMas() && now > l.t0 + l.fin + 0.4) { sonDetener(); return; }
     SON.raf = requestAnimationFrame(sonPaso);
@@ -6282,6 +6296,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         if (relleno && tieneCurva && pts.length >= 6) { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); C.push({ x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), n: pts.length }); }
         if (relleno && !tieneCurva && pts.length >= 4 && pts.length <= 6) { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); B.push({ x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), poli: true }); }
       }
+      // Ceder el hilo principal periódicamente en PDFs vectoriales densos.
+      if (i > 0 && i % 1800 === 0) await new Promise(resolve => setTimeout(resolve, 0));
     }
     const tc = await page.getTextContent(), glifos = [], textos = [];
     for (const it of tc.items) {
@@ -6291,6 +6307,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (/^\d{1,2}$/.test(it.str.trim())) textos.push({ s: it.str.trim(), x: it.transform[4], y: it.transform[5], w: it.width, tam });
       if (esFuenteMusical(nm)) { const ch = it.str.trim()[0], k = it.str.indexOf(ch); glifos.push({ c: ch, x: it.transform[4] + k * (it.width / it.str.length), y: it.transform[5], w: it.width / it.str.length, tam, esp: /Special/i.test(nm) }); }
       else textos.push({ s: it.str, x: it.transform[4], y: it.transform[5], w: it.width, tam });
+      if (glifos.length > 0 && glifos.length % 700 === 0) await new Promise(resolve => setTimeout(resolve, 0));
     }
     return { H, V, B, C, glifos, textos, w: page.view[2] - page.view[0], h: page.view[3] - page.view[1] };
   }
@@ -6572,57 +6589,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
           notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, claveSol: st.clave === 'sol', exacto: ok, etiqueta: st.etiqueta, carril: l.k, nota: n });
         }));
       }
-    });
-    // Sincronización de acordes entre pentagramas del mismo sistema y compás.
-    // Cuando una columna visual contiene notas en más de un pentagrama, todas
-    // comparten el mismo instante de ataque. Las duraciones individuales no cambian.
-    // La agrupación es uno-a-uno por columna y usa la misma tolerancia horizontal
-    // que el detector de cabezas de acorde del análisis de cada pentagrama.
-    const columnasPorSistemaCompas = new Map();
-    notas.forEach(n => {
-      const clave = res.pent[n.pent].sist + '|' + n.compas;
-      if (!columnasPorSistemaCompas.has(clave)) columnasPorSistemaCompas.set(clave, []);
-      columnasPorSistemaCompas.get(clave).push(n);
-    });
-    columnasPorSistemaCompas.forEach(lista => {
-      const porPentagrama = new Map();
-      lista.forEach(n => {
-        if (!porPentagrama.has(n.pent)) porPentagrama.set(n.pent, []);
-        porPentagrama.get(n.pent).push(n);
-      });
-      const columnas = [];
-      porPentagrama.forEach((arr, pent) => {
-        arr.sort((a, b) => a.x - b.x);
-        let grupo = [];
-        const guardar = () => {
-          if (!grupo.length) return;
-          columnas.push({ pent: pent, x: grupo.reduce((s, n) => s + n.x, 0) / grupo.length, notas: grupo });
-          grupo = [];
-        };
-        arr.forEach(n => {
-          if (grupo.length && Math.abs(n.x - grupo[grupo.length - 1].x) >= 8) guardar();
-          grupo.push(n);
-        });
-        guardar();
-      });
-      columnas.sort((a, b) => a.x - b.x);
-      const usadas = new Set();
-      columnas.forEach((col, i) => {
-        if (usadas.has(i)) return;
-        const coincidentes = [{ columna: col, indice: i }];
-        for (let j = i + 1; j < columnas.length; j++) {
-          const otra = columnas[j];
-          if (otra.x - col.x > 8) break;
-          if (usadas.has(j) || coincidentes.some(c => c.columna.pent === otra.pent)) continue;
-          coincidentes.push({ columna: otra, indice: j });
-        }
-        if (coincidentes.length < 2) return;
-        coincidentes.forEach(c => usadas.add(c.indice));
-        const tiempos = coincidentes.map(c => c.columna.notas.reduce((s, n) => s + n.t, 0) / c.columna.notas.length).sort((a, b) => a - b);
-        const mitad = Math.floor(tiempos.length / 2);
-        const tiempoComun = tiempos.length % 2 ? tiempos[mitad] : (tiempos[mitad - 1] + tiempos[mitad]) / 2;
-        coincidentes.forEach(c => c.columna.notas.forEach(n => { n.t = tiempoComun; n.sincronizadoEntrePentagramas = true; }));
-      });
     });
     // voces: por pentagrama y momento, de la nota más aguda a la más grave
     const gr = {}; notas.forEach(n => { const k = n.pent + '|' + n.compas + '|' + n.t.toFixed(2); (gr[k] = gr[k] || []).push(n); });
