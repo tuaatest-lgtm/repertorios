@@ -101,6 +101,12 @@ def detect_rest_shape_candidates(
     horizontal = cv2.morphologyEx(ink,cv2.MORPH_OPEN,
         cv2.getStructuringElement(cv2.MORPH_RECT,(kw,1)))
     cleaned = cv2.subtract(ink,horizontal)
+    # Reconectar glifos cortados por una línea de pentagrama eliminada.
+    cleaned = cv2.morphologyEx(
+        cleaned,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)),
+    )
     count, _, stats, centroids = cv2.connectedComponentsWithStats(cleaned,8)
     results = []
     for label in range(1,count):
