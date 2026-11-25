@@ -13,7 +13,11 @@ from .imaging import analyze_page, render_pdf
 from .symbols import detect_notehead_candidates
 from .rhythm import analyze_rhythm_candidates
 from .rhythm_symbols import detect_augmentation_dot_candidates, detect_rest_shape_candidates
-from .measure_layout import detect_barline_candidates
+from .measure_layout import (
+    detect_barline_candidates,
+    group_system_barlines,
+    infer_measure_spans,
+)
 
 
 def main() -> int:
@@ -48,10 +52,15 @@ def main() -> int:
         dots = detect_augmentation_dot_candidates(binary, analysis.staves, noteheads)
         rests = detect_rest_shape_candidates(binary, analysis.staves)
         barlines = detect_barline_candidates(binary, analysis.staves)
+        system_barlines = group_system_barlines(barlines, analysis.staves)
+        measure_spans = infer_measure_spans(barlines)
         page_data["augmentation_dot_candidates"] = [item.to_dict() for item in dots]
         page_data["rest_shape_candidates"] = [item.to_dict() for item in rests]
         page_data["barline_candidates"] = [item.to_dict() for item in barlines]
         page_data["barline_candidate_count"] = len(barlines)
+        page_data["system_barline_candidates"] = [item.to_dict() for item in system_barlines]
+        page_data["measure_span_candidates"] = [item.to_dict() for item in measure_spans]
+        page_data["measure_span_candidate_count"] = len(measure_spans)
         analyses.append(page_data)
 
     report = {
@@ -61,8 +70,8 @@ def main() -> int:
         "warning": (
             "Los resultados son hipótesis visuales, no una transcripción musical validada. "
             "Todavía no se reconocen de forma fiable claves, armaduras, alturas absolutas, "
-            "duraciones, tipos de silencio, puntillos, ligaduras, voces ni estructura de compases. "
-            "Los detectores de puntillos, silencios y barras solo generan candidatos."
+            "duraciones, tipos de silencio, puntillos, ligaduras, voces ni estructura métrica. "
+            "Los detectores de puntillos, silencios, barras y regiones de compás solo generan candidatos."
         ),
         "source_pdf": Path(args.pdf).name,
         "pages": analyses,
@@ -78,6 +87,7 @@ def main() -> int:
     total_dots = sum(len(page["augmentation_dot_candidates"]) for page in analyses)
     total_rests = sum(len(page["rest_shape_candidates"]) for page in analyses)
     total_barlines = sum(page["barline_candidate_count"] for page in analyses)
+    total_spans = sum(page["measure_span_candidate_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
     print(f"Cabezas de nota candidatas: {total_heads}")
@@ -85,6 +95,7 @@ def main() -> int:
     print(f"Puntillos candidatos: {total_dots}")
     print(f"Formas candidatas a silencio: {total_rests}")
     print(f"Barras de compás candidatas: {total_barlines}")
+    print(f"Intervalos entre barras candidatas: {total_spans}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
     return 0
 
