@@ -13,6 +13,7 @@ from .imaging import analyze_page, render_pdf
 from .symbols import detect_notehead_candidates
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
+from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .measure_layout import (
     classify_barline_groups,
@@ -51,10 +52,13 @@ def main() -> int:
         page_data["notehead_candidate_count"] = len(noteheads)
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
         beam_groups = detect_beam_group_candidates(binary, analysis.staves, noteheads, rhythms)
+        rhythmic_interpretations = interpret_rhythm_from_beam_groups(rhythms, beam_groups)
         page_data["rhythm_candidates"] = [item.to_dict() for item in rhythms]
         page_data["rhythm_candidate_count"] = len(rhythms)
         page_data["beam_group_candidates"] = [item.to_dict() for item in beam_groups]
         page_data["beam_group_candidate_count"] = len(beam_groups)
+        page_data["rhythmic_interpretation_candidates"] = [item.to_dict() for item in rhythmic_interpretations]
+        page_data["rhythmic_interpretation_candidate_count"] = len(rhythmic_interpretations)
         dots = detect_augmentation_dot_candidates(binary, analysis.staves, noteheads)
         rests = detect_rest_shape_candidates(binary, analysis.staves)
         tie_slurs = detect_tie_slur_shape_candidates(binary, analysis.staves)
@@ -99,6 +103,7 @@ def main() -> int:
     total_heads = sum(page["notehead_candidate_count"] for page in analyses)
     total_rhythms = sum(page["rhythm_candidate_count"] for page in analyses)
     total_beam_groups = sum(page["beam_group_candidate_count"] for page in analyses)
+    total_rhythm_interpretations = sum(page["rhythmic_interpretation_candidate_count"] for page in analyses)
     total_dots = sum(len(page["augmentation_dot_candidates"]) for page in analyses)
     total_rests = sum(len(page["rest_shape_candidates"]) for page in analyses)
     total_typed_rest_shapes = sum(
@@ -113,6 +118,7 @@ def main() -> int:
     print(f"Cabezas de nota candidatas: {total_heads}")
     print(f"Análisis rítmicos candidatos: {total_rhythms}")
     print(f"Grupos de barras compartidas candidatos: {total_beam_groups}")
+    print(f"Interpretaciones rítmicas candidatas: {total_rhythm_interpretations}")
     print(f"Puntillos candidatos: {total_dots}")
     print(f"Formas candidatas a silencio: {total_rests}")
     print(f"Formas con familia de silencio sugerida: {total_typed_rest_shapes}")
