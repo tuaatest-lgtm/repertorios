@@ -44,3 +44,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 3. Clasificación robusta de símbolos: claves, armaduras, figuras, silencios, puntillos y ligaduras.
 4. Interpretación temporal polifónica y exportación MusicXML.
 5. Revisión visual humana y adaptador aislado hacia el motor Sonoro de Palermo.
+
+## Validación métrica preliminar
+
+Se añadió `palermo_omr.measure_validation`, una capa matemática independiente que compara duraciones ya interpretadas con el valor esperado del indicador de compás. Distingue compases completos, incompletos, excedidos y posibles anacrusas. No detecta barras ni figuras en la imagen y todavía no se conecta al CLI ni al reproductor. Consulta `docs/measure-validation.md`.
