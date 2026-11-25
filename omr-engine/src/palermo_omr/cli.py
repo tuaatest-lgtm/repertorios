@@ -12,7 +12,7 @@ from . import __version__
 from .imaging import analyze_page, render_pdf
 from .symbols import detect_notehead_candidates
 from .rhythm import analyze_rhythm_candidates
-from .rhythm_symbols import detect_augmentation_dot_candidates, detect_rest_shape_candidates
+from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .measure_layout import (
     classify_barline_groups,
     detect_barline_candidates,
@@ -53,6 +53,7 @@ def main() -> int:
         page_data["rhythm_candidate_count"] = len(rhythms)
         dots = detect_augmentation_dot_candidates(binary, analysis.staves, noteheads)
         rests = detect_rest_shape_candidates(binary, analysis.staves)
+        tie_slurs = detect_tie_slur_shape_candidates(binary, analysis.staves)
         barlines = detect_barline_candidates(binary, analysis.staves)
         barline_groups = classify_barline_groups(barlines, analysis.staves)
         staff_systems = detect_staff_systems(analysis.staves)
@@ -60,6 +61,7 @@ def main() -> int:
         measure_spans = infer_measure_spans(barlines)
         page_data["augmentation_dot_candidates"] = [item.to_dict() for item in dots]
         page_data["rest_shape_candidates"] = [item.to_dict() for item in rests]
+        page_data["tie_slur_shape_candidates"] = [item.to_dict() for item in tie_slurs]
         page_data["staff_system_candidates"] = [item.to_dict() for item in staff_systems]
         page_data["staff_system_candidate_count"] = len(staff_systems)
         page_data["barline_candidates"] = [item.to_dict() for item in barlines]
@@ -98,6 +100,7 @@ def main() -> int:
         sum(item["rest_type_candidate"] != "unclassified" for item in page["rest_shape_candidates"])
         for page in analyses
     )
+    total_tie_slurs = sum(len(page["tie_slur_shape_candidates"]) for page in analyses)
     total_barlines = sum(page["barline_candidate_count"] for page in analyses)
     total_spans = sum(page["measure_span_candidate_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
@@ -107,6 +110,7 @@ def main() -> int:
     print(f"Puntillos candidatos: {total_dots}")
     print(f"Formas candidatas a silencio: {total_rests}")
     print(f"Formas con familia de silencio sugerida: {total_typed_rest_shapes}")
+    print(f"Arcos candidatos a ligadura: {total_tie_slurs}")
     print(f"Barras de compás candidatas: {total_barlines}")
     print(f"Intervalos entre barras candidatas: {total_spans}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
