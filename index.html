@@ -407,10 +407,6 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       <div class="botones" id="ini-en-botones"></div>
     </div>
     <div class="aviso oculto" id="ini-ensayos"></div>
-    <section class="card oculto" id="ini-semana" aria-label="Actividades de los próximos siete días">
-      <h3 style="margin:0 0 8px;">📅 Más actividades de los próximos 7 días</h3>
-      <div id="ini-semana-lista"></div>
-    </section>
     <div class="card cld" id="cld">
       <button class="cld-cab" id="cld-cab" type="button" aria-expanded="false" aria-controls="cld-cuerpo"><span>🗓 Calendario de música</span><small id="cld-sub">Toque para ver</small><i aria-hidden="true">▾</i></button>
       <div id="cld-cuerpo" class="oculto">
@@ -446,8 +442,8 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
       </div>
       <div class="menu-tit">Programación</div>
       <div class="menu-grid" id="grid-prog">
-        <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">🗓 Eventos y Ensayos: crear, modificar y eliminar</button>
-        <button class="btn-secondary oculto" id="btn-nuevo-ensayo" data-rol="programa" aria-hidden="true" tabindex="-1" style="display:none">🗓 Ensayos</button>
+        <button class="btn-secondary oculto" id="btn-nuevo-evento" data-rol="programa">🗓 Eventos: crear, modificar y eliminar</button>
+        <button class="btn-secondary oculto" id="btn-nuevo-ensayo" data-rol="programa">🗓 Ensayos: crear, modificar y eliminar</button>
         <button class="btn-secondary oculto" id="btn-ensambles" data-rol="montaje">🎼 Ensambles (esquemas de montaje)</button>
         <button class="btn-secondary oculto" id="btn-calent" data-rol="programa">🎙 Gestionar calentamientos (cargar y archivar)</button>
         <button class="btn-secondary oculto" id="btn-asistencia" data-rol="programa">✅ Informe de asistencia</button>
@@ -572,11 +568,7 @@ table.la tfoot td{font-weight:700;background:var(--s2);position:sticky;bottom:0;
 
   <!-- Informe de asistencia -->
   <div class="card oculto" id="vista-gestor-act">
-    <h3 id="ga-titulo">Eventos y Ensayos</h3>
-    <div class="botones" role="group" aria-label="Tipo de actividad" style="margin:8px 0 12px;">
-      <button class="btn-primary btn-small" id="ga-tab-evento" type="button" aria-pressed="true">📅 Eventos</button>
-      <button class="btn-secondary btn-small" id="ga-tab-ensayo" type="button" aria-pressed="false">🎼 Ensayos</button>
-    </div>
+    <h3 id="ga-titulo">Eventos</h3>
     <div class="aviso" id="ga-aviso"></div>
     <button class="btn-primary" id="ga-crear" type="button">➕ Crear</button>
     <div id="ga-lista"></div>
@@ -1461,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxEgPezw0Elib93JfzhxZUI5_wVVag7NtPdalqYzlxgStg20OrrofWzlHB2gVoM3o7ZnA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyuhFFgwUPbzJZTXuyitLCjerTVSTZWohCn739q3XSR_rucagipEEK7W1W6ofSFcWf7GA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -2098,27 +2090,15 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     $('ga-lista').innerHTML = '<div class="set-titulo">Próximos (' + prox.length + ')</div>' + (prox.length ? prox.map(fila).join('') : '<p class="aviso">No hay ' + (ens ? 'ensayos' : 'eventos') + ' próximos.</p>') +
       '<div class="set-titulo">Cumplidos (' + pas.length + ')</div>' + (pas.length ? pas.map(fila).join('') : '<p class="aviso">Ninguno.</p>');
   }
-  function actualizarPestanasGestorAct() {
-    const ens = gaClase === 'Ensayo';
-    $('ga-tab-evento').className = ens ? 'btn-secondary btn-small' : 'btn-primary btn-small';
-    $('ga-tab-ensayo').className = ens ? 'btn-primary btn-small' : 'btn-secondary btn-small';
-    $('ga-tab-evento').setAttribute('aria-pressed', ens ? 'false' : 'true');
-    $('ga-tab-ensayo').setAttribute('aria-pressed', ens ? 'true' : 'false');
-    $('ga-titulo').textContent = ens ? '🗓 Gestión de ensayos' : '🗓 Gestión de eventos';
-    $('ga-crear').textContent = ens ? '➕ Crear ensayo (con horario y lugar)' : '➕ Crear evento';
-  }
-  async function cambiarClaseGestorAct(clase) {
-    gaClase = clase; actualizarPestanasGestorAct(); $('ga-lista').innerHTML = ''; await pintarGestorAct();
-  }
   async function abrirGestorAct(clase) {
-    cerrarPanel(); mostrarVista('vista-gestor-act');
-    $('ga-aviso').textContent = 'Desde aquí se crean, consultan, modifican y eliminan eventos y ensayos. Los usuarios solo ven las actividades próximas; aquí se conserva también el historial.';
-    await cambiarClaseGestorAct(clase || 'Evento');
+    gaClase = clase; cerrarPanel(); const ens = clase === 'Ensayo';
+    $('ga-titulo').textContent = ens ? '🗓 Ensayos: crear, modificar y eliminar' : '🗓 Eventos: crear, modificar y eliminar';
+    $('ga-crear').textContent = ens ? '➕ Crear ensayo (con horario y lugar)' : '➕ Crear evento';
+    $('ga-aviso').textContent = 'Los usuarios solo ven las actividades próximas: al pasar la fecha dejan de mostrarse. Aquí usted ve todas.';
+    $('ga-lista').innerHTML = ''; mostrarVista('vista-gestor-act'); await pintarGestorAct();
   }
   $('btn-nuevo-evento').onclick = () => conOcupado(() => abrirGestorAct('Evento'));
   $('btn-nuevo-ensayo').onclick = () => conOcupado(() => abrirGestorAct('Ensayo'));
-  $('ga-tab-evento').onclick = () => { if (gaClase !== 'Evento') conOcupado(() => cambiarClaseGestorAct('Evento')); };
-  $('ga-tab-ensayo').onclick = () => { if (gaClase !== 'Ensayo') conOcupado(() => cambiarClaseGestorAct('Ensayo')); };
   $('ga-crear').onclick = () => conOcupado(() => abrirNuevo(gaClase));
   $('ga-lista').addEventListener('click', ev => {
     const v = ev.target.closest('[data-ga-ver]'), m = ev.target.closest('[data-ga-mod]'), d = ev.target.closest('[data-ga-del]');
@@ -3127,62 +3107,27 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   }
   async function cargarInicio() {
     try {
-      let re, ren, p = null, lote = null, ensProgramadosFallback = null;
+      // v6.6.0: una sola llamada trae eventos, ensayos y la participación del próximo evento. Si el servidor aún no la
+      // conoce (versión anterior) o falla, se usan las llamadas de siempre.
+      let re, ren, p = null, lote = null;
       const d = await api('inicio_datos', { hoy: hoyLocal() });
       if (d && d.ok && d.eventos && d.ensayos) { lote = d; re = d.eventos; ren = d.ensayos; p = d.participacion; }
-      else { [re, ren, ensProgramadosFallback] = await Promise.all([api('listar_eventos'), api('mis_ensayos', {}), api('listar_eventos', { clase: 'Ensayo' })]); }
-      const ensProgramados = lote && lote.eventosEnsayos && lote.eventosEnsayos.ok ? (lote.eventosEnsayos.eventos || []) : (ensProgramadosFallback && ensProgramadosFallback.ok ? (ensProgramadosFallback.eventos || []) : []);
-      const hoyAgenda = hoyLocal(), finAgenda = sumaDias(hoyAgenda, 6);
-      const agendaSemana = lote && Array.isArray(lote.agenda7) ? lote.agenda7 : [
-        ...((re && re.ok ? re.eventos : []) || []).filter(x => x.fecha >= hoyAgenda && x.fecha <= finAgenda).map(x => ({ clase: 'Evento', idEvento: x.idEvento, nombre: x.nombre, fecha: x.fecha, hora: x.hora || '', horaFin: x.horaFin || '', lugar: x.lugar || '' })),
-        ...ensProgramados.filter(x => x.fecha >= hoyAgenda && x.fecha <= finAgenda).map(x => ({ clase: 'Ensayo', idEvento: x.idEvento, nombre: x.nombre, fecha: x.fecha, hora: x.hora || '', horaFin: x.horaFin || '', lugar: x.lugar || '' }))
-      ].sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
-      // El bloque compacto conserva solo sesiones que no estén ya representadas como actividades de agenda.
-      const idsEnsayoEnAgenda = new Set(agendaSemana.filter(x => x.clase === 'Ensayo').map(x => String(x.idEvento)));
-      pintarEnsayosInicio(ren, idsEnsayoEnAgenda);
-      const yaHayHero = !$('ini-hero-ens').classList.contains('oculto');
-      if (!yaHayHero && ensProgramados.length) {
-        const x = ensProgramados.filter(e => e.fecha >= hoyLocal()).sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')))[0];
-        if (x) pintarHeroEnsayo({ idEvento: x.idEvento, nombreEvento: x.nombre, fecha: x.fecha, hora: x.hora || '', horaFin: x.horaFin || '', lugar: x.lugar || '', ventana: '', actividad: true, puedeConfirmar: false, convocado: false });
-      }
+      else { [re, ren] = await Promise.all([api('listar_eventos'), api('mis_ensayos', {})]); }
+      pintarEnsayosInicio(ren);
       const hoy = hoyLocal();
       const prox = re && re.ok ? (re.eventos || []).filter(e => e.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha))[0] : null;
       iniEvento = prox || null;
       $('ini-confirmar').classList.add('oculto'); $('ini-ver').classList.add('oculto'); $('ini-guia').classList.add('oculto');
-      if (!prox) { $('ini-ev-nombre').textContent = 'Sin eventos próximos'; $('ini-ev-detalle').textContent = 'Cuando se programe uno, aparecerá aquí.'; }
-      else {
-        $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto'); $('ini-guia').classList.toggle('oculto', !GUIA_ACTIVA); ajustarHero();
-        let det = fmtFechaHora(prox.fecha, prox.hora || '') + (prox.lugar ? ' · ' + prox.lugar : '') + (prox.alcance && prox.alcance !== 'Todos' ? ' · ' + prox.alcance : '');
-        if (!lote || !p) p = await api('participacion_evento', { idEvento: prox.idEvento });
-        if (p && p.ok && (p.puedoConfirmar || p.miEstado === 'Confirmado')) {
-          det += ' · ' + (p.miEstado === 'Confirmado' ? 'Tu participación: confirmada' : 'Falta tu confirmación');
-          if (p.puedoConfirmar && p.miEstado !== 'Confirmado') $('ini-confirmar').classList.remove('oculto');
-        }
-        $('ini-ev-detalle').textContent = det;
+      if (!prox) { $('ini-ev-nombre').textContent = 'Sin eventos próximos'; $('ini-ev-detalle').textContent = 'Cuando se programe uno, aparecerá aquí.'; return; }
+      $('ini-ev-nombre').textContent = prox.nombre; $('ini-ver').classList.remove('oculto'); $('ini-guia').classList.toggle('oculto', !GUIA_ACTIVA); ajustarHero();
+      let det = fmtFechaHora(prox.fecha) + (prox.alcance && prox.alcance !== 'Todos' ? ' · ' + prox.alcance : '');
+      if (!lote || !p) p = await api('participacion_evento', { idEvento: prox.idEvento });
+      if (p && p.ok && (p.puedoConfirmar || p.miEstado === 'Confirmado')) {
+        det += ' · ' + (p.miEstado === 'Confirmado' ? 'Tu participación: confirmada' : 'Falta tu confirmación');
+        if (p.puedoConfirmar && p.miEstado !== 'Confirmado') $('ini-confirmar').classList.remove('oculto');
       }
-      // Los dos próximos compromisos ya están destacados arriba; no repetirlos en la lista semanal.
-      const idHeroEnsayo = $('ini-en-botones').querySelector('[data-ens-ver]')?.dataset.ensVer || '';
-      const agendaSinDestacados = agendaSemana.filter(x => {
-        if (x.clase === 'Evento' && iniEvento && String(x.idEvento) === String(iniEvento.idEvento)) return false;
-        if (x.clase === 'Ensayo' && idHeroEnsayo && String(x.idEvento) === String(idHeroEnsayo)) return false;
-        return true;
-      });
-      pintarAgendaSemana(agendaSinDestacados);
+      $('ini-ev-detalle').textContent = det;
     } catch (e) { /* el Inicio nunca debe romper la sesión */ }
-  }
-  function pintarAgendaSemana(items) {
-    const bloque = $('ini-semana'), lista = $('ini-semana-lista'); if (!bloque || !lista) return;
-    const datos = Array.isArray(items) ? items : [];
-    bloque.dataset.tieneItems = datos.length ? '1' : '0';
-    // Si se despliega el calendario completo, este resumen se oculta para no mostrar los mismos registros dos veces.
-    bloque.classList.toggle('oculto', !datos.length || !!(typeof CAL !== 'undefined' && CAL.abierto));
-    if (!datos.length) { lista.innerHTML = ''; return; }
-    const grupos = {};
-    datos.forEach(x => { (grupos[x.fecha] = grupos[x.fecha] || []).push(x); });
-    lista.innerHTML = Object.keys(grupos).sort().map(fecha => '<div style="padding:7px 0;border-top:1px solid var(--bd);"><b style="text-transform:capitalize;">' + esc(etiquetaDia(fecha)) + '</b>' + grupos[fecha].map(x => {
-      const ensayo = x.clase === 'Ensayo';
-      return '<div class="fila ' + (ensayo ? 'fila-ens' : '') + '" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 0;"><span class="nombre" style="flex:1;min-width:170px;">' + (ensayo ? '🎼 ' : '📅 ') + esc(x.nombre) + '<span class="meta">' + esc((x.hora ? x.hora + (x.horaFin ? '–' + x.horaFin : '') : 'Todo el día') + (x.lugar ? ' · ' + x.lugar : '')) + '</span></span><button class="btn-secondary btn-small" data-agenda-ver="' + esc(x.idEvento) + '" data-agenda-nombre="' + esc(x.nombre) + '" type="button">' + (ensayo ? '▶ Abrir ensayo' : 'Ver evento') + '</button></div>';
-    }).join('') + '</div>').join('');
   }
   /* ---- Calendario (v6.8.0, solo lectura): desplegable, cerrado por defecto; Día / Semana como Google Calendar / Agenda de 15 días ---- */
   const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'], DIAS_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -3270,12 +3215,10 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (!CAL.abierto) return;
     CAL.abierto = false; $('cld-cab').setAttribute('aria-expanded', 'false'); $('cld-cuerpo').classList.add('oculto'); $('cld').classList.remove('abierto');
     $('cld-sub').textContent = 'Toque para ver'; $('cld-detalle').classList.add('oculto'); $('cld-detalle').innerHTML = '';
-    const semana = $('ini-semana'); if (semana) semana.classList.toggle('oculto', semana.dataset.tieneItems !== '1');
   }
   function calModo(m) { CAL.modo = m; document.querySelectorAll('#cld .cld-modos button').forEach(b => b.setAttribute('aria-pressed', b.dataset.modo === m ? 'true' : 'false')); }
   $('cld-cab').onclick = () => {
     CAL.abierto = !CAL.abierto; $('cld-cab').setAttribute('aria-expanded', CAL.abierto ? 'true' : 'false'); $('cld-cuerpo').classList.toggle('oculto', !CAL.abierto); $('cld').classList.toggle('abierto', CAL.abierto);
-    const semana = $('ini-semana'); if (semana) semana.classList.toggle('oculto', CAL.abierto || semana.dataset.tieneItems !== '1');
     if (!CAL.abierto) { $('cld-sub').textContent = 'Toque para ver'; return; }
     if (!CAL.ancla) CAL.ancla = hoyLocal(); calendarioConsultar();      // se consulta SOLO al desplegar
   };
@@ -3840,7 +3783,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     else if (t.closest('#rp-enviar')) conOcupado(enviarReporte);
     else if ((b = t.closest('button[data-rp-guardar]'))) conOcupado(() => guardarReporteAdmin(b.dataset.rpGuardar));
     else if ((b = t.closest('button[data-ens-ver]'))) conOcupado(() => verEvento(b.dataset.ensVer, b.dataset.nombre));
-    else if ((b = t.closest('button[data-agenda-ver]'))) conOcupado(() => verEvento(b.dataset.agendaVer, b.dataset.agendaNombre));
     else if ((b = t.closest('button[data-ens-conf]'))) conOcupado(async () => {
       const r = await api('participacion_confirmar', { idEvento: b.dataset.ensConf });
       if (r && r.ok) log('Asistencia confirmada.'); else { alert(textoError(r && (r.motivo || r.error))); }
@@ -3930,25 +3872,17 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   }
   async function cargarEnsayosMios(idEvento) {
     const cont = $('panel-ensayos-mios'); cont.innerHTML = '';
-    // Quien programa ya tiene el detalle de las mismas sesiones en «Ensayos y asistencia».
-    // Evita duplicar fechas/horas y mantiene un solo panel administrativo de control.
-    if (programa()) return;
     const r = await api('mis_ensayos', { idEvento: idEvento }); if (!r || !r.ok || !r.ensayos.length) return;
     cont.innerHTML = '<div class="grupo"><label>' + (esEnsVista() ? 'Mi asistencia al ensayo' : 'Ensayos programados') + '</label>' + r.ensayos.map(e => filaEnsayo(e, r.hoy, false)).join('') +
       '<div class="aviso">El <b>registro de asistencia</b> (marcar que participas) se abre a la hora de inicio y dura ' + r.minDespues + ' minutos.</div></div>';
   }
-  function pintarEnsayosInicio(r, idsEnsayoEnAgenda) {
+  function pintarEnsayosInicio(r) {
     const c = $('ini-ensayos'); if (!c) return;
-    const hoy = r && r.hoy ? r.hoy : hoyLocal();
-    const todos = r && r.ok ? (r.ensayos || []).filter(e => e.ventana !== 'cerrada' || e.fecha >= hoy) : [];
-    const heroE = todos.filter(e => e.actividad && e.ventana !== 'cerrada')[0] || null;
-    pintarHeroEnsayo(heroE);
-    const idsAgenda = idsEnsayoEnAgenda || new Set();
-    // No repetir aquí ensayos independientes que ya aparecen en «Esta semana».
-    // Se conservan sesiones adicionales con acciones de asistencia propias.
-    const lista = todos.filter(e => e !== heroE && !(e.actividad && idsAgenda.has(String(e.idEvento)))).slice(0, 3);
+    const todos = r && r.ok ? r.ensayos.filter(e => e.ventana !== 'cerrada' || e.fecha >= r.hoy) : [];
+    const heroE = todos.filter(e => e.actividad && e.ventana !== 'cerrada')[0] || null; pintarHeroEnsayo(heroE);
+    const lista = todos.filter(e => e !== heroE).slice(0, 3);
     c.classList.toggle('oculto', !lista.length);
-    c.innerHTML = lista.length ? '<b>Otras sesiones con registro de asistencia</b>' + lista.map(e => filaEnsayo(e, hoy, true)).join('') : '';
+    c.innerHTML = lista.length ? '<b>' + (heroE ? 'Otros ensayos' : 'Próximos ensayos') + '</b>' + lista.map(e => filaEnsayo(e, r.hoy, true)).join('') : '';
   }
 
   /* ---------------- v4.3.0: QR de la red Wi-Fi ---------------- */
@@ -6040,21 +5974,14 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     lt.__satb = true;
     lt.extras = 0;
   }
-  const SON_SATB_NOM = { S: 'Soprano', A: 'Alto', T: 'Tenor', B: 'Bajo', RH: 'Clave de sol · mano derecha', LH: 'Clave de fa · mano izquierda' };
+  const SON_SATB_NOM = { S: 'Soprano', A: 'Alto', T: 'Tenor', B: 'Bajo', RH: 'Mano derecha', LH: 'Mano izquierda' };
   function sonVocesDe(res) {                     // etiquetas de las voces: por pentagrama y rango dentro del acorde
     const out = {}; const conNotas = res.pent.filter(s => s.notas && s.notas.length);
-    // La presencia de rótulos (TENORS only, MALE SOLO, etc.) no debe
-    // ocultar los modos por clave. En partituras corales con acompañamiento
-    // necesitamos poder escuchar el conjunto, solo clave de sol o solo clave de fa.
-    const haySol = conNotas.some(x => x.clave === 'sol'), hayFa = conNotas.some(x => x.clave === 'fa');
-    const solFa = haySol && hayFa;
+    const solFa = conNotas.some(x => x.clave === 'sol') && conNotas.some(x => x.clave === 'fa') && !conNotas.some(x => x.etiqueta);   // piano / coro sin rótulos: cada sistema se apila (sol + fa)
     if (!solFa) conNotas.forEach((s, k) => { const maxR = Math.max.apply(null, SON.lt.notas.filter(n => n.pent === s.id).map(n => n.rango).concat([0]));
-      for (let r = 0; r <= Math.min(maxR, 3); r++) { let nom = s.etiqueta || ('Pentagrama ' + (k + 1)); if (maxR > 0) nom += ' · voz ' + (r + 1); out[s.id + '#' + r] = nom; } });
-    const usarSATB = solFa && !conNotas.some(x => x.etiqueta);
-    if (usarSATB && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); return o2; }
-    SON.solFa = false;
-    if (haySol || hayFa) { out.RH = SON_SATB_NOM.RH; out.LH = SON_SATB_NOM.LH; }
-    return out;
+      for (let r = 0; r <= Math.min(maxR, 3); r++) { let nom = s.etiqueta || ('Pentagrama ' + (k + 1)); if (solFa) nom = (k === 0 ? ['Soprano', 'Contralto'] : ['Tenor', 'Bajo'])[r] || (nom + ' ' + (r + 1)); else if (maxR > 0) nom += ' · voz ' + (r + 1); out[s.id + '#' + r] = nom; } });
+    if (solFa && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); return o2; }
+    SON.solFa = false; return out;
   }
   // Etiqueta las notas de cada página por separado. Esto evita que la selección SATB
   // dependa del último pentagrama/página que haya actualizado el estado global.
@@ -6082,7 +6009,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     SON.res = res; SON.pagN = EST.page; SON.tokN = EST.tok; const est = Object.assign({}, res.estado); if (SON.bpm) { est.bpm = SON.bpm; } SON.lt = window.SonoroMotor.lineaTiempo(res, est);
     const bpmI = $('son-bpm'); if (bpmI && !SON.bpm) bpmI.value = Math.round(SON.lt.bpm / (res.estado.comp && res.estado.comp[1] === 8 ? 1 : 1));
     const v = sonEtiquetarVoces(res, SON.lt);
-    const sv = $('son-voz'); if (sv) { const act = SON.voz; sv.innerHTML = '<option value="todas">Partitura completa · acordes</option>' + Object.keys(v).map(k => '<option value="' + esc(k) + '">' + esc(v[k]) + '</option>').join(''); sv.value = v[act] !== undefined || act === 'todas' ? act : 'todas'; SON.voz = sv.value; }
+    const sv = $('son-voz'); if (sv) { const act = SON.voz; sv.innerHTML = '<option value="todas">Todos</option>' + Object.keys(v).map(k => '<option value="' + esc(k) + '">' + esc(v[k]) + '</option>').join(''); sv.value = v[act] !== undefined || act === 'todas' ? act : 'todas'; SON.voz = sv.value; }
     sonEstado();
     return res;
   }
@@ -6130,8 +6057,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (SON.voz === 'todas') return n.dup ? 0 : 1;
     const v = SON.voz;
     let esVozElegida;
-    if (v === 'RH') esVozElegida = n.clave === 'sol';
-    else if (v === 'LH') esVozElegida = n.clave === 'fa';
+    if (v === 'RH') esVozElegida = !!n.claveSol;
+    else if (v === 'LH') esVozElegida = !n.claveSol;
     else if (v === 'sel') esVozElegida = SON.elegidas.has(n.nota);
     else if (v === 'S' || v === 'A' || v === 'T' || v === 'B') esVozElegida = n.satb === v;
     else { const k = n.pent + '#' + Math.min(n.rango, 3); esVozElegida = k === v; }
@@ -6196,20 +6123,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function sonRodar() {                      // planificador polifónico: cada nota conserva ataque y duración independientes; ventana de 1,6 s
 
     if (!SON.tocando) return; const ctx = SON.ctx, lim = ctx.currentTime + 1.6, t0m = performance.now();
-    SON.segs.forEach(s => {
-      // Planifica por acordes/ataques simultáneos: todas las notas de una
-      // misma columna reciben exactamente el mismo instante de inicio.
-      // Cada nota mantiene su duración independiente (blancas, negras, etc.).
-      while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) {
-        const inicioSeg = s.ns[s.i].seg;
-        const cuando = Math.max(ctx.currentTime, s.t0 + inicioSeg);
-        const acorde = [];
-        while (s.i < s.ns.length && Math.abs(s.ns[s.i].seg - inicioSeg) < 0.005 && s.t0 + s.ns[s.i].seg < lim) {
-          acorde.push(s.ns[s.i++]);
-        }
-        acorde.forEach(n => sonNota(ctx, SON.master, n.midi, cuando, Math.max(0.01, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos, !!n.unida));
-      }
-    });
+    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.01, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos, !!n.unida); } });
     sonMetro(ctx, lim);
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
@@ -6362,7 +6276,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     p.innerHTML = '<div class="son-f"><span class="son-t"><b>🎹<span class="son-tx"> Estudio Sonoro</span></b> <span class="son-tag">alfa</span></span><button type="button" id="son-play">▶ Reproducir</button><button type="button" id="son-min" title="Ocultar controles (ver la partitura completa)">▾</button><button type="button" id="son-x" title="Cerrar el estudio">✕</button></div>' +
       '<div class="son-f"><label>♩= <input id="son-bpm" type="number" min="30" max="220" step="1"></label>' +
       '<label>Sonido <select id="son-instr"><option value="piano">Piano</option><option value="organo">Órgano</option><option value="trompeta">Trompeta</option><option value="violin">Violín</option><option value="chelo">Violonchelo</option><option value="voz">Voz «aah»</option></select></label>' +
-      '<label>Interpretación <select id="son-voz"><option value="todas">Partitura completa · acordes</option></select></label>' +
+      '<label>Voz <select id="son-voz"><option value="todas">Todos</option></select></label>' +
       '<label>Otras voces <select id="son-resto"><option value="suave">Suaves</option><option value="mudo">En silencio</option></select></label>' +
       '<label>Al terminar la página <select id="son-cont"><option value="parar">se detiene</option><option value="seguir">sigue con la siguiente</option></select></label>' +
       '<label><input type="checkbox" id="son-auto" checked> Ocultar controles al reproducir</label></div>' +
@@ -6546,29 +6460,11 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (ar.length) { const sig = ar[0].c === 'b' ? -1 : 1, orden = sig < 0 ? ORDEN_B : ORDEN_S; arm = { n: ar.length, sig: sig, alt: {} }; for (let i = 0; i < ar.length; i++) arm.alt[orden[i]] = sig; }
       if (!arm) arm = estado['arm' + ip] || { n: 0, sig: 0, alt: {} };
       st.arm = arm; estado['clave' + ip] = clave; estado['arm' + ip] = arm;
-      // Compás: admite tanto la cifra apilada (4 sobre 4) como una cifra
-      // extraída en una sola línea (4/4). Si esta página no imprime cifra,
-      // conserva la última indicación válida; el valor inicial es 4/4.
-      const xLimComp = Math.min(primeraX, xc + 30 * sp);
-      const textoComp = geo.textos.filter(t => t.st === ip && t.x > xc && t.x < xLimComp &&
-        t.y > bot - 1.8 * sp && t.y < top + 0.6 * sp)
-        .map(t => ({ t: t, m: /^(\d{1,2})\s*[\/⁄]\s*(\d{1,2})$/.exec(String(t.s).trim()) }))
-        .filter(x => x.m).sort((a, b) => a.t.x - b.t.x)[0];
-      if (textoComp) {
-        const nn = [+textoComp.m[1], +textoComp.m[2]];
-        if (nn[0] > 0 && nn[1] > 0 && nn[0] <= 32 && nn[1] <= 32) estado.comp = nn;
-      } else {
-        const dig = geo.textos.filter(t => t.st === ip && /^\d{1,2}$/.test(String(t.s).trim()) &&
-          t.x > xc && t.x < xLimComp && t.y > bot - 1.8 * sp && t.y < top + 0.6 * sp)
-          .sort((a, b) => a.x - b.x);
-        for (let i = 0; i < dig.length; i++) {
-          const par = dig.filter(t => Math.abs(t.x - dig[i].x) < 1.5 * sp);
-          if (par.length === 2) {
-            par.sort((a, b) => b.y - a.y);
-            const nn = [+par[0].s, +par[1].s];
-            if (nn[0] > 0 && nn[1] > 0 && nn[0] <= 32 && nn[1] <= 32) { estado.comp = nn; break; }
-          }
-        }
+      // compás (cifra): dígitos dentro de la altura del pentagrama antes de la primera nota
+      const dig = geo.textos.filter(t => t.st === ip && /^\d{1,2}$/.test(t.s) && t.x > xc && t.x < Math.min(primeraX, xc + 30 * sp) && t.y > bot - 1.8 * sp && t.y < top + 0.6 * sp).sort((a, b) => a.x - b.x);
+      for (let i = 0; i < dig.length && !(estado.compSt === ip + '|' + dig[i].x); i++) {          // pareja apilada: la de arriba es el numerador
+        const par = dig.filter(t => Math.abs(t.x - dig[i].x) < 1.5 * sp);
+        if (par.length === 2) { par.sort((a, b) => b.y - a.y); estado.comp = [+par[0].s, +par[1].s]; break; }
       }
       st.comp = estado.comp || [4, 4];
       // barras de compás (verticales que cubren todo el pentagrama)
@@ -6678,7 +6574,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     let m;
     if ((m = /^d\.?\s?([cs])\.?(?:\s+al\s+(fine|coda))?\.?$/i.exec(t))) return { tipo: m[1].toLowerCase() === 'c' ? 'dc' : 'ds', al: m[2] ? m[2].toLowerCase() : null };
     if (/^fine\.?$/i.test(t)) return { tipo: 'fine' };
-    if (/^(?:2nd\s+time\s+to\s+coda|to coda|a la coda|a coda|→ ?coda)\.?$/i.test(t)) return { tipo: 'tocoda' };
+    if (/^(to coda|a la coda|a coda|→ ?coda)\.?$/i.test(t)) return { tipo: 'tocoda' };
     if (/^coda$/i.test(t)) return { tipo: 'coda' };
     if (/^(segno|signo)$/i.test(t)) return { tipo: 'segno' };
     if (/^\d{1,2}(\s?\.\s?\d{1,2})*\s?\.$|^\d(\s?,\s?\d)+\s?\.?$/.test(t)) return { tipo: 'volta', nums: (t.match(/\d+/g) || []).map(Number) };
@@ -6716,27 +6612,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         if (t.y < top + 0.5 * sp || t.y > top + 14 * sp) return;                        // sobre el pentagrama superior del sistema
         const fin = c.tipo === 'dc' || c.tipo === 'ds' || c.tipo === 'fine' || c.tipo === 'tocoda';
         const s = slotDe(fin ? t.x + t.w - 2 : t.x + 2, 4 * sp); if (s && !s.marcas.some(m => m.tipo === c.tipo && m.texto === c.texto && m.al === c.al)) s.marcas.push(Object.assign({ x: t.x }, c)); });
-      // Segno: en esta edición aparece como el glifo '%' de la fuente musical
-      // especial (no como texto "Segno"). Se ancla al compás donde está impreso.
-      geo.glifos.filter(g => g.esp && g.c === '%' && g.tam >= 7).forEach(g => {
-        if (g.y < bot - 2 * sp || g.y > top + 14 * sp) return;
-        const t = slotDe(g.x + 2, 3 * sp);
-        if (t && !t.marcas.some(m => m.tipo === 'segno')) t.marcas.push({ tipo: 'segno', x: g.x, deGlifo: true });
-      });
-      // Signo de Coda: el mismo símbolo puede aparecer al final del texto
-      // «D.S. al Coda» como parte de la instrucción. Ese NO es el destino
-      // «To Coda» ni la cabecera de Coda; se ignora si está pegado al salto.
-      geo.glifos.filter(g => g.esp && g.c === '\uF0DE' && g.tam >= 7).forEach(g => {
-        if (g.y < bot - 2 * sp || g.y > top + 14 * sp) return;
-        const juntoASalto = geo.textos.some(t => {
-          const c = claseTexto(t.s);
-          return c && (c.tipo === 'ds' || c.tipo === 'dc') && c.al === 'coda' &&
-            Math.abs(t.y - g.y) < 2.2 * sp && g.x >= t.x + t.w - 1 && g.x - (t.x + t.w) < 3.5 * sp;
-        });
-        if (juntoASalto) return;
-        const t = slotDe(g.x + 2, 3 * sp);
-        if (t && !t.marcas.some(m => m.tipo === 'codaSigno')) t.marcas.push({ tipo: 'codaSigno', x: g.x });
-      });
+      // símbolo de coda (círculo con cruz, glifo U+F0DE de la fuente especial): su papel (To Coda o Coda) se decide globalmente en expandir()
+      geo.glifos.filter(g => g.esp && g.c === '\uF0DE' && g.tam >= 7).forEach(g => { if (g.y < bot - 2 * sp || g.y > top + 14 * sp) return; const t = slotDe(g.x + 2, 3 * sp); if (t && !t.marcas.some(m => m.tipo === 'codaSigno')) t.marcas.push({ tipo: 'codaSigno', x: g.x }); });
       sl.forEach(s => slots.push(s));
     });
     return { slots: slots, avisos: avisos };
@@ -6811,7 +6688,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         lan.forEach(l => l.items.forEach(e => {
           if (e.tipo !== 'n') return; const n = e.n;
           const tt = ok ? e.t : ((n.x - x0) / Math.max(1, x1 - x0)) * largo, du = ok ? e.dur : Math.min(e.dur, 1);
-          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, clave: st.clave, claveSol: st.clave === 'sol', exacto: ok, etiqueta: st.etiqueta, carril: l.k, nota: n });
+          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, claveSol: st.clave === 'sol', exacto: ok, etiqueta: st.etiqueta, carril: l.k, nota: n });
         }));
       }
     });
