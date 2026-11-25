@@ -1461,7 +1461,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyk10clVxvjjbMr03jVqckCoa1gQCg1TEmNz49kOjOyYzZTQvBm8Zm0np9x4k953jFNww/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxEgPezw0Elib93JfzhxZUI5_wVVag7NtPdalqYzlxgStg20OrrofWzlHB2gVoM3o7ZnA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -6040,14 +6040,21 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     lt.__satb = true;
     lt.extras = 0;
   }
-  const SON_SATB_NOM = { S: 'Soprano', A: 'Alto', T: 'Tenor', B: 'Bajo', RH: 'Mano derecha', LH: 'Mano izquierda' };
+  const SON_SATB_NOM = { S: 'Soprano', A: 'Alto', T: 'Tenor', B: 'Bajo', RH: 'Clave de sol · mano derecha', LH: 'Clave de fa · mano izquierda' };
   function sonVocesDe(res) {                     // etiquetas de las voces: por pentagrama y rango dentro del acorde
     const out = {}; const conNotas = res.pent.filter(s => s.notas && s.notas.length);
-    const solFa = conNotas.some(x => x.clave === 'sol') && conNotas.some(x => x.clave === 'fa') && !conNotas.some(x => x.etiqueta);   // piano / coro sin rótulos: cada sistema se apila (sol + fa)
+    // La presencia de rótulos (TENORS only, MALE SOLO, etc.) no debe
+    // ocultar los modos por clave. En partituras corales con acompañamiento
+    // necesitamos poder escuchar el conjunto, solo clave de sol o solo clave de fa.
+    const haySol = conNotas.some(x => x.clave === 'sol'), hayFa = conNotas.some(x => x.clave === 'fa');
+    const solFa = haySol && hayFa;
     if (!solFa) conNotas.forEach((s, k) => { const maxR = Math.max.apply(null, SON.lt.notas.filter(n => n.pent === s.id).map(n => n.rango).concat([0]));
-      for (let r = 0; r <= Math.min(maxR, 3); r++) { let nom = s.etiqueta || ('Pentagrama ' + (k + 1)); if (solFa) nom = (k === 0 ? ['Soprano', 'Contralto'] : ['Tenor', 'Bajo'])[r] || (nom + ' ' + (r + 1)); else if (maxR > 0) nom += ' · voz ' + (r + 1); out[s.id + '#' + r] = nom; } });
-    if (solFa && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); return o2; }
-    SON.solFa = false; return out;
+      for (let r = 0; r <= Math.min(maxR, 3); r++) { let nom = s.etiqueta || ('Pentagrama ' + (k + 1)); if (maxR > 0) nom += ' · voz ' + (r + 1); out[s.id + '#' + r] = nom; } });
+    const usarSATB = solFa && !conNotas.some(x => x.etiqueta);
+    if (usarSATB && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); return o2; }
+    SON.solFa = false;
+    if (haySol || hayFa) { out.RH = SON_SATB_NOM.RH; out.LH = SON_SATB_NOM.LH; }
+    return out;
   }
   // Etiqueta las notas de cada página por separado. Esto evita que la selección SATB
   // dependa del último pentagrama/página que haya actualizado el estado global.
@@ -6075,7 +6082,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     SON.res = res; SON.pagN = EST.page; SON.tokN = EST.tok; const est = Object.assign({}, res.estado); if (SON.bpm) { est.bpm = SON.bpm; } SON.lt = window.SonoroMotor.lineaTiempo(res, est);
     const bpmI = $('son-bpm'); if (bpmI && !SON.bpm) bpmI.value = Math.round(SON.lt.bpm / (res.estado.comp && res.estado.comp[1] === 8 ? 1 : 1));
     const v = sonEtiquetarVoces(res, SON.lt);
-    const sv = $('son-voz'); if (sv) { const act = SON.voz; sv.innerHTML = '<option value="todas">Todos</option>' + Object.keys(v).map(k => '<option value="' + esc(k) + '">' + esc(v[k]) + '</option>').join(''); sv.value = v[act] !== undefined || act === 'todas' ? act : 'todas'; SON.voz = sv.value; }
+    const sv = $('son-voz'); if (sv) { const act = SON.voz; sv.innerHTML = '<option value="todas">Partitura completa · acordes</option>' + Object.keys(v).map(k => '<option value="' + esc(k) + '">' + esc(v[k]) + '</option>').join(''); sv.value = v[act] !== undefined || act === 'todas' ? act : 'todas'; SON.voz = sv.value; }
     sonEstado();
     return res;
   }
@@ -6123,8 +6130,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (SON.voz === 'todas') return n.dup ? 0 : 1;
     const v = SON.voz;
     let esVozElegida;
-    if (v === 'RH') esVozElegida = !!n.claveSol;
-    else if (v === 'LH') esVozElegida = !n.claveSol;
+    if (v === 'RH') esVozElegida = n.clave === 'sol';
+    else if (v === 'LH') esVozElegida = n.clave === 'fa';
     else if (v === 'sel') esVozElegida = SON.elegidas.has(n.nota);
     else if (v === 'S' || v === 'A' || v === 'T' || v === 'B') esVozElegida = n.satb === v;
     else { const k = n.pent + '#' + Math.min(n.rango, 3); esVozElegida = k === v; }
@@ -6189,7 +6196,20 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function sonRodar() {                      // planificador polifónico: cada nota conserva ataque y duración independientes; ventana de 1,6 s
 
     if (!SON.tocando) return; const ctx = SON.ctx, lim = ctx.currentTime + 1.6, t0m = performance.now();
-    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.01, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos, !!n.unida); } });
+    SON.segs.forEach(s => {
+      // Planifica por acordes/ataques simultáneos: todas las notas de una
+      // misma columna reciben exactamente el mismo instante de inicio.
+      // Cada nota mantiene su duración independiente (blancas, negras, etc.).
+      while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) {
+        const inicioSeg = s.ns[s.i].seg;
+        const cuando = Math.max(ctx.currentTime, s.t0 + inicioSeg);
+        const acorde = [];
+        while (s.i < s.ns.length && Math.abs(s.ns[s.i].seg - inicioSeg) < 0.005 && s.t0 + s.ns[s.i].seg < lim) {
+          acorde.push(s.ns[s.i++]);
+        }
+        acorde.forEach(n => sonNota(ctx, SON.master, n.midi, cuando, Math.max(0.01, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos, !!n.unida));
+      }
+    });
     sonMetro(ctx, lim);
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
@@ -6342,7 +6362,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     p.innerHTML = '<div class="son-f"><span class="son-t"><b>🎹<span class="son-tx"> Estudio Sonoro</span></b> <span class="son-tag">alfa</span></span><button type="button" id="son-play">▶ Reproducir</button><button type="button" id="son-min" title="Ocultar controles (ver la partitura completa)">▾</button><button type="button" id="son-x" title="Cerrar el estudio">✕</button></div>' +
       '<div class="son-f"><label>♩= <input id="son-bpm" type="number" min="30" max="220" step="1"></label>' +
       '<label>Sonido <select id="son-instr"><option value="piano">Piano</option><option value="organo">Órgano</option><option value="trompeta">Trompeta</option><option value="violin">Violín</option><option value="chelo">Violonchelo</option><option value="voz">Voz «aah»</option></select></label>' +
-      '<label>Voz <select id="son-voz"><option value="todas">Todos</option></select></label>' +
+      '<label>Interpretación <select id="son-voz"><option value="todas">Partitura completa · acordes</option></select></label>' +
       '<label>Otras voces <select id="son-resto"><option value="suave">Suaves</option><option value="mudo">En silencio</option></select></label>' +
       '<label>Al terminar la página <select id="son-cont"><option value="parar">se detiene</option><option value="seguir">sigue con la siguiente</option></select></label>' +
       '<label><input type="checkbox" id="son-auto" checked> Ocultar controles al reproducir</label></div>' +
@@ -6526,11 +6546,29 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (ar.length) { const sig = ar[0].c === 'b' ? -1 : 1, orden = sig < 0 ? ORDEN_B : ORDEN_S; arm = { n: ar.length, sig: sig, alt: {} }; for (let i = 0; i < ar.length; i++) arm.alt[orden[i]] = sig; }
       if (!arm) arm = estado['arm' + ip] || { n: 0, sig: 0, alt: {} };
       st.arm = arm; estado['clave' + ip] = clave; estado['arm' + ip] = arm;
-      // compás (cifra): dígitos dentro de la altura del pentagrama antes de la primera nota
-      const dig = geo.textos.filter(t => t.st === ip && /^\d{1,2}$/.test(t.s) && t.x > xc && t.x < Math.min(primeraX, xc + 30 * sp) && t.y > bot - 1.8 * sp && t.y < top + 0.6 * sp).sort((a, b) => a.x - b.x);
-      for (let i = 0; i < dig.length && !(estado.compSt === ip + '|' + dig[i].x); i++) {          // pareja apilada: la de arriba es el numerador
-        const par = dig.filter(t => Math.abs(t.x - dig[i].x) < 1.5 * sp);
-        if (par.length === 2) { par.sort((a, b) => b.y - a.y); estado.comp = [+par[0].s, +par[1].s]; break; }
+      // Compás: admite tanto la cifra apilada (4 sobre 4) como una cifra
+      // extraída en una sola línea (4/4). Si esta página no imprime cifra,
+      // conserva la última indicación válida; el valor inicial es 4/4.
+      const xLimComp = Math.min(primeraX, xc + 30 * sp);
+      const textoComp = geo.textos.filter(t => t.st === ip && t.x > xc && t.x < xLimComp &&
+        t.y > bot - 1.8 * sp && t.y < top + 0.6 * sp)
+        .map(t => ({ t: t, m: /^(\d{1,2})\s*[\/⁄]\s*(\d{1,2})$/.exec(String(t.s).trim()) }))
+        .filter(x => x.m).sort((a, b) => a.t.x - b.t.x)[0];
+      if (textoComp) {
+        const nn = [+textoComp.m[1], +textoComp.m[2]];
+        if (nn[0] > 0 && nn[1] > 0 && nn[0] <= 32 && nn[1] <= 32) estado.comp = nn;
+      } else {
+        const dig = geo.textos.filter(t => t.st === ip && /^\d{1,2}$/.test(String(t.s).trim()) &&
+          t.x > xc && t.x < xLimComp && t.y > bot - 1.8 * sp && t.y < top + 0.6 * sp)
+          .sort((a, b) => a.x - b.x);
+        for (let i = 0; i < dig.length; i++) {
+          const par = dig.filter(t => Math.abs(t.x - dig[i].x) < 1.5 * sp);
+          if (par.length === 2) {
+            par.sort((a, b) => b.y - a.y);
+            const nn = [+par[0].s, +par[1].s];
+            if (nn[0] > 0 && nn[1] > 0 && nn[0] <= 32 && nn[1] <= 32) { estado.comp = nn; break; }
+          }
+        }
       }
       st.comp = estado.comp || [4, 4];
       // barras de compás (verticales que cubren todo el pentagrama)
@@ -6640,7 +6678,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     let m;
     if ((m = /^d\.?\s?([cs])\.?(?:\s+al\s+(fine|coda))?\.?$/i.exec(t))) return { tipo: m[1].toLowerCase() === 'c' ? 'dc' : 'ds', al: m[2] ? m[2].toLowerCase() : null };
     if (/^fine\.?$/i.test(t)) return { tipo: 'fine' };
-    if (/^(to coda|a la coda|a coda|→ ?coda)\.?$/i.test(t)) return { tipo: 'tocoda' };
+    if (/^(?:2nd\s+time\s+to\s+coda|to coda|a la coda|a coda|→ ?coda)\.?$/i.test(t)) return { tipo: 'tocoda' };
     if (/^coda$/i.test(t)) return { tipo: 'coda' };
     if (/^(segno|signo)$/i.test(t)) return { tipo: 'segno' };
     if (/^\d{1,2}(\s?\.\s?\d{1,2})*\s?\.$|^\d(\s?,\s?\d)+\s?\.?$/.test(t)) return { tipo: 'volta', nums: (t.match(/\d+/g) || []).map(Number) };
@@ -6678,8 +6716,27 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         if (t.y < top + 0.5 * sp || t.y > top + 14 * sp) return;                        // sobre el pentagrama superior del sistema
         const fin = c.tipo === 'dc' || c.tipo === 'ds' || c.tipo === 'fine' || c.tipo === 'tocoda';
         const s = slotDe(fin ? t.x + t.w - 2 : t.x + 2, 4 * sp); if (s && !s.marcas.some(m => m.tipo === c.tipo && m.texto === c.texto && m.al === c.al)) s.marcas.push(Object.assign({ x: t.x }, c)); });
-      // símbolo de coda (círculo con cruz, glifo U+F0DE de la fuente especial): su papel (To Coda o Coda) se decide globalmente en expandir()
-      geo.glifos.filter(g => g.esp && g.c === '\uF0DE' && g.tam >= 7).forEach(g => { if (g.y < bot - 2 * sp || g.y > top + 14 * sp) return; const t = slotDe(g.x + 2, 3 * sp); if (t && !t.marcas.some(m => m.tipo === 'codaSigno')) t.marcas.push({ tipo: 'codaSigno', x: g.x }); });
+      // Segno: en esta edición aparece como el glifo '%' de la fuente musical
+      // especial (no como texto "Segno"). Se ancla al compás donde está impreso.
+      geo.glifos.filter(g => g.esp && g.c === '%' && g.tam >= 7).forEach(g => {
+        if (g.y < bot - 2 * sp || g.y > top + 14 * sp) return;
+        const t = slotDe(g.x + 2, 3 * sp);
+        if (t && !t.marcas.some(m => m.tipo === 'segno')) t.marcas.push({ tipo: 'segno', x: g.x, deGlifo: true });
+      });
+      // Signo de Coda: el mismo símbolo puede aparecer al final del texto
+      // «D.S. al Coda» como parte de la instrucción. Ese NO es el destino
+      // «To Coda» ni la cabecera de Coda; se ignora si está pegado al salto.
+      geo.glifos.filter(g => g.esp && g.c === '\uF0DE' && g.tam >= 7).forEach(g => {
+        if (g.y < bot - 2 * sp || g.y > top + 14 * sp) return;
+        const juntoASalto = geo.textos.some(t => {
+          const c = claseTexto(t.s);
+          return c && (c.tipo === 'ds' || c.tipo === 'dc') && c.al === 'coda' &&
+            Math.abs(t.y - g.y) < 2.2 * sp && g.x >= t.x + t.w - 1 && g.x - (t.x + t.w) < 3.5 * sp;
+        });
+        if (juntoASalto) return;
+        const t = slotDe(g.x + 2, 3 * sp);
+        if (t && !t.marcas.some(m => m.tipo === 'codaSigno')) t.marcas.push({ tipo: 'codaSigno', x: g.x });
+      });
       sl.forEach(s => slots.push(s));
     });
     return { slots: slots, avisos: avisos };
@@ -6754,7 +6811,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
         lan.forEach(l => l.items.forEach(e => {
           if (e.tipo !== 'n') return; const n = e.n;
           const tt = ok ? e.t : ((n.x - x0) / Math.max(1, x1 - x0)) * largo, du = ok ? e.dur : Math.min(e.dur, 1);
-          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, claveSol: st.clave === 'sol', exacto: ok, etiqueta: st.etiqueta, carril: l.k, nota: n });
+          notas.push({ pent: st.id, compas: m, t: tt, dur: du, midi: n.midi, nombre: n.nombre, x: n.x, y: n.y, rango: 0, clave: st.clave, claveSol: st.clave === 'sol', exacto: ok, etiqueta: st.etiqueta, carril: l.k, nota: n });
         }));
       }
     });
