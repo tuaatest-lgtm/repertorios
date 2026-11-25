@@ -2,7 +2,7 @@
 
 Motor OMR independiente para Palermo Music. Esta iteración implementa entrada PDF, preprocesamiento de páginas, detección geométrica inicial de pentagramas y propuestas de cabezas de nota.
 
-**Estado:** prototipo geométrico 0.3.0. Incluye candidatos de cabezas, conversión de posición diatónica cuando la clave ya es conocida, análisis rítmico preliminar y candidatos de puntillos, silencios, barras e intervalos de compás. Todo resultado requiere validación; no es una transcripción musical completa. No está integrado con el reproductor ni desplegado como servicio.
+**Estado:** prototipo geométrico 0.3.0. Incluye candidatos de cabezas, conversión de posición diatónica cuando la clave ya es conocida, análisis rítmico preliminar, grupos candidatos de barras compartidas y candidatos de puntillos, silencios, barras e intervalos de compás. Todo resultado requiere validación; no es una transcripción musical completa. No está integrado con el reproductor ni desplegado como servicio.
 
 ## Requisitos
 
@@ -43,7 +43,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 - La posición diatónica no equivale a una nota identificada: falta reconocer la clave y aplicar armadura y alteraciones desde la imagen.
 - La sugerencia de familia de silencio es de confianza baja y no distingue todavía de forma fiable todos los tipos; cuartos, corcheas, semicorcheas, silencios compuestos y símbolos fragmentados requieren un clasificador más robusto.
 - Los arcos detectados son candidatos visuales: no distinguen ligaduras de prolongación (tie) de ligaduras de expresión (slur), ni se enlazan todavía con cabezas de nota.
-- El análisis rítmico no interpreta todavía de forma fiable barras compartidas, grupos irregulares, ligaduras ni voces.
+- Los grupos de barras compartidas son candidatos geométricos: requieren un trazo horizontal y plicas compatibles, pero no confirman por sí solos corcheas, semicorcheas, grupos irregulares, dirección de lectura ni voces. El análisis rítmico global sigue sin estar validado.
 - La agrupación de sistemas es geométrica y heurística: no reconoce llaves, brackets, piano, coro SATB ni la función de cada pentagrama.
 - La clasificación simple/doble/final es heurística y no reconoce aún puntos de repetición ni confirma la función musical de una barra.
 - Los intervalos entre barras no incluyen los bordes externos que no fueron observados y no son compases musicales validados.
