@@ -4,6 +4,7 @@ import numpy as np
 from palermo_omr.imaging import StaffCandidate
 from palermo_omr.measure_layout import (
     BarlineCandidate,
+    classify_barline_groups,
     detect_barline_candidates,
     detect_staff_systems,
     group_system_barlines,
@@ -105,6 +106,51 @@ def test_rejects_invalid_grouping_parameters():
         lambda: group_system_barlines([], [], min_staff_support=0),
         lambda: detect_staff_systems([_staff()], max_interstaff_gap_spacing=0),
         lambda: infer_measure_spans([], min_width_px=0),
+    ):
+        try:
+            call()
+        except ValueError:
+            continue
+        raise AssertionError("Expected ValueError")
+
+
+
+def test_classifies_single_barline_candidate():
+    result = classify_barline_groups([_bar(100, 0)], [_staff()])
+    assert len(result) == 1
+    assert result[0].kind == "single_candidate"
+
+
+def test_classifies_two_similar_lines_as_double_barline_candidate():
+    bars = [_bar(100, 0), _bar(110, 0)]
+    result = classify_barline_groups(bars, [_staff()])
+    assert len(result) == 1
+    assert result[0].kind == "double_candidate"
+    assert len(result[0].x_positions) == 2
+
+
+def test_classifies_thin_and_thick_pair_as_final_barline_candidate():
+    thin = _bar(100, 0)
+    thick = BarlineCandidate(
+        x=110, y_top=60, y_bottom=100, width_px=4, staff_index=0,
+        coverage=1.0, confidence=0.9, warning="test",
+    )
+    result = classify_barline_groups([thin, thick], [_staff()])
+    assert len(result) == 1
+    assert result[0].kind == "final_candidate"
+
+
+def test_keeps_three_close_lines_ambiguous():
+    bars = [_bar(100, 0), _bar(110, 0), _bar(120, 0)]
+    result = classify_barline_groups(bars, [_staff()])
+    assert len(result) == 1
+    assert result[0].kind == "ambiguous_group"
+
+
+def test_rejects_invalid_barline_classification_parameters():
+    for call in (
+        lambda: classify_barline_groups([], [_staff()], max_pair_gap_spacing=0),
+        lambda: classify_barline_groups([], [_staff()], thick_line_ratio=1),
     ):
         try:
             call()
