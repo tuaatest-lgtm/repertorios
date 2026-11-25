@@ -1,0 +1,28 @@
+import cv2
+import numpy as np
+
+from palermo_omr.imaging import StaffCandidate
+from palermo_omr.rhythm_symbols import detect_augmentation_dot_candidates, detect_rest_shape_candidates
+from palermo_omr.symbols import NoteheadCandidate
+
+
+def test_detects_dot_candidate_next_to_notehead():
+    image=np.full((160,260),255,dtype=np.uint8)
+    cv2.ellipse(image,(100,80),(8,5),0,0,360,0,-1)
+    cv2.circle(image,(116,80),2,0,-1)
+    staff=StaffCandidate([60,70,80,90,100],10.0,1.0)
+    head=NoteheadCandidate((92,75,16,10),100.0,80.0,0,2,.8,.9,.9)
+    dots=detect_augmentation_dot_candidates(image,[staff],[head])
+    assert len(dots)==1
+    assert dots[0].associated_notehead_index==0
+
+
+def test_rest_candidates_are_explicitly_unconfirmed():
+    image=np.full((160,260),255,dtype=np.uint8)
+    for y in [60,70,80,90,100]:
+        cv2.line(image,(5,y),(250,y),0,1)
+    cv2.rectangle(image,(120,74),(126,88),0,-1)
+    staff=StaffCandidate([60,70,80,90,100],10.0,1.0)
+    candidates=detect_rest_shape_candidates(image,[staff])
+    assert candidates
+    assert "no confirmado" in candidates[0].warning.lower()
