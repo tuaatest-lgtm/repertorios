@@ -58,6 +58,10 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 4. Interpretación temporal polifónica y exportación MusicXML.
 5. Revisión visual humana y, solo tras aviso y aprobación, diseño del adaptador aislado hacia el motor Sonoro de Palermo.
 
+## Aritmética exacta de duraciones
+
+Se añadió `palermo_omr.duration_math` para calcular valores de figuras, puntillos simples y múltiples, y sumar duraciones de notas cuya ligadura de prolongación ya haya sido confirmada. Utiliza fracciones exactas para evitar deriva de redondeo. No reconoce símbolos ni decide ligaduras a partir de imágenes; consulta `docs/duration-math.md`.
+
 ## Validación métrica preliminar
 
 Se añadió `palermo_omr.measure_validation`, una capa matemática independiente que compara duraciones ya interpretadas con el valor esperado del indicador de compás. Distingue compases completos, incompletos, excedidos y posibles anacrusas. No reconoce figuras desde la imagen y todavía no se conecta al CLI ni al reproductor. Consulta `docs/measure-validation.md`.
