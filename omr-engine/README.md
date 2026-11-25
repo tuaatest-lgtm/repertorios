@@ -2,7 +2,7 @@
 
 Motor OMR independiente para Palermo Music. Esta iteración implementa entrada PDF, preprocesamiento de páginas, detección geométrica inicial de pentagramas y propuestas de cabezas de nota.
 
-**Estado:** prototipo geométrico 0.3.0. Incluye candidatos de cabezas, conversión de posición diatónica cuando la clave ya es conocida, análisis rítmico preliminar, grupos candidatos de barras compartidas y candidatos de puntillos, silencios, barras e intervalos de compás. Todo resultado requiere validación; no es una transcripción musical completa. No está integrado con el reproductor ni desplegado como servicio.
+**Estado:** prototipo geométrico 0.3.0. Incluye candidatos de cabezas, conversión de posición diatónica cuando la clave ya es conocida, análisis rítmico preliminar, grupos candidatos de barras compartidas, interpretación rítmica candidata y candidatos de puntillos, silencios, barras e intervalos de compás. Todo resultado requiere validación; no es una transcripción musical completa. No está integrado con el reproductor ni desplegado como servicio.
 
 ## Requisitos
 
@@ -25,7 +25,7 @@ palermo-omr "partitura.pdf" --output "./omr-output" --dpi 300
 El comando genera una imagen binarizada por página y un archivo `analysis.json` con:
 
 - líneas horizontales candidatas;
-- grupos geométricos de cinco líneas;
+- grupos geométricos de cinco líneas;\n- duración rítmica candidata por cabeza, con referencia al grupo de barras compartidas y estado explícito de ambigüedad o evidencia insuficiente;
 - regiones propuestas como cabezas de nota;
 - posición diatónica relativa a la línea inferior del pentagrama (sin asignar todavía una letra o altura absoluta);
 - puntuaciones heurísticas de confianza;
@@ -54,7 +54,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 
 1. Evaluación y calibración con partituras reales vectoriales y escaneadas.
 2. Validar sistemas y barras simples/dobles/finales en partituras reales; después abordar puntos de repetición, saltos de sistema y continuidad entre páginas.
-3. Clasificación robusta de símbolos: claves, armaduras, figuras, silencios, puntillos y ligaduras.
+3. Calibrar los candidatos rítmicos con partituras reales anotadas y resolver grupos irregulares, barras parciales, ligaduras y puntillos.\n4. Clasificación robusta de símbolos: claves, armaduras, figuras y silencios.
 4. Interpretación temporal polifónica y exportación MusicXML.
 5. Revisión visual humana y, solo tras aviso y aprobación, diseño del adaptador aislado hacia el motor Sonoro de Palermo.
 
