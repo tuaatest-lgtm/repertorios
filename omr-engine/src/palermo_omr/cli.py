@@ -10,6 +10,7 @@ import cv2
 
 from .imaging import analyze_page, render_pdf
 from .symbols import detect_notehead_candidates
+from .rhythm import analyze_rhythm_candidates
 
 
 def main() -> int:
@@ -38,16 +39,19 @@ def main() -> int:
         noteheads = detect_notehead_candidates(binary, analysis.staves)
         page_data["notehead_candidates"] = [item.to_dict() for item in noteheads]
         page_data["notehead_candidate_count"] = len(noteheads)
+        rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
+        page_data["rhythm_candidates"] = [item.to_dict() for item in rhythms]
+        page_data["rhythm_candidate_count"] = len(rhythms)
         analyses.append(page_data)
 
     report = {
         "engine": "Palermo OMR",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "status": "geometric_candidates_prototype",
         "warning": (
             "Las cabezas de nota son candidatos visuales, no notas musicales "
             "validadas. No se reconocen todavía claves, alturas nominales, "
-            "duraciones, voces ni estructura de repetición."
+            "duraciones fiables, silencios, puntillos, ligaduras, voces ni estructura de repetición."
         ),
         "source_pdf": Path(args.pdf).name,
         "pages": analyses,
@@ -59,9 +63,11 @@ def main() -> int:
     )
     total_staves = sum(len(page["staves"]) for page in analyses)
     total_heads = sum(page["notehead_candidate_count"] for page in analyses)
+    total_rhythms = sum(page["rhythm_candidate_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
     print(f"Cabezas de nota candidatas: {total_heads}")
+    print(f"Análisis rítmicos candidatos: {total_rhythms}")
     print("Aviso: los resultados requieren validación; no son datos reproducibles.")
     return 0
 
