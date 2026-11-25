@@ -66,13 +66,13 @@ def detect_augmentation_dot_candidates(
             dx,dy = cx-head.center_x,abs(cy-head.center_y)
             if (note_index, x, y) in used:
                 continue
-            if not .18*spacing <= dx <= 1.25*spacing:
+            if not .75*spacing <= dx <= 1.8*spacing:
                 continue
             if dy > .32*spacing or not .12*spacing <= w <= .6*spacing:
                 continue
             if not .12*spacing <= h <= .6*spacing:
                 continue
-            score = max(0.0,1.0-dy/(.32*spacing)) * max(0.0,1.0-abs(dx-.48*spacing)/(.8*spacing))
+            score = max(0.0,1.0-dy/(.32*spacing)) * max(0.0,1.0-abs(dx-1.25*spacing)/(.8*spacing))
             if best is None or score > best[0]:
                 best = (score,cx,cy,x,y)
         if best and best[0] >= .2:
