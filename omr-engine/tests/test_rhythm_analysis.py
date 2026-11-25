@@ -26,7 +26,8 @@ def test_filled_head_with_stem_proposes_quarter():
 
     assert result.notehead_fill == "filled"
     assert result.stem_direction == "up"
-    assert result.base_duration in {"quarter", "eighth", "sixteenth", "thirty_second", "sixty_fourth"}
+    assert result.beam_count == 0
+    assert result.base_duration == "quarter"
 
 
 def test_empty_input_is_rejected():
