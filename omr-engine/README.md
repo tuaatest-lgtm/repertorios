@@ -55,7 +55,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 1. Evaluación y calibración con partituras reales vectoriales y escaneadas.
 2. Validar sistemas y barras simples/dobles/finales en partituras reales; después abordar puntos de repetición, saltos de sistema y continuidad entre páginas.
 3. Calibrar los candidatos rítmicos con partituras reales anotadas y resolver grupos irregulares, barras parciales, ligaduras y puntillos.\n4. Clasificación robusta de símbolos: claves, armaduras, figuras y silencios.
-4. Interpretación temporal polifónica y exportación MusicXML.
+5. Interpretación temporal polifónica y exportación MusicXML.
 5. Revisión visual humana y, solo tras aviso y aprobación, diseño del adaptador aislado hacia el motor Sonoro de Palermo.
 
 ## Aritmética exacta de duraciones
