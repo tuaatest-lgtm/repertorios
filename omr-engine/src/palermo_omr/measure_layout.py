@@ -1,8 +1,8 @@
 """Detección y agrupación preliminar de barras y regiones de compás.
 
-Los resultados son candidatos geométricos. Una barra aislada no prueba por sí
-sola que exista un límite de compás; la agrupación entre pentagramas y la
-segmentación solo se realizan cuando hay evidencia suficiente.
+Los resultados son candidatos geométricos. La segmentación de sistemas usa
+separaciones verticales relativas al espaciado de los pentagramas; no intenta
+inferir llaves, instrumentación ni la función musical de cada pentagrama.
 """
 from __future__ import annotations
 
@@ -12,6 +12,19 @@ import cv2
 import numpy as np
 
 from .imaging import StaffCandidate
+
+
+@dataclass(frozen=True)
+class StaffSystemCandidate:
+    system_index: int
+    staff_indices: list[int]
+    y_top: float
+    y_bottom: float
+    confidence: float
+    warning: str
+
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -36,6 +49,7 @@ class SystemBarlineCandidate:
     support_count: int
     confidence: float
     warning: str
+    system_index: int = 0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -55,6 +69,65 @@ class MeasureSpanCandidate:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+def detect_staff_systems(
+    staves: list[StaffCandidate],
+    *,
+    max_interstaff_gap_spacing: float = 5.5,
+) -> list[StaffSystemCandidate]:
+    """Agrupa pentagramas consecutivos en sistemas geométricos candidatos.
+
+    La distancia se mide desde la última línea del pentagrama superior hasta
+    la primera línea del siguiente, normalizada por el espaciado típico.
+    Un salto vertical grande inicia otro sistema. Es una heurística: no
+    sustituye el reconocimiento de llaves, brackets ni la estructura musical.
+    """
+    if max_interstaff_gap_spacing <= 0:
+        raise ValueError("max_interstaff_gap_spacing debe ser positivo")
+    if not staves:
+        return []
+
+    valid = [
+        (index, staff)
+        for index, staff in enumerate(staves)
+        if len(staff.lines_y) == 5 and staff.spacing_px > 1
+    ]
+    if not valid:
+        return []
+
+    valid.sort(key=lambda pair: pair[1].lines_y[0])
+    typical_spacing = float(np.median([staff.spacing_px for _, staff in valid]))
+    groups: list[list[tuple[int, StaffCandidate]]] = [[valid[0]]]
+
+    for item in valid[1:]:
+        previous = groups[-1][-1][1]
+        current = item[1]
+        gap = float(current.lines_y[0] - previous.lines_y[-1])
+        if gap / typical_spacing > max_interstaff_gap_spacing:
+            groups.append([item])
+        else:
+            groups[-1].append(item)
+
+    systems: list[StaffSystemCandidate] = []
+    for system_index, group in enumerate(groups):
+        indices = [index for index, _ in group]
+        y_top = float(min(staff.lines_y[0] for _, staff in group))
+        y_bottom = float(max(staff.lines_y[-1] for _, staff in group))
+        systems.append(
+            StaffSystemCandidate(
+                system_index=system_index,
+                staff_indices=indices,
+                y_top=round(y_top, 2),
+                y_bottom=round(y_bottom, 2),
+                confidence=0.65,
+                warning=(
+                    "Sistema candidato por proximidad vertical; debe verificarse "
+                    "visualmente. No identifica piano, coro, llaves ni voces."
+                ),
+            )
+        )
+    return systems
 
 
 def detect_barline_candidates(
@@ -120,50 +193,73 @@ def group_system_barlines(
     *,
     x_tolerance_spacing: float = 0.8,
     min_staff_support: int = 2,
+    max_interstaff_gap_spacing: float = 5.5,
 ) -> list[SystemBarlineCandidate]:
-    """Agrupa barras aproximadamente alineadas en pentagramas distintos."""
+    """Agrupa barras alineadas, sin mezclar sistemas separados verticalmente."""
     if x_tolerance_spacing <= 0:
         raise ValueError("x_tolerance_spacing debe ser positivo")
     if min_staff_support < 1:
         raise ValueError("min_staff_support debe ser al menos 1")
-    if not candidates:
+    if max_interstaff_gap_spacing <= 0:
+        raise ValueError("max_interstaff_gap_spacing debe ser positivo")
+    if not candidates or not staves:
         return []
 
-    typical_spacing = float(np.median([s.spacing_px for s in staves])) if staves else 0.0
+    systems = detect_staff_systems(
+        staves, max_interstaff_gap_spacing=max_interstaff_gap_spacing
+    )
+    staff_to_system = {
+        staff_index: system.system_index
+        for system in systems
+        for staff_index in system.staff_indices
+    }
+    typical_spacing = float(np.median([s.spacing_px for s in staves if s.spacing_px > 1]))
     tolerance = max(2.0, typical_spacing * x_tolerance_spacing)
-    ordered = sorted(candidates, key=lambda item: item.x)
-    clusters: list[list[BarlineCandidate]] = []
-    for candidate in ordered:
-        if not clusters or candidate.x - float(np.mean([v.x for v in clusters[-1]])) > tolerance:
-            clusters.append([candidate])
-        else:
-            clusters[-1].append(candidate)
+
+    by_system: dict[int, list[BarlineCandidate]] = {}
+    for candidate in candidates:
+        system_index = staff_to_system.get(candidate.staff_index)
+        if system_index is not None:
+            by_system.setdefault(system_index, []).append(candidate)
 
     results: list[SystemBarlineCandidate] = []
-    for cluster in clusters:
-        by_staff: dict[int, BarlineCandidate] = {}
-        for candidate in cluster:
-            current = by_staff.get(candidate.staff_index)
-            if current is None or candidate.confidence > current.confidence:
-                by_staff[candidate.staff_index] = candidate
-        staff_indices = sorted(by_staff)
-        if len(staff_indices) < min_staff_support:
-            continue
-        mean_x = float(np.mean([item.x for item in by_staff.values()]))
-        confidence = float(np.mean([item.confidence for item in by_staff.values()]))
-        results.append(
-            SystemBarlineCandidate(
-                x=round(mean_x, 2),
-                staff_indices=staff_indices,
-                support_count=len(staff_indices),
-                confidence=round(confidence, 3),
-                warning=(
-                    "Alineación probable entre pentagramas; no confirma por sí sola "
-                    "el sistema ni el límite métrico."
-                ),
+    for system_index, system_candidates in sorted(by_system.items()):
+        ordered = sorted(system_candidates, key=lambda item: item.x)
+        clusters: list[list[BarlineCandidate]] = []
+        for candidate in ordered:
+            if (
+                not clusters
+                or candidate.x - float(np.mean([v.x for v in clusters[-1]])) > tolerance
+            ):
+                clusters.append([candidate])
+            else:
+                clusters[-1].append(candidate)
+
+        for cluster in clusters:
+            by_staff: dict[int, BarlineCandidate] = {}
+            for candidate in cluster:
+                current = by_staff.get(candidate.staff_index)
+                if current is None or candidate.confidence > current.confidence:
+                    by_staff[candidate.staff_index] = candidate
+            staff_indices = sorted(by_staff)
+            if len(staff_indices) < min_staff_support:
+                continue
+            mean_x = float(np.mean([item.x for item in by_staff.values()]))
+            confidence = float(np.mean([item.confidence for item in by_staff.values()]))
+            results.append(
+                SystemBarlineCandidate(
+                    x=round(mean_x, 2),
+                    staff_indices=staff_indices,
+                    support_count=len(staff_indices),
+                    confidence=round(confidence, 3),
+                    warning=(
+                        "Alineación probable dentro de un sistema geométrico candidato; "
+                        "no confirma por sí sola el límite métrico."
+                    ),
+                    system_index=system_index,
+                )
             )
-        )
-    return sorted(results, key=lambda item: item.x)
+    return sorted(results, key=lambda item: (item.system_index, item.x))
 
 
 def infer_measure_spans(
@@ -171,11 +267,7 @@ def infer_measure_spans(
     *,
     min_width_px: float = 8.0,
 ) -> list[MeasureSpanCandidate]:
-    """Crea intervalos entre barras consecutivas dentro de cada pentagrama.
-
-    No inventa los bordes externos: cada intervalo declara si sus dos límites
-    fueron observados. Los intervalos estrechos se descartan como posible ruido.
-    """
+    """Crea intervalos entre barras consecutivas dentro de cada pentagrama."""
     if min_width_px <= 0:
         raise ValueError("min_width_px debe ser positivo")
 
