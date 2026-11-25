@@ -14,6 +14,7 @@ from .symbols import detect_notehead_candidates
 from .rhythm import analyze_rhythm_candidates
 from .rhythm_symbols import detect_augmentation_dot_candidates, detect_rest_shape_candidates
 from .measure_layout import (
+    classify_barline_groups,
     detect_barline_candidates,
     detect_staff_systems,
     group_system_barlines,
@@ -53,6 +54,7 @@ def main() -> int:
         dots = detect_augmentation_dot_candidates(binary, analysis.staves, noteheads)
         rests = detect_rest_shape_candidates(binary, analysis.staves)
         barlines = detect_barline_candidates(binary, analysis.staves)
+        barline_groups = classify_barline_groups(barlines, analysis.staves)
         staff_systems = detect_staff_systems(analysis.staves)
         system_barlines = group_system_barlines(barlines, analysis.staves)
         measure_spans = infer_measure_spans(barlines)
@@ -61,6 +63,8 @@ def main() -> int:
         page_data["staff_system_candidates"] = [item.to_dict() for item in staff_systems]
         page_data["staff_system_candidate_count"] = len(staff_systems)
         page_data["barline_candidates"] = [item.to_dict() for item in barlines]
+        page_data["barline_group_candidates"] = [item.to_dict() for item in barline_groups]
+        page_data["barline_group_candidate_count"] = len(barline_groups)
         page_data["barline_candidate_count"] = len(barlines)
         page_data["system_barline_candidates"] = [item.to_dict() for item in system_barlines]
         page_data["measure_span_candidates"] = [item.to_dict() for item in measure_spans]
