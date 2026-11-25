@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbymYu59P75uhVau6lVou9o8PMBVx8D2lfr7YIp8Q-i9IrRUkAOa8-vGy-Qj04PfLP2bEA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbww7yr3lrxCJD1c0RadzGKh76SRvEt6xd_i2nDv0IfGpNo9dSVPC2L4wyVl9271aw-26Q/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5966,12 +5966,34 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     lt.__satb = true; lt.extras = extras;
   }
   const SON_SATB_NOM = { S: 'Soprano (la más alta de cada acorde)', A: 'Alto (2.ª desde arriba)', T: 'Tenor (la más alta de la clave de fa)', B: 'Bajo (la más baja)', RH: 'Mano derecha · acordes (clave de sol)', LH: 'Mano izquierda · acordes (clave de fa)', sel: 'Notas elegidas con el puntero' };
-  function sonVocesDe(res) {                     // etiquetas de las voces: por pentagrama y rango dentro del acorde
-    const out = {}; const conNotas = res.pent.filter(s => s.notas && s.notas.length);
-    const solFa = conNotas.some(x => x.clave === 'sol') && conNotas.some(x => x.clave === 'fa') && !conNotas.some(x => x.etiqueta);   // piano / coro sin rótulos: cada sistema se apila (sol + fa)
-    if (!solFa) conNotas.forEach((s, k) => { const maxR = Math.max.apply(null, SON.lt.notas.filter(n => n.pent === s.id).map(n => n.rango).concat([0]));
-      for (let r = 0; r <= Math.min(maxR, 3); r++) { let nom = s.etiqueta || ('Pentagrama ' + (k + 1)); if (solFa) nom = (k === 0 ? ['Soprano', 'Contralto'] : ['Tenor', 'Bajo'])[r] || (nom + ' ' + (r + 1)); else if (maxR > 0) nom += ' · voz ' + (r + 1); out[s.id + '#' + r] = nom; } });
-    if (solFa && SON.lt) { sonSatb(SON.lt); SON.solFa = true; const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; }); if (SON.lt.extras) o2.sel = SON_SATB_NOM.sel; return o2; }
+  function sonVocesDe(res) {                     // voces SATB o manos independientes según la disposición real
+    const out = {}, conNotas = res.pent.filter(s => s.notas && s.notas.length);
+    const sistemas = {};
+    conNotas.forEach(s => { (sistemas[s.sist] = sistemas[s.sist] || []).push(s); });
+    const esEtiquetaPiano = t => !t || /^(piano|pianoforte|teclado|keyboard|keys|órgano|organo|harpsichord|clav(i|e)c[ée]mbalo)$/i.test(String(t).trim());
+    const paresManos = Object.values(sistemas).some(a => {
+      const sol = a.some(x => x.clave === 'sol'), fa = a.some(x => x.clave === 'fa');
+      return sol && fa && a.every(x => esEtiquetaPiano(x.etiqueta));
+    });
+    const solFa = !paresManos && conNotas.some(x => x.clave === 'sol') && conNotas.some(x => x.clave === 'fa') && !conNotas.some(x => x.etiqueta);
+    if (paresManos) {
+      SON.solFa = false;
+      return { RH: 'Mano derecha · clave de sol', LH: 'Mano izquierda · clave de fa' };
+    }
+    if (!solFa) conNotas.forEach((s, k) => {
+      const maxR = Math.max.apply(null, SON.lt.notas.filter(n => n.pent === s.id).map(n => n.rango).concat([0]));
+      for (let r = 0; r <= Math.min(maxR, 3); r++) {
+        let nom = s.etiqueta || ('Pentagrama ' + (k + 1));
+        if (maxR > 0) nom += ' · voz ' + (r + 1);
+        out[s.id + '#' + r] = nom;
+      }
+    });
+    if (solFa && SON.lt) {
+      sonSatb(SON.lt); SON.solFa = true;
+      const o2 = {}; ['S', 'A', 'T', 'B', 'RH', 'LH'].forEach(k => { o2[k] = SON_SATB_NOM[k]; });
+      if (SON.lt.extras) o2.sel = SON_SATB_NOM.sel;
+      return o2;
+    }
     SON.solFa = false; return out;
   }
   function sonClaveTexto(res) {
@@ -6025,7 +6047,21 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     sonEstado(msg); if (SON.min) lecAviso(grupo.length > 1 ? 'Acorde: ' + grupo.map(n => n.nombre).join(' + ') : mejor.nombre);
   }
   /* ---------- reproducir ---------- */
-  function sonPeso(n) { if (n.ligada) return 0; if (SON.voz === 'todas') return n.dup ? 0 : 1; if (SON.solFa) { const v = SON.voz, ok = v === 'RH' ? n.claveSol : v === 'LH' ? !n.claveSol : v === 'sel' ? SON.elegidas.has(n.nota) : n.satb === v; return ok ? 1 : (SON.resto === 'mudo' ? 0 : 0.22); } const k = n.pent + '#' + Math.min(n.rango, 3); return k === SON.voz ? 1 : (SON.resto === 'mudo' ? 0 : 0.22); }
+  function sonPeso(n) {
+    if (n.ligada) return 0;
+    if (SON.voz === 'todas') return n.dup ? 0 : 1;
+    // RH/LH son filtros explícitos de clave: no dependen de la asignación SATB.
+    if (SON.voz === 'RH' || SON.voz === 'LH') {
+      const ok = SON.voz === 'RH' ? n.claveSol : !n.claveSol;
+      return ok ? 1 : (SON.resto === 'mudo' ? 0 : 0.22);
+    }
+    if (SON.solFa) {
+      const ok = SON.voz === 'sel' ? SON.elegidas.has(n.nota) : n.satb === SON.voz;
+      return ok ? 1 : (SON.resto === 'mudo' ? 0 : 0.22);
+    }
+    const k = n.pent + '#' + Math.min(n.rango, 3);
+    return k === SON.voz ? 1 : (SON.resto === 'mudo' ? 0 : 0.22);
+  }
   function sonSimul(lt) { if (lt.__simul) return; const m = {}; lt.notas.forEach(n => { const k = Math.round(n.seg * 40); m[k] = (m[k] || 0) + 1; }); const vis = {}; lt.notas.forEach(n => { n.dup = false; const k = n.sist + '|' + Math.round(n.seg * 40) + '|' + n.midi; (vis[k] = vis[k] || []).push(n); });
     Object.values(vis).forEach(a => { if (a.length > 1) { a.sort((x, y) => y.durSeg - x.durSeg); a.slice(1).forEach(n => { n.dup = true; }); } });   // unísonos (cuerdas/voces que repiten la misma nota): suenan una sola vez
     const m2 = {}; lt.notas.forEach(n => { if (!n.dup) { const k = Math.round(n.seg * 40); m2[k] = (m2[k] || 0) + 1; } }); lt.notas.forEach(n => { n.simul = m2[Math.round(n.seg * 40)] || 1; }); lt.__simul = true; }
@@ -6043,9 +6079,31 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   }
   async function sonSiguiente(pag, t0) { const r = await sonAnalizar(pag); const est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; return sonSegmento(r, window.SonoroMotor.lineaTiempo(r, est), t0, pag); }
   function sonQuedaMas() { const l = SON.segs[SON.segs.length - 1]; return !SON.completa && SON.cont === 'seguir' && !SON.sinSig && l && l.pag < EST.pdf.numPages; }
-  function sonRodar() {                      // planificador: programa solo ~1,6 s por delante (evita miles de nodos de audio a la vez)
+  // Un ataque musical se planifica como un acorde: todas las notas con el mismo
+  // instante musical comparten exactamente el mismo tiempo de AudioContext.
+  // La agrupación no iguala las duraciones: cada nota conserva su durSeg.
+  function sonProgramarAcorde(ctx, seg, tBase) {
+    if (!seg || !seg.length) return;
+    const cuando = Math.max(ctx.currentTime, tBase + seg[0].seg);
+    seg.forEach(n => {
+      const peso = sonPeso(n);
+      if (peso <= 0) return;
+      sonNota(ctx, SON.master, n.midi, cuando,
+        Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)),
+        SON.instr, peso * sonVol(n), SON.nodos);
+    });
+  }
+  function sonRodar() {                      // planificador: programa solo ~1,6 s por delante
     if (!SON.tocando) return; const ctx = SON.ctx, lim = ctx.currentTime + 1.6, t0m = performance.now();
-    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, sonPeso(n) * sonVol(n), SON.nodos); } });
+    SON.segs.forEach(s => {
+      while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) {
+        const primero = s.ns[s.i], grupo = [primero]; s.i++;
+        // Tolerancia de 5 ms: une ataques realmente simultáneos entre pentagramas,
+        // pero no absorbe notas consecutivas del mismo pasaje.
+        while (s.i < s.ns.length && Math.abs(s.ns[s.i].seg - primero.seg) <= 0.005) grupo.push(s.ns[s.i++]);
+        sonProgramarAcorde(ctx, grupo, s.t0);
+      }
+    });
     sonMetro(ctx, lim);
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
