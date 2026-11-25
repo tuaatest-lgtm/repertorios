@@ -146,3 +146,85 @@ def detect_rest_shape_candidates(
             ))
             break
     return results
+
+
+@dataclass(frozen=True)
+class TieSlurShapeCandidate:
+    bbox: tuple[int, int, int, int]
+    staff_index: int
+    width_to_height: float
+    curvature_hint: float
+    confidence: float
+    warning: str
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def detect_tie_slur_shape_candidates(
+    binary: np.ndarray,
+    staves: list[StaffCandidate],
+) -> list[TieSlurShapeCandidate]:
+    """Detecta trazos curvos y alargados compatibles con ligaduras o frases.
+
+    No distingue ligadura de prolongación (tie) y ligadura de expresión (slur).
+    La salida es solo una hipótesis geométrica; texto, arcos editoriales y otros
+    trazos pueden producir candidatos similares.
+    """
+    if binary is None or binary.ndim != 2 or binary.size == 0:
+        raise ValueError("Se requiere una imagen binaria monocroma no vacía")
+
+    ink = (binary < 128).astype(np.uint8)
+    kernel_width = max(15, binary.shape[1] // 5)
+    horizontal = cv2.morphologyEx(
+        ink,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1)),
+    )
+    cleaned = cv2.subtract(ink, horizontal)
+    count, _, stats, _ = cv2.connectedComponentsWithStats(cleaned, 8)
+    results: list[TieSlurShapeCandidate] = []
+
+    for label in range(1, count):
+        x, y, w, h, area = (int(v) for v in stats[label])
+        if area < 5:
+            continue
+        aspect = w / max(h, 1)
+        if aspect < 3.0:
+            continue
+
+        for staff_index, staff in enumerate(staves):
+            spacing = float(staff.spacing_px)
+            if spacing <= 1:
+                continue
+            staff_top = float(staff.lines_y[0])
+            staff_bottom = float(staff.lines_y[-1])
+            center_y = y + h / 2.0
+            if not (staff_top - 1.8 * spacing <= center_y <= staff_bottom + 1.8 * spacing):
+                continue
+            if not (1.2 * spacing <= w <= 9.0 * spacing):
+                continue
+            if not (0.12 * spacing <= h <= 1.5 * spacing):
+                continue
+            density = area / max(w * h, 1)
+            if density > 0.55:
+                continue
+            curvature_hint = min(1.0, h / max(w, 1) * 5.0)
+            confidence = min(0.42, 0.18 + curvature_hint * 0.18)
+            results.append(
+                TieSlurShapeCandidate(
+                    bbox=(x, y, w, h),
+                    staff_index=staff_index,
+                    width_to_height=round(aspect, 3),
+                    curvature_hint=round(curvature_hint, 3),
+                    confidence=round(confidence, 3),
+                    warning=(
+                        "Arco candidato no confirmado: no distingue ligadura de "
+                        "prolongación, ligadura de expresión ni otros trazos editoriales."
+                    ),
+                )
+            )
+            break
+
+    results.sort(key=lambda item: (item.staff_index, item.bbox[0]))
+    return results
