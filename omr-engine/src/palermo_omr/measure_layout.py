@@ -301,3 +301,89 @@ def infer_measure_spans(
             )
             measure_index += 1
     return spans
+
+
+@dataclass(frozen=True)
+class BarlineGroupCandidate:
+    """Clasificación visual preliminar de una o varias líneas de barra."""
+
+    staff_index: int
+    x_positions: list[float]
+    widths_px: list[int]
+    kind: str
+    confidence: float
+    warning: str
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def classify_barline_groups(
+    candidates: list[BarlineCandidate],
+    staves: list[StaffCandidate],
+    *,
+    max_pair_gap_spacing: float = 1.6,
+    thick_line_ratio: float = 1.8,
+) -> list[BarlineGroupCandidate]:
+    """Clasifica agrupaciones cercanas como barra simple, doble o final candidata.
+
+    Dos líneas cercanas y de grosor parecido se etiquetan como doble candidata.
+    Una línea notablemente más gruesa que la otra se etiqueta como final candidata.
+    Agrupaciones mayores o ambiguas permanecen sin clasificar. No reconoce
+    todavía puntos de repetición ni confirma la función musical de las barras.
+    """
+    if max_pair_gap_spacing <= 0:
+        raise ValueError("max_pair_gap_spacing debe ser positivo")
+    if thick_line_ratio <= 1:
+        raise ValueError("thick_line_ratio debe ser mayor que 1")
+
+    by_staff: dict[int, list[BarlineCandidate]] = {}
+    for candidate in candidates:
+        if candidate.staff_index < 0 or candidate.staff_index >= len(staves):
+            continue
+        by_staff.setdefault(candidate.staff_index, []).append(candidate)
+
+    results: list[BarlineGroupCandidate] = []
+    for staff_index, bars in sorted(by_staff.items()):
+        spacing = float(staves[staff_index].spacing_px)
+        ordered = sorted(bars, key=lambda item: item.x)
+        clusters: list[list[BarlineCandidate]] = []
+        for bar in ordered:
+            if not clusters or bar.x - clusters[-1][-1].x > spacing * max_pair_gap_spacing:
+                clusters.append([bar])
+            else:
+                clusters[-1].append(bar)
+
+        for cluster in clusters:
+            xs = [round(item.x, 2) for item in cluster]
+            widths = [item.width_px for item in cluster]
+            confidence = min(item.confidence for item in cluster)
+            if len(cluster) == 1:
+                kind = "single_candidate"
+                confidence = min(confidence, 0.75)
+            elif len(cluster) == 2:
+                thin = max(1, min(widths))
+                thick = max(widths)
+                if thick / thin >= thick_line_ratio:
+                    kind = "final_candidate"
+                else:
+                    kind = "double_candidate"
+                confidence = min(confidence, 0.72)
+            else:
+                kind = "ambiguous_group"
+                confidence = min(confidence, 0.4)
+
+            results.append(
+                BarlineGroupCandidate(
+                    staff_index=staff_index,
+                    x_positions=xs,
+                    widths_px=widths,
+                    kind=kind,
+                    confidence=round(float(confidence), 3),
+                    warning=(
+                        "Clasificación visual preliminar. No confirma compás, repetición "
+                        "ni función editorial; requiere validación en la partitura."
+                    ),
+                )
+            )
+    return results
