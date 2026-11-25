@@ -31,6 +31,8 @@ class RestSymbolCandidate:
     shape_score: float
     confidence: float
     warning: str
+    rest_type_candidate: str = "unclassified"
+    type_confidence: float = 0.0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -117,8 +119,30 @@ def detect_rest_shape_candidates(
             shape_score=max(0.0,1.0-abs(aspect-.75)/2.0)
             if compactness < .12:
                 continue
-            results.append(RestSymbolCandidate((x,y,w,h),staff_index,round(shape_score,3),
+
+            # Clasificación muy conservadora: solo propone familias visuales.
+            # La posición vertical ayuda a separar los rectángulos de silencio
+            # de redonda y blanca; no constituye reconocimiento definitivo.
+            staff_mid=(float(staff.lines_y[0])+float(staff.lines_y[-1]))/2.0
+            center_offset=(float(cy)-staff_mid)/spacing
+            rest_type="unclassified"
+            type_confidence=0.0
+            if aspect >= 1.15 and .22 <= h/spacing <= .85 and w/spacing <= 1.35:
+                if abs(center_offset-.0) <= .28:
+                    rest_type="half_rest_shape_candidate"
+                    type_confidence=.38
+                elif abs(center_offset-.5) <= .28 or abs(center_offset+.5) <= .28:
+                    rest_type="whole_rest_shape_candidate"
+                    type_confidence=.34
+            elif .35 <= aspect < 1.15 and .65 <= h/spacing <= 2.3:
+                rest_type="vertical_rest_shape_candidate"
+                type_confidence=.25
+
+            results.append(RestSymbolCandidate(
+                (x,y,w,h),staff_index,round(shape_score,3),
                 round(min(.55,shape_score*.55),3),
-                "Candidato no confirmado: puede ser texto, articulación o fragmento de otro símbolo."))
+                "Candidato no confirmado: puede ser texto, articulación o fragmento de otro símbolo.",
+                rest_type, type_confidence
+            ))
             break
     return results
