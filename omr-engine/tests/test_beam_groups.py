@@ -8,7 +8,7 @@ from palermo_omr.rhythm import RhythmCandidate
 from palermo_omr.symbols import NoteheadCandidate
 
 
-def _fixture(with_beam=True):
+def _fixture(with_beam=True, beam_count=1):
     image = np.full((160, 240), 255, dtype=np.uint8)
     for y in [60, 70, 80, 90, 100]:
         cv2.line(image, (5, y), (230, y), 0, 1)
@@ -21,7 +21,9 @@ def _fixture(with_beam=True):
     for x in [112, 152]:
         cv2.line(image, (x, 80), (x, 50), 0, 2)
     if with_beam:
-        cv2.line(image, (112, 50), (152, 50), 0, 3)
+        for offset in range(beam_count):
+            y = 50 + offset * 4
+            cv2.line(image, (112, y), (152, y), 0, 3)
     staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
     rhythms = [
         RhythmCandidate(head.bbox, 0, "filled", .9, "up", 30, 1,
@@ -63,3 +65,13 @@ def test_rejects_mismatched_notehead_and_rhythm_lists():
     image, staves, heads, rhythms = _fixture()
     with pytest.raises(ValueError):
         detect_beam_group_candidates(image, staves, heads, rhythms[:1])
+
+
+
+@pytest.mark.parametrize("beam_count", [1, 2, 3, 4])
+def test_counts_parallel_shared_beams(beam_count):
+    image, staves, heads, rhythms = _fixture(beam_count=beam_count)
+    groups = detect_beam_group_candidates(image, staves, heads, rhythms)
+    assert len(groups) == 1
+    assert groups[0].notehead_indices == [0, 1]
+    assert groups[0].beam_count_candidate == beam_count
