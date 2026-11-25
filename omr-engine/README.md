@@ -2,7 +2,7 @@
 
 Motor OMR independiente para Palermo Music. Esta iteración implementa entrada PDF, preprocesamiento de páginas, detección geométrica inicial de pentagramas y propuestas de cabezas de nota.
 
-**Estado:** prototipo geométrico 0.2.0. Los resultados son candidatos visuales y requieren validación. No reconoce todavía nombres de notas, claves, armaduras, duraciones, voces ni estructura musical. No está integrado con el reproductor ni desplegado como servicio.
+**Estado:** prototipo geométrico 0.3.0. Incluye candidatos de cabezas, alturas condicionadas a clave conocida, análisis rítmico preliminar y candidatos de puntillos/silencios. Todo resultado requiere validación; no es una transcripción musical completa. No está integrado con el reproductor ni desplegado como servicio.
 
 ## Requisitos
 
@@ -27,7 +27,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 - grupos geométricos de cinco líneas;
 - regiones propuestas como cabezas de nota;
 - posición diatónica relativa a la línea inferior del pentagrama (sin asignar todavía una letra o altura absoluta);
-- puntuaciones heurísticas de confianza.
+- puntuaciones heurísticas de confianza;\n- hipótesis de relleno, plicas y barras;\n- candidatos de puntillos y formas que podrían corresponder a silencios (sin clasificación definitiva).
 
 ## Limitaciones conocidas
 
@@ -41,6 +41,6 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 
 1. Evaluación y calibración con partituras reales vectoriales y escaneadas.
 2. Detección de sistemas, compases y regiones musicales.
-3. Clasificación de símbolos y reconocimiento de claves, armaduras y figuras.
+3. Clasificación robusta de símbolos: claves, armaduras, figuras, silencios, puntillos y ligaduras.
 4. Interpretación temporal polifónica y exportación MusicXML.
 5. Revisión visual humana y adaptador aislado hacia el motor Sonoro de Palermo.
