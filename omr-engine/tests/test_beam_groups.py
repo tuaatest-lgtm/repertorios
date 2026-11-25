@@ -23,7 +23,7 @@ def _fixture(with_beam=True, beam_count=1):
     if with_beam:
         for offset in range(beam_count):
             y = 42 + offset * 4
-            cv2.line(image, (112, y), (152, y), 0, 3)
+            cv2.line(image, (112, y), (152, y), 0, 1)
     staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
     rhythms = [
         RhythmCandidate(head.bbox, 0, "filled", .9, "up", 30, 1,
