@@ -98,75 +98,39 @@ def _stem(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> tuple[
 
 
 def _beam_count(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> int:
-    """Cuenta trazos horizontales cortos próximos a la región de plica."""
+    """Cuenta segmentos horizontales cortos; descarta las líneas largas del pentagrama."""
     ink = _ink(binary)
     h, w = ink.shape
     cx, cy = int(round(head.center_x)), int(round(head.center_y))
-    pad_x = int(round(spacing * 2.5))
+    pad_x = int(round(spacing * 3.0))
     pad_y = int(round(spacing * 3.2))
     x0, x1 = max(0, cx-pad_x), min(w, cx+pad_x+1)
     y0, y1 = max(0, cy-pad_y), min(h, cy+pad_y+1)
     roi = ink[y0:y1, x0:x1]
     if roi.size == 0:
         return 0
-    kw = max(3, int(round(spacing * 1.1)))
+    kw = max(3, int(round(spacing * 1.05)))
     horizontal = cv2.morphologyEx(
         roi, cv2.MORPH_OPEN,
         cv2.getStructuringElement(cv2.MORPH_RECT, (kw, 1))
     )
-    rows = np.flatnonzero(horizontal.sum(axis=1) >= kw)
-    if rows.size == 0:
+    count, _, stats, centroids = cv2.connectedComponentsWithStats(horizontal, 8)
+    beam_rows: list[float] = []
+    for label in range(1, count):
+        _, y, component_w, component_h, area = (int(v) for v in stats[label])
+        cy_local = float(centroids[label][1])
+        cy_global = y0 + cy_local
+        # Excluye la cabeza, los trazos diminutos y las líneas completas del pentagrama.
+        if abs(cy_global - cy) < spacing * 0.75:
+            continue
+        if spacing * 0.9 <= component_w <= spacing * 5.0 and component_h <= max(2, int(spacing * 0.4)):
+            beam_rows.append(cy_global)
+    if not beam_rows:
         return 0
-    groups = 1 + int(np.count_nonzero(np.diff(rows) > max(1, int(spacing * 0.35))))
+    beam_rows.sort()
+    groups = 1
+    for previous, current in zip(beam_rows, beam_rows[1:]):
+        if current - previous > max(1.5, spacing * 0.35):
+            groups += 1
     return min(groups, 4)
 
-
-def analyze_rhythm_candidates(
-    binary: np.ndarray,
-    staves: list[StaffCandidate],
-    noteheads: list[NoteheadCandidate],
-) -> list[RhythmCandidate]:
-    """Añade una hipótesis de valor base a cada cabeza candidata."""
-    if binary is None or binary.ndim != 2 or binary.size == 0:
-        raise ValueError("Se requiere una imagen binaria monocroma no vacía")
-    results: list[RhythmCandidate] = []
-    for head in noteheads:
-        if head.staff_index >= len(staves):
-            continue
-        spacing = float(staves[head.staff_index].spacing_px)
-        if spacing <= 1:
-            continue
-        fill, fill_score = _classify_fill(binary, head, spacing)
-        direction, stem_length = _stem(binary, head, spacing)
-        beams = _beam_count(binary, head, spacing)
-
-        duration = "unknown"
-        warnings: list[str] = []
-        if fill == "hollow" and direction == "none":
-            duration = "whole"
-            warnings.append("No distingue redonda de figuras mayores.")
-        elif fill == "hollow" and direction != "none":
-            duration = "half"
-        elif fill == "filled" and direction != "none":
-            duration = {0: "quarter", 1: "eighth", 2: "sixteenth", 3: "thirty_second", 4: "sixty_fourth"}[beams]
-        elif fill == "filled":
-            warnings.append("Cabeza rellena sin plica confirmada; duración indeterminada.")
-        else:
-            warnings.append("Relleno de cabeza ambiguo.")
-
-        if beams:
-            warnings.append("La agrupación de barras es una hipótesis geométrica.")
-        confidence = min(0.95, 0.45 * fill_score + (0.4 if direction != "none" else 0.0) + (0.15 if duration != "unknown" else 0.0))
-        results.append(RhythmCandidate(
-            notehead_bbox=head.bbox,
-            staff_index=head.staff_index,
-            notehead_fill=fill,
-            notehead_fill_score=round(fill_score, 3),
-            stem_direction=direction,
-            stem_length_px=int(stem_length),
-            beam_count=beams,
-            base_duration=duration,
-            confidence=round(confidence, 3),
-            warnings=tuple(warnings),
-        ))
-    return results
