@@ -11,6 +11,7 @@ import cv2
 from .imaging import analyze_page, render_pdf
 from .symbols import detect_notehead_candidates
 from .rhythm import analyze_rhythm_candidates
+from .rhythm_symbols import detect_augmentation_dot_candidates, detect_rest_shape_candidates
 
 
 def main() -> int:
@@ -42,6 +43,10 @@ def main() -> int:
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
         page_data["rhythm_candidates"] = [item.to_dict() for item in rhythms]
         page_data["rhythm_candidate_count"] = len(rhythms)
+        dots = detect_augmentation_dot_candidates(binary, analysis.staves, noteheads)
+        rests = detect_rest_shape_candidates(binary, analysis.staves)
+        page_data["augmentation_dot_candidates"] = [item.to_dict() for item in dots]
+        page_data["rest_shape_candidates"] = [item.to_dict() for item in rests]
         analyses.append(page_data)
 
     report = {
@@ -64,10 +69,14 @@ def main() -> int:
     total_staves = sum(len(page["staves"]) for page in analyses)
     total_heads = sum(page["notehead_candidate_count"] for page in analyses)
     total_rhythms = sum(page["rhythm_candidate_count"] for page in analyses)
+    total_dots = sum(len(page["augmentation_dot_candidates"]) for page in analyses)
+    total_rests = sum(len(page["rest_shape_candidates"]) for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
     print(f"Cabezas de nota candidatas: {total_heads}")
     print(f"Análisis rítmicos candidatos: {total_rhythms}")
+    print(f"Puntillos candidatos: {total_dots}")
+    print(f"Formas candidatas a silencio: {total_rests}")
     print("Aviso: los resultados requieren validación; no son datos reproducibles.")
     return 0
 
