@@ -1,7 +1,6 @@
-"""Análisis rítmico geométrico inicial de candidatos de nota.
+"""Análisis rítmico geométrico preliminar.
 
-Las salidas son hipótesis con confianza, no transcripciones musicales validadas.
-La detección de ligaduras, silencios, puntillos y voces queda fuera de esta fase.
+Los resultados son hipótesis visuales, nunca eventos musicales confirmados.
 """
 from __future__ import annotations
 
@@ -35,102 +34,110 @@ def _ink(binary: np.ndarray) -> np.ndarray:
 
 
 def _classify_fill(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> tuple[str, float]:
-    """Mide el núcleo de la cabeza, evitando la fila central de una línea del pentagrama."""
     ink = _ink(binary)
     cx, cy = int(round(head.center_x)), int(round(head.center_y))
-    rx = max(3, int(round(spacing * 0.38)))
-    ry = max(2, int(round(spacing * 0.28)))
+    rx, ry = max(3, int(round(spacing * .38))), max(2, int(round(spacing * .28)))
     x0, x1 = max(0, cx-rx), min(binary.shape[1], cx+rx+1)
     y0, y1 = max(0, cy-ry), min(binary.shape[0], cy+ry+1)
-    roi = ink[y0:y1, x0:x1].copy()
-    if roi.size == 0:
-        return "unknown", 0.0
-
     yy, xx = np.ogrid[y0:y1, x0:x1]
-    ellipse = ((xx-cx) / max(rx, 1))**2 + ((yy-cy) / max(ry, 1))**2 <= 1.0
-    # La línea horizontal del pentagrama puede atravesar una cabeza en línea.
-    ellipse &= np.abs(yy-cy) > max(1, int(round(spacing * 0.045)))
+    ellipse = ((xx-cx)/rx)**2 + ((yy-cy)/ry)**2 <= 1.0
+    ellipse &= np.abs(yy-cy) > max(1, int(round(spacing*.045)))
     sample = ink[y0:y1, x0:x1][ellipse]
     if sample.size < 5:
         return "unknown", 0.0
     ratio = float(np.mean(sample))
-    if ratio >= 0.58:
-        return "filled", min(1.0, (ratio - 0.45) / 0.45)
-    if ratio <= 0.28:
-        return "hollow", min(1.0, (0.42 - ratio) / 0.42)
-    return "unknown", 0.35
+    if ratio >= .58:
+        return "filled", min(1.0, (ratio-.45)/.45)
+    if ratio <= .28:
+        return "hollow", min(1.0, (.42-ratio)/.42)
+    return "unknown", .35
 
 
 def _stem(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> tuple[str, int]:
-    """Busca una plica vertical próxima a uno de los extremos de la cabeza."""
     ink = _ink(binary)
     h, w = ink.shape
     cx, cy = int(round(head.center_x)), int(round(head.center_y))
-    radius = max(1, int(round(spacing * 0.72)))
-    klen = max(3, int(round(spacing * 1.8)))
-    vertical = cv2.morphologyEx(
-        ink, cv2.MORPH_OPEN,
-        cv2.getStructuringElement(cv2.MORPH_RECT, (1, klen))
-    )
+    radius = max(1, int(round(spacing*.72)))
+    vertical = cv2.morphologyEx(ink, cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, int(round(spacing*1.8))))))
     best = ("none", 0)
-    for offset in (-radius, radius):
-        x = cx + offset
-        if x < 0 or x >= w:
+    for x in (cx-radius, cx+radius):
+        if not 0 <= x < w:
             continue
-        col = vertical[:, max(0, x-1):min(w, x+2)].max(axis=1)
+        col = vertical[:, max(0,x-1):min(w,x+2)].max(axis=1)
         for direction, indices in (
-            ("up", range(max(0, cy-int(spacing*0.25)), -1, -1)),
-            ("down", range(min(h-1, cy+int(spacing*0.25)), h)),
+            ("up", range(max(0,cy-int(spacing*.25)), -1, -1)),
+            ("down", range(min(h-1,cy+int(spacing*.25)), h)),
         ):
-            run = 0
-            max_run = 0
+            run = maximum = 0
             for y in indices:
                 if col[y]:
                     run += 1
-                    max_run = max(max_run, run)
+                    maximum = max(maximum, run)
                 elif run:
                     break
-            if max_run > best[1]:
-                best = (direction, max_run)
-    if best[1] < int(spacing * 1.35):
-        return "none", best[1]
-    return best
+            if maximum > best[1]:
+                best = (direction, maximum)
+    return best if best[1] >= int(spacing*1.35) else ("none", best[1])
 
 
 def _beam_count(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> int:
-    """Cuenta segmentos horizontales cortos; descarta las líneas largas del pentagrama."""
     ink = _ink(binary)
     h, w = ink.shape
     cx, cy = int(round(head.center_x)), int(round(head.center_y))
-    pad_x = int(round(spacing * 3.0))
-    pad_y = int(round(spacing * 3.2))
-    x0, x1 = max(0, cx-pad_x), min(w, cx+pad_x+1)
-    y0, y1 = max(0, cy-pad_y), min(h, cy+pad_y+1)
-    roi = ink[y0:y1, x0:x1]
-    if roi.size == 0:
-        return 0
-    kw = max(3, int(round(spacing * 1.05)))
-    horizontal = cv2.morphologyEx(
-        roi, cv2.MORPH_OPEN,
-        cv2.getStructuringElement(cv2.MORPH_RECT, (kw, 1))
-    )
-    count, _, stats, centroids = cv2.connectedComponentsWithStats(horizontal, 8)
-    beam_rows: list[float] = []
-    for label in range(1, count):
-        _, y, component_w, component_h, area = (int(v) for v in stats[label])
-        cy_local = float(centroids[label][1])
-        cy_global = y0 + cy_local
-        # Excluye la cabeza, los trazos diminutos y las líneas completas del pentagrama.
-        if abs(cy_global - cy) < spacing * 0.75:
+    x0, x1 = max(0,cx-int(spacing*3)), min(w,cx+int(spacing*3)+1)
+    y0, y1 = max(0,cy-int(spacing*3.2)), min(h,cy+int(spacing*3.2)+1)
+    roi = ink[y0:y1,x0:x1]
+    kw = max(3,int(round(spacing*1.05)))
+    horizontal = cv2.morphologyEx(roi,cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT,(kw,1)))
+    count, _, stats, centroids = cv2.connectedComponentsWithStats(horizontal,8)
+    rows = []
+    for label in range(1,count):
+        _,_,cw,ch,_ = (int(v) for v in stats[label])
+        row = y0 + float(centroids[label][1])
+        if abs(row-cy) < spacing*.75:
             continue
-        if spacing * 0.9 <= component_w <= spacing * 5.0 and component_h <= max(2, int(spacing * 0.4)):
-            beam_rows.append(cy_global)
-    if not beam_rows:
+        if spacing*.9 <= cw <= spacing*5 and ch <= max(2,int(spacing*.4)):
+            rows.append(row)
+    if not rows:
         return 0
-    beam_rows.sort()
-    groups = 1
-    for previous, current in zip(beam_rows, beam_rows[1:]):
-        if current - previous > max(1.5, spacing * 0.35):
-            groups += 1
-    return min(groups, 4)
+    rows.sort()
+    groups = 1 + sum(1 for a,b in zip(rows,rows[1:]) if b-a > max(1.5,spacing*.35))
+    return min(groups,4)
 
+
+def analyze_rhythm_candidates(binary: np.ndarray, staves: list[StaffCandidate],
+                              noteheads: list[NoteheadCandidate]) -> list[RhythmCandidate]:
+    """Propone relleno, plica y valor base para cada cabeza candidata."""
+    if binary is None or binary.ndim != 2 or binary.size == 0:
+        raise ValueError("Se requiere una imagen binaria monocroma no vacía")
+    results = []
+    for head in noteheads:
+        if not 0 <= head.staff_index < len(staves):
+            continue
+        spacing = float(staves[head.staff_index].spacing_px)
+        if spacing <= 1:
+            continue
+        fill, fill_score = _classify_fill(binary,head,spacing)
+        direction, stem_length = _stem(binary,head,spacing)
+        beams = _beam_count(binary,head,spacing)
+        duration = "unknown"
+        warnings = []
+        if fill == "hollow" and direction == "none":
+            duration = "whole"
+            warnings.append("No distingue redonda de figuras mayores.")
+        elif fill == "hollow" and direction != "none":
+            duration = "half"
+        elif fill == "filled" and direction != "none":
+            duration = {0:"quarter",1:"eighth",2:"sixteenth",3:"thirty_second",4:"sixty_fourth"}[beams]
+        elif fill == "filled":
+            warnings.append("Cabeza rellena sin plica confirmada.")
+        else:
+            warnings.append("Relleno de cabeza ambiguo.")
+        if beams:
+            warnings.append("La agrupación de barras es una hipótesis geométrica.")
+        confidence = min(.95,.45*fill_score+(.4 if direction!="none" else 0)+(.15 if duration!="unknown" else 0))
+        results.append(RhythmCandidate(head.bbox,head.staff_index,fill,round(fill_score,3),
+            direction,int(stem_length),beams,duration,round(confidence,3),tuple(warnings)))
+    return results
