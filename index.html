@@ -1453,7 +1453,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     return _pdfjsPromesa;
   }
 
-  const API_URL = 'https://script.google.com/macros/s/AKfycbw2CM5SHY29lRxRFMZ9OESllMAtGCzKHdPRTLeDn2LglO0xvlbXhC5jgDLS9_cCbePt2w/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbymYu59P75uhVau6lVou9o8PMBVx8D2lfr7YIp8Q-i9IrRUkAOa8-vGy-Qj04PfLP2bEA/exec';
 
   const VERSION_SERVIDOR_ESPERADA = 'v7.0.0';
   let PRECARGA_OK = false, SONORO_OK = false;        // el servidor entiende «precarga» y «actividad_apertura» (v6.10+)
@@ -5783,7 +5783,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   /* ---- aviso translúcido (deja ver la partitura mientras se desvanece) y toques ---- */
   function lecAviso(t) { const el = $('lec-aviso'); el.classList.remove('v'); el.textContent = t; void el.offsetWidth; el.classList.add('v'); }
   /* ===== v7.0.0 · ESTUDIO SONORO (alfa) — solo si el servidor lo habilita (por defecto: administrador general) ===== */
-  const SON = { orden: 'impreso', segnoN: 0, repTras: false, estr: null, ltc: {}, completa: false, cont: 'parar', auto: true, min: false, segs: [], on: false, tok: -1, pag: {}, estado: {}, res: null, lt: null, ctx: null, instr: 'piano', voz: 'todas', resto: 'suave', bpm: 0, nodos: [], raf: 0, t0: 0, tocando: false, sel: null, estadoMsg: '', msub: false, conteo: 1, solFa: false, elegidas: new Set(), metro: false, metroRe: false, mnodos: [], mic: null, canto: { obj: null, n: 0, ok: 0 } };
+  const SON = { orden: 'impreso', segnoN: 0, repTras: false, estr: null, ltc: {}, completa: false, cont: 'parar', auto: true, min: false, segs: [], on: false, tok: -1, pag: {}, estado: {}, res: null, lt: null, ctx: null, instr: 'piano', voz: 'todas', resto: 'suave', bpm: 0, nodos: [], raf: 0, t0: 0, tocando: false, iniciando: false, inicioToken: 0, sel: null, estadoMsg: '', msub: false, conteo: 1, solFa: false, elegidas: new Set(), metro: false, metroRe: false, mnodos: [], mic: null, canto: { obj: null, n: 0, ok: 0 } };
   if (window.__SON_TEST) window.__SONTEST = { get: () => ({ sonNota: sonNota, sonSalida: sonSalida, sonFrec: sonFrec, sonYin: sonYin, sonClic: sonClic, sonPulso: sonPulso, sonMetro: sonMetro, sonMetCfg: sonMetCfg, sonNivelTick: sonNivelTick, sonConteo: sonConteo, sonSatb: sonSatb, SON: SON }) };
   const SON_CLAVES_MAYOR = { '-7': 'Do♭', '-6': 'Sol♭', '-5': 'Re♭', '-4': 'La♭', '-3': 'Mi♭', '-2': 'Si♭', '-1': 'Fa', '0': 'Do', '1': 'Sol', '2': 'Re', '3': 'La', '4': 'Mi', '5': 'Si', '6': 'Fa♯', '7': 'Do♯' };
   const SON_CLAVES_MENOR = { '-7': 'La♭', '-6': 'Mi♭', '-5': 'Si♭', '-4': 'Fa', '-3': 'Do', '-2': 'Sol', '-1': 'Re', '0': 'La', '1': 'Mi', '2': 'Si', '3': 'Fa♯', '4': 'Do♯', '5': 'Sol♯', '6': 'Re♯', '7': 'La♯' };
@@ -5919,11 +5919,12 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const afin = ok ? '✔ igualando la nota' : c > 0 ? '▲ más alto' : '▼ más bajo', tm = C.dt === null ? 'tiempo: aún no entra' : Math.abs(C.dt) <= 150 ? 'tiempo: ✔ sincronizado (' + Math.round(C.dt) + ' ms)' : C.dt > 0 ? 'tiempo: atrasado ' + Math.round(C.dt) + ' ms' : 'tiempo: adelantado ' + Math.round(-C.dt) + ' ms';
     sonCantoMostrar(afin + ' (' + (c > 0 ? '+' : '') + Math.round(c) + '¢) · objetivo ' + obj.nombre + ' · usted ' + Math.round(f) + ' Hz · ' + tm + ' · afinado ' + Math.round(100 * C.ok / C.n) + '%', ok && (C.dt === null || Math.abs(C.dt) <= 150) ? 'bien' : 'mal');
   }
-  function sonDetener() { SON._lastPaint = 0; SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
+  function sonDetener() { SON.inicioToken = (SON.inicioToken || 0) + 1; SON.iniciando = false; SON._lastPaint = 0; SON.tocando = false; SON.segs = []; SON.preparando = false; SON.sinSig = false; SON.completa = false; clearInterval(SON.timer); cancelAnimationFrame(SON.raf); SON.nodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.nodos = []; SON.mnodos.forEach(o => { try { o.stop(); } catch (e) { } }); SON.mnodos = []; if (SON.master) { try { SON.master.disconnect(); } catch (e) { } SON.master = null; } sonRepintar(); const b = $('son-play'); if (b) b.textContent = '▶ Reproducir'; }
   // Reinicio transaccional del reproductor al abrir otra partitura. Mantiene el panel visible,
   // pero invalida por completo la partitura, los segmentos y las páginas analizadas anteriormente.
   function sonCambioPartitura() {
     sonDetener();
+    SON.iniciando = false;
     SON.pre = null; SON.preparando = false; SON.sinSig = false;
     SON.pag = {}; SON.estado = {}; SON.ltc = {}; SON.estr = null;
     SON.res = null; SON.lt = null; SON.pagN = 0; SON.tokN = -1; SON.tok = -1;
@@ -6030,7 +6031,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     const m2 = {}; lt.notas.forEach(n => { if (!n.dup) { const k = Math.round(n.seg * 40); m2[k] = (m2[k] || 0) + 1; } }); lt.notas.forEach(n => { n.simul = m2[Math.round(n.seg * 40)] || 1; }); lt.__simul = true; }
   const sonVol = n => 0.8 / Math.sqrt(Math.max(1, n.simul || 1));
   function sonProgramar(ctx, dest, lt, t0, nodos, filtro) {
-    sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg), SON.instr, v * sonVol(n), nodos); });
+    sonSimul(lt); lt.notas.forEach(n => { const v = filtro ? sonPeso(n) : 1; if (v > 0) sonNota(ctx, dest, n.midi, t0 + n.seg, Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, v * sonVol(n), nodos); });
   }
   function sonSegmento(res, lt, t0, pag) { sonSimul(lt); const ns = lt.notas.filter(n => sonPeso(n) > 0).sort((a, b) => a.seg - b.seg); return { res: res, lt: lt, t0: t0, ini: t0, ns: ns, i: 0, pag: pag, fin: Math.max(Math.max.apply(null, ns.map(n => n.seg + n.durSeg).concat([0])), (lt.totalQ || 0) * lt.segQ - 0.001) }; }
   /* Calidad de lectura de una página: % de compases cuyo ritmo suma lo que dice el compás. Es la medida honesta de «qué tan fiable es lo que va a sonar». */
@@ -6044,7 +6045,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
   function sonQuedaMas() { const l = SON.segs[SON.segs.length - 1]; return !SON.completa && SON.cont === 'seguir' && !SON.sinSig && l && l.pag < EST.pdf.numPages; }
   function sonRodar() {                      // planificador: programa solo ~1,6 s por delante (evita miles de nodos de audio a la vez)
     if (!SON.tocando) return; const ctx = SON.ctx, lim = ctx.currentTime + 1.6, t0m = performance.now();
-    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg), SON.instr, sonPeso(n) * sonVol(n), SON.nodos); } });
+    SON.segs.forEach(s => { while (s.i < s.ns.length && s.t0 + s.ns[s.i].seg < lim) { const n = s.ns[s.i++]; sonNota(ctx, SON.master, n.midi, Math.max(ctx.currentTime, s.t0 + n.seg), Math.max(0.15, n.durSeg * (n.leg ? 1.04 : 0.96)), SON.instr, sonPeso(n) * sonVol(n), SON.nodos); } });
     sonMetro(ctx, lim);
     if (SON.nodos.length > 300) SON.nodos = SON.nodos.slice(-150);
     medir('sonoro:programar', performance.now() - t0m, true);
@@ -6105,33 +6106,96 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     if (!EST.pdf || !window.SonoroMotor) return null; const N = EST.pdf.numPages;
     if (SON.estr && SON.tok === EST.tok) return SON.estr;
     for (let i = 1; i <= N; i++) { sonEstado('Leyendo la página ' + i + ' de ' + N + '…'); await sonAnalizar(i); }
-    const S = [], ref = [], off = {}; for (let i = 1; i <= N; i++) { off[i] = S.length; SON.pag[i].estr.slots.forEach((x, j) => { S.push(x); ref.push({ pag: i, j: j, sist: x.sist, m: x.m }); }); }
+    const S = [], ref = [], off = {}; for (let i = 1; i <= N; i++) { off[i] = S.length; const slots = SON.pag[i] && SON.pag[i].estr && Array.isArray(SON.pag[i].estr.slots) ? SON.pag[i].estr.slots : []; slots.forEach((x, j) => { S.push(x); ref.push({ pag: i, j: j, sist: x.sist, m: x.m }); }); }
     SON.estr = { S: S, ref: ref, off: off, orden: [], avisos: [] }; sonReexpandir(); sonEstado(); sonRepintar(); return SON.estr;
   }
   function sonLtDe(pag) { SON.ltc = SON.ltc || {}; const k = pag + '|' + (SON.bpm || 0); if (!SON.ltc[k]) { const r = SON.pag[pag], est = Object.assign({}, r.estado); if (SON.bpm) est.bpm = SON.bpm; SON.ltc[k] = window.SonoroMotor.lineaTiempo(r, est); } return SON.ltc[k]; }
-  async function sonReproducirCompleta() {
-    const E = await sonEstructura(); if (!E || !E.orden.length) { sonEstado('No encontré compases que tocar'); return; }
-    const ctx = sonAudio(); SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = []; SON.tocando = true; SON.completa = true; SON.preparando = false;
-    let T = ctx.currentTime + 0.25; const segs = [], o = E.orden; { const l0 = sonLtDe(E.ref[o[0]].pag), d0 = sonConteo(ctx, l0); if (d0) T = d0; }
-    for (let k = 0; k < o.length;) { let k2 = k; while (k2 + 1 < o.length && o[k2 + 1] === o[k2] + 1 && E.ref[o[k2 + 1]].pag === E.ref[o[k]].pag) k2++;
-      const ra = E.ref[o[k]], rb = E.ref[o[k2]], lt = sonLtDe(ra.pag), res = SON.pag[ra.pag];
-      const s0 = (lt.slotT[ra.sist + '|' + ra.m] || 0) * lt.segQ, s1 = (lt.slotT[rb.sist + '|' + rb.m] || 0) * lt.segQ + lt.largoQ * lt.segQ;
-      sonSimul(lt); const ns = lt.notas.filter(n => n.seg >= s0 - 1e-6 && n.seg < s1 - 1e-6 && sonPeso(n) > 0).sort((a, b) => a.seg - b.seg);
-      segs.push({ res: res, lt: lt, t0: T - s0, ini: T, ns: ns, i: 0, pag: ra.pag, fin: s1 }); T += s1 - s0; k = k2 + 1; }
-    const dud = []; Array.from(new Set(segs.map(x => x.pag))).forEach(pg => { const q = sonCalidad(sonLtDe(pg)); if (q.pct < 85) dud.push('pág. ' + pg + ' ' + q.pct + ' %'); });
-    SON.segs = segs; $('son-play').textContent = '⏹ Detener'; sonEstado((E.avisos.length ? 'Avisos: ' + E.avisos.join(' · ') + ' · ' : '') + (dud.length ? 'Lectura DUDOSA (ritmo verificado): ' + dud.join(', ') : 'Todas las páginas con ritmo verificado ≥ 85 %') + ' · orden de ejecución completo');
-    if (SON.auto) sonMin(true);
-    SON.timer = setInterval(sonRodar, 200); sonRodar(); SON.raf = requestAnimationFrame(sonPaso);
+  // Construye una reproducción completa en orden impreso cuando la detección de barras
+  // o de marcas estructurales no produce una ruta utilizable. No descarta las notas leídas.
+  function sonSegmentosImpresos(T) {
+    const segs = [], paginas = Object.keys(SON.pag).map(Number).sort((a,b)=>a-b);
+    for (const pg of paginas) {
+      const res = SON.pag[pg]; if (!res) continue;
+      const lt = sonLtDe(pg); if (!lt) continue;
+      const ultimoEvento = lt.notas.reduce((m,n)=>Math.max(m,n.tq + Math.max(0,n.dur)),0);
+      const totalQ = Math.max(Number(lt.totalQ)||0, ultimoEvento);
+      const dur = totalQ * lt.segQ;
+      if (!(dur > 0)) continue;
+      sonSimul(lt);
+      const ns = lt.notas.filter(n => sonPeso(n)>0).sort((a,b)=>a.seg-b.seg);
+      segs.push({res:res,lt:lt,t0:T,ini:T,ns:ns,i:0,pag:pg,fin:dur});
+      T += dur;
+    }
+    return {segs:segs, fin:T};
+  }
+  async function sonReproducirCompleta(token) {
+    let E = null, errorEstructura = '';
+    try { E = await sonEstructura(); } catch (e) { errorEstructura = e && e.message ? e.message : String(e); }
+    if (token !== SON.inicioToken) return;
+    // Asegura que el fallback dispone del análisis de todas las páginas, incluso si
+    // falló la detección de marcas o de barras en alguna de ellas.
+    if (EST.pdf) for (let pg = 1; pg <= EST.pdf.numPages; pg++) { if (!SON.pag[pg]) { try { await sonAnalizar(pg); } catch (e) { errorEstructura = errorEstructura || (e && e.message ? e.message : String(e)); } if (token !== SON.inicioToken) return; } }
+    const ctx = sonAudio(); if (ctx.state === 'suspended') await ctx.resume();
+    if (token !== SON.inicioToken) return;
+    let T = ctx.currentTime + 0.25, segs = [], rutaValida = !!(E && E.orden && E.orden.length);
+    if (rutaValida) {
+      const o = E.orden;
+      const l0 = sonLtDe(E.ref[o[0]].pag), d0 = sonConteo(ctx, l0); if (d0) T = d0;
+      for (let k = 0; k < o.length;) {
+        let k2 = k; while (k2 + 1 < o.length && o[k2 + 1] === o[k2] + 1 && E.ref[o[k2 + 1]].pag === E.ref[o[k]].pag) k2++;
+        const ra = E.ref[o[k]], rb = E.ref[o[k2]], lt = sonLtDe(ra.pag), res = SON.pag[ra.pag];
+        const keyA = ra.sist + '|' + ra.m, keyB = rb.sist + '|' + rb.m;
+        const qa = lt.slotT && lt.slotT[keyA], qb = lt.slotT && lt.slotT[keyB];
+        const s0 = Number.isFinite(qa) ? qa * lt.segQ : NaN;
+        const s1 = Number.isFinite(qb) ? qb * lt.segQ + lt.largoQ * lt.segQ : NaN;
+        if (!res || !Number.isFinite(s0) || !Number.isFinite(s1) || s1 <= s0) { rutaValida = false; break; }
+        sonSimul(lt);
+        const ns = lt.notas.filter(n => n.seg >= s0 - 1e-6 && n.seg < s1 - 1e-6 && sonPeso(n)>0).sort((a,b)=>a.seg-b.seg);
+        segs.push({res:res,lt:lt,t0:T-s0,ini:T,ns:ns,i:0,pag:ra.pag,fin:s1});
+        T += s1-s0; k = k2+1;
+      }
+      if (!segs.some(s => s.ns.length)) rutaValida = false;
+    }
+    if (!rutaValida) {
+      // Si no se detectaron barras/compases de forma fiable, reproduce las páginas
+      // en orden físico con sus líneas temporales; no deja el botón bloqueado.
+      const base = ctx.currentTime + 0.25;
+      const l0 = SON.pag[1] ? sonLtDe(1) : null, d0 = l0 ? sonConteo(ctx,l0) : 0;
+      const fallback = sonSegmentosImpresos(d0 || base);
+      segs = fallback.segs;
+      if (!segs.length) throw new Error('Se leyeron las páginas, pero no se encontraron notas con tiempo reproducible. Revisa el PDF o la lectura musical.');
+      sonEstado('Aviso: no se pudo reconstruir toda la estructura de compases'+(errorEstructura?' ('+errorEstructura+')':'')+'; se reproducirá en orden de páginas.');
+    }
+    if (token !== SON.inicioToken) return;
+    SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = [];
+    SON.tocando = true; SON.iniciando = false; SON.completa = true; SON.preparando = false; SON.segs = segs;
+    const dud = []; Array.from(new Set(segs.map(x=>x.pag))).forEach(pg=>{const q=sonCalidad(sonLtDe(pg));if(q.pct<85)dud.push('pág. '+pg+' '+q.pct+' %');});
+    const b=$('son-play'); if(b){b.disabled=false;b.textContent='⏹ Detener';}
+    sonEstado((rutaValida && E.avisos.length ? 'Avisos: '+E.avisos.join(' · ')+' · ' : '')+(dud.length?'Lectura DUDOSA (ritmo verificado): '+dud.join(', '):'Lectura rítmica preparada')+' · reproducción completa');
+    if(SON.auto)sonMin(true);
+    SON.timer=setInterval(sonRodar,200);sonRodar();SON.raf=requestAnimationFrame(sonPaso);
   }
   async function sonReproducir() {
+    if (SON.iniciando) { sonDetener(); return; }
     if (SON.tocando) { sonDetener(); return; }
-    if (SON.orden === 'correcto') { await sonReproducirCompleta(); return; }
-    const res = await sonPrepararPagina(); if (!res || !SON.lt) return; const lt = SON.lt, ctx = sonAudio();
-    if (!lt.notas.length) { sonEstado('No encontré notas en esta página'); return; }
-    SON.master = ctx.createGain(); SON.master.gain.value = 0.9; SON.master.connect(sonSalida(ctx)); SON.nodos = []; SON.tocando = true; SON.preparando = false; SON.sinSig = false; SON.pre = null;
-    const retraso = sonConteo(ctx, lt); SON.segs = [sonSegmento(res, lt, retraso || ctx.currentTime + 0.2, EST.page)]; $('son-play').textContent = '⏹ Detener';
-    if (SON.auto) sonMin(true);
-    SON.timer = setInterval(sonRodar, 200); sonRodar(); SON.raf = requestAnimationFrame(sonPaso);
+    const token = ++SON.inicioToken; SON.iniciando = true;
+    const b=$('son-play'); if(b){b.disabled=false;b.textContent='⏳ Preparando…';}
+    sonEstado('Preparando reproducción…');
+    try {
+      if (SON.orden === 'correcto') { await sonReproducirCompleta(token); return; }
+      const res = await sonPrepararPagina(); if (token !== SON.inicioToken) return;
+      if (!res || !SON.lt) throw new Error('No se pudo analizar la página actual.');
+      const lt=SON.lt, ctx=sonAudio(); if(ctx.state==='suspended') await ctx.resume();
+      if (token !== SON.inicioToken) return;
+      if (!lt.notas.length) throw new Error('No encontré notas en esta página.');
+      SON.master=ctx.createGain();SON.master.gain.value=0.9;SON.master.connect(sonSalida(ctx));SON.nodos=[];
+      SON.tocando=true;SON.iniciando=false;SON.preparando=false;SON.sinSig=false;SON.pre=null;
+      const retraso=sonConteo(ctx,lt);SON.segs=[sonSegmento(res,lt,retraso||ctx.currentTime+0.2,EST.page)];
+      if(b){b.disabled=false;b.textContent='⏹ Detener';}
+      if(SON.auto)sonMin(true);SON.timer=setInterval(sonRodar,200);sonRodar();SON.raf=requestAnimationFrame(sonPaso);
+    } catch(e) {
+      if(token===SON.inicioToken){SON.iniciando=false;SON.tocando=false;if(b){b.disabled=false;b.textContent='▶ Reproducir';}sonEstado('No se pudo iniciar: '+(e&&e.message?e.message:String(e)));}
+    }
   }
   function sonMin(v) { SON.min = !!v; const p = $('son-panel'); if (p) p.classList.toggle('min', SON.min); const b = $('son-min'); if (b) { b.textContent = SON.min ? '▴' : '▾'; b.title = SON.min ? 'Mostrar controles' : 'Ocultar controles (ver la partitura completa)'; } }
   /* ---------- exportar WAV (audio) y MusicXML (borrador) ---------- */
@@ -6471,33 +6535,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       if (hecho) return;
       // tie que sale del final del sistema (sin nota destino aquí): se une a la primera nota igual del siguiente sistema
       if (c.x1 > mejor.x1 - 3 * sp && h < 2.2 * sp) { const A = alIni.find(a => Math.min(Math.abs(c.y0 - a.y), Math.abs(c.y1 - a.y)) < 2.2 * sp); if (A) { A.tieSale = true; ties.push({ a: A, b: null, x0: c.x0, x1: c.x1, sale: true }); } return; }
-      // Slur: group chord heads into onset columns. Every note in a source
-      // column is connected to the next column; do not mark only one head of a chord.
-      // This keeps chordal reggae patterns legato without merging distinct attacks.
-      const bajo = nots.filter(n => n.x >= c.x0 - 1.5 * sp && n.x <= c.x1 + 1.5 * sp)
-        .sort((a, b) => a.x - b.x);
-      if (bajo.length >= 2 && !hecho) {
-        const cols = [];
-        bajo.forEach(n => {
-          const pid = n.plica && n.plica.id ? n.plica.id : null;
-          let col = pid ? cols.find(q => q.plicaId === pid) : null;
-          if (!col) {
-            const last = cols[cols.length - 1];
-            const tol = Math.max(1.2, sp * 0.24);
-            if (last && !pid && !last.plicaId && Math.abs(n.x - last.x) <= tol) col = last;
-          }
-          if (!col) { col = { x: n.x, plicaId: pid, notes: [] }; cols.push(col); }
-          col.notes.push(n);
-          col.x = col.notes.reduce((v, q) => v + q.x, 0) / col.notes.length;
-        });
-        cols.sort((a, b) => a.x - b.x);
-        if (cols.length >= 2) {
-          for (let ci = 0; ci < cols.length - 1; ci++) {
-            cols[ci].notes.forEach(n => { n.leg = true; n.legHastaX = cols[ci + 1].x; });
-          }
-          slurs.push({ x0: c.x0, x1: c.x1, n: bajo.length, columnas: cols.length });
-        }
-      }
+      // slur: las notas bajo la curva (menos la última) se tocan ligadas
+      const bajo = nots.filter(n => n.x >= c.x0 - 1.5 * sp && n.x <= c.x1 + 1.5 * sp); if (bajo.length >= 2 && !hecho) { const ult = Math.max.apply(null, bajo.map(n => n.x)); bajo.forEach(n => { if (n.x < ult - 0.5) n.leg = true; }); slurs.push({ x0: c.x0, x1: c.x1, n: bajo.length }); }
     });
     // ties que salen del sistema → primera nota de igual altura en el pentagrama equivalente del sistema siguiente
     ties.filter(t => t.sale && !t.b).forEach(t => { const pA = res.pent[t.a.st], idx = res.pent.filter(p => p.sist === pA.sist).indexOf(pA), sigs = res.pent.filter(p => p.sist === pA.sist + 1); const pB = sigs[idx]; if (!pB) return;
@@ -6646,19 +6685,8 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     Object.values(gr).forEach(a => { a.sort((x, y) => y.midi - x.midi); a.forEach((n, i) => { n.rango = i; }); });
     // compases de inicio de cada compás del sistema (para ordenar en el tiempo global): se alinean por índice de compás
     const ordenSist = []; res.pent.forEach(st => { ordenSist.push(st); });
-    // `n.pent` guarda el identificador del pentagrama (st.id), no su índice
-    // dentro de res.pent. Resolver por ID evita acceder a res.pent[undefined]
-    // cuando el identificador no coincide con la posición del array.
-    const pentPorId = new Map(res.pent.map(st => [String(st.id), st]));
-    const compIni = {};
-    notas.forEach(n => {
-      const st = pentPorId.get(String(n.pent));
-      if (!st) throw new Error('No se encontró el pentagrama de la nota (id: ' + n.pent + ')');
-      const sId = st.sist;
-      compIni[sId + '|' + n.compas] = n.compas * largo;
-      n.sist = sId;
-      n.tAbs = n.sist * 1e4 + n.compas * largo + n.t;
-    });
+    const compIni = {}; notas.forEach(n => { const sId = res.pent[n.pent].sist; compIni[sId + '|' + n.compas] = n.compas * largo; });
+    notas.forEach(n => { n.sist = res.pent[n.pent].sist; n.tAbs = n.sist * 1e4 + n.compas * largo + n.t; });
     const ordenS = Array.from(new Set(notas.map(n => n.sist))).sort((a, b) => a - b); const base = {}; let acum = 0;
     const nSl = {}; ((res.estr && res.estr.slots) || []).forEach(sl => { nSl[sl.sist] = (nSl[sl.sist] || 0) + 1; });
     const slotT = {}; (Object.keys(nSl).map(Number).concat(ordenS).filter((v, i, a) => a.indexOf(v) === i)).sort((a, b) => a - b).forEach(sId => { base[sId] = acum; const mx = Math.max(notas.filter(n => n.sist === sId).reduce((m, n) => Math.max(m, n.compas + 1), 0), nSl[sId] || 0); for (let m = 0; m < mx; m++) slotT[sId + '|' + m] = acum + m * largo; acum += mx * largo; });
@@ -6670,7 +6698,6 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     // distintos de una misma voz. Si un carril tiene tiempo validado, prevalece
     // sobre el tiempo aproximado del otro. Las duraciones nunca se alteran aquí.
     const porSistemaCompas = new Map();
-    const pentPorIdSync = new Map(res.pent.map(st => [String(st.id), st]));
     notas.forEach(n => {
       const k = n.sist + '|' + n.compas;
       if (!porSistemaCompas.has(k)) porSistemaCompas.set(k, []);
@@ -6685,7 +6712,7 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
       });
       const eventos = [];
       porPent.forEach((arr, pentId) => {
-        const st = pentPorIdSync.get(String(pentId)), sp = st && st.sp ? st.sp : 10;
+        const st = res.pent[pentId], sp = st && st.sp ? st.sp : 10;
         const ancho = arr.map(n => (n.nota && n.nota.w) || 6).sort((a,b)=>a-b);
         const tolLocal = Math.max(1.5, Math.min(sp * 0.28, (ancho[Math.floor(ancho.length/2)] || 6) * 0.42));
         arr.sort((a,b) => ((a.nota.x + (a.nota.w || 6)/2) - (b.nota.x + (b.nota.w || 6)/2)));
@@ -6741,40 +6768,11 @@ table.la td.c.cambio{background:var(--accent-soft)} .el-m.on{background:var(--ac
     });
     informe.columnasAlineadas = columnasAlineadas;
     informe.desfaseMaxQ = Math.round(desfaseMaxQ * 1000) / 1000;
-    // Ligadura de unión (tie): mismo MIDI, un solo ataque y duración acumulada.
-    // La nota de destino debe comenzar prácticamente al final de la anterior;
-    // una tolerancia amplia aquí confundía notas vecinas en pasajes rápidos.
+    // ligaduras de unión: la primera nota suena toda la suma y las siguientes no se vuelven a atacar
     const porRaw = new Map(); notas.forEach(n => porRaw.set(n.nota, n)); const entra = new Set();
     notas.forEach(n => { if (n.nota && n.nota.tieA) { const b = porRaw.get(n.nota.tieA); if (b) entra.add(b); } });
-    notas.forEach(n => {
-      if (entra.has(n)) return;
-      let fin = n, cnt = 0;
-      while (fin.nota && fin.nota.tieA && cnt++ < 24) {
-        const b = porRaw.get(fin.nota.tieA);
-        if (!b || b.midi !== n.midi) break;
-        const esperado = fin.seg + fin.durSeg;
-        if (Math.abs(b.seg - esperado) > Math.max(0.09, segQ * 0.12)) break;
-        b.ligada = true; fin = b;
-      }
-      if (fin !== n) { n.durSeg = fin.seg + fin.durSeg - n.seg; n.dur = n.durSeg / segQ; n.unida = cnt; }
-    });
-    // Ligadura de expresión (slur): mantiene la duración escrita de cada nota,
-    // pero rellena cualquier microhueco hasta el siguiente ataque de la frase.
-    // Las alturas siguen siendo eventos separados y cada una conserva su ataque.
-    notas.forEach(n => {
-      const raw = n.nota;
-      if (!raw || !raw.leg || !Number.isFinite(raw.legHastaX) || raw.tieA) return;
-      const sp = (pentPorIdSync.get(String(n.pent)) || {}).sp || 5;
-      const tolX = Math.max(1.2, sp * 0.3);
-      const siguientes = notas.filter(q => q.pent === n.pent && q.nota &&
-        q.nota.x >= raw.legHastaX - tolX && q.nota.x <= raw.legHastaX + tolX &&
-        q.seg >= n.seg - 0.001 && !q.ligada);
-      if (!siguientes.length) return;
-      const ataque = Math.min.apply(null, siguientes.map(q => q.seg));
-      const hasta = Math.max(0, ataque - n.seg) + 0.018;
-      if (hasta > n.durSeg) { n.durSeg = hasta; n.dur = n.durSeg / segQ; }
-      n.slurHastaSeg = ataque;
-    });
+    notas.forEach(n => { if (entra.has(n)) return; let fin = n, cnt = 0; while (fin.nota && fin.nota.tieA && cnt++ < 12) { const b = porRaw.get(fin.nota.tieA); if (!b || b.seg < fin.seg + fin.durSeg - 0.05 || b.seg > fin.seg + fin.durSeg + 0.6) break; b.ligada = true; fin = b; }
+      if (fin !== n) { n.durSeg = fin.seg + fin.durSeg - n.seg; n.dur = n.durSeg / segQ; n.unida = cnt; } });
     return { slotT: slotT, totalQ: acum, notas: notas, informe: informe, bpm: bpm, comp: comp, largoQ: largo, segQ: segQ };
   }
   function sistemaDe(res, ip) { let s = 0; for (let i = 1; i <= ip; i++) { const a = res.pent[i - 1], b = res.pent[i]; if (a.ys[4] - b.ys[0] > 10 * a.sp) s++; } return s; }
