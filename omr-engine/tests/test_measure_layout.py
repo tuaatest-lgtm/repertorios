@@ -2,11 +2,24 @@ import cv2
 import numpy as np
 
 from palermo_omr.imaging import StaffCandidate
-from palermo_omr.measure_layout import detect_barline_candidates
+from palermo_omr.measure_layout import (
+    BarlineCandidate,
+    detect_barline_candidates,
+    group_system_barlines,
+    infer_measure_spans,
+)
 
 
-def _staff():
-    return StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+def _staff(y=60):
+    return StaffCandidate([y, y + 10, y + 20, y + 30, y + 40], 10.0, 1.0)
+
+
+def _bar(x, staff):
+    return BarlineCandidate(
+        x=float(x), y_top=60 + staff * 70, y_bottom=100 + staff * 70,
+        width_px=2, staff_index=staff, coverage=1.0, confidence=0.9,
+        warning="test",
+    )
 
 
 def test_detects_vertical_stroke_crossing_full_staff():
@@ -14,9 +27,7 @@ def test_detects_vertical_stroke_crossing_full_staff():
     for y in [60, 70, 80, 90, 100]:
         cv2.line(image, (5, y), (250, y), 0, 1)
     cv2.line(image, (140, 60), (140, 100), 0, 2)
-
     candidates = detect_barline_candidates(image, [_staff()])
-
     assert len(candidates) == 1
     assert abs(candidates[0].x - 140) <= 1
     assert candidates[0].coverage >= 0.78
@@ -26,10 +37,7 @@ def test_detects_vertical_stroke_crossing_full_staff():
 def test_does_not_promote_short_note_stem_to_barline():
     image = np.full((160, 260), 255, dtype=np.uint8)
     cv2.line(image, (140, 72), (140, 95), 0, 2)
-
-    candidates = detect_barline_candidates(image, [_staff()])
-
-    assert candidates == []
+    assert detect_barline_candidates(image, [_staff()]) == []
 
 
 def test_rejects_empty_image():
@@ -38,3 +46,45 @@ def test_rejects_empty_image():
     except ValueError:
         return
     raise AssertionError("Expected ValueError")
+
+
+def test_groups_aligned_barlines_across_staves():
+    candidates = [_bar(100, 0), _bar(101, 1), _bar(200, 0), _bar(201, 1)]
+    systems = group_system_barlines(candidates, [_staff(), _staff(130)])
+    assert len(systems) == 2
+    assert systems[0].staff_indices == [0, 1]
+    assert systems[1].support_count == 2
+
+
+def test_does_not_group_barline_supported_by_only_one_staff():
+    systems = group_system_barlines([_bar(100, 0)], [_staff()], min_staff_support=2)
+    assert systems == []
+
+
+def test_infers_only_intervals_between_observed_consecutive_bars():
+    spans = infer_measure_spans([_bar(50, 0), _bar(150, 0), _bar(260, 0)])
+    assert len(spans) == 2
+    assert spans[0].measure_index == 1
+    assert spans[0].x_start == 50
+    assert spans[0].x_end == 150
+    assert spans[0].left_boundary_observed
+    assert spans[0].right_boundary_observed
+
+
+def test_ignores_too_narrow_intervals():
+    spans = infer_measure_spans([_bar(50, 0), _bar(54, 0), _bar(150, 0)])
+    assert len(spans) == 1
+    assert spans[0].x_start == 54
+
+
+def test_rejects_invalid_grouping_parameters():
+    for call in (
+        lambda: group_system_barlines([], [], x_tolerance_spacing=0),
+        lambda: group_system_barlines([], [], min_staff_support=0),
+        lambda: infer_measure_spans([], min_width_px=0),
+    ):
+        try:
+            call()
+        except ValueError:
+            continue
+        raise AssertionError("Expected ValueError")
