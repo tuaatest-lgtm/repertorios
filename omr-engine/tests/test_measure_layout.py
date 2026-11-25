@@ -5,6 +5,7 @@ from palermo_omr.imaging import StaffCandidate
 from palermo_omr.measure_layout import (
     BarlineCandidate,
     detect_barline_candidates,
+    detect_staff_systems,
     group_system_barlines,
     infer_measure_spans,
 )
@@ -56,6 +57,27 @@ def test_groups_aligned_barlines_across_staves():
     assert systems[1].support_count == 2
 
 
+def test_detects_vertical_gap_between_two_systems():
+    systems = detect_staff_systems([_staff(60), _staff(130), _staff(260)])
+    assert len(systems) == 2
+    assert systems[0].staff_indices == [0, 1]
+    assert systems[1].staff_indices == [2]
+
+
+def test_does_not_merge_aligned_barlines_from_separate_systems():
+    staves = [_staff(60), _staff(130), _staff(260), _staff(330)]
+    candidates = [
+        _bar(120, 0), _bar(120, 1),
+        _bar(120, 2), _bar(120, 3),
+    ]
+    grouped = group_system_barlines(candidates, staves)
+    assert len(grouped) == 2
+    assert grouped[0].system_index == 0
+    assert grouped[0].staff_indices == [0, 1]
+    assert grouped[1].system_index == 1
+    assert grouped[1].staff_indices == [2, 3]
+
+
 def test_does_not_group_barline_supported_by_only_one_staff():
     systems = group_system_barlines([_bar(100, 0)], [_staff()], min_staff_support=2)
     assert systems == []
@@ -81,6 +103,7 @@ def test_rejects_invalid_grouping_parameters():
     for call in (
         lambda: group_system_barlines([], [], x_tolerance_spacing=0),
         lambda: group_system_barlines([], [], min_staff_support=0),
+        lambda: detect_staff_systems([_staff()], max_interstaff_gap_spacing=0),
         lambda: infer_measure_spans([], min_width_px=0),
     ):
         try:
