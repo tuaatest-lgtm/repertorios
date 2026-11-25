@@ -26,3 +26,28 @@ def test_rest_candidates_are_explicitly_unconfirmed():
     candidates=detect_rest_shape_candidates(image,[staff])
     assert candidates
     assert "no confirmado" in candidates[0].warning.lower()
+
+
+
+def test_rest_candidate_proposes_half_rest_shape_near_middle_line():
+    image=np.full((160,260),255,dtype=np.uint8)
+    for y in [60,70,80,90,100]:
+        cv2.line(image,(5,y),(250,y),0,1)
+    cv2.rectangle(image,(120,78),(128,82),0,-1)
+    staff=StaffCandidate([60,70,80,90,100],10.0,1.0)
+    candidates=detect_rest_shape_candidates(image,[staff])
+    assert candidates
+    assert candidates[0].rest_type_candidate == "half_rest_shape_candidate"
+    assert candidates[0].type_confidence < .5
+
+
+def test_rest_candidate_proposes_whole_rest_shape_but_keeps_low_confidence():
+    image=np.full((160,260),255,dtype=np.uint8)
+    for y in [60,70,80,90,100]:
+        cv2.line(image,(5,y),(250,y),0,1)
+    cv2.rectangle(image,(120,83),(128,87),0,-1)
+    staff=StaffCandidate([60,70,80,90,100],10.0,1.0)
+    candidates=detect_rest_shape_candidates(image,[staff])
+    assert candidates
+    assert candidates[0].rest_type_candidate == "whole_rest_shape_candidate"
+    assert candidates[0].type_confidence < .5
