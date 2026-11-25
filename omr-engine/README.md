@@ -30,7 +30,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 - posición diatónica relativa a la línea inferior del pentagrama (sin asignar todavía una letra o altura absoluta);
 - puntuaciones heurísticas de confianza;
 - hipótesis de relleno, plicas y barras horizontales de agrupación;
-- candidatos de puntillos, formas que podrían corresponder a silencios y trazos verticales que podrían ser barras de compás;
+- candidatos de puntillos, formas que podrían corresponder a silencios (con sugerencias geométricas de familias de redonda/blanca y formas verticales) y trazos verticales que podrían ser barras de compás;
 - sistemas geométricos candidatos, separados por grandes saltos verticales entre pentagramas;
 - agrupaciones de barras aproximadamente alineadas dentro de cada sistema candidato;
 - clasificación visual preliminar de barras simples, dobles y finales candidatas;
@@ -41,6 +41,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 - Los trazos de barras, texto, ligaduras y otros símbolos pueden producir falsos positivos.
 - Las cabezas de nota unidas a plicas o atravesadas por líneas pueden fragmentarse.
 - La posición diatónica no equivale a una nota identificada: falta reconocer la clave y aplicar armadura y alteraciones desde la imagen.
+- La sugerencia de familia de silencio es de confianza baja y no distingue todavía de forma fiable todos los tipos; cuartos, corcheas, semicorcheas, silencios compuestos y símbolos fragmentados requieren un clasificador más robusto.
 - El análisis rítmico no interpreta todavía de forma fiable barras compartidas, grupos irregulares, ligaduras ni voces.
 - La agrupación de sistemas es geométrica y heurística: no reconoce llaves, brackets, piano, coro SATB ni la función de cada pentagrama.
 - La clasificación simple/doble/final es heurística y no reconoce aún puntos de repetición ni confirma la función musical de una barra.
