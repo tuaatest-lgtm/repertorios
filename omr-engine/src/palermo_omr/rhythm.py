@@ -38,8 +38,8 @@ def _classify_fill(binary: np.ndarray, head: NoteheadCandidate, spacing: float) 
     """Mide el núcleo de la cabeza, evitando la fila central de una línea del pentagrama."""
     ink = _ink(binary)
     cx, cy = int(round(head.center_x)), int(round(head.center_y))
-    rx = max(2, int(round(spacing * 0.22)))
-    ry = max(2, int(round(spacing * 0.16)))
+    rx = max(3, int(round(spacing * 0.38)))
+    ry = max(2, int(round(spacing * 0.28)))
     x0, x1 = max(0, cx-rx), min(binary.shape[1], cx+rx+1)
     y0, y1 = max(0, cy-ry), min(binary.shape[0], cy+ry+1)
     roi = ink[y0:y1, x0:x1].copy()
@@ -66,7 +66,7 @@ def _stem(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> tuple[
     ink = _ink(binary)
     h, w = ink.shape
     cx, cy = int(round(head.center_x)), int(round(head.center_y))
-    radius = max(1, int(round(spacing * 0.42)))
+    radius = max(1, int(round(spacing * 0.72)))
     klen = max(3, int(round(spacing * 1.8)))
     vertical = cv2.morphologyEx(
         ink, cv2.MORPH_OPEN,
