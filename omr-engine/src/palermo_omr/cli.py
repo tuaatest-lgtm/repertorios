@@ -94,6 +94,10 @@ def main() -> int:
     total_rhythms = sum(page["rhythm_candidate_count"] for page in analyses)
     total_dots = sum(len(page["augmentation_dot_candidates"]) for page in analyses)
     total_rests = sum(len(page["rest_shape_candidates"]) for page in analyses)
+    total_typed_rest_shapes = sum(
+        sum(item["rest_type_candidate"] != "unclassified" for item in page["rest_shape_candidates"])
+        for page in analyses
+    )
     total_barlines = sum(page["barline_candidate_count"] for page in analyses)
     total_spans = sum(page["measure_span_candidate_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
@@ -102,6 +106,7 @@ def main() -> int:
     print(f"Análisis rítmicos candidatos: {total_rhythms}")
     print(f"Puntillos candidatos: {total_dots}")
     print(f"Formas candidatas a silencio: {total_rests}")
+    print(f"Formas con familia de silencio sugerida: {total_typed_rest_shapes}")
     print(f"Barras de compás candidatas: {total_barlines}")
     print(f"Intervalos entre barras candidatas: {total_spans}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
