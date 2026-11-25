@@ -13,7 +13,7 @@ Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede
 Todavía no se reconocen de forma fiable:
 - tipo y duración exacta de cada silencio;
 - ligaduras de prolongación y de expresión;
-- agrupaciones de barras compartidas entre notas;
+- agrupaciones de barras compartidas entre notas y una interpretación de duración candidata basada en el recuento de barras;
 - puntillos dobles y su efecto temporal;
 - tresillos, dosillos y otros grupos irregulares;
 - valores ligados entre compases;
@@ -23,4 +23,4 @@ Los resultados incluyen advertencias y puntuaciones heurísticas. No deben envia
 
 ## Próxima ampliación
 
-Mejorar segmentación de símbolos en contexto de compás; distinguir silencios por clase; separar ligaduras de expresión y prolongación; reconocer grupos de barras compartidas; reconstruir duraciones y comprobarlas contra métrica y compás. Después se evaluará con partituras reales anotadas.
+Evaluar y calibrar con partituras reales anotadas la detección de cabezas, plicas y grupos de una a cuatro barras; distinguir barras parciales y grupos irregulares; reconocer silencios por clase; separar ligaduras de expresión y prolongación; reconstruir duraciones y comprobarlas contra métrica y compás.
