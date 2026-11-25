@@ -59,27 +59,60 @@ def detect_beam_group_candidates(
         spacing = float(staff.spacing_px)
         if spacing <= 1:
             continue
-        kernel_width = max(3, int(round(spacing * min_beam_width_spacing)))
-        horizontal = cv2.morphologyEx(
-            ink,
-            cv2.MORPH_OPEN,
-            cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1)),
-        )
-        count, _, stats, _ = cv2.connectedComponentsWithStats(horizontal, 8)
-        top = float(staff.lines_y[0]) - 4.5 * spacing
-        bottom = float(staff.lines_y[-1]) + 4.5 * spacing
+        top = max(0, int(round(float(staff.lines_y[0]) - 4.5 * spacing)))
+        bottom = min(binary.shape[0] - 1, int(round(float(staff.lines_y[-1]) + 4.5 * spacing)))
+
+        # Extrae trazos por filas. Los componentes conectados tradicionales
+        # fusionan barras paralelas cuando ambas cruzan las mismas plicas.
+        row_runs: list[tuple[int, int, int, int]] = []
+        min_width = spacing * min_beam_width_spacing
+        max_width = spacing * max_beam_width_spacing
+        for y in range(top, bottom + 1):
+            xs = np.flatnonzero(ink[y])
+            if xs.size == 0:
+                continue
+            chunks = np.split(xs, np.where(np.diff(xs) > 1)[0] + 1)
+            for chunk in chunks:
+                x = int(chunk[0])
+                width = int(chunk[-1] - chunk[0] + 1)
+                if min_width <= width <= max_width:
+                    row_runs.append((x, y, width, 1))
+
+        # Reúne filas contiguas con solapamiento horizontal en un solo trazo.
+        strokes: list[list[tuple[int, int, int, int]]] = []
+        for run in row_runs:
+            x, y, width, _height = run
+            matching = None
+            for stroke in reversed(strokes):
+                last = stroke[-1]
+                if last[1] < y - 1:
+                    break
+                overlap = min(x + width, last[0] + last[2]) - max(x, last[0])
+                if last[1] == y - 1 and overlap >= 0.5 * min(width, last[2]):
+                    matching = stroke
+                    break
+            if matching is None:
+                strokes.append([run])
+            else:
+                matching.append(run)
+
+        segments: list[tuple[int, int, int, int]] = []
+        for stroke in strokes:
+            left = min(item[0] for item in stroke)
+            upper = min(item[1] for item in stroke)
+            right = max(item[0] + item[2] for item in stroke)
+            lower = max(item[1] + item[3] for item in stroke)
+            width = right - left
+            height = lower - upper
+            if height <= max(2, int(round(spacing * 0.55))):
+                segments.append((left, upper, width, height))
 
         # La clave es el conjunto exacto de cabezas asociado a cada trazo.
         segments_by_heads: dict[tuple[int, ...], list[tuple[int, int, int, int]]] = {}
-        for label in range(1, count):
-            x, y, w, h, _area = (int(v) for v in stats[label])
-            if not (spacing * min_beam_width_spacing <= w <= spacing * max_beam_width_spacing):
-                continue
-            if h > max(2, int(round(spacing * 0.55))):
+        for x, y, w, h in segments:
+            if not (min_width <= w <= max_width):
                 continue
             beam_y = y + h / 2.0
-            if not top <= beam_y <= bottom:
-                continue
 
             matched: list[int] = []
             for head_index, (head, rhythm) in enumerate(zip(noteheads, rhythms)):
