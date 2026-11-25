@@ -8,6 +8,7 @@ from pathlib import Path
 
 import cv2
 
+from . import __version__
 from .imaging import analyze_page, render_pdf
 from .symbols import detect_notehead_candidates
 from .rhythm import analyze_rhythm_candidates
@@ -17,7 +18,7 @@ from .rhythm_symbols import detect_augmentation_dot_candidates, detect_rest_shap
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="palermo-omr",
-        description="Analiza geometría y candidatos de cabezas de nota en un PDF musical.",
+        description="Analiza geometría y candidatos musicales preliminares en un PDF.",
     )
     parser.add_argument("pdf", help="Ruta al archivo PDF")
     parser.add_argument("--output", default="omr-output", help="Carpeta de salida")
@@ -51,12 +52,13 @@ def main() -> int:
 
     report = {
         "engine": "Palermo OMR",
-        "version": "0.3.0",
+        "version": __version__,
         "status": "geometric_candidates_prototype",
         "warning": (
-            "Las cabezas de nota son candidatos visuales, no notas musicales "
-            "validadas. No se reconocen todavía claves, alturas nominales, "
-            "duraciones fiables, silencios, puntillos, ligaduras, voces ni estructura de repetición."
+            "Los resultados son hipótesis visuales, no una transcripción musical validada. "
+            "Todavía no se reconocen de forma fiable claves, armaduras, alturas absolutas, "
+            "duraciones, tipos de silencio, puntillos, ligaduras, voces, barras ni estructura "
+            "de compases. Los detectores de puntillos y silencios solo generan candidatos."
         ),
         "source_pdf": Path(args.pdf).name,
         "pages": analyses,
@@ -77,7 +79,7 @@ def main() -> int:
     print(f"Análisis rítmicos candidatos: {total_rhythms}")
     print(f"Puntillos candidatos: {total_dots}")
     print(f"Formas candidatas a silencio: {total_rests}")
-    print("Aviso: los resultados requieren validación; no son datos reproducibles.")
+    print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
     return 0
 
 
