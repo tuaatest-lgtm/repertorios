@@ -33,6 +33,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 - candidatos de puntillos, formas que podrían corresponder a silencios y trazos verticales que podrían ser barras de compás;
 - sistemas geométricos candidatos, separados por grandes saltos verticales entre pentagramas;
 - agrupaciones de barras aproximadamente alineadas dentro de cada sistema candidato;
+- clasificación visual preliminar de barras simples, dobles y finales candidatas;
 - intervalos geométricos entre barras consecutivas del mismo pentagrama.
 
 ## Limitaciones conocidas
@@ -42,7 +43,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 - La posición diatónica no equivale a una nota identificada: falta reconocer la clave y aplicar armadura y alteraciones desde la imagen.
 - El análisis rítmico no interpreta todavía de forma fiable barras compartidas, grupos irregulares, ligaduras ni voces.
 - La agrupación de sistemas es geométrica y heurística: no reconoce llaves, brackets, piano, coro SATB ni la función de cada pentagrama.
-- Los candidatos a barra no determinan límites métricos definitivos ni distinguen todavía de forma fiable barras dobles y finales.
+- La clasificación simple/doble/final es heurística y no reconoce aún puntos de repetición ni confirma la función musical de una barra.
 - Los intervalos entre barras no incluyen los bordes externos que no fueron observados y no son compases musicales validados.
 - Las partituras complejas deben evaluarse con ejemplos reales y anotaciones de referencia.
 - No se debe enviar esta salida al reproductor.
@@ -50,7 +51,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 ## Próximas fases
 
 1. Evaluación y calibración con partituras reales vectoriales y escaneadas.
-2. Validar la separación geométrica de sistemas en partituras reales; después mejorar límites de compás, barras dobles/finales y saltos de sistema.
+2. Validar sistemas y barras simples/dobles/finales en partituras reales; después abordar puntos de repetición, saltos de sistema y continuidad entre páginas.
 3. Clasificación robusta de símbolos: claves, armaduras, figuras, silencios, puntillos y ligaduras.
 4. Interpretación temporal polifónica y exportación MusicXML.
 5. Revisión visual humana y, solo tras aviso y aprobación, diseño del adaptador aislado hacia el motor Sonoro de Palermo.
