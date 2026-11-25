@@ -68,9 +68,9 @@ def detect_augmentation_dot_candidates(
                 continue
             if not .18*spacing <= dx <= 1.25*spacing:
                 continue
-            if dy > .32*spacing or not .12*spacing <= w <= .48*spacing:
+            if dy > .32*spacing or not .12*spacing <= w <= .6*spacing:
                 continue
-            if not .12*spacing <= h <= .48*spacing:
+            if not .12*spacing <= h <= .6*spacing:
                 continue
             score = max(0.0,1.0-dy/(.32*spacing)) * max(0.0,1.0-abs(dx-.48*spacing)/(.8*spacing))
             if best is None or score > best[0]:
