@@ -9,12 +9,13 @@ from pathlib import Path
 import cv2
 
 from .imaging import analyze_page, render_pdf
+from .symbols import detect_notehead_candidates
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="palermo-omr",
-        description="Analiza geometría de pentagramas en un PDF musical.",
+        description="Analiza geometría y candidatos de cabezas de nota en un PDF musical.",
     )
     parser.add_argument("pdf", help="Ruta al archivo PDF")
     parser.add_argument("--output", default="omr-output", help="Carpeta de salida")
@@ -32,15 +33,21 @@ def main() -> int:
         image_path = output_dir / f"page-{page_number:03d}-binary.png"
         if not cv2.imwrite(str(image_path), binary):
             raise OSError(f"No se pudo escribir {image_path}")
-        analyses.append(analysis.to_dict())
+
+        page_data = analysis.to_dict()
+        noteheads = detect_notehead_candidates(binary, analysis.staves)
+        page_data["notehead_candidates"] = [item.to_dict() for item in noteheads]
+        page_data["notehead_candidate_count"] = len(noteheads)
+        analyses.append(page_data)
 
     report = {
         "engine": "Palermo OMR",
-        "version": "0.1.0",
-        "status": "geometry_prototype",
+        "version": "0.2.0",
+        "status": "geometric_candidates_prototype",
         "warning": (
-            "No hay reconocimiento de símbolos musicales todavía. "
-            "Las líneas detectadas son candidatos geométricos."
+            "Las cabezas de nota son candidatos visuales, no notas musicales "
+            "validadas. No se reconocen todavía claves, alturas nominales, "
+            "duraciones, voces ni estructura de repetición."
         ),
         "source_pdf": Path(args.pdf).name,
         "pages": analyses,
@@ -50,8 +57,12 @@ def main() -> int:
         json.dumps(report, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    total_staves = sum(len(page["staves"]) for page in analyses)
+    total_heads = sum(page["notehead_candidate_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
-    print("Aviso: esta versión detecta geometría, no interpreta notas musicales.")
+    print(f"Pentagramas candidatos: {total_staves}")
+    print(f"Cabezas de nota candidatas: {total_heads}")
+    print("Aviso: los resultados requieren validación; no son datos reproducibles.")
     return 0
 
 
