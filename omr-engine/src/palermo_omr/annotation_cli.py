@@ -8,7 +8,7 @@ import sys
 
 import fitz
 
-from .annotation_dataset import AnnotatedScore, AnnotationDataset
+from .annotation_dataset import AnnotatedScore, AnnotationDataset\nfrom .event_evaluation import ScoreEvent
 
 
 def _load_dataset(path: Path) -> AnnotationDataset:
@@ -86,6 +86,51 @@ def validate_manifest(path: str | Path, *, allow_drafts: bool = False) -> Annota
     return dataset
 
 
+
+def import_score_events(
+    manifest_path: str | Path,
+    score_id: str,
+    events_path: str | Path,
+) -> AnnotationDataset:
+    """Importa eventos revisados/por revisar desde un JSON separado, sin aprobarlos."""
+    from dataclasses import replace
+
+    manifest = Path(manifest_path)
+    dataset = _load_dataset(manifest)
+    matches = [item for item in dataset.scores if item.score_id == score_id]
+    if len(matches) != 1:
+        raise ValueError(f"No existe una única partitura con score_id={score_id}")
+    score = matches[0]
+    if score.review_status == "reviewed":
+        raise ValueError("No se pueden modificar eventos de una partitura ya revisada")
+    try:
+        raw_events = json.loads(Path(events_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"No se pudo leer el archivo de eventos: {exc}") from exc
+    if not isinstance(raw_events, list) or not raw_events:
+        raise ValueError("El archivo de eventos debe ser una lista JSON no vacía")
+    parsed = []
+    required = {
+        "event_id", "page_number", "staff_index", "measure_index",
+        "onset_quarters", "event_type", "pitches_midi",
+        "duration_quarters", "voice_id",
+    }
+    for raw in raw_events:
+        if not isinstance(raw, dict) or set(raw) != required:
+            raise ValueError("Cada evento debe contener exactamente los campos de ScoreEvent")
+        parsed.append(raw)
+    manifest_data = dataset.to_dict()
+    for raw_score in manifest_data["scores"]:
+        if raw_score["score_id"] == score_id:
+            if raw_score["events"]:
+                raise ValueError("La partitura ya tiene eventos; no se sobrescriben ni duplican")
+            raw_score["events"] = parsed
+            break
+    updated = AnnotationDataset.from_dict(manifest_data)
+    updated.validate(require_reviewed=False)
+    _write_dataset(manifest, updated)
+    return updated
+
 def confirm_score_review(
     path: str | Path,
     score_id: str,
@@ -139,7 +184,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Permite borradores; no los habilita como ground truth de evaluación",
     )
 
-    review_parser = subparsers.add_parser(
+    import_parser = subparsers.add_parser(\n        "import-events", help="Importa eventos musicales desde un archivo JSON"\n    )\n    import_parser.add_argument("manifest")\n    import_parser.add_argument("--score-id", required=True)\n    import_parser.add_argument("--events", required=True)\n\n    review_parser = subparsers.add_parser(
         "review", help="Aprueba una partitura tras revisión humana explícita"
     )
     review_parser.add_argument("manifest")
@@ -173,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"- {score.score_id}: {score.page_count} páginas, "
                     f"{len(score.events)} eventos, {score.split}, {score.review_status}"
                 )
-        elif args.command == "review":
+        elif args.command == "import-events":\n            dataset = import_score_events(args.manifest, args.score_id, args.events)\n            score = next(item for item in dataset.scores if item.score_id == args.score_id)\n            print(f"Eventos importados: {len(score.events)}")\n            print("Estado: draft (requiere revisión humana)")\n        elif args.command == "review":
             dataset = confirm_score_review(
                 args.manifest, args.score_id,
                 human_review_confirmed=args.confirm_human_review,
