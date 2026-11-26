@@ -49,6 +49,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         staff_count = len(staves)
         candidates = []
         filled_candidate_ids = []
+        filled_candidate_staff_indices = []
         staff_candidates = [
             {
                 "candidate_id": f"p{page_number}-staff-{index + 1}",
@@ -100,6 +101,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                 })
                 if family == "filled_notehead":
                     filled_candidate_ids.append(candidates[-1]["candidate_id"])
+                    filled_candidate_staff_indices.append(staff_index)
                 total_noteheads += 1
 
         # Se conserva también la geometría que relaciona símbolos y compases.
@@ -124,7 +126,17 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                 if not isinstance(value, dict):
                     raise ValueError(f"Cada elemento de {key} debe ser un objeto")
                 related_ids = []
-                if family == "beam_group":
+                if family == "augmentation_dot":
+                    notehead_index = value.get("associated_notehead_index")
+                    if (not isinstance(notehead_index, int) or isinstance(notehead_index, bool)
+                            or not 0 <= notehead_index < len(filled_candidate_ids)):
+                        raise ValueError("Un puntillo referencia una cabeza rellena inexistente")
+                    staff_index = filled_candidate_staff_indices[notehead_index]
+                    related_ids = [
+                        filled_candidate_ids[notehead_index],
+                        f"p{page_number}-staff-{staff_index + 1}",
+                    ]
+                elif family == "beam_group":
                     indices = _validated_indices(
                         value.get("notehead_indices", []),
                         len(filled_candidate_ids),
@@ -133,7 +145,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     related_ids = [
                         filled_candidate_ids[item] for item in indices
                     ]
-                elif family in {"barline", "barline_group", "measure_span"}:
+                elif family in {"rest_shape", "tie_slur_shape", "barline", "barline_group", "measure_span"}:
                     staff_index = value.get("staff_index")
                     if (not isinstance(staff_index, int) or isinstance(staff_index, bool)
                             or not 0 <= staff_index < staff_count):
