@@ -130,6 +130,23 @@ def detect_beam_group_candidates(
                 expected_direction = "up" if vertical_distance < 0 else "down"
                 if rhythm.stem_direction != expected_direction:
                     continue
+
+                # Una barra debe cruzar la zona donde se espera la plica de
+                # esta cabeza. La mera proximidad horizontal puede asociar una
+                # barra de otro pentagrama/voz o un trazo editorial cercano.
+                stem_offset = max(1, int(round(spacing * 0.72)))
+                stem_tolerance = max(2, int(round(spacing * 0.20)))
+                expected_stem_xs = (
+                    int(round(head.center_x - stem_offset)),
+                    int(round(head.center_x + stem_offset)),
+                )
+                intersects_expected_stem = any(
+                    x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
+                    for stem_x in expected_stem_xs
+                )
+                if not intersects_expected_stem:
+                    continue
+
                 matched.append(head_index)
 
             matched_tuple = tuple(sorted(set(matched), key=lambda idx: noteheads[idx].center_x))
