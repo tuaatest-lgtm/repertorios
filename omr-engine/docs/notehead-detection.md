@@ -33,6 +33,6 @@ La cabeza hueca se detecta una sola vez, sin clasificarla todavía como blanca o
 El CLI conserva esta interpretación en `hollow_rhythm_candidates`, separada de las figuras de cabeza rellena. La presencia o ausencia de plica también es una hipótesis visual: una plica tenue, tapada o cortada puede causar errores. La propuesta no se considera duración confirmada.
 
 
-### Cabezas huecas apiladas en acordes
+### Acordes con cabezas huecas
 
-La deduplicación de cabezas huecas se restringe ahora a centros casi coincidentes tanto horizontal como verticalmente. No se usa una tolerancia vertical de medio espacio o más, porque dos notas de un acorde pueden estar separadas por una segunda y deben seguir siendo dos cabezas distintas. Hay una prueba sintética específica para esta situación. Esta corrección reduce una causa de pérdida de notas en acordes, pero no resuelve todavía todos los casos de cabezas huecas que se tocan o comparten contorno.
+La revisión de la partitura de validación mostró que algunos acordes con cabezas huecas apiladas no se recuperan completos. Los intentos de corregirlo solo estrechando la deduplicación no superaron una prueba sintética representativa, por lo que esa modificación se retiró. La recuperación de acordes huecos queda como limitación conocida y requiere un método de separación de contornos más robusto antes de considerarse resuelta.
