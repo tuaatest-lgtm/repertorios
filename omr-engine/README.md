@@ -103,4 +103,4 @@ Se añadió `palermo_omr.staff_identity` para registrar etiquetas, claves, llave
 
 ## Candidatos de marcas de agrupación
 
-Se añadió `palermo_omr.staff_grouping` para proponer trazos verticales largos en el margen izquierdo de sistemas con varios pentagramas y marcar como corchetes rectos candidatos los que presentan dos remates horizontales externos. No reconoce llaves curvas ni confirma que los pentagramas pertenezcan al piano o al coro. Consulta `docs/staff-grouping.md`.
+Se añadió `palermo_omr.staff_grouping` para proponer trazos verticales largos en el margen izquierdo de sistemas con varios pentagramas marcar corchetes rectos candidatos por sus dos remates horizontales y proponer llaves curvas por su contorno lateral. El umbral de agrupación es configurable dentro de este detector. Ninguna etiqueta confirma que los pentagramas pertenezcan al piano o al coro. Consulta `docs/staff-grouping.md`.
