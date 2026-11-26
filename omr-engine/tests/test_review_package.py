@@ -35,6 +35,11 @@ def sample_analysis():
             "tie_slur_shape_candidates": [{"confidence": 0.4}],
             "augmentation_dot_candidates": [],
             "barline_candidates": [],
+            "beam_group_candidates": [{"beam_count_candidate": 2, "notehead_indices": [0, 1]}],
+            "barline_group_candidates": [{"group_type_candidate": "double"}],
+            "system_barline_candidates": [{"staff_indices": [0, 1]}],
+            "staff_system_candidates": [{"staff_indices": [0, 1]}],
+            "measure_span_candidates": [{"staff_index": 0, "measure_index": 0}],
             "notehead_overlay": "page-001-noteheads-overlay.png",
             "hollow_notehead_overlay": "page-001-hollow-noteheads-overlay.png",
         }],
@@ -45,7 +50,7 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     package = build_review_package(sample_analysis(), score_id="score-01")
     assert package["summary"] == {
         "page_count": 1, "notehead_candidate_count": 2,
-        "other_candidate_count": 2, "pending_count": 4,
+        "other_candidate_count": 7, "pending_count": 9,
     }
     filled, hollow = package["pages"][0]["notehead_candidates"]
     assert filled["rhythm_hypothesis"]["base_duration"] == "quarter"
@@ -103,7 +108,7 @@ def test_prepare_review_cli_runs_end_to_end_and_keeps_candidates_pending(tmp_pat
     assert "requieren revisión humana" in captured.out
     package = json.loads(output.read_text(encoding="utf-8"))
     assert package["score_id"] == "score-cli"
-    assert package["summary"]["pending_count"] == 4
+    assert package["summary"]["pending_count"] == 9
     assert all(
         candidate["review_status"] == "pending" and candidate["decision"] is None
         for page in package["pages"]
@@ -116,3 +121,19 @@ def test_build_review_package_rejects_boolean_staff_index():
     data["pages"][0]["notehead_candidates"][0]["staff_index"] = True
     with pytest.raises(ValueError, match="pentagrama inexistente"):
         build_review_package(data, score_id="score-01")
+
+
+def test_review_package_includes_relationship_and_measure_geometry_candidates():
+    package = build_review_package(sample_analysis(), score_id="score-geometry")
+    page = package["pages"][0]
+    families = {item["family"] for item in page["other_candidates"]}
+    assert {
+        "beam_group", "barline_group", "system_barline",
+        "staff_system", "measure_span",
+    } <= families
+    assert all(
+        item["review_status"] == "pending" and item["decision"] is None
+        for item in page["other_candidates"]
+    )
+    beam = next(item for item in page["other_candidates"] if item["family"] == "beam_group")
+    assert beam["candidate_data"]["beam_count_candidate"] == 2
