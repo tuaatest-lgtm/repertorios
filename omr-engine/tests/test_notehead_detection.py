@@ -186,3 +186,30 @@ def test_does_not_treat_gap_between_filled_heads_as_hollow():
     candidates = detect_hollow_notehead_candidates(image, [staff])
 
     assert not candidates
+
+
+
+def test_keeps_hollow_noteheads_stacked_a_second_apart_in_a_chord():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Dos cabezas huecas del mismo acorde, separadas por una segunda.
+    # Sus centros están a medio espacio; no deben deduplicarse como si fueran
+    # dos fragmentos de una sola cabeza.
+    cv2.ellipse(image, (220, 95), (9, 5), -20, 0, 360, 0, 2)
+    cv2.ellipse(image, (220, 90), (9, 5), -20, 0, 360, 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    at_chord_x = [
+        item for item in candidates
+        if abs(item.center_x - 220) <= 3
+        and item.diatonic_step_from_bottom in (1, 2)
+    ]
+    assert len(at_chord_x) == 2, (
+        "Las dos cabezas huecas del acorde deben conservarse por separado"
+    )
+    assert len({item.diatonic_step_from_bottom for item in at_chord_x}) == 2
