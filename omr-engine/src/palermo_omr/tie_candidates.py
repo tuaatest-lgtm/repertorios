@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from fractions import Fraction
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+
+from .duration_math import sum_tied_durations
 
 
 @dataclass(frozen=True)
@@ -202,3 +204,63 @@ def build_tie_link_candidates(
         ))
 
     return tuple(sorted(results, key=lambda item: (item.source_event_id, item.arc_id)))
+
+
+@dataclass(frozen=True)
+class TieReviewConfirmation:
+    candidate_index: int
+    reviewer_confirmed: bool
+    arc_is_tie_confirmed: bool
+    same_notated_pitch_confirmed: bool
+
+
+@dataclass(frozen=True)
+class ReviewedTieDuration:
+    source_event_id: str
+    target_event_id: str
+    combined_duration_quarters: Fraction
+
+
+def build_reviewed_tie_durations(
+    candidates: Sequence[TieLinkCandidate],
+    confirmations: Sequence[TieReviewConfirmation],
+    event_durations_quarters: Mapping[str, Fraction | int | float],
+) -> tuple[ReviewedTieDuration, ...]:
+    """Suma dos duraciones solo tras confirmar arco y misma nota escrita.
+
+    Una propuesta ambigua nunca puede convertirse en ligadura confirmada.
+    La confirmación humana debe verificar tanto que el arco sea una ligadura
+    de prolongación como que ambas notas tengan la misma escritura musical.
+    """
+    seen_indices: set[int] = set()
+    results: list[ReviewedTieDuration] = []
+    for confirmation in confirmations:
+        if not isinstance(confirmation, TieReviewConfirmation):
+            raise ValueError("Todas las confirmaciones deben ser TieReviewConfirmation")
+        index = confirmation.candidate_index
+        if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(candidates):
+            raise ValueError("candidate_index fuera del rango de candidatos")
+        if index in seen_indices:
+            raise ValueError("Una propuesta solo puede confirmarse una vez")
+        seen_indices.add(index)
+        candidate = candidates[index]
+        if candidate.status != "proposed_tie":
+            raise ValueError("Una propuesta ambigua no puede confirmarse")
+        if confirmation.reviewer_confirmed is not True:
+            raise ValueError("Se requiere revisión humana explícita")
+        if confirmation.arc_is_tie_confirmed is not True:
+            raise ValueError("El arco debe confirmarse como ligadura de prolongación")
+        if confirmation.same_notated_pitch_confirmed is not True:
+            raise ValueError("Debe confirmarse que ambas notas tienen la misma escritura")
+        if candidate.source_event_id not in event_durations_quarters or candidate.target_event_id not in event_durations_quarters:
+            raise ValueError("Faltan duraciones de uno o ambos eventos")
+        combined = sum_tied_durations((
+            event_durations_quarters[candidate.source_event_id],
+            event_durations_quarters[candidate.target_event_id],
+        ))
+        results.append(ReviewedTieDuration(
+            source_event_id=candidate.source_event_id,
+            target_event_id=candidate.target_event_id,
+            combined_duration_quarters=combined,
+        ))
+    return tuple(results)
