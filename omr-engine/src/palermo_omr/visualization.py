@@ -168,6 +168,35 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
                 cv2.line(overlay, point(5, y1), point(5, y2), (180, 120, 40), 2)
                 label("SYSTEM?", 8, int(y1) - 4, (180, 120, 40))
 
+    # Marcas de agrupación: se dibujan como hipótesis gráficas, nunca como
+    # asignaciones confirmadas de piano, instrumento o voz.
+    for item in page_data.get("staff_grouping_mark_candidates", []):
+        if not isinstance(item, dict):
+            continue
+        x = item.get("x")
+        y1, y2 = item.get("y_top"), item.get("y_bottom")
+        width_px = item.get("width_px", 2)
+        if not all(isinstance(v, (int, float)) for v in (x, y1, y2, width_px)):
+            continue
+        if y2 < y1 or width_px <= 0:
+            continue
+        kind = item.get("kind", "")
+        color = (180, 60, 180) if kind == "curly_brace_candidate" else (80, 100, 210)
+        half_width = max(1, int(round(width_px / 2)))
+        center_x = int(round(x))
+        top_y, bottom_y = int(round(y1)), int(round(y2))
+        cv2.rectangle(
+            overlay,
+            (max(0, center_x - half_width), max(0, top_y)),
+            (min(width - 1, center_x + half_width), min(height - 1, bottom_y)),
+            color, 2,
+        )
+        tag = {
+            "curly_brace_candidate": "BRACE?",
+            "square_bracket_candidate": "BRACKET?",
+        }.get(kind, "GROUP?")
+        label(tag, center_x + half_width + 3, top_y - 3, color)
+
     # Intervalos entre barras: se dibujan como límites verticales en el staff.
     for item in page_data.get("measure_span_candidates", []):
         if not isinstance(item, dict):
