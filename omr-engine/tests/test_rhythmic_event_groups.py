@@ -5,7 +5,7 @@ import pytest
 from palermo_omr.imaging import StaffCandidate
 from palermo_omr.rhythm import RhythmCandidate
 from palermo_omr.rhythm_interpretation import RhythmicInterpretationCandidate
-from palermo_omr.rhythmic_event_groups import build_rhythmic_event_group_candidates, build_reviewed_voice_events
+from palermo_omr.rhythmic_event_groups import (build_rhythmic_event_group_candidates, build_reviewed_voice_events, build_reviewed_voice_events_by_voice)
 from palermo_omr.symbols import NoteheadCandidate
 
 
@@ -141,5 +141,46 @@ def test_reviewed_group_requires_matching_explicit_voice_and_known_duration():
     with pytest.raises(ValueError, match="asignación explícita"):
         build_reviewed_voice_events(
             groups, voice_id="alto", measure_index=0,
+            confirmed_event_ids={groups[0].event_id},
+        )
+
+
+
+def test_explicit_event_voice_assignments_allow_two_voices_on_one_staff():
+    values = _inputs([100, 130])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values)
+    events = build_reviewed_voice_events_by_voice(
+        groups,
+        measure_index=2,
+        event_voice_ids={groups[0].event_id: "soprano", groups[1].event_id: "alto"},
+        confirmed_event_ids={groups[0].event_id, groups[1].event_id},
+    )
+    assert {(event.event_id, event.voice_id, event.order_index) for event in events} == {
+        (groups[0].event_id, "soprano", 0),
+        (groups[1].event_id, "alto", 0),
+    }
+    assert {event.measure_index for event in events} == {2}
+
+
+def test_event_voice_assignment_requires_exactly_one_voice_for_each_confirmed_event():
+    values = _inputs([100, 130])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values)
+    with pytest.raises(ValueError, match="exactamente una asignación"):
+        build_reviewed_voice_events_by_voice(
+            groups,
+            measure_index=0,
+            event_voice_ids={groups[0].event_id: "soprano"},
+            confirmed_event_ids={groups[0].event_id, groups[1].event_id},
+        )
+
+
+def test_event_voice_assignment_rejects_ambiguous_groups():
+    values = _inputs([100, 107], directions=["up", "down"])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values)
+    with pytest.raises(ValueError, match="grupo ambiguo"):
+        build_reviewed_voice_events_by_voice(
+            groups,
+            measure_index=0,
+            event_voice_ids={groups[0].event_id: "soprano"},
             confirmed_event_ids={groups[0].event_id},
         )
