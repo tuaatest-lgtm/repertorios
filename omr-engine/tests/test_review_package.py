@@ -82,3 +82,37 @@ def test_build_review_package_requires_nonempty_pages_and_score_id():
         build_review_package(sample_analysis(), score_id=" ")
     with pytest.raises(ValueError, match="no contiene páginas"):
         build_review_package({"pages": []}, score_id="score-01")
+
+
+def test_prepare_review_cli_runs_end_to_end_and_keeps_candidates_pending(tmp_path, capsys):
+    from palermo_omr.annotation_cli import main
+
+    analysis = tmp_path / "analysis.json"
+    output = tmp_path / "review" / "package.json"
+    analysis.write_text(json.dumps(sample_analysis()), encoding="utf-8")
+
+    result = main([
+        "prepare-review", str(analysis),
+        "--score-id", "score-cli",
+        "--output", str(output),
+    ])
+
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "Candidatos de cabezas: 2" in captured.out
+    assert "requieren revisión humana" in captured.out
+    package = json.loads(output.read_text(encoding="utf-8"))
+    assert package["score_id"] == "score-cli"
+    assert package["summary"]["pending_count"] == 4
+    assert all(
+        candidate["review_status"] == "pending" and candidate["decision"] is None
+        for page in package["pages"]
+        for candidate in page["notehead_candidates"] + page["other_candidates"]
+    )
+
+
+def test_build_review_package_rejects_boolean_staff_index():
+    data = sample_analysis()
+    data["pages"][0]["notehead_candidates"][0]["staff_index"] = True
+    with pytest.raises(ValueError, match="pentagrama inexistente"):
+        build_review_package(data, score_id="score-01")
