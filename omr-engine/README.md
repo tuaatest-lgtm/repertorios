@@ -27,6 +27,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 - líneas horizontales candidatas;
 - grupos geométricos de cinco líneas;\n- duración rítmica candidata por cabeza, con referencia al grupo de barras compartidas y estado explícito de ambigüedad o evidencia insuficiente;
 - regiones propuestas como cabezas de nota;
+- candidatos separados de cabezas huecas, guardados en `hollow_notehead_candidates` y no usados todavía para interpretar ritmo;
 - posición diatónica relativa a la línea inferior del pentagrama (sin asignar todavía una letra o altura absoluta);
 - puntuaciones heurísticas de confianza;
 - hipótesis de relleno, plicas y barras horizontales de agrupación;
