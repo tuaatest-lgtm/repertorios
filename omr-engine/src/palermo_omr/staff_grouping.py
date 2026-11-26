@@ -195,8 +195,10 @@ def detect_staff_grouping_mark_candidates(
 
             center_x = int(round(float(centroids[label][0])))
             top_terminal = _has_horizontal_terminal(
-                ink, x=center_x, y_start=top - int(round(spacing * 0.7)),
-                y_end=top, spacing=spacing,
+                ink, x=center_x,
+                y_start=top - int(round(spacing * 0.7)),
+                y_end=top - int(round(spacing * 0.25)) + 1,
+                spacing=spacing,
             )
             bottom_terminal = _has_horizontal_terminal(
                 ink, x=center_x, y_start=bottom + 1,
