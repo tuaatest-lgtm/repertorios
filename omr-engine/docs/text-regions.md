@@ -1,0 +1,24 @@
+# Regiones rasterizadas candidatas a texto
+
+`palermo_omr.text_regions` propone regiones geométricas que podrían contener texto impreso en el margen izquierdo de una partitura.
+
+## Flujo
+
+1. Recibe una imagen binaria con tinta negra y fondo blanco.
+2. Retira líneas horizontales largas para reducir la interferencia del pentagrama.
+3. Examina una franja configurable del margen izquierdo.
+4. Agrupa componentes pequeños cercanos horizontalmente.
+5. Filtra por dimensiones relativas al espaciado del pentagrama.
+6. Registra la caja y los pentagramas cercanos por proximidad vertical.
+
+## Interpretación de resultados
+
+- `nearby_staff_candidate`: la región queda más cerca de un pentagrama que de los demás dentro del umbral; no significa que sea una etiqueta de ese pentagrama.
+- `ambiguous`: hay más de un pentagrama a distancia vertical similar.
+- `location_hint`: `above_staff`, `beside_staff` o `below_staff` describe únicamente la posición geométrica.
+
+## Límites
+
+No reconoce letras, palabras, claves ni nombres de voces. Una región puede corresponder a una etiqueta, un número, una indicación editorial, un símbolo musical o ruido del escaneo. El detector se restringe al margen izquierdo y puede no encontrar etiquetas centradas encima del sistema o impresas en otras zonas. Las cajas requieren inspección visual y no se convierten en `StaffIdentityEvidence` hasta que exista una lectura verificable del contenido.
+
+El módulo no está conectado al CLI, no modifica la estructura musical y no se integra con Sonoro.
