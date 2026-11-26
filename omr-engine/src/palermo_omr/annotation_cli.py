@@ -8,7 +8,10 @@ import sys
 
 import fitz
 
-from .annotation_dataset import AnnotatedScore, AnnotationDataset\nfrom .event_evaluation import ScoreEvent
+from .annotation_dataset import AnnotatedScore, AnnotationDataset\nfrom fractions import Fraction
+
+from .dataset_evaluation import evaluate_annotation_dataset
+from .event_evaluation import ScoreEvent
 
 
 def _load_dataset(path: Path) -> AnnotationDataset:
@@ -161,6 +164,74 @@ def confirm_score_review(
     return updated
 
 
+
+def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
+    """Evalúa predicciones JSON contra una partición revisada."""
+    dataset = validate_manifest(manifest_path)
+    try:
+        raw = json.loads(Path(predictions_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"No se pudo leer el archivo de predicciones: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise ValueError("Las predicciones deben ser un objeto JSON por score_id")
+    predictions = {}
+    required = {
+        "event_id", "page_number", "staff_index", "measure_index",
+        "onset_quarters", "event_type", "pitches_midi",
+        "duration_quarters", "voice_id",
+    }
+    for score_id, items in raw.items():
+        if not isinstance(score_id, str) or not isinstance(items, list):
+            raise ValueError("Cada score_id debe contener una lista de eventos")
+        parsed = []
+        for item in items:
+            if not isinstance(item, dict) or set(item) != required:
+                raise ValueError("Predicción con campos ausentes o desconocidos")
+            onset = item["onset_quarters"]
+            duration = item["duration_quarters"]
+            parsed.append(ScoreEvent(
+                event_id=item["event_id"],
+                page_number=item["page_number"],
+                staff_index=item["staff_index"],
+                measure_index=item["measure_index"],
+                onset_quarters=Fraction(str(onset)) if onset is not None else None,
+                event_type=item["event_type"],
+                pitches_midi=tuple(item["pitches_midi"]) if item["pitches_midi"] is not None else None,
+                duration_quarters=Fraction(str(duration)) if duration is not None else None,
+                voice_id=item["voice_id"],
+            ))
+        predictions[score_id] = tuple(parsed)
+    result = evaluate_annotation_dataset(dataset, predictions, split=split)
+    return {
+        "split": result.split,
+        "score_count": result.score_count,
+        "predicted_count": result.predicted_count,
+        "reference_count": result.reference_count,
+        "true_positive": result.true_positive,
+        "false_positive": result.false_positive,
+        "false_negative": result.false_negative,
+        "precision": result.precision,
+        "recall": result.recall,
+        "f1": result.f1,
+        "event_type_accuracy": result.event_type_accuracy,
+        "pitch_accuracy": result.pitch_accuracy,
+        "duration_accuracy": result.duration_accuracy,
+        "voice_accuracy": result.voice_accuracy,
+        "mean_onset_error_quarters": result.mean_onset_error_quarters,
+        "per_score": [
+            {
+                "score_id": item.score_id,
+                "precision": item.evaluation.precision,
+                "recall": item.evaluation.recall,
+                "f1": item.evaluation.f1,
+                "true_positive": item.evaluation.true_positive,
+                "false_positive": item.evaluation.false_positive,
+                "false_negative": item.evaluation.false_negative,
+            }
+            for item in result.per_score
+        ],
+    }
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="palermo-omr-dataset",
@@ -176,6 +247,14 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--score-id", required=True)
     init_parser.add_argument("--split", choices=("train", "validation", "test"), required=True)
     init_parser.add_argument("--annotation-version", default="1.0")
+
+    evaluate_parser = subparsers.add_parser(
+        "evaluate", help="Evalúa predicciones contra una partición revisada"
+    )
+    evaluate_parser.add_argument("manifest")
+    evaluate_parser.add_argument("--predictions", required=True)
+    evaluate_parser.add_argument("--split", choices=("train", "validation", "test"), default="test")
+    evaluate_parser.add_argument("--output", required=True)
 
     validate_parser = subparsers.add_parser("validate", help="Valida el manifiesto")
     validate_parser.add_argument("manifest")
@@ -210,6 +289,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"SHA-256: {score.source_sha256}")
             print(f"Páginas: {score.page_count}")
             print("Estado: draft (sin eventos; aún no es ground truth)")
+        elif args.command == "evaluate":
+            report = evaluate_manifest(args.manifest, args.predictions, split=args.split)
+            Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.output).write_text(
+                json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            print("Evaluación {}: {} partituras".format(args.split, report["score_count"]))
+            print("Precisión={} Recall={} F1={}".format(report["precision"], report["recall"], report["f1"]))
+            print("Informe: {}".format(args.output))
         elif args.command == "validate":
             dataset = validate_manifest(args.manifest, allow_drafts=args.allow_drafts)
             print(f"Manifiesto válido: {len(dataset.scores)} partituras")
