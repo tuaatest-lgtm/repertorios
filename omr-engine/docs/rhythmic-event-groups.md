@@ -43,3 +43,19 @@ siguen siendo hipótesis de los detectores anteriores.
 
 Por seguridad musical, los próximos módulos deben mantener los casos dudosos
 sin resolver en lugar de forzar una secuencia temporal.
+
+
+## Paso explícito hacia la secuencia temporal
+
+`build_reviewed_voice_events` permite convertir grupos candidatos en
+`OrderedVoiceEvent` únicamente cuando el llamador entrega sus identificadores
+en `confirmed_event_ids`, después de una revisión explícita. También exige
+una asignación de voz explícita coincidente y una duración candidata conocida.
+Los grupos ambiguos o no revisados no pasan a la secuencia.
+
+Una vez aceptados, el orden horizontal solo genera `order_index`. El módulo
+`voice_sequence_timing` calcula los inicios sumando las duraciones exactas.
+Esta compuerta no equivale a un sistema de revisión visual implementado: la
+confirmación debe proceder de una etapa externa o de una revisión humana
+controlada. Los IDs de evento son locales a la colección analizada y deben
+recibir un identificador de página/compás al integrarse en un documento mayor.
