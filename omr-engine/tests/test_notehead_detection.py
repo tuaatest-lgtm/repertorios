@@ -97,3 +97,21 @@ def test_splits_two_touching_noteheads_displaced_by_a_second():
     assert lower[0].center_x != upper[0].center_x
     assert lower[0].confidence <= 0.72
     assert upper[0].confidence <= 0.72
+
+
+def test_does_not_split_a_sloped_beam_into_noteheads():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Una viga diagonal gruesa conectada a plicas puede crear dos máximos
+    # locales, pero no debe interpretarse como dos cabezas de nota.
+    cv2.line(image, (160, 75), (260, 95), 0, 8)
+    cv2.line(image, (180, 75), (180, 45), 0, 2)
+    cv2.line(image, (240, 91), (240, 45), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_notehead_candidates(image, [staff])
+
+    assert not candidates, "Una viga inclinada no debe generar cabezas de nota"
