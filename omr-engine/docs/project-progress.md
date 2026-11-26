@@ -7,8 +7,8 @@
 
 ## Indicador general
 
-- **Avance estimado: 48%**
-- **Trabajo restante estimado: 52%**
+- **Avance estimado: 53%**
+- **Trabajo restante estimado: 47%**
 
 El porcentaje es una estimación de madurez por hitos ponderados, no un porcentaje de código escrito ni una medición de precisión musical. Se redondea al entero más cercano. Una etapa no se considera completa solo porque tenga módulos o pruebas unitarias.
 
@@ -21,9 +21,9 @@ El porcentaje es una estimación de madurez por hitos ponderados, no un porcenta
 | Estructura de partitura, sistemas, partes y voces | 15% | 55% | 8,25 |
 | Eventos, polifonía y línea temporal | 15% | 70% | 10,50 |
 | Revisión humana y ensamblaje musical | 15% | 35% | 5,25 |
-| Evaluación contra anotaciones humanas y corpus real | 10% | 30% | 3,00 |
-| Orquestación CLI y preparación integral | 5% | 20% | 1,00 |
-| **Total ponderado** | **100%** |  | **48,00% = 48%** |
+| Evaluación contra anotaciones humanas y corpus real | 10% | 40% | 4,00 |
+| Orquestación CLI y preparación integral | 5% | 60% | 3,00 |
+| **Total ponderado** | **100%** |  | **53,25% ≈ 53%** |
 
 ## Qué respalda cada estimación
 
@@ -43,21 +43,21 @@ Existen modelos para páginas, sistemas, pentagramas, partes, voces, regiones de
 
 Hay agrupación candidata de notas/acordes, capas potenciales en un pentagrama, secuencias temporales por voz y líneas temporales de varias voces con duraciones independientes. También hay candidatos de continuidad melódica. Falta extraer y agrupar eventos completos desde imágenes reales con precisión suficiente.
 
-### 5. Revisión humana y ensamblaje — 35%
+### 5. Revisión humana y ensamblaje — 50%
 
-Existen compuertas explícitas para confirmar grupos de notas, asignaciones de voz, ligaduras y silencios. Aún no existe una interfaz de revisión integrada ni una sesión persistente que reúna todas las decisiones en un flujo de trabajo completo.
+Existen compuertas explícitas para confirmar grupos de notas, asignaciones de voz, ligaduras y silencios. Se añadió un flujo persistente de anotación basado en manifiestos: registro de PDF, importación de eventos, validación y aprobación mediante confirmación humana explícita. Aún falta una interfaz visual que reúna decisiones y evidencia gráfica en una sesión única.
 
-### 6. Evaluación y corpus — 30%
+### 6. Evaluación y corpus — 40%
 
-Hay evaluación geométrica de regiones de texto y un evaluador para comparar eventos musicales con anotaciones humanas. También existe un formato reproducible de corpus que valida huellas SHA-256, particiones sin duplicados, eventos completos y estado de revisión. Las pruebas actuales siguen siendo sintéticas: todavía falta incorporar partituras reales anotadas y publicar métricas de precisión/recall.
+Hay evaluación geométrica de regiones de texto y un evaluador para comparar eventos musicales con anotaciones humanas. También existe un formato reproducible de corpus que valida huellas SHA-256, particiones sin duplicados, eventos completos y estado de revisión. Se incorporó una evaluación agregada por partición con métricas micro y desglose por partitura. Las pruebas actuales siguen siendo sintéticas: todavía falta incorporar partituras reales anotadas y publicar métricas de precisión/recall.
 
-### 7. CLI e integración de etapas — 20%
+### 7. CLI e integración de etapas — 60%
 
-Existe CLI y visualización de análisis parciales, pero los módulos nuevos de revisión, ligaduras, silencios y evaluación no conforman todavía un proceso integral de punta a punta. No hay integración con Sonoro.
+Existe una CLI de análisis visual y una CLI de corpus separada para registrar PDFs, generar manifiestos borrador, importar eventos, validar y solicitar aprobación humana. La evaluación por partición también puede ejecutarse desde la API Python. Aún falta una canalización que conecte automáticamente análisis visual, revisión, exportación de predicciones y evaluación. No hay integración con Sonoro.
 
 ## Hitos para el trabajo restante
 
-1. Incorporar y anotar un conjunto pequeño de partituras reales representativas usando el formato validado: coral SATB, piano, páginas múltiples, acordes, voces internas, silencios y ligaduras.
+1. Incorporar y anotar un conjunto pequeño de partituras reales representativas usando el flujo CLI y el formato validado: coral SATB, piano, páginas múltiples, acordes, voces internas, silencios y ligaduras.
 2. Medir los detectores existentes contra ese conjunto y corregir los errores de mayor impacto.
 3. Construir un flujo de revisión humana persistente para pentagramas, voces, cabezas, acordes, silencios, duraciones y ligaduras.
 4. Completar interpretación de notación y continuidad entre sistemas/páginas sin inventar datos faltantes.
@@ -69,5 +69,5 @@ Existe CLI y visualización de análisis parciales, pero los módulos nuevos de 
 - Actualizar este desglose cuando se cierre un hito verificable.
 - Citar el commit y la ejecución CI correspondiente cuando se informe que una etapa pasó.
 - Separar siempre pruebas sintéticas de validación en partituras reales.
-- No incrementar el porcentaje por documentación o cantidad de líneas de código solamente. La infraestructura de corpus eleva la preparación de evaluación, pero no equivale a tener partituras reales anotadas.
+- No incrementar el porcentaje por documentación o cantidad de líneas de código solamente. El aumento actual corresponde a un flujo ejecutable y validado por pruebas; no equivale a tener partituras reales anotadas ni precisión musical demostrada.
 - La integración con Sonoro seguirá fuera de alcance hasta recibir autorización expresa.
