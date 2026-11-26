@@ -13,6 +13,7 @@ Motor OMR independiente para Palermo Music. Esta iteración implementa entrada P
 
 - **Evaluación musical contra anotaciones humanas**: `event_evaluation.py` mide detección, inicio, tipo, alturas (incluidos acordes), duración y asignación de voz mediante emparejamiento uno a uno. Requiere anotaciones de referencia completas; las pruebas no miden precisión real del OMR. Ver `docs/event-evaluation.md`.
 - **Corpus reproducible de anotaciones humanas**: `annotation_dataset.py` valida partituras, huellas SHA-256, particiones train/validation/test y eventos completos revisados; conserva fracciones exactas y bloquea borradores como ground truth. Ver `docs/annotation-dataset.md`.
+- **Evaluación agregada del corpus**: `dataset_evaluation.py` calcula métricas micro por partición y conserva resultados por partitura; impide mezclar predicciones de train, validation y test. Ver `docs/dataset-evaluation.md`.
 
 
 - **Seguimiento del proyecto**: `docs/project-progress.md` mantiene el porcentaje ponderado de avance, trabajo restante, alcance y criterios para actualizarlo.
