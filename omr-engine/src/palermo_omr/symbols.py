@@ -79,6 +79,101 @@ def detect_notehead_candidates(
             x, y, w, h, area = (int(v) for v in stats[label])
             cx, cy_local = (float(v) for v in centroids[label])
             cy = cy_local + top
+
+            # Recuperación complementaria: dos cabezas desplazadas pueden
+            # tocarse y aparecer como un único componente. Buscamos dos picos
+            # robustos en su transformada de distancia, pero solo si ambos
+            # coinciden con posiciones diatónicas plausibles del pentagrama.
+            component = (roi[y:y + h, x:x + w] > 0).astype(np.uint8)
+            if w > spacing * 1.35 and h > spacing * 0.65 and component.size:
+                distance = cv2.distanceTransform(component, cv2.DIST_L2, 5)
+                peak_threshold = max(1.0, float(distance.max()) * 0.62)
+                local_max = cv2.dilate(
+                    distance,
+                    np.ones((3, 3), dtype=np.uint8),
+                )
+                peak_mask = (
+                    (distance >= peak_threshold)
+                    & (distance >= local_max - 1e-6)
+                ).astype(np.uint8)
+                peak_count, peak_labels, peak_stats, peak_centroids = (
+                    cv2.connectedComponentsWithStats(peak_mask, connectivity=8)
+                )
+                peaks: list[tuple[float, float, float]] = []
+                for peak_label in range(1, peak_count):
+                    px, py, pw, ph, peak_area = (
+                        int(v) for v in peak_stats[peak_label]
+                    )
+                    if peak_area == 0:
+                        continue
+                    pcx, pcy = peak_centroids[peak_label]
+                    peak_value = float(distance[
+                        min(component.shape[0] - 1, max(0, int(round(pcy)))),
+                        min(component.shape[1] - 1, max(0, int(round(pcx)))),
+                    ])
+                    absolute_y = top + y + float(pcy)
+                    step_candidate = int(round(
+                        (float(staff.lines_y[-1]) - absolute_y) / (spacing / 2.0)
+                    ))
+                    snapped = float(staff.lines_y[-1]) - step_candidate * spacing / 2.0
+                    alignment_error = abs(absolute_y - snapped) / max(spacing / 2.0, 1.0)
+                    if alignment_error <= 0.60:
+                        peaks.append((
+                            float(x) + float(pcx),
+                            absolute_y,
+                            peak_value,
+                        ))
+
+                split_pair: tuple[tuple[float, float, float], ...] | None = None
+                best_pair_score = -1.0
+                for first_index in range(len(peaks)):
+                    for second_index in range(first_index + 1, len(peaks)):
+                        first, second = peaks[first_index], peaks[second_index]
+                        dx = abs(first[0] - second[0])
+                        dy = abs(first[1] - second[1])
+                        if not (spacing * 0.55 <= dx <= spacing * 2.2):
+                            continue
+                        if not (spacing * 0.30 <= dy <= spacing * 1.25):
+                            continue
+                        score = first[2] + second[2]
+                        if score > best_pair_score:
+                            best_pair_score = score
+                            split_pair = (first, second)
+
+                if split_pair is not None:
+                    for peak_x, peak_y, peak_strength in split_pair:
+                        step = int(round(
+                            (float(staff.lines_y[-1]) - peak_y) / (spacing / 2.0)
+                        ))
+                        snapped_y = float(staff.lines_y[-1]) - step * spacing / 2.0
+                        vertical_error = abs(peak_y - snapped_y) / max(spacing / 2.0, 1.0)
+                        alignment_score = max(0.0, 1.0 - vertical_error)
+                        # La confianza se limita deliberadamente: una separación
+                        # geométrica no equivale todavía a una nota confirmada.
+                        split_confidence = min(
+                            0.72,
+                            0.48 + 0.16 * alignment_score
+                            + 0.08 * min(1.0, peak_strength / max(spacing * 0.35, 1.0)),
+                        )
+                        box_width = max(3, int(round(spacing * 1.55)))
+                        box_height = max(3, int(round(spacing * 0.95)))
+                        box_x = int(round(peak_x - box_width / 2.0))
+                        box_y = int(round(peak_y - box_height / 2.0))
+                        candidates.append(
+                            NoteheadCandidate(
+                                bbox=(box_x, box_y, box_width, box_height),
+                                center_x=round(peak_x, 2),
+                                center_y=round(peak_y, 2),
+                                staff_index=staff_index,
+                                diatonic_step_from_bottom=step,
+                                fill_ratio=0.5,
+                                notehead_shape_score=0.70,
+                                confidence=round(split_confidence, 3),
+                            )
+                        )
+                    # No añadimos además el componente combinado como una tercera nota.
+                    continue
+
             if not (min_w <= w <= max_w and min_h <= h <= max_h):
                 continue
 
