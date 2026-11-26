@@ -1,6 +1,7 @@
-"""Candidatos geométricos de trazos verticales de agrupación de pentagramas.
+"""Candidatos geométricos de marcas de agrupación de pentagramas.
 
-No clasifica por sí solo una llave, corchete o barra de sistema.
+La clasificación de corchete es una hipótesis visual conservadora, no una
+identificación musical ni una asignación automática de instrumentos.
 """
 from __future__ import annotations
 
@@ -29,6 +30,37 @@ class StaffGroupingMarkCandidate:
         return asdict(self)
 
 
+def _has_horizontal_terminal(
+    ink: np.ndarray,
+    *,
+    x: int,
+    y_start: int,
+    y_end: int,
+    spacing: float,
+) -> bool:
+    """Busca un remate horizontal corto junto al extremo de un trazo vertical."""
+    height, width = ink.shape
+    x_start = max(0, x - 2)
+    x_end = min(width, x_start + max(5, int(round(spacing * 1.8))))
+    y_start = max(0, y_start)
+    y_end = min(height, y_end)
+    if x_end - x_start < 4 or y_end <= y_start:
+        return False
+
+    roi = ink[y_start:y_end, x_start:x_end]
+    kernel_width = max(4, int(round(spacing * 0.45)))
+    horizontal = cv2.morphologyEx(
+        roi,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1)),
+    )
+    count, _, stats, _ = cv2.connectedComponentsWithStats(horizontal, 8)
+    return any(
+        int(stats[label, cv2.CC_STAT_WIDTH]) >= kernel_width
+        for label in range(1, count)
+    )
+
+
 def detect_staff_grouping_mark_candidates(
     binary: np.ndarray,
     staves: list[StaffCandidate],
@@ -36,11 +68,12 @@ def detect_staff_grouping_mark_candidates(
     left_margin_ratio: float = 0.18,
     max_width_spacing: float = 1.2,
 ) -> list[StaffGroupingMarkCandidate]:
-    """Propone trazos verticales largos a la izquierda de sistemas.
+    """Propone trazos verticales y, si hay dos remates, corchetes candidatos.
 
-    Es deliberadamente conservador: solo encuentra segmentos casi verticales
-    dentro del margen izquierdo. Llaves curvas, etiquetas y relaciones
-    musicales requieren detectores y revisión separados.
+    Solo analiza el margen izquierdo de sistemas geométricos con dos o más
+    pentagramas. Un par de remates horizontales permite etiquetar una forma
+    compatible con corchete recto; no reconoce llaves curvas ni confirma que
+    los pentagramas sean de piano, coro u otra parte.
     """
     if binary is None or binary.ndim != 2 or binary.size == 0:
         raise ValueError("Se requiere una imagen binaria monocroma no vacía")
@@ -80,6 +113,25 @@ def detect_staff_grouping_mark_candidates(
             coverage = height / span
             if coverage < 0.68:
                 continue
+
+            center_x = int(round(float(centroids[label][0])))
+            top_terminal = _has_horizontal_terminal(
+                ink, x=center_x, y_start=top - int(round(spacing * 0.7)),
+                y_end=top, spacing=spacing,
+            )
+            bottom_terminal = _has_horizontal_terminal(
+                ink, x=center_x, y_start=bottom + 1,
+                y_end=bottom + 1 + int(round(spacing * 0.7)),
+                spacing=spacing,
+            )
+            is_bracket = top_terminal and bottom_terminal
+            kind = (
+                "square_bracket_candidate"
+                if is_bracket else "vertical_grouping_mark_candidate"
+            )
+            confidence = min(0.84 if is_bracket else 0.78, 0.48 + 0.3 * coverage)
+            if is_bracket:
+                confidence += 0.06
             results.append(StaffGroupingMarkCandidate(
                 x=round(float(centroids[label][0]), 2),
                 y_top=top + y,
@@ -87,12 +139,16 @@ def detect_staff_grouping_mark_candidates(
                 width_px=width,
                 staff_indices=indices,
                 vertical_coverage=round(min(1.0, coverage), 3),
-                kind="vertical_grouping_mark_candidate",
-                confidence=round(min(0.78, 0.45 + 0.3 * coverage), 3),
+                kind=kind,
+                confidence=round(min(confidence, 0.84), 3),
                 warning=(
+                    "Forma compatible con un corchete recto por sus dos remates; "
+                    "requiere revisión visual y no confirma instrumento, piano "
+                    "ni relación musical entre pentagramas."
+                    if is_bracket else
                     "Trazo vertical candidato a marca de agrupación. Puede ser "
-                    "un corchete, parte de una llave u otro trazo; no confirma "
-                    "instrumento, piano ni relación entre pentagramas."
+                    "parte de una llave u otro trazo; no confirma instrumento, "
+                    "piano ni relación entre pentagramas."
                 ),
             ))
     results.sort(key=lambda item: (item.y_top, item.x))
