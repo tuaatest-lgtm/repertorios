@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 62%
-- **Avance estimado actual:** 63%
+- **Avance estimado anterior:** 63%
+- **Avance estimado actual:** 64%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 37%
+- **Trabajo restante estimado:** 36%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce que las marcas de agrupación de pentagramas ya recorren la CLI, el overlay y el paquete de revisión humana, con pruebas automatizadas aprobadas. No reconoce precisión musical nueva sobre partituras reales.
 
@@ -18,12 +18,14 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 
 | Aspecto | Anterior | Actual | Evidencia del cambio |
 |---|---:|---:|---|
-| Detección geométrica y símbolos | 55% | 56% | Las marcas de agrupación ya se ejecutan desde la CLI y quedan en el análisis por página. |
+| Detección geométrica y símbolos | 56% | 56% | Las marcas de agrupación ya se ejecutan desde la CLI y quedan en el análisis por página. |
 | Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
-| Paquete de revisión humana | 90% | 92% | El paquete incorpora marcas de agrupación pendientes y valida sus referencias a pentagramas. |
-| Evidencia visual y overlays | 85% | 88% | El overlay ahora representa llaves, corchetes y marcas verticales con etiquetas explícitas de candidato. |
+| Paquete de revisión humana | 92% | 93% | El paquete incorpora marcas de agrupación pendientes y valida sus referencias a pentagramas. |
+| Evidencia visual y overlays | 88% | 88% | El overlay ahora representa llaves, corchetes y marcas verticales con etiquetas explícitas de candidato. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 0% | Sin cambio: el motor todavía no se ha ejecutado y evaluado de extremo a extremo sobre el PDF coral de referencia en un entorno reproducible. |
+
+| Modelo de identidad de pentagramas | 58% | 59% | La marca detectada puede convertirse en evidencia visual por cada pentagrama, sin proponer una asignación automática. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -32,8 +34,10 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - La CLI principal ejecuta `detect_staff_grouping_mark_candidates` para cada página y guarda `staff_grouping_mark_candidates` y su contador.
 - El overlay geométrico representa las marcas candidatas como `BRACE?`, `BRACKET?` o `GROUP?`; no las presenta como relaciones musicales confirmadas.
 - El paquete de revisión humana incluye la familia `staff_grouping_mark`, mantiene cada candidato pendiente y valida los índices de pentagrama asociados.
+- `staff_grouping_adapter` convierte marcas curvas, corchetes y trazos verticales en evidencias de identidad ligadas a cada pentagrama. La evidencia mantiene `source=visual_candidate`; no crea partes, voces ni asignaciones.
 - Se añadieron pruebas para la integración en overlay y paquete de revisión, incluidos índices inexistentes y duplicados.
-- CI: ejecución [45903752937](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903752937), commit `45eee72cef309f49cc376594f57ef679afabf7c8`, resultado exitoso: **312 pruebas aprobadas**.
+- CI del recorrido CLI/overlay/revisión: ejecución [45903752937](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903752937), commit `45eee72cef309f49cc376594f57ef679afabf7c8`, resultado exitoso: **312 pruebas aprobadas**.
+- CI del adaptador de evidencia y documentación actual: ejecución [45903872219](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903872219), commit `afb236bd3c109c766e6853c72d34d50303954826`, resultado exitoso: **317 pruebas aprobadas**.
 
 ## Límites que siguen abiertos
 
