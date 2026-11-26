@@ -30,6 +30,23 @@ de pentagrama, compás y voz debe verificarse contra la partitura. No completar
 por intuición los datos que no se puedan leer: primero se resuelve la anotación
 o se deja el documento en borrador.
 
+## 3. Importar eventos anotados
+
+Preparar un archivo JSON que contenga una lista de eventos con los campos
+definidos en `annotation-dataset.md` y ejecutar:
+
+```bash
+palermo-omr-dataset import-events corpus/manifest.json \
+  --score-id clamare-dios-coro \
+  --events corpus/clamare-events.json
+```
+
+La importación valida cada evento, conserva fracciones exactas y mantiene la
+partitura en estado `draft`. No sobrescribe una partitura que ya tenga eventos
+ni permite modificar una que haya sido aprobada. Si hay que corregir una
+anotación, se debe trabajar en una copia/versionado del manifiesto, no alterar
+silenciosamente la referencia revisada.
+
 ## 3. Validar
 
 ```bash
