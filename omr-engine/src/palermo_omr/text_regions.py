@@ -95,7 +95,7 @@ def detect_text_region_candidates(
     staves: list[StaffCandidate],
     *,
     left_margin_ratio: float = 0.12,
-    top_margin_ratio: float = 0.14,
+    top_margin_ratio: float = 0.07,
     min_component_area: int = 3,
     max_component_area_spacing: float = 1.2,
     max_component_height_spacing: float = 1.8,
