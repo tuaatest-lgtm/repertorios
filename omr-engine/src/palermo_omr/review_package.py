@@ -116,6 +116,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             ("system_barline", "system_barline_candidates"),
             ("staff_system", "staff_system_candidates"),
             ("measure_span", "measure_span_candidates"),
+            ("staff_grouping_mark", "staff_grouping_mark_candidates"),
         )
         other_candidates = []
         for family, key in other_families:
@@ -151,7 +152,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                             or not 0 <= staff_index < staff_count):
                         raise ValueError(f"{key} referencia un pentagrama inexistente")
                     related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
-                elif family in {"system_barline", "staff_system"}:
+                elif family in {"system_barline", "staff_system", "staff_grouping_mark"}:
                     indices = _validated_indices(
                         value.get("staff_indices", []),
                         staff_count,
