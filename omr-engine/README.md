@@ -13,6 +13,9 @@ Motor OMR independiente para Palermo Music. Esta iteración implementa entrada P
 
 - **Evaluación musical contra anotaciones humanas**: `event_evaluation.py` mide detección, inicio, tipo, alturas (incluidos acordes), duración y asignación de voz mediante emparejamiento uno a uno. Requiere anotaciones de referencia completas; las pruebas no miden precisión real del OMR. Ver `docs/event-evaluation.md`.
 
+
+- **Seguimiento del proyecto**: `docs/project-progress.md` mantiene el porcentaje ponderado de avance, trabajo restante, alcance y criterios para actualizarlo.
+
 ## Requisitos
 
 - Python 3.11 o superior.
