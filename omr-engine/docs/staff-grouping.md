@@ -15,3 +15,7 @@ Los trazos verticales usan `max_interstaff_gap_spacing` (7.0 por defecto) para a
 Ninguna etiqueta demuestra que los pentagramas pertenezcan al piano, al coro o a otra parte. La forma curva puede confundirse con otros trazos gráficos y las puntuaciones son heurísticas, no probabilidades calibradas. El detector no reconoce etiquetas impresas, no asigna instrumentos y no identifica voces SATB.
 
 La detección depende de que los pentagramas previos sean razonables. Los candidatos requieren revisión visual y evaluación con partituras reales anotadas antes de usarse para proponer relaciones estructurales. No se conectan automáticamente con asignaciones de partes o voces.
+
+## Recorrido en la canalización
+
+La CLI principal ejecuta este detector sobre cada página y conserva los resultados en `staff_grouping_mark_candidates` y su contador. El overlay geométrico los dibuja con una etiqueta interrogativa (`BRACE?`, `BRACKET?` o `GROUP?`) y el paquete de revisión humana los incorpora como candidatos pendientes, relacionados con los índices de pentagrama detectados. Esta integración hace visible y revisable la evidencia; no cambia el estado de ninguna asignación de parte o voz.
