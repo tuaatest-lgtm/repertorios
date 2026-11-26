@@ -27,7 +27,9 @@ Por tanto, todas las propuestas requieren revisión humana. No se clasifican
 automáticamente los arcos que no cumplen las condiciones como slurs: pueden
 ser arcos editoriales, errores geométricos o detecciones incompletas.
 
-Este módulo no suma duraciones, no cambia eventos, no asigna voces, no detecta
-alturas ni tiempos desde la imagen y no está conectado al CLI ni a Sonoro.
-La suma con `sum_tied_durations` solo debe ejecutarse después de confirmar
-explícitamente los extremos y la ligadura.
+La función `build_reviewed_tie_durations` permite sumar las dos duraciones
+solo después de que una persona confirme explícitamente que el arco es una
+ligadura de prolongación y que ambas notas tienen la misma escritura musical.
+Rechaza propuestas ambiguas o confirmaciones incompletas. No modifica los
+eventos originales, no asigna voces, no detecta alturas ni tiempos desde la
+imagen y no está conectada al CLI ni a Sonoro.
