@@ -34,6 +34,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             raise ValueError("staves debe ser una lista")
         staff_count = len(staves)
         candidates = []
+        filled_candidate_ids = []
         staff_candidates = [
             {
                 "candidate_id": f"p{page_number}-staff-{index + 1}",
@@ -82,6 +83,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     "decision": None,
                     "reviewer_note": "",
                 })
+                if family == "filled_notehead":
+                    filled_candidate_ids.append(candidates[-1]["candidate_id"])
                 total_noteheads += 1
 
         # Se conserva también la geometría que relaciona símbolos y compases.
@@ -110,12 +113,12 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     indices = value.get("notehead_indices", [])
                     if not isinstance(indices, list) or any(
                         not isinstance(item, int) or isinstance(item, bool)
-                        or item < 0 or item >= len(candidates)
+                        or item < 0 or item >= len(filled_candidate_ids)
                         for item in indices
                     ):
                         raise ValueError("Un grupo de vigas referencia índices de cabezas inexistentes")
                     related_ids = [
-                        candidates[item]["candidate_id"] for item in indices
+                        filled_candidate_ids[item] for item in indices
                     ]
                 elif family in {"barline", "barline_group", "measure_span"}:
                     staff_index = value.get("staff_index")
