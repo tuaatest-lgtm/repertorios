@@ -96,7 +96,7 @@ def extract_printed_label_candidates(
     staves: list[StaffCandidate],
     *,
     dpi: int = 300,
-    max_vertical_distance_spacing: float = 3.5,
+    max_vertical_distance_spacing: float = 8.0,
     ambiguity_margin_spacing: float = 0.75,
 ) -> list[PrintedLabelCandidate]:
     """Extrae etiquetas conocidas de la capa PDF y propone pentagrama cercano.
