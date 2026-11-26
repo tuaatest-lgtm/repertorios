@@ -186,3 +186,50 @@ def test_does_not_treat_gap_between_filled_heads_as_hollow():
     candidates = detect_hollow_notehead_candidates(image, [staff])
 
     assert not candidates
+
+def test_detects_two_hollow_noteheads_sharing_one_outer_contour():
+    image = np.full((300, 500), 255, dtype=np.uint8)
+    lines = [80, 100, 120, 140, 160]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Dos cabezas de blanca en acorde: la plica une los contornos exteriores,
+    # pero cada cabeza conserva su propio hueco interior.
+    for y in (120, 140):
+        cv2.ellipse(image, (240, y), (9, 5), -20, 0, 360, 0, 2)
+    cv2.line(image, (231, 120), (231, 143), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=20.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    chord = [
+        item for item in candidates
+        if abs(item.center_x - 240) <= 2
+        and item.diatonic_step_from_bottom in (2, 4)
+    ]
+    assert len(chord) == 2
+    assert len({item.diatonic_step_from_bottom for item in chord}) == 2
+
+
+def test_detects_three_hollow_noteheads_sharing_one_outer_contour():
+    image = np.full((300, 500), 255, dtype=np.uint8)
+    lines = [80, 100, 120, 140, 160]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Acorde de tres cabezas con una plica común: tres huecos interiores.
+    for y in (120, 140, 160):
+        cv2.ellipse(image, (240, y), (9, 5), -20, 0, 360, 0, 2)
+    cv2.line(image, (231, 120), (231, 163), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=20.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    chord = [
+        item for item in candidates
+        if abs(item.center_x - 240) <= 2
+        and item.diatonic_step_from_bottom in (0, 2, 4)
+    ]
+    assert len(chord) == 3
+    assert len({item.diatonic_step_from_bottom for item in chord}) == 3
+
