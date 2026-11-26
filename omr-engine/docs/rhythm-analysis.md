@@ -13,7 +13,7 @@ Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede
 Todavía no se reconocen de forma fiable:
 - tipo y duración exacta de cada silencio;
 - ligaduras de prolongación y de expresión;
-- agrupaciones de barras compartidas entre notas y una interpretación de duración candidata basada en el recuento de barras;
+- agrupaciones de barras compartidas y segmentos parciales asociados a una sola plica; los segmentos parciales se conservan con menor confianza porque pueden confundirse con banderas u otros trazos;
 - puntillos dobles y su efecto temporal;
 - tresillos, dosillos y otros grupos irregulares;
 - valores ligados entre compases;
