@@ -105,3 +105,33 @@ def test_default_gap_threshold_keeps_widely_spaced_grand_staff_pair_together():
 
     assert len(results) == 1
     assert results[0].staff_indices == (0, 1)
+
+
+def test_curved_brace_is_matched_to_adjacent_pair_not_a_three_staff_system():
+    image = np.full((360, 600), 255, dtype=np.uint8)
+    brace_points = np.array(
+        [[35, 40], [30, 50], [30, 65], [38, 78], [45, 90],
+         [45, 100], [38, 112], [30, 125], [30, 145], [35, 195]],
+        dtype=np.int32,
+    )
+    cv2.polylines(image, [brace_points], False, 0, 2)
+    three_staves = [
+        StaffCandidate([40, 50, 60, 70, 80], 10.0, 1.0),
+        StaffCandidate([155, 165, 175, 185, 195], 10.0, 1.0),
+        StaffCandidate([270, 280, 290, 300, 310], 10.0, 1.0),
+    ]
+
+    results = detect_staff_grouping_mark_candidates(image, three_staves)
+
+    curved = [item for item in results if item.kind == "curly_brace_candidate"]
+    assert len(curved) == 1
+    assert curved[0].staff_indices == (0, 1)
+
+
+def test_validates_curved_brace_spacing_threshold():
+    import pytest
+    image = np.full((220, 600), 255, dtype=np.uint8)
+    with pytest.raises(ValueError):
+        detect_staff_grouping_mark_candidates(
+            image, two_staves(), max_brace_gap_spacing=0
+        )
