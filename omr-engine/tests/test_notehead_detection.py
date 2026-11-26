@@ -266,7 +266,7 @@ def test_detects_hollow_notehead_two_staff_spacings_above_top_line():
 
     # Nota en línea adicional, dos separaciones de pentagrama por encima.
     cv2.ellipse(image, (300, 40), (9, 5), -20, 0, 360, 0, 2)
-    cv2.line(image, (291, 40), (309, 40), 0, 1)
+    cv2.line(image, (280, 40), (320, 40), 0, 1)
     cv2.line(image, (308, 40), (308, 15), 0, 2)
 
     staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
@@ -287,7 +287,7 @@ def test_detects_hollow_notehead_two_staff_spacings_below_bottom_line():
 
     # Nota en línea adicional, dos separaciones de pentagrama por debajo.
     cv2.ellipse(image, (300, 120), (9, 5), -20, 0, 360, 0, 2)
-    cv2.line(image, (291, 120), (309, 120), 0, 1)
+    cv2.line(image, (280, 120), (320, 120), 0, 1)
     cv2.line(image, (292, 120), (292, 145), 0, 2)
 
     staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
