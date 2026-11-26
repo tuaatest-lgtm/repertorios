@@ -62,3 +62,24 @@ def test_validates_page_and_dpi(tmp_path):
         extract_printed_label_candidates(pdf_path, 0, [], dpi=72)
     with pytest.raises(ValueError, match="supera"):
         extract_printed_label_candidates(pdf_path, 2, [], dpi=72)
+
+
+def test_recognizes_labels_with_common_score_qualifiers(tmp_path):
+    pdf_path = tmp_path / "qualified.pdf"
+    make_pdf(pdf_path, [
+        (20, 120, "TENORS only"),
+        (20, 300, "Add BASSES"),
+        (20, 480, "LADIES unis."),
+    ])
+    staves = [
+        StaffCandidate([100, 110, 120, 130, 140], 10.0, 1.0),
+        StaffCandidate([280, 290, 300, 310, 320], 10.0, 1.0),
+        StaffCandidate([460, 470, 480, 490, 500], 10.0, 1.0),
+    ]
+
+    results = extract_printed_label_candidates(pdf_path, 1, staves, dpi=72)
+
+    assert [item.normalized_text for item in results] == [
+        "TENOR", "BASS", "LADIES"
+    ]
+    assert [item.staff_index for item in results] == [0, 1, 2]
