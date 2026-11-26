@@ -8,12 +8,12 @@ El módulo `palermo_omr.rhythm_symbols` añade:
 
 ## Límites actuales
 
-Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede confundirse con ruido o texto; un candidato de silencio puede ser una articulación, letra, fragmento de símbolo o artefacto. Las barras cercanas pueden pertenecer a otra nota o ser trazos de la página. La agrupación compartida ahora exige además que cada barra candidata cruce una de las posiciones geométricas esperadas de la plica; esto reduce asociaciones por mera proximidad, pero no demuestra todavía la conexión musical ni resuelve vigas parciales.
+Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede confundirse con ruido o texto; un candidato de silencio puede ser una articulación, letra, fragmento de símbolo o artefacto. Las barras cercanas pueden pertenecer a otra nota o ser trazos de la página. La agrupación compartida ahora exige además que cada barra candidata cruce una de las posiciones geométricas esperadas de la plica; esto reduce asociaciones por mera proximidad. La asociación también comprueba continuidad de tinta entre la plica y la barra, tolerando como máximo un píxel aislado sin tinta; un hueco mayor se rechaza. Esta comprobación es rasterizada y no demuestra por sí sola la conexión musical ni resuelve todas las formas de vigas parciales.
 
 Todavía no se reconocen de forma fiable:
 - tipo y duración exacta de cada silencio;
 - ligaduras de prolongación y de expresión;
-- agrupaciones de barras compartidas y segmentos parciales asociados a una sola plica; los segmentos parciales se conservan con menor confianza porque pueden confundirse con banderas u otros trazos;
+- agrupaciones de barras compartidas y segmentos parciales asociados a una sola plica; los segmentos parciales se conservan con menor confianza porque pueden confundirse con banderas u otros trazos; además, deben mostrar continuidad raster con la plica;
 - puntillos dobles y su efecto temporal;
 - tresillos, dosillos y otros grupos irregulares;
 - valores ligados entre compases;
