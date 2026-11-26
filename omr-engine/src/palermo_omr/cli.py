@@ -11,6 +11,7 @@ import cv2
 from . import __version__
 from .imaging import analyze_page, render_pdf
 from .symbols import detect_notehead_candidates
+from .visualization import draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
@@ -48,8 +49,13 @@ def main() -> int:
 
         page_data = analysis.to_dict()
         noteheads = detect_notehead_candidates(binary, analysis.staves)
+        overlay = draw_notehead_overlay(page, noteheads)
+        overlay_path = output_dir / f"page-{page_number:03d}-noteheads-overlay.png"
+        if not cv2.imwrite(str(overlay_path), overlay):
+            raise OSError(f"No se pudo escribir {overlay_path}")
         page_data["notehead_candidates"] = [item.to_dict() for item in noteheads]
         page_data["notehead_candidate_count"] = len(noteheads)
+        page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
         beam_groups = detect_beam_group_candidates(binary, analysis.staves, noteheads, rhythms)
         rhythmic_interpretations = interpret_rhythm_from_beam_groups(rhythms, beam_groups)
