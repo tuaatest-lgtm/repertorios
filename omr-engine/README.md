@@ -94,3 +94,8 @@ Se añadió `palermo_omr.voice_measure` para calcular el balance de cada voz o f
 ## Documento multipágina y continuidad explícita
 
 Se añadió `palermo_omr.score_document` para ordenar estructuras de página, enumerar sistemas en secuencia y registrar continuidades entre pentagramas solo cuando existan como propuestas, ambigüedades o confirmaciones con evidencia. La numeración global de compases también es explícita y opcional: no se deduce sumando intervalos geométricos locales. Consulta `docs/score-document.md`.
+
+
+## Evidencia para identificar pentagramas
+
+Se añadió `palermo_omr.staff_identity` para registrar etiquetas, claves, llaves, corchetes y otras evidencias, y formular propuestas de parte o voz. Las identidades solo pueden confirmarse con revisión humana explícita y evidencia asociada. El módulo no realiza todavía OCR ni reconocimiento automático de claves, llaves, piano o voces SATB. Consulta `docs/staff-identity.md`.
