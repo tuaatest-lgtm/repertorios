@@ -109,7 +109,7 @@ def test_maximum_cardinality_matching_avoids_greedy_pair_loss():
     references = [event("r0", 0), event("r1", Fraction(1, 4))]
     predictions = [
         event("p0", Fraction(1, 8)),
-        event("p1", Fraction(-0) if False else 0),
+        event("p1", 0),
     ]
     result = evaluate_score_events(
         references,
