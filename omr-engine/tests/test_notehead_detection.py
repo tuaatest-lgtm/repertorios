@@ -68,3 +68,32 @@ def test_empty_staff_returns_no_candidates():
         confidence=1.0,
     )
     assert detect_notehead_candidates(image, [staff]) == []
+
+
+def test_splits_two_touching_noteheads_displaced_by_a_second():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Acorde de segunda: las cabezas se tocan y quedan desplazadas en X/Y.
+    cv2.ellipse(image, (200, 95), (8, 5), -20, 0, 360, 0, -1)
+    cv2.ellipse(image, (207, 90), (8, 5), -20, 0, 360, 0, -1)
+    cv2.line(image, (208, 90), (208, 45), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_notehead_candidates(image, [staff])
+
+    lower = [
+        item for item in candidates
+        if abs(item.center_x - 200) <= 3 and item.diatonic_step_from_bottom == 1
+    ]
+    upper = [
+        item for item in candidates
+        if abs(item.center_x - 207) <= 3 and item.diatonic_step_from_bottom == 2
+    ]
+    assert lower, "Debe recuperar la cabeza inferior del acorde"
+    assert upper, "Debe recuperar la cabeza superior del acorde"
+    assert lower[0].center_x != upper[0].center_x
+    assert lower[0].confidence <= 0.72
+    assert upper[0].confidence <= 0.72
