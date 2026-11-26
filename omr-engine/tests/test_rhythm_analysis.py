@@ -37,3 +37,32 @@ def test_empty_input_is_rejected():
     except ValueError:
         return
     raise AssertionError("Expected ValueError")
+
+
+def test_hollow_head_with_stem_proposes_half_note():
+    image = np.full((180, 260), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (250, y), 0, 1)
+    cv2.ellipse(image, (103, 80), (9, 5), -20, 0, 360, 0, 2)
+    cv2.line(image, (110, 80), (110, 45), 0, 2)
+
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    result = analyze_rhythm_candidates(image, [staff], [_head()])[0]
+
+    assert result.notehead_fill == "hollow"
+    assert result.stem_direction == "up"
+    assert result.base_duration == "half"
+
+
+def test_hollow_head_without_stem_proposes_whole_note():
+    image = np.full((180, 260), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (250, y), 0, 1)
+    cv2.ellipse(image, (103, 80), (9, 5), -20, 0, 360, 0, 2)
+
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    result = analyze_rhythm_candidates(image, [staff], [_head()])[0]
+
+    assert result.notehead_fill == "hollow"
+    assert result.stem_direction == "none"
+    assert result.base_duration == "whole"
