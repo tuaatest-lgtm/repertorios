@@ -8,7 +8,8 @@ import sys
 
 import fitz
 
-from .annotation_dataset import AnnotatedScore, AnnotationDataset\nfrom fractions import Fraction
+from .annotation_dataset import AnnotatedScore, AnnotationDataset
+from fractions import Fraction
 
 from .dataset_evaluation import evaluate_annotation_dataset
 from .event_evaluation import ScoreEvent
