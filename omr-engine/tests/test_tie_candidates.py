@@ -94,14 +94,10 @@ def test_rejects_arc_too_far_vertically():
     assert result == ()
 
 
-def test_ambiguous_when_one_arc_matches_multiple_consecutive_pairs():
+def test_ambiguous_when_multiple_arcs_match_the_same_note_pair():
     result = build_tie_link_candidates(
-        [
-            note("a", 0, x=40),
-            note("b", 1, x=80),
-            note("c", 2, x=120),
-        ],
-        [arc(x=50, w=74)],
+        [note("a", 0, x=40), note("b", 1, x=80)],
+        [arc("arc-1"), arc("arc-2", x=51, y=65, w=32, h=8)],
     )
     assert len(result) == 2
     assert all(item.status == "ambiguous_tie_candidate" for item in result)
