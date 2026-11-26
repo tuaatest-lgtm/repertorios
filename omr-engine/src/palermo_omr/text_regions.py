@@ -80,9 +80,9 @@ def _component_regions(
         x, y, width, height, area = (int(v) for v in stats[label])
         if area < min_area or width < 2 or height < 2:
             continue
-        component_count = int(np.count_nonzero(
-            np.unique(labels[filtered[y:y + height, x:x + width] > 0])
-        ))
+        source_crop = filtered[y:y + height, x:x + width]
+        source_count, _, _, _ = cv2.connectedComponentsWithStats(source_crop, 8)
+        component_count = source_count - 1
         # A grouped blob with only one source glyph is less likely to be a word.
         if component_count < 2:
             continue
