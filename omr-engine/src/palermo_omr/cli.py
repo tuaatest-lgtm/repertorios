@@ -10,7 +10,10 @@ import cv2
 
 from . import __version__
 from .imaging import analyze_page, render_pdf
-from .symbols import (\n    detect_hollow_notehead_candidates,\n    detect_notehead_candidates,\n)
+from .symbols import (
+    detect_hollow_notehead_candidates,
+    detect_notehead_candidates,
+)
 from .visualization import draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
@@ -65,10 +68,17 @@ def main() -> int:
         page_data["hollow_notehead_overlay"] = hollow_overlay_path.name
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
+        # Las cabezas huecas se analizan aparte: la presencia de plica propone
+        # blanca; su ausencia propone redonda. No se mezclan con cabezas rellenas.
+        hollow_rhythms = analyze_rhythm_candidates(
+            binary, analysis.staves, hollow_noteheads
+        )
         beam_groups = detect_beam_group_candidates(binary, analysis.staves, noteheads, rhythms)
         rhythmic_interpretations = interpret_rhythm_from_beam_groups(rhythms, beam_groups)
         page_data["rhythm_candidates"] = [item.to_dict() for item in rhythms]
         page_data["rhythm_candidate_count"] = len(rhythms)
+        page_data["hollow_rhythm_candidates"] = [item.to_dict() for item in hollow_rhythms]
+        page_data["hollow_rhythm_candidate_count"] = len(hollow_rhythms)
         page_data["beam_group_candidates"] = [item.to_dict() for item in beam_groups]
         page_data["beam_group_candidate_count"] = len(beam_groups)
         page_data["rhythmic_interpretation_candidates"] = [item.to_dict() for item in rhythmic_interpretations]
@@ -117,6 +127,7 @@ def main() -> int:
     total_heads = sum(page["notehead_candidate_count"] for page in analyses)
     total_hollow_heads = sum(page["hollow_notehead_candidate_count"] for page in analyses)
     total_rhythms = sum(page["rhythm_candidate_count"] for page in analyses)
+    total_hollow_rhythms = sum(page["hollow_rhythm_candidate_count"] for page in analyses)
     total_beam_groups = sum(page["beam_group_candidate_count"] for page in analyses)
     total_rhythm_interpretations = sum(page["rhythmic_interpretation_candidate_count"] for page in analyses)
     total_dots = sum(len(page["augmentation_dot_candidates"]) for page in analyses)
@@ -132,7 +143,8 @@ def main() -> int:
     print(f"Pentagramas candidatos: {total_staves}")
     print(f"Cabezas de nota rellenas candidatas: {total_heads}")
     print(f"Cabezas de nota huecas candidatas (separadas): {total_hollow_heads}")
-    print(f"Análisis rítmicos candidatos: {total_rhythms}")
+    print(f"Análisis rítmicos de cabezas rellenas: {total_rhythms}")
+    print(f"Análisis rítmicos de cabezas huecas (blancas/redondas candidatas): {total_hollow_rhythms}")
     print(f"Grupos de barras compartidas candidatos: {total_beam_groups}")
     print(f"Interpretaciones rítmicas candidatas: {total_rhythm_interpretations}")
     print(f"Puntillos candidatos: {total_dots}")
