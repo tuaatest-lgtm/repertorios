@@ -86,6 +86,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     "family": family,
                     "candidate_index": index,
                     "staff_index": staff_index,
+                    "related_candidate_ids": [f"p{page_number}-staff-{staff_index + 1}"],
                     "bbox": head.get("bbox"),
                     "center_x": head.get("center_x"),
                     "center_y": head.get("center_y"),
