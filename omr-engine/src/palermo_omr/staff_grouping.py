@@ -121,7 +121,7 @@ def detect_staff_grouping_mark_candidates(
     *,
     left_margin_ratio: float = 0.18,
     max_width_spacing: float = 1.2,
-    max_interstaff_gap_spacing: float = 7.0,
+    max_interstaff_gap_spacing: float = 8.0,
 ) -> list[StaffGroupingMarkCandidate]:
     """Propone corchetes rectos, llaves curvas y trazos verticales candidatos.
 
