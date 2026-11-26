@@ -109,3 +109,8 @@ Se añadió `palermo_omr.staff_grouping` para proponer trazos verticales largos 
 ## Etiquetas musicales impresas
 
 El módulo `palermo_omr.printed_labels` extrae etiquetas conocidas desde la capa de texto PDF y propone una asociación geométrica con el pentagrama más cercano. No realiza OCR de partituras escaneadas ni confirma asignaciones de partes o voces. Consulta `docs/printed-labels.md` y los resultados exploratorios en `docs/printed-labels-validation.md`.
+
+
+## Regiones rasterizadas candidatas a texto
+
+El módulo `palermo_omr.text_regions` propone cajas de regiones tipo texto en una franja estrecha del margen izquierdo y en la cabecera superior. No lee palabras ni las clasifica como voces o instrumentos; puede incluir títulos, letras y símbolos residuales. Las asociaciones son geométricas y pueden quedar sin asignar o ambiguas. Consulta `docs/text-regions.md`.
