@@ -29,6 +29,7 @@ def test_detects_text_like_region_above_staff_without_reading_it():
     assert results[0].location_hint == "above_staff"
     assert results[0].nearby_staff_indices == (0,)
     assert results[0].association_status == "nearby_staff_candidate"
+    assert results[0].component_count == 3
     assert "no se ha leído" in results[0].warning
 
 
@@ -64,6 +65,20 @@ def test_rejects_invalid_image_and_thresholds():
         detect_text_region_candidates(image, staff(), left_margin_ratio=0)
     with pytest.raises(ValueError):
         detect_text_region_candidates(image, staff(), max_region_width_spacing=0)
+    with pytest.raises(ValueError):
+        detect_text_region_candidates(image, staff(), top_margin_ratio=1.1)
+
+
+def test_detects_page_header_text_without_assigning_it_to_a_staff():
+    image = np.full((240, 500), 255, dtype=np.uint8)
+    draw_glyph_word(image, 300, 12)
+
+    results = detect_text_region_candidates(image, staff())
+
+    assert len(results) == 1
+    assert results[0].location_hint == "page_header"
+    assert results[0].association_status == "unassigned"
+    assert results[0].nearby_staff_indices == ()
 
 
 def test_returns_empty_when_no_valid_staff_is_supplied():
