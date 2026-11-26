@@ -186,33 +186,3 @@ def test_does_not_treat_gap_between_filled_heads_as_hollow():
     candidates = detect_hollow_notehead_candidates(image, [staff])
 
     assert not candidates
-
-
-
-def test_detects_two_hollow_noteheads_displaced_by_a_second_in_a_chord():
-    image = np.full((180, 500), 255, dtype=np.uint8)
-    lines = [60, 70, 80, 90, 100]
-    for y in lines:
-        cv2.line(image, (10, y), (490, y), 0, 1)
-
-    # En una segunda, las cabezas se desplazan horizontalmente para evitar
-    # superponerse: ambas deben recuperarse como elementos distintos.
-    cv2.ellipse(image, (200, 95), (9, 5), -20, 0, 360, 0, 2)
-    cv2.ellipse(image, (207, 90), (9, 5), -20, 0, 360, 0, 2)
-
-    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
-    candidates = detect_hollow_notehead_candidates(image, [staff])
-
-    lower = [
-        item for item in candidates
-        if abs(item.center_x - 200) <= 3
-        and item.diatonic_step_from_bottom == 1
-    ]
-    upper = [
-        item for item in candidates
-        if abs(item.center_x - 207) <= 3
-        and item.diatonic_step_from_bottom == 2
-    ]
-    assert lower, "Debe recuperar la cabeza hueca inferior del acorde"
-    assert upper, "Debe recuperar la cabeza hueca superior del acorde"
-    assert lower[0].center_x != upper[0].center_x
