@@ -224,3 +224,70 @@ def build_reviewed_voice_events(
             notehead_ids=tuple(f"staff-{group.staff_index + 1}-head-{index}" for index in group.notehead_indices),
         ))
     return tuple(events)
+
+
+
+def build_reviewed_voice_events_by_voice(
+    groups: Sequence[RhythmicEventGroupCandidate],
+    *,
+    measure_index: int,
+    event_voice_ids: Mapping[str, str],
+    confirmed_event_ids: set[str] | frozenset[str],
+) -> tuple[OrderedVoiceEvent, ...]:
+    """Asigna voz por evento revisado, permitiendo varias voces en un staff.
+
+    A diferencia de build_reviewed_voice_events, esta función no exige una
+    única voz por pentagrama. event_voice_ids debe contener la asignación
+    humana explícita de cada evento confirmado. La función no deduce esas
+    asignaciones a partir de plicas, alturas o posiciones.
+    """
+    if not isinstance(measure_index, int) or isinstance(measure_index, bool) or measure_index < 0:
+        raise ValueError("measure_index debe ser un entero no negativo")
+    if not isinstance(event_voice_ids, Mapping):
+        raise ValueError("event_voice_ids debe ser un mapa de evento a voz")
+    if not isinstance(confirmed_event_ids, (set, frozenset)):
+        raise ValueError("confirmed_event_ids debe ser un conjunto de IDs revisados")
+
+    by_id = {group.event_id: group for group in groups}
+    if len(by_id) != len(groups):
+        raise ValueError("Los event_id de los grupos deben ser únicos")
+    confirmed = set(confirmed_event_ids)
+    if confirmed - set(by_id):
+        raise ValueError("La revisión referencia event_id inexistentes")
+    if set(event_voice_ids) != confirmed:
+        raise ValueError("Debe existir exactamente una asignación de voz por evento confirmado")
+
+    selected_by_voice: dict[str, list[RhythmicEventGroupCandidate]] = {}
+    for event_id in confirmed:
+        group = by_id[event_id]
+        if group.status not in {"single_note_candidate", "proposed_chord"}:
+            raise ValueError("No se puede confirmar un grupo ambiguo")
+        if group.duration_quarters_candidate is None:
+            raise ValueError("El grupo no tiene duración candidata conocida")
+        voice_id = event_voice_ids[event_id]
+        if not isinstance(voice_id, str) or not voice_id.strip():
+            raise ValueError("Cada voz asignada debe ser texto no vacío")
+        selected_by_voice.setdefault(voice_id, []).append(group)
+
+    seen_heads: set[tuple[int, int]] = set()
+    events: list[OrderedVoiceEvent] = []
+    for voice_id, voice_groups in sorted(selected_by_voice.items()):
+        voice_groups.sort(key=lambda group: (group.center_x, group.event_id))
+        for order_index, group in enumerate(voice_groups):
+            head_keys = {(group.staff_index, index) for index in group.notehead_indices}
+            if seen_heads.intersection(head_keys):
+                raise ValueError("Una cabeza de nota no puede pertenecer a dos eventos confirmados")
+            seen_heads.update(head_keys)
+            events.append(OrderedVoiceEvent(
+                event_id=group.event_id,
+                voice_id=voice_id,
+                measure_index=measure_index,
+                order_index=order_index,
+                duration_quarters=group.duration_quarters_candidate,
+                event_type="note",
+                notehead_ids=tuple(
+                    f"staff-{group.staff_index + 1}-head-{index}"
+                    for index in group.notehead_indices
+                ),
+            ))
+    return tuple(events)
