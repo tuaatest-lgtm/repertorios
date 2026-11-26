@@ -114,3 +114,8 @@ El módulo `palermo_omr.printed_labels` extrae etiquetas conocidas desde la capa
 ## Regiones rasterizadas candidatas a texto
 
 El módulo `palermo_omr.text_regions` propone cajas de regiones tipo texto en una franja estrecha del margen izquierdo y en la cabecera superior. No lee palabras ni las clasifica como voces o instrumentos; puede incluir títulos, letras y símbolos residuales. Las asociaciones son geométricas y pueden quedar sin asignar o ambiguas. Consulta `docs/text-regions.md`.
+
+
+## Evaluación de regiones de texto
+
+Se añadió `palermo_omr.text_region_evaluation` para comparar cajas geométricas del detector con anotaciones humanas mediante IoU y emparejamiento uno a uno. Calcula TP, FP, FN, precisión, cobertura, F1 e IoU media; no realiza OCR ni interpreta etiquetas. Todavía no existe un corpus real anotado, por lo que el módulo permite preparar la medición pero no demuestra el rendimiento del detector. Consulta `docs/text-region-evaluation.md`.
