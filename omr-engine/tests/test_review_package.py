@@ -56,6 +56,8 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     assert filled["rhythm_hypothesis"]["base_duration"] == "quarter"
     assert hollow["rhythm_hypothesis"]["base_duration"] == "half"
     assert filled["review_status"] == hollow["review_status"] == "pending"
+    assert filled["related_candidate_ids"] == ["p1-staff-1"]
+    assert hollow["related_candidate_ids"] == ["p1-staff-2"]
     assert filled["decision"] is hollow["decision"] is None
     assert package["pages"][0]["overlays"]["filled_noteheads"].endswith(".png")
     assert "No representan eventos" in package["review_policy"]
