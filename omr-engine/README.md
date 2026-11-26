@@ -10,6 +10,9 @@ Motor OMR independiente para Palermo Music. Esta iteración implementa entrada P
 
 - **Silencios revisados por voz**: `rest_events.py` convierte candidatos geométricos en eventos temporales solo con confirmación humana de símbolo, duración, voz, compás y orden. Ver `docs/rest-events.md`.
 
+
+- **Evaluación musical contra anotaciones humanas**: `event_evaluation.py` mide detección, inicio, tipo, alturas (incluidos acordes), duración y asignación de voz mediante emparejamiento uno a uno. Requiere anotaciones de referencia completas; las pruebas no miden precisión real del OMR. Ver `docs/event-evaluation.md`.
+
 ## Requisitos
 
 - Python 3.11 o superior.
