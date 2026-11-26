@@ -103,3 +103,57 @@ def test_init_rejects_missing_or_invalid_pdf(tmp_path):
             invalid_pdf, tmp_path / "dataset.json",
             score_id="x", split="train",
         )
+
+
+def test_import_events_populates_draft_without_approving_it(tmp_path):
+    from palermo_omr.annotation_cli import import_score_events
+
+    manifest = tmp_path / "dataset.json"
+    events_file = tmp_path / "events.json"
+    dataset = AnnotationDataset("0.1", (
+        AnnotatedScore(
+            score_id="score-01", source_sha256="a" * 64, page_count=1,
+            split="test", annotation_version="1.0", review_status="draft",
+            events=(),
+        ),
+    ))
+    manifest.write_text(json.dumps(dataset.to_dict()), encoding="utf-8")
+    events_file.write_text(json.dumps([{
+        "event_id": "e1", "page_number": 1, "staff_index": 0,
+        "measure_index": 0, "onset_quarters": "1/2",
+        "event_type": "note", "pitches_midi": [60, 64],
+        "duration_quarters": "3/2", "voice_id": "piano-right",
+    }]), encoding="utf-8")
+    imported = import_score_events(manifest, "score-01", events_file)
+    event = imported.scores[0].events[0]
+    assert event.pitches_midi == (60, 64)
+    assert event.onset_quarters.numerator == 1
+    assert event.duration_quarters.numerator == 3
+    assert imported.scores[0].review_status == "draft"
+
+
+def test_import_events_rejects_duplicate_or_reviewed_score(tmp_path):
+    from dataclasses import replace
+    from palermo_omr.annotation_cli import import_score_events
+
+    manifest = tmp_path / "dataset.json"
+    events_file = tmp_path / "events.json"
+    dataset = AnnotationDataset("0.1", (
+        AnnotatedScore(
+            score_id="score-01", source_sha256="a" * 64, page_count=1,
+            split="test", annotation_version="1.0", review_status="draft",
+            events=(),
+        ),
+    ))
+    manifest.write_text(json.dumps(dataset.to_dict()), encoding="utf-8")
+    events_file.write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError, match="lista JSON no vacía"):
+        import_score_events(manifest, "score-01", events_file)
+
+    reviewed = replace(dataset.scores[0], review_status="reviewed")
+    manifest.write_text(
+        json.dumps(AnnotationDataset("0.1", (reviewed,)).to_dict()),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="ya revisada"):
+        import_score_events(manifest, "score-01", events_file)
