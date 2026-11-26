@@ -71,3 +71,8 @@ Se añadió `palermo_omr.measure_validation`, una capa matemática independiente
 ## Geometría de compases
 
 Consulta `docs/measure-layout.md` para conocer cómo se detectan y agrupan las barras candidatas y qué limitaciones tienen los intervalos resultantes.
+
+
+## Inferencia de una duración faltante
+
+Se añadió `palermo_omr.duration_completion` para calcular el residuo métrico de un compás con fracciones exactas. Solo asigna ese residuo a una nota cuando exactamente un evento de la misma voz y compás permanece sin duración; si faltan varios, informa el residuo sin inventar cómo repartirlo. Requiere que silencios, puntillos, tresillos y ligaduras estén contabilizados previamente. No está conectado todavía al análisis de imágenes ni al CLI. Consulta `docs/duration-completion.md`.
