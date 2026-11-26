@@ -157,3 +157,55 @@ def test_import_events_rejects_duplicate_or_reviewed_score(tmp_path):
     )
     with pytest.raises(ValueError, match="ya revisada"):
         import_score_events(manifest, "score-01", events_file)
+
+
+def test_evaluate_cli_adapter_writes_micro_metrics_and_per_score(tmp_path):
+    from fractions import Fraction
+    from palermo_omr.annotation_cli import evaluate_manifest
+    from palermo_omr.event_evaluation import ScoreEvent
+
+    manifest = tmp_path / "dataset.json"
+    predictions = tmp_path / "predictions.json"
+    reference = ScoreEvent(
+        event_id="ref", page_number=1, staff_index=0, measure_index=0,
+        onset_quarters=Fraction(0), event_type="note", pitches_midi=(60,),
+        duration_quarters=Fraction(1), voice_id="soprano",
+    )
+    score = AnnotatedScore(
+        score_id="score-01", source_sha256="a" * 64, page_count=1,
+        split="test", annotation_version="1.0", review_status="reviewed",
+        events=(reference,),
+    )
+    manifest.write_text(
+        json.dumps(AnnotationDataset("0.1", (score,)).to_dict()),
+        encoding="utf-8",
+    )
+    predictions.write_text(json.dumps({"score-01": [{
+        "event_id": "pred", "page_number": 1, "staff_index": 0,
+        "measure_index": 0, "onset_quarters": "0",
+        "event_type": "note", "pitches_midi": [60],
+        "duration_quarters": "1", "voice_id": "soprano",
+    }]}), encoding="utf-8")
+    report = evaluate_manifest(manifest, predictions, split="test")
+    assert report["f1"] == 1.0
+    assert report["pitch_accuracy"] == 1.0
+    assert report["per_score"][0]["score_id"] == "score-01"
+
+
+def test_evaluate_cli_adapter_rejects_malformed_predictions(tmp_path):
+    from palermo_omr.annotation_cli import evaluate_manifest
+
+    manifest = tmp_path / "dataset.json"
+    predictions = tmp_path / "predictions.json"
+    score = AnnotatedScore(
+        score_id="score-01", source_sha256="a" * 64, page_count=1,
+        split="test", annotation_version="1.0", review_status="reviewed",
+        events=(),
+    )
+    manifest.write_text(
+        json.dumps(AnnotationDataset("0.1", (score,)).to_dict()),
+        encoding="utf-8",
+    )
+    predictions.write_text('{"score-01":[{"event_id":"missing-fields"}]}')
+    with pytest.raises(ValueError, match="campos ausentes"):
+        evaluate_manifest(manifest, predictions)
