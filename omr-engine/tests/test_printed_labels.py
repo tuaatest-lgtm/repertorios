@@ -80,6 +80,6 @@ def test_recognizes_labels_with_common_score_qualifiers(tmp_path):
     results = extract_printed_label_candidates(pdf_path, 1, staves, dpi=72)
 
     assert [item.normalized_text for item in results] == [
-        "TENOR", "BASS", "LADIES"
+        "TENORS", "BASSES", "LADIES"
     ]
     assert [item.staff_index for item in results] == [0, 1, 2]
