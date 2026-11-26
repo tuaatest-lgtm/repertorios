@@ -156,7 +156,11 @@ def detect_text_region_candidates(
         center_y = y + region_height / 2
         distances = sorted(
             (
-                abs(center_y - (staff.lines_y[0] + staff.lines_y[-1]) / 2),
+                max(
+                    float(staff.lines_y[0]) - center_y,
+                    0.0,
+                    center_y - float(staff.lines_y[-1]),
+                ),
                 index,
                 staff.spacing_px,
             )
