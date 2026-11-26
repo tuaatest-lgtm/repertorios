@@ -22,9 +22,14 @@ El paquete agrupa por página:
 - nombres de los overlays para consultar la evidencia visual original.
 
 Las relaciones geométricas se guardan como candidatos independientes dentro de
-`other_candidates`, con su familia y datos originales. No se interpretan como
+`other_candidates`, con su familia, datos originales y `related_candidate_ids`
+cuando la relación se puede resolver con índices válidos. Los pentagramas se
+exponen en `staff_candidates`; las referencias usan IDs como
+`p1-staff-1` y `p1-filled_notehead-1`. Los índices fuera de rango o booleanos
+se rechazan, en lugar de crear vínculos rotos. No se interpretan como
 agrupaciones musicales confirmadas ni como numeración definitiva de compases.
-Cada elemento conserva `review_status: pending` y `decision: null`.
+Cada elemento conserva `review_status: pending` y `decision: null` y no se
+confirma automáticamente ninguna relación.
 
 Cada candidato empieza con `review_status: pending` y `decision: null`.
 La herramienta no convierte una posición diatónica en altura MIDI, no decide
