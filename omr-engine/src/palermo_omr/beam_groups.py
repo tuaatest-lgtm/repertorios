@@ -28,6 +28,40 @@ class BeamGroupCandidate:
         return asdict(self)
 
 
+def _stem_reaches_beam(
+    ink: np.ndarray,
+    head: NoteheadCandidate,
+    beam_y: float,
+    stem_x: int,
+) -> bool:
+    """Comprueba continuidad raster entre el extremo de la plica y la barra.
+
+    Se tolera como máximo un píxel aislado sin tinta para absorber pequeños
+    defectos de rasterización; huecos mayores no se consideran conexión.
+    """
+    head_y = int(round(head.center_y))
+    beam_row = int(round(beam_y))
+    y_start, y_end = sorted((beam_row, head_y))
+    if y_end - y_start < 2:
+        return False
+
+    present = []
+    for y in range(y_start, y_end + 1):
+        x0 = max(0, stem_x - 1)
+        x1 = min(ink.shape[1], stem_x + 2)
+        present.append(bool(ink[y, x0:x1].any()))
+
+    coverage = sum(present) / len(present)
+    longest_gap = current_gap = 0
+    for is_present in present:
+        if is_present:
+            current_gap = 0
+        else:
+            current_gap += 1
+            longest_gap = max(longest_gap, current_gap)
+    return coverage >= 0.84 and longest_gap <= 1
+
+
 def detect_beam_group_candidates(
     binary: np.ndarray,
     staves: list[StaffCandidate],
@@ -146,6 +180,20 @@ def detect_beam_group_candidates(
                     for stem_x in expected_stem_xs
                 )
                 if not intersects_expected_stem:
+                    continue
+
+                # Además de cruzar la posición esperada, la plica debe llegar
+                # físicamente hasta la barra en la imagen binaria. Esto evita
+                # asociar segmentos cercanos separados por un hueco visible.
+                connected_stem_x = next(
+                    (
+                        stem_x for stem_x in expected_stem_xs
+                        if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
+                        and _stem_reaches_beam(ink, head, beam_y, stem_x)
+                    ),
+                    None,
+                )
+                if connected_stem_x is None:
                     continue
 
                 matched.append(head_index)
