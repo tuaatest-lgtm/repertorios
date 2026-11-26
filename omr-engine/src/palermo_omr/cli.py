@@ -10,7 +10,7 @@ import cv2
 
 from . import __version__
 from .imaging import analyze_page, render_pdf
-from .symbols import detect_notehead_candidates
+from .symbols import (\n    detect_hollow_notehead_candidates,\n    detect_notehead_candidates,\n)
 from .visualization import draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
@@ -49,12 +49,15 @@ def main() -> int:
 
         page_data = analysis.to_dict()
         noteheads = detect_notehead_candidates(binary, analysis.staves)
+        hollow_noteheads = detect_hollow_notehead_candidates(binary, analysis.staves)
         overlay = draw_notehead_overlay(page, noteheads)
         overlay_path = output_dir / f"page-{page_number:03d}-noteheads-overlay.png"
         if not cv2.imwrite(str(overlay_path), overlay):
             raise OSError(f"No se pudo escribir {overlay_path}")
         page_data["notehead_candidates"] = [item.to_dict() for item in noteheads]
         page_data["notehead_candidate_count"] = len(noteheads)
+        page_data["hollow_notehead_candidates"] = [item.to_dict() for item in hollow_noteheads]
+        page_data["hollow_notehead_candidate_count"] = len(hollow_noteheads)
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
         beam_groups = detect_beam_group_candidates(binary, analysis.staves, noteheads, rhythms)
@@ -107,6 +110,7 @@ def main() -> int:
     )
     total_staves = sum(len(page["staves"]) for page in analyses)
     total_heads = sum(page["notehead_candidate_count"] for page in analyses)
+    total_hollow_heads = sum(page["hollow_notehead_candidate_count"] for page in analyses)
     total_rhythms = sum(page["rhythm_candidate_count"] for page in analyses)
     total_beam_groups = sum(page["beam_group_candidate_count"] for page in analyses)
     total_rhythm_interpretations = sum(page["rhythmic_interpretation_candidate_count"] for page in analyses)
@@ -121,7 +125,8 @@ def main() -> int:
     total_spans = sum(page["measure_span_candidate_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
-    print(f"Cabezas de nota candidatas: {total_heads}")
+    print(f"Cabezas de nota rellenas candidatas: {total_heads}")
+    print(f"Cabezas de nota huecas candidatas (separadas): {total_hollow_heads}")
     print(f"Análisis rítmicos candidatos: {total_rhythms}")
     print(f"Grupos de barras compartidas candidatos: {total_beam_groups}")
     print(f"Interpretaciones rítmicas candidatas: {total_rhythm_interpretations}")
