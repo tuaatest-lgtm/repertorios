@@ -292,7 +292,7 @@ def detect_hollow_notehead_candidates(
 
             x, y, w, h = cv2.boundingRect(contour)
             if not (
-                spacing * 0.60 <= w <= spacing * 1.35
+                spacing * 0.60 <= w <= spacing * 1.90
                 and spacing * 0.30 <= h <= spacing * 0.90
             ):
                 continue
