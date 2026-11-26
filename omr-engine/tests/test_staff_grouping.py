@@ -16,7 +16,8 @@ def test_detects_long_vertical_mark_at_left_of_two_staff_system():
     image = np.full((220, 600), 255, dtype=np.uint8)
     cv2.line(image, (35, 40), (35, 165), 0, 2)
     results = detect_staff_grouping_mark_candidates(image, two_staves())
-    assert results == []
+    assert len(results) == 1
+    assert results[0].staff_indices == (0, 1)
     assert results[0].kind == "vertical_grouping_mark_candidate"
     assert "no confirma" in results[0].warning
 
@@ -102,8 +103,7 @@ def test_vertical_grouping_does_not_merge_overwide_staff_pair():
 
     results = detect_staff_grouping_mark_candidates(image, wide_pair)
 
-    assert len(results) == 1
-    assert results[0].staff_indices == (0, 1)
+    assert results == []
 
 
 def test_curved_brace_is_matched_to_adjacent_pair_not_a_three_staff_system():
