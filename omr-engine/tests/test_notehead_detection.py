@@ -169,3 +169,20 @@ def test_hollow_notehead_detector_rejects_oversized_hollow_symbol():
     candidates = detect_hollow_notehead_candidates(image, [staff])
 
     assert not candidates
+
+
+def test_does_not_treat_gap_between_filled_heads_as_hollow():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Dos cabezas rellenas próximas pueden dejar un hueco irregular entre ellas.
+    cv2.ellipse(image, (220, 90), (9, 5), -20, 0, 360, 0, -1)
+    cv2.ellipse(image, (220, 100), (9, 5), -20, 0, 360, 0, -1)
+    cv2.line(image, (228, 90), (228, 45), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    assert not candidates
