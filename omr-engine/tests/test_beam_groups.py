@@ -99,3 +99,23 @@ def test_counts_parallel_shared_beams(beam_count):
     assert len(groups) == 1
     assert groups[0].notehead_indices == [0, 1]
     assert groups[0].beam_count_candidate == beam_count
+
+
+@pytest.mark.parametrize("gap_px", [2, 3, 4])
+def test_rejects_partial_beam_separated_from_stem_by_visible_gap(gap_px):
+    image, staves, heads, rhythms = _fixture(with_beam=False)
+    # Separa el extremo inferior de la barra del extremo superior de la plica.
+    cv2.line(image, (112, 35), (132, 35), 0, 3)
+    image[35:80, 112] = 255
+    cv2.line(image, (112, 35 + gap_px), (112, 80), 0, 2)
+    groups = detect_beam_group_candidates(image, staves, heads, rhythms)
+    assert groups == []
+
+
+def test_rejects_shared_beam_when_one_stem_does_not_reach_it():
+    image, staves, heads, rhythms = _fixture(with_beam=False)
+    cv2.line(image, (112, 35), (152, 35), 0, 3)
+    image[35:80, 152] = 255
+    cv2.line(image, (152, 39), (152, 80), 0, 2)
+    groups = detect_beam_group_candidates(image, staves, heads, rhythms)
+    assert all(group.notehead_indices != [0, 1] for group in groups)
