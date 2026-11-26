@@ -6,10 +6,10 @@
 
 La primera versión reconoce coincidencias exactas normalizadas para etiquetas frecuentes:
 
-- Voces o grupos vocales: `MALE SOLO`, `FEMALE SOLO`, `LADIES`, `WOMEN`, `MEN`, `SOPRANO(S)`, `ALTO(S)`, `CONTRALTO`, `TENOR(S)`, `BASS(ES)`, `BARITONE`.
+- Voces o grupos vocales: `MALE SOLO`, `FEMALE SOLO`, `LADIES`, `WOMEN`, `MEN`, `SOPRANO(S)`, `ALTO(S)`, `CONTRALTO`, `TENOR(S)`, `BASS(ES)`, `BARITONE` y las abreviaturas SATB aisladas `S`, `A`, `T`, `B`.
 - Instrumentos: `PIANO`, `KEYBOARD`, `ORGAN`.
 
-La normalización ignora mayúsculas, acentos y puntuación. También admite calificadores editoriales frecuentes como `Add`, `only` y `unis.` alrededor de una etiqueta reconocida. No reconoce frases libres ni variantes que no estén en el vocabulario explícito.
+La normalización ignora mayúsculas, acentos y puntuación. También admite calificadores editoriales frecuentes como `Add`, `only` y `unis.` alrededor de una etiqueta reconocida. Las abreviaturas de una sola letra se reconocen únicamente cuando forman una línea de texto independiente; no se buscan dentro de otras palabras. No reconoce frases libres ni variantes que no estén en el vocabulario explícito.
 
 ## Asociación a pentagramas
 
