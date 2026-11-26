@@ -22,3 +22,9 @@
 No reconoce letras, palabras, claves ni nombres de voces. Una región puede corresponder a una etiqueta, un número, una indicación editorial, un símbolo musical o ruido del escaneo. El detector se restringe al margen izquierdo y a una franja superior estrecha (7% de la página por defecto). Puede no encontrar etiquetas centradas encima de sistemas inferiores o impresas en otras zonas. La franja superior puede incluir títulos, letras de canciones u otras indicaciones editoriales: no debe tratarse como un detector de etiquetas específico. Las cajas requieren inspección visual y no se convierten en `StaffIdentityEvidence` hasta que exista una lectura verificable del contenido.
 
 El módulo no está conectado al CLI, no modifica la estructura musical y no se integra con Sonoro.
+
+## Estado de validación
+
+Las pruebas automatizadas actuales usan imágenes sintéticas para comprobar agrupación de componentes, cajas en cabecera, proximidad y ambigüedad. Todavía no hay un conjunto de partituras verdaderamente escaneadas con regiones de texto anotadas por una persona, por lo que no se conocen precisión ni cobertura. Los PDF vectoriales renderizados a imagen no sustituyen esa validación: contienen símbolos musicales y texto tipográfico mucho más limpios que un escaneo real.
+
+El detector se mantiene fuera del CLI y no debe usarse para generar identidades musicales. El siguiente paso de calidad es crear un pequeño conjunto de recortes reales anotados y medir falsos positivos antes de ampliar su alcance.
