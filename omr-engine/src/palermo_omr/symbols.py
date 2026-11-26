@@ -267,6 +267,7 @@ def detect_hollow_notehead_candidates(
     cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, close_kernel)
 
     results: list[NoteheadCandidate] = []
+    ledger_masks: dict[int, np.ndarray] = {}
     for staff_index, staff in enumerate(staves):
         spacing = float(staff.spacing_px)
         if len(staff.lines_y) != 5 or spacing <= 1:
@@ -282,13 +283,15 @@ def detect_hollow_notehead_candidates(
         )
         roi = cleaned[top:bottom, :]
         ledger_kernel_width = max(5, int(round(spacing * 1.15)) | 1)
-        ledger_mask = cv2.morphologyEx(
-            cleaned,
-            cv2.MORPH_OPEN,
-            cv2.getStructuringElement(
-                cv2.MORPH_RECT, (ledger_kernel_width, 1)
-            ),
-        )
+        if ledger_kernel_width not in ledger_masks:
+            ledger_masks[ledger_kernel_width] = cv2.morphologyEx(
+                cleaned,
+                cv2.MORPH_OPEN,
+                cv2.getStructuringElement(
+                    cv2.MORPH_RECT, (ledger_kernel_width, 1)
+                ),
+            )
+        ledger_mask = ledger_masks[ledger_kernel_width]
         contours, hierarchy = cv2.findContours(
             roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
         )
