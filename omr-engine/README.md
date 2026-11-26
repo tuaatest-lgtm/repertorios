@@ -119,3 +119,13 @@ El módulo `palermo_omr.text_regions` propone cajas de regiones tipo texto en un
 ## Evaluación de regiones de texto
 
 Se añadió `palermo_omr.text_region_evaluation` para comparar cajas geométricas del detector con anotaciones humanas mediante IoU y emparejamiento uno a uno. Calcula TP, FP, FN, precisión, cobertura, F1 e IoU media; no realiza OCR ni interpreta etiquetas. Todavía no existe un corpus real anotado, por lo que el módulo permite preparar la medición pero no demuestra el rendimiento del detector. Consulta `docs/text-region-evaluation.md`.
+
+
+## Agrupación de ataques y acordes candidatos
+
+El módulo `palermo_omr.rhythmic_event_groups` propone agrupar cabezas cercanas
+del mismo pentagrama en posibles ataques/acordes, conserva ambigüedades cuando
+las plicas o duraciones no concuerdan y nunca asigna voces por sí solo. La
+posición horizontal solo sirve para proponer el agrupamiento; el tiempo musical
+debe derivarse después a partir de duraciones conocidas por voz. Consulta
+`docs/rhythmic-event-groups.md`.
