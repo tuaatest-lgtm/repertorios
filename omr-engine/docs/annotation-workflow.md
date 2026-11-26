@@ -78,6 +78,24 @@ El manifiesto revisado puede cargarse con `AnnotationDataset.from_dict` y
 pasarse a `evaluate_annotation_dataset`, con las predicciones agrupadas por
 `score_id` y una partición explícita. Consultar `dataset-evaluation.md`.
 
+## 6. Ejecutar evaluación desde la CLI
+
+Preparar un archivo JSON de predicciones con un objeto por `score_id`, donde
+cada valor sea una lista de eventos con el mismo esquema de `ScoreEvent`.
+Luego ejecutar:
+
+```bash
+palermo-omr-dataset evaluate corpus/manifest.json \
+  --predictions corpus/predictions.json \
+  --split test \
+  --output reports/test-metrics.json
+```
+
+El comando solo acepta manifiestos estrictamente revisados, restringe la
+evaluación a una partición y genera métricas agregadas y desglose por partitura.
+No ejecuta el detector de imágenes: las predicciones deben proceder de la
+canalización que se esté evaluando.
+
 ## Alcance y honestidad de resultados
 
 Las pruebas verifican creación de manifiestos, integridad de hash, páginas,
