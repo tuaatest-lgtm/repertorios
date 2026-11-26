@@ -149,7 +149,7 @@ def test_review_package_includes_relationship_and_measure_geometry_candidates():
 @pytest.mark.parametrize(
     ("family_key", "candidate"),
     [
-        ("beam_group_candidates", {"notehead_indices": [4]}),
+        ("beam_group_candidates", {"notehead_indices": [1]}),
         ("barline_group_candidates", {"staff_index": 4}),
         ("system_barline_candidates", {"staff_indices": [0, 4]}),
         ("staff_system_candidates", {"staff_indices": [True]}),
