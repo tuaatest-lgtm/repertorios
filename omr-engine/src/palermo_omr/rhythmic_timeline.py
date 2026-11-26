@@ -124,6 +124,12 @@ def analyze_measure_timeline(
         seen_ids.add(event.event_id)
         if not isinstance(event.voice_id, str) or not event.voice_id.strip():
             raise ValueError("Cada evento debe tener voice_id no vacío")
+        if (
+            not isinstance(event.measure_index, int)
+            or isinstance(event.measure_index, bool)
+            or event.measure_index < 0
+        ):
+            raise ValueError("El measure_index de cada evento debe ser un entero no negativo")
         if event.measure_index != measure_index:
             raise ValueError("No se pueden mezclar eventos de distintos compases")
         if event.event_type not in {"note", "rest"}:
