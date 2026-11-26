@@ -71,7 +71,7 @@ def build_reviewed_rest_events(
             raise ValueError("order_index debe ser único por voz y compás")
         seen_positions.add(position)
         if assignment.confirmed_rest_type not in allowed_types:
-            raise ValueError("confirmed_rest_type no reconocido")
+            raise ValueError("El tipo de silencio confirmado no es reconocido")
         if assignment.reviewer_confirmed is not True:
             raise ValueError("El silencio requiere confirmación humana explícita")
         value = assignment.duration_quarters
