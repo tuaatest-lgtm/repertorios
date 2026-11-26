@@ -43,3 +43,9 @@ Se añadieron pruebas para comprobar que el detector conserva los huecos interio
 
 Estas pruebas confirman el comportamiento en geometrías sintéticas controladas; **no demuestran que todos los acordes de partituras reales estén recuperados**. La revisión de la partitura de 20 páginas sigue mostrando casos que requieren inspección visual y una validación de cobertura con anotación manual.
 
+#### Cabezas huecas en líneas adicionales
+
+El área de búsqueda de cabezas huecas se amplió hasta 2.5 separaciones de pentagrama por encima y por debajo. Para evitar que el margen ampliado incorpore letras u otros símbolos cercanos, una cabeza cuyo contorno salga del margen central anterior debe tener una línea adicional horizontal que se prolongue a ambos lados de su caja.
+
+Las pruebas cubren notas huecas dos separaciones por fuera del pentagrama, con línea adicional, y rechazan un óvalo sin esa evidencia. La ampliación recupera algunos candidatos adicionales en una revisión preliminar de la partitura de 20 páginas; todavía deben revisarse visualmente y no se consideran notas confirmadas.
+
