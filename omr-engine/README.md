@@ -76,3 +76,8 @@ Consulta `docs/measure-layout.md` para conocer cómo se detectan y agrupan las b
 ## Inferencia de una duración faltante
 
 Se añadió `palermo_omr.duration_completion` para calcular el residuo métrico de un compás con fracciones exactas. Solo asigna ese residuo a una nota cuando exactamente un evento de la misma voz y compás permanece sin duración; si faltan varios, informa el residuo sin inventar cómo repartirlo. Requiere que silencios, puntillos, tresillos y ligaduras estén contabilizados previamente. No está conectado todavía al análisis de imágenes ni al CLI. Consulta `docs/duration-completion.md`.
+
+
+## Balance rítmico por voz y compás
+
+Se añadió `palermo_omr.voice_measure` para calcular el balance de cada voz o flujo rítmico por separado. Rechaza mezclar voces o compases, contabiliza silencios y solo asigna el residuo si queda exactamente un evento sin duración. No descubre todavía la voz ni el compás desde la imagen. Consulta `docs/voice-measure.md`.
