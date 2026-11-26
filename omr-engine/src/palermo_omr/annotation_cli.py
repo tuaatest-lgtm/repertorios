@@ -97,7 +97,7 @@ def confirm_score_review(
 
     if not human_review_confirmed:
         raise ValueError(
-            "Se requiere --confirm-human-review: confirma que cada evento fue contrastado visualmente"
+            "Se requiere confirmación humana mediante --confirm-human-review: confirma que cada evento fue contrastado visualmente"
         )
     dataset = _load_dataset(Path(path))
     matches = [score for score in dataset.scores if score.score_id == score_id]
