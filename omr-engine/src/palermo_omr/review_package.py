@@ -34,6 +34,19 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             raise ValueError("staves debe ser una lista")
         staff_count = len(staves)
         candidates = []
+        staff_candidates = [
+            {
+                "candidate_id": f"p{page_number}-staff-{index + 1}",
+                "family": "staff_geometry",
+                "staff_index": index,
+                "candidate_data": staff,
+                "review_status": "pending",
+                "decision": None,
+                "reviewer_note": "",
+            }
+            for index, staff in enumerate(staves)
+        ]
+        total_other += len(staff_candidates)
         for family, key, rhythm_key, interpretation_key in (
             ("filled_notehead", "notehead_candidates", "rhythm_candidates", "rhythmic_interpretation_candidates"),
             ("hollow_notehead", "hollow_notehead_candidates", "hollow_rhythm_candidates", None),
@@ -92,11 +105,41 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             for index, value in enumerate(values):
                 if not isinstance(value, dict):
                     raise ValueError(f"Cada elemento de {key} debe ser un objeto")
+                related_ids = []
+                if family == "beam_group":
+                    indices = value.get("notehead_indices", [])
+                    if not isinstance(indices, list) or any(
+                        not isinstance(item, int) or isinstance(item, bool)
+                        or item < 0 or item >= len(candidates)
+                        for item in indices
+                    ):
+                        raise ValueError("Un grupo de vigas referencia índices de cabezas inexistentes")
+                    related_ids = [
+                        candidates[item]["candidate_id"] for item in indices
+                    ]
+                elif family in {"barline", "barline_group", "measure_span"}:
+                    staff_index = value.get("staff_index")
+                    if (not isinstance(staff_index, int) or isinstance(staff_index, bool)
+                            or not 0 <= staff_index < staff_count):
+                        raise ValueError(f"{key} referencia un pentagrama inexistente")
+                    related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
+                elif family in {"system_barline", "staff_system"}:
+                    indices = value.get("staff_indices", [])
+                    if not isinstance(indices, list) or any(
+                        not isinstance(item, int) or isinstance(item, bool)
+                        or item < 0 or item >= staff_count
+                        for item in indices
+                    ):
+                        raise ValueError(f"{key} referencia pentagramas inexistentes")
+                    related_ids = [
+                        f"p{page_number}-staff-{item + 1}" for item in indices
+                    ]
                 other_candidates.append({
                     "candidate_id": f"p{page_number}-{family}-{index + 1}",
                     "family": family,
                     "candidate_index": index,
                     "candidate_data": value,
+                    "related_candidate_ids": related_ids,
                     "review_status": "pending",
                     "decision": None,
                     "reviewer_note": "",
@@ -106,6 +149,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         pages.append({
             "page_number": page_number,
             "staff_count": staff_count,
+            "staff_candidates": staff_candidates,
             "overlays": {
                 "filled_noteheads": page.get("notehead_overlay"),
                 "hollow_noteheads": page.get("hollow_notehead_overlay"),
