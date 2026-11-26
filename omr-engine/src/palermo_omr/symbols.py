@@ -281,6 +281,14 @@ def detect_hollow_notehead_candidates(
             int(round(staff.lines_y[-1] + spacing * 2.5)),
         )
         roi = cleaned[top:bottom, :]
+        ledger_kernel_width = max(5, int(round(spacing * 1.15)) | 1)
+        ledger_mask = cv2.morphologyEx(
+            cleaned,
+            cv2.MORPH_OPEN,
+            cv2.getStructuringElement(
+                cv2.MORPH_RECT, (ledger_kernel_width, 1)
+            ),
+        )
         contours, hierarchy = cv2.findContours(
             roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -324,6 +332,33 @@ def detect_hollow_notehead_candidates(
 
             center_x = x + w / 2.0
             center_y = top + y + h / 2.0
+            outside_staff_core = (
+                center_y < float(staff.lines_y[0]) - spacing * 1.5
+                or center_y > float(staff.lines_y[-1]) + spacing * 1.5
+            )
+            if outside_staff_core:
+                # Fuera del pentagrama aceptamos solo cabezas con evidencia
+                # de línea adicional; evita que letras y símbolos cercanos
+                # entren por ampliar el margen de búsqueda.
+                ledger_y0 = max(
+                    0, int(round(center_y - spacing * 0.6))
+                )
+                ledger_y1 = min(
+                    binary.shape[0],
+                    int(round(center_y + spacing * 0.6)) + 1,
+                )
+                ledger_x0 = max(
+                    0, int(round(center_x - spacing * 1.4))
+                )
+                ledger_x1 = min(
+                    binary.shape[1],
+                    int(round(center_x + spacing * 1.4)) + 1,
+                )
+                if not np.any(
+                    ledger_mask[ledger_y0:ledger_y1, ledger_x0:ledger_x1]
+                ):
+                    continue
+
             step = int(round(
                 (float(staff.lines_y[-1]) - center_y) / (spacing / 2.0)
             ))
