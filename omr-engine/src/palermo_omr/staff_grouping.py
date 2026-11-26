@@ -69,7 +69,7 @@ def _curved_brace_components(
     spacing: float,
     left_width: int,
 ) -> list[tuple[int, int, int, int, float]]:
-    """Devuelve componentes altos con desplazamiento lateral en su zona media."""
+    """Busca componentes curvos altos alineados con un par de pentagramas."""
     page_height, _ = ink.shape
     span = bottom - top + 1
     y_start = max(0, top - int(round(spacing)))
@@ -80,7 +80,13 @@ def _curved_brace_components(
 
     for label in range(1, count):
         x, y, width, height, _ = (int(v) for v in stats[label])
+        component_top = y_start + y
+        component_bottom = component_top + height - 1
         if height < span * 0.65 or height > span * 1.4:
+            continue
+        if abs(component_top - top) > spacing * 1.5:
+            continue
+        if abs(component_bottom - bottom) > spacing * 1.5:
             continue
         if width < spacing * 0.4 or width > spacing * 2.2:
             continue
@@ -90,8 +96,7 @@ def _curved_brace_components(
         for row in component:
             pixels = np.flatnonzero(row)
             if pixels.size:
-                row_centers.append(float(np.mean(pixels + x))
-                )
+                row_centers.append(float(np.mean(pixels + x)))
         if len(row_centers) < height * 0.72:
             continue
 
@@ -109,7 +114,7 @@ def _curved_brace_components(
             continue
 
         found.append((
-            x, y_start + y, width, height,
+            x, component_top, width, height,
             round(min(1.0, middle_shift / spacing), 3),
         ))
     return found
@@ -121,14 +126,16 @@ def detect_staff_grouping_mark_candidates(
     *,
     left_margin_ratio: float = 0.18,
     max_width_spacing: float = 1.2,
-    max_interstaff_gap_spacing: float = 8.0,
+    max_interstaff_gap_spacing: float = 7.0,
+    max_brace_gap_spacing: float = 8.0,
 ) -> list[StaffGroupingMarkCandidate]:
     """Propone corchetes rectos, llaves curvas y trazos verticales candidatos.
 
-    El umbral de separación entre pentagramas es configurable y local a este
-    detector. La forma curva se busca como un componente alto, estrecho y con
-    desplazamiento lateral de su zona media. Ninguna etiqueta confirma piano,
-    coro, instrumento ni relación musical entre pentagramas.
+    Los trazos verticales se agrupan por sistemas con el umbral indicado en
+    max_interstaff_gap_spacing. Las llaves curvas se buscan entre pares
+    adyacentes de pentagramas, para evitar que un tercer pentagrama cercano
+    agrande el sistema y oculte una llave que solo abarca dos pentagramas.
+    Ninguna etiqueta confirma piano, coro, instrumento ni relación musical.
     """
     if binary is None or binary.ndim != 2 or binary.size == 0:
         raise ValueError("Se requiere una imagen binaria monocroma no vacía")
@@ -138,17 +145,22 @@ def detect_staff_grouping_mark_candidates(
         raise ValueError("max_width_spacing debe ser positivo")
     if max_interstaff_gap_spacing <= 0:
         raise ValueError("max_interstaff_gap_spacing debe ser positivo")
+    if max_brace_gap_spacing <= 0:
+        raise ValueError("max_brace_gap_spacing debe ser positivo")
     if not staves:
         return []
 
-    systems = detect_staff_systems(
-        staves, max_interstaff_gap_spacing=max_interstaff_gap_spacing
+    ordered_staves = sorted(
+        enumerate(staves), key=lambda pair: pair[1].lines_y[0]
     )
     ink = cv2.bitwise_not(binary)
     page_height, page_width = binary.shape
     left_width = max(1, int(page_width * left_margin_ratio))
     results: list[StaffGroupingMarkCandidate] = []
 
+    systems = detect_staff_systems(
+        staves, max_interstaff_gap_spacing=max_interstaff_gap_spacing
+    )
     for system in systems:
         indices = tuple(sorted(system.staff_indices))
         if len(indices) < 2:
@@ -208,32 +220,50 @@ def detect_staff_grouping_mark_candidates(
                 ),
             ))
 
-        for x, y_top, width, height, curve_strength in _curved_brace_components(
-            ink, top=top, bottom=bottom, spacing=spacing, left_width=left_width
+    typical_spacing = float(np.median([
+        staff.spacing_px for _, staff in ordered_staves
+        if staff.spacing_px > 1
+    ])) if any(staff.spacing_px > 1 for _, staff in ordered_staves) else 0.0
+    if typical_spacing > 0:
+        for (first_index, first), (second_index, second) in zip(
+            ordered_staves, ordered_staves[1:]
         ):
-            y_bottom = y_top + height - 1
-            if any(
-                item.staff_indices == indices
-                and item.y_top <= y_bottom and item.y_bottom >= y_top
-                and abs(item.x - (x + width / 2)) <= spacing
-                for item in results
-            ):
+            if len(first.lines_y) != 5 or len(second.lines_y) != 5:
                 continue
-            results.append(StaffGroupingMarkCandidate(
-                x=round(x + width / 2, 2),
-                y_top=y_top,
-                y_bottom=y_bottom,
-                width_px=width,
-                staff_indices=indices,
-                vertical_coverage=round(min(1.0, height / span), 3),
-                kind="curly_brace_candidate",
-                confidence=round(min(0.72, 0.5 + curve_strength * 0.12), 3),
-                warning=(
-                    "Componente curvo compatible con una llave musical; requiere "
-                    "revisión visual. No confirma piano ni la función de los "
-                    "pentagramas agrupados."
-                ),
-            ))
+            gap = float(second.lines_y[0] - first.lines_y[-1])
+            if gap <= 0 or gap / typical_spacing > max_brace_gap_spacing:
+                continue
+            top = max(0, int(first.lines_y[0]))
+            bottom = min(page_height - 1, int(second.lines_y[-1]))
+            spacing = float(np.median([first.spacing_px, second.spacing_px]))
+            pair_indices = tuple(sorted((first_index, second_index)))
+            for x, y_top, width, height, curve_strength in _curved_brace_components(
+                ink, top=top, bottom=bottom, spacing=spacing,
+                left_width=left_width,
+            ):
+                y_bottom = y_top + height - 1
+                if any(
+                    item.staff_indices == pair_indices
+                    and item.y_top <= y_bottom and item.y_bottom >= y_top
+                    and abs(item.x - (x + width / 2)) <= spacing
+                    for item in results
+                ):
+                    continue
+                results.append(StaffGroupingMarkCandidate(
+                    x=round(x + width / 2, 2),
+                    y_top=y_top,
+                    y_bottom=y_bottom,
+                    width_px=width,
+                    staff_indices=pair_indices,
+                    vertical_coverage=round(min(1.0, height / max(1, bottom - top + 1)), 3),
+                    kind="curly_brace_candidate",
+                    confidence=round(min(0.72, 0.5 + curve_strength * 0.12), 3),
+                    warning=(
+                        "Componente curvo compatible con una llave musical; requiere "
+                        "revisión visual. No confirma piano ni la función de los "
+                        "pentagramas agrupados."
+                    ),
+                ))
 
     results.sort(key=lambda item: (item.y_top, item.x))
     return results
