@@ -143,3 +143,11 @@ La construcción de eventos temporales también admite asignación explícita de
 voz por evento mediante `build_reviewed_voice_events_by_voice`, de modo que
 un mismo pentagrama pueda contener más de una voz sin forzar una identidad
 global para todo el pentagrama. Consulta `docs/staff-voice-layers.md`.
+
+
+## Continuidad melódica candidata
+
+El módulo `palermo_omr.voice_continuity` propone enlaces entre eventos del
+mismo pentagrama mediante alturas MIDI y tiempos musicales ya resueltos.
+No asigna voces, omite acordes en esta primera versión y conserva como
+ambiguos los sucesores competidores. Consulta `docs/voice-continuity.md`.
