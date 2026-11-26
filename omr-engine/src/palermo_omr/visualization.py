@@ -12,10 +12,12 @@ def draw_notehead_overlay(
     page_image: np.ndarray,
     candidates: list[NoteheadCandidate],
 ) -> np.ndarray:
-    """Devuelve una copia de la página con cajas, centros y etiquetas de candidatos.
+    """Dibuja candidatos; etiqueta solo los de confianza inferior a 0.75.
 
     Verde: confianza >= 0.75; ámbar: >= 0.50; rojo: < 0.50.
-    Los colores solo comunican la puntuación heurística, no validación musical.
+    Se omiten etiquetas verdes para evitar saturar partituras densas. La posición
+    y puntuación de todos los candidatos permanecen en analysis.json. Los colores
+    expresan una puntuación heurística, no validación musical.
     """
     if page_image is None or page_image.size == 0:
         raise ValueError("La imagen de página está vacía")
