@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 
 from palermo_omr.imaging import StaffCandidate
-from palermo_omr.symbols import (\n    detect_hollow_notehead_candidates,\n    detect_notehead_candidates,\n)
+from palermo_omr.symbols import (
+    detect_hollow_notehead_candidates,
+    detect_notehead_candidates,
+)
 
 
 def test_proposes_notehead_and_diatonic_position():
