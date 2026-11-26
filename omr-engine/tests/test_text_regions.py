@@ -71,7 +71,7 @@ def test_rejects_invalid_image_and_thresholds():
 
 def test_detects_page_header_text_without_assigning_it_to_a_staff():
     image = np.full((240, 500), 255, dtype=np.uint8)
-    draw_glyph_word(image, 300, 12)
+    draw_glyph_word(image, 300, 5)
 
     results = detect_text_region_candidates(image, staff())
 
