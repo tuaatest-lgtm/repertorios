@@ -42,3 +42,26 @@ def test_validates_image_and_parameters():
     image = np.full((220, 600), 255, dtype=np.uint8)
     with pytest.raises(ValueError):
         detect_staff_grouping_mark_candidates(image, two_staves(), left_margin_ratio=0)
+
+
+def test_classifies_vertical_mark_with_two_external_terminals_as_square_bracket():
+    image = np.full((220, 600), 255, dtype=np.uint8)
+    cv2.line(image, (35, 38), (35, 167), 0, 2)
+    cv2.line(image, (35, 38), (46, 38), 0, 2)
+    cv2.line(image, (35, 167), (46, 167), 0, 2)
+
+    results = detect_staff_grouping_mark_candidates(image, two_staves())
+
+    assert len(results) == 1
+    assert results[0].kind == "square_bracket_candidate"
+    assert "no confirma instrumento" in results[0].warning
+
+
+def test_does_not_call_plain_vertical_mark_a_square_bracket():
+    image = np.full((220, 600), 255, dtype=np.uint8)
+    cv2.line(image, (35, 40), (35, 165), 0, 2)
+
+    results = detect_staff_grouping_mark_candidates(image, two_staves())
+
+    assert len(results) == 1
+    assert results[0].kind == "vertical_grouping_mark_candidate"
