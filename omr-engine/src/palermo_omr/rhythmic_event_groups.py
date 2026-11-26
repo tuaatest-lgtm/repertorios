@@ -117,12 +117,17 @@ def build_rhythmic_event_group_candidates(
 
             if len(cluster) > 1 and len(directions) != 1:
                 status = "ambiguous"
+                duration = "unknown"
+                duration_quarters = None
                 warnings.append(
                     "El grupo contiene direcciones de plica distintas; podría mezclar voces "
                     "independientes en un mismo pentagrama."
                 )
             elif "none" in directions:
                 status = "ambiguous" if len(cluster) > 1 else "single_note_candidate"
+                if len(cluster) > 1:
+                    duration = "unknown"
+                    duration_quarters = None
                 warnings.append("No hay dirección de plica suficiente para resolver el ataque.")
             if len(durations) > 1:
                 status = "ambiguous"
