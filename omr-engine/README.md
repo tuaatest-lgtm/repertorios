@@ -7,6 +7,9 @@ Motor OMR independiente para Palermo Music. Esta iteración implementa entrada P
 
 - **Ligaduras de prolongación candidatas**: `tie_candidates.py` cruza arcos geométricos con notas de igual altura, misma voz/pentagrama y continuidad temporal exacta. Solo propone; exige revisión humana y no suma duraciones ni se conecta al reproductor. Ver `docs/tie-candidates.md`.
 
+
+- **Silencios revisados por voz**: `rest_events.py` convierte candidatos geométricos en eventos temporales solo con confirmación humana de símbolo, duración, voz, compás y orden. Ver `docs/rest-events.md`.
+
 ## Requisitos
 
 - Python 3.11 o superior.
