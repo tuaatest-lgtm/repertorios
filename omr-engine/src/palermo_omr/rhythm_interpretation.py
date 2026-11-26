@@ -78,9 +78,17 @@ def interpret_rhythm_from_beam_groups(
             else:
                 beam_count = counts.pop()
                 duration = _BEAM_DURATIONS[beam_count]
-                confidence = min(0.78, max(0.35, rhythm.confidence * 0.75))
-                status = "candidate_from_shared_beam"
-                warnings.append("Duración sugerida por barras compartidas; requiere validación visual.")
+                if any(item[1].connection_type_candidate == "partial" for item in linked):
+                    confidence = min(0.55, max(0.25, rhythm.confidence * 0.55))
+                    status = "candidate_from_partial_beam"
+                    warnings.append(
+                        "Haz parcial asociado a una sola plica; podría ser una bandera "
+                        "u otro trazo, por lo que la duración es de confianza reducida."
+                    )
+                else:
+                    confidence = min(0.78, max(0.35, rhythm.confidence * 0.75))
+                    status = "candidate_from_shared_beam"
+                    warnings.append("Duración sugerida por barras compartidas; requiere validación visual.")
         else:
             beam_count = rhythm.beam_count
             duration = rhythm.base_duration
