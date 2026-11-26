@@ -358,15 +358,14 @@ def detect_hollow_notehead_candidates(
             )
 
         # Una línea del pentagrama puede partir el hueco en dos fragmentos.
-        # Solo fusionamos centros prácticamente coincidentes. No usamos una
-        # tolerancia vertical amplia: los acordes pueden tener cabezas a una
-        # segunda (medio espacio entre líneas) y deben conservarse separadas.
+        # Fusionamos solo fragmentos casi coincidentes; dos cabezas de segunda
+        # suelen estar desplazadas horizontalmente y se mantienen separadas.
         staff_results.sort(key=lambda item: (item.center_x, item.center_y))
         deduplicated: list[NoteheadCandidate] = []
         for candidate in staff_results:
             duplicate = any(
-                abs(candidate.center_x - previous.center_x) < spacing * 0.25
-                and abs(candidate.center_y - previous.center_y) < spacing * 0.22
+                abs(candidate.center_x - previous.center_x) < spacing * 0.30
+                and abs(candidate.center_y - previous.center_y) < spacing * 0.65
                 for previous in deduplicated
             )
             if not duplicate:
