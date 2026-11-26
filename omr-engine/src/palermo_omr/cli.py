@@ -19,6 +19,7 @@ from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
+from .staff_grouping import detect_staff_grouping_mark_candidates
 from .measure_layout import (
     classify_barline_groups,
     detect_barline_candidates,
@@ -91,6 +92,7 @@ def main() -> int:
         staff_systems = detect_staff_systems(analysis.staves)
         system_barlines = group_system_barlines(barlines, analysis.staves)
         measure_spans = infer_measure_spans(barlines)
+        grouping_marks = detect_staff_grouping_mark_candidates(binary, analysis.staves)
         page_data["augmentation_dot_candidates"] = [item.to_dict() for item in dots]
         page_data["rest_shape_candidates"] = [item.to_dict() for item in rests]
         page_data["tie_slur_shape_candidates"] = [item.to_dict() for item in tie_slurs]
@@ -103,6 +105,8 @@ def main() -> int:
         page_data["system_barline_candidates"] = [item.to_dict() for item in system_barlines]
         page_data["measure_span_candidates"] = [item.to_dict() for item in measure_spans]
         page_data["measure_span_candidate_count"] = len(measure_spans)
+        page_data["staff_grouping_mark_candidates"] = [item.to_dict() for item in grouping_marks]
+        page_data["staff_grouping_mark_candidate_count"] = len(grouping_marks)
         geometry_overlay = draw_geometry_overlay(page, page_data)
         geometry_overlay_path = output_dir / f"page-{page_number:03d}-geometry-overlay.png"
         if not cv2.imwrite(str(geometry_overlay_path), geometry_overlay):
@@ -144,6 +148,7 @@ def main() -> int:
     total_tie_slurs = sum(len(page["tie_slur_shape_candidates"]) for page in analyses)
     total_barlines = sum(page["barline_candidate_count"] for page in analyses)
     total_spans = sum(page["measure_span_candidate_count"] for page in analyses)
+    total_grouping_marks = sum(page["staff_grouping_mark_candidate_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
     print(f"Cabezas de nota rellenas candidatas: {total_heads}")
@@ -158,6 +163,7 @@ def main() -> int:
     print(f"Arcos candidatos a ligadura: {total_tie_slurs}")
     print(f"Barras de compás candidatas: {total_barlines}")
     print(f"Intervalos entre barras candidatas: {total_spans}")
+    print(f"Marcas de agrupación de pentagramas candidatas: {total_grouping_marks}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
     return 0
 
