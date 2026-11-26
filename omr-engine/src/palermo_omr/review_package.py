@@ -51,7 +51,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                 if not isinstance(head, dict):
                     raise ValueError("Cada cabeza candidata debe ser un objeto")
                 staff_index = head.get("staff_index")
-                if not isinstance(staff_index, int) or not 0 <= staff_index < staff_count:
+                if (not isinstance(staff_index, int) or isinstance(staff_index, bool) or not 0 <= staff_index < staff_count):
                     raise ValueError("Una cabeza candidata referencia un pentagrama inexistente")
                 candidates.append({
                     "candidate_id": f"p{page_number}-{family}-{index + 1}",
