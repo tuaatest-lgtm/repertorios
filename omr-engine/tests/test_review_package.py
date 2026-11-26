@@ -31,9 +31,9 @@ def sample_analysis():
             "hollow_rhythm_candidates": [{
                 "base_duration": "half", "confidence": 0.5,
             }],
-            "rest_shape_candidates": [{"rest_type_candidate": "unclassified"}],
-            "tie_slur_shape_candidates": [{"confidence": 0.4}],
-            "augmentation_dot_candidates": [],
+            "rest_shape_candidates": [{"rest_type_candidate": "unclassified", "staff_index": 1}],
+            "tie_slur_shape_candidates": [{"confidence": 0.4, "staff_index": 0}],
+            "augmentation_dot_candidates": [{"associated_notehead_index": 0, "x": 28.0, "y": 23.0}],
             "barline_candidates": [],
             "beam_group_candidates": [{"beam_count_candidate": 2, "notehead_indices": [0]}],
             "barline_group_candidates": [{"group_type_candidate": "double", "staff_index": 0}],
@@ -51,7 +51,7 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     package = build_review_package(sample_analysis(), score_id="score-01")
     assert package["summary"] == {
         "page_count": 1, "notehead_candidate_count": 2,
-        "other_candidate_count": 9, "pending_count": 11,
+        "other_candidate_count": 10, "pending_count": 12,
     }
     filled, hollow = package["pages"][0]["notehead_candidates"]
     assert filled["rhythm_hypothesis"]["base_duration"] == "quarter"
@@ -112,7 +112,7 @@ def test_prepare_review_cli_runs_end_to_end_and_keeps_candidates_pending(tmp_pat
     assert "requieren revisión humana" in captured.out
     package = json.loads(output.read_text(encoding="utf-8"))
     assert package["score_id"] == "score-cli"
-    assert package["summary"]["pending_count"] == 11
+    assert package["summary"]["pending_count"] == 12
     assert all(
         candidate["review_status"] == "pending" and candidate["decision"] is None
         for page in package["pages"]
@@ -141,6 +141,12 @@ def test_review_package_includes_relationship_and_measure_geometry_candidates():
     )
     beam = next(item for item in page["other_candidates"] if item["family"] == "beam_group")
     assert beam["candidate_data"]["beam_count_candidate"] == 2
+    rest = next(item for item in page["other_candidates"] if item["family"] == "rest_shape")
+    assert rest["related_candidate_ids"] == ["p1-staff-2"]
+    arc = next(item for item in page["other_candidates"] if item["family"] == "tie_slur_shape")
+    assert arc["related_candidate_ids"] == ["p1-staff-1"]
+    dot = next(item for item in page["other_candidates"] if item["family"] == "augmentation_dot")
+    assert dot["related_candidate_ids"] == ["p1-filled_notehead-1", "p1-staff-1"]
     assert beam["related_candidate_ids"] == ["p1-filled_notehead-1"]
     assert page["staff_candidates"][0]["candidate_id"] == "p1-staff-1"
     assert page["staff_candidates"][0]["review_status"] == "pending"
@@ -154,15 +160,17 @@ def test_review_package_includes_relationship_and_measure_geometry_candidates():
     ("family_key", "candidate"),
     [
         ("beam_group_candidates", {"notehead_indices": [1]}),
+        ("augmentation_dot_candidates", {"associated_notehead_index": 1}),
         ("barline_group_candidates", {"staff_index": 4}),
         ("system_barline_candidates", {"staff_indices": [0, 4]}),
         ("system_barline_candidates", {"staff_indices": [0, 0]}),
         ("staff_system_candidates", {"staff_indices": [True]}),
         ("measure_span_candidates", {"staff_index": -1}),
+        ("rest_shape_candidates", {"staff_index": True}),
     ],
 )
 def test_review_package_rejects_broken_candidate_references(family_key, candidate):
     data = sample_analysis()
     data["pages"][0][family_key] = [candidate]
-    with pytest.raises(ValueError, match="referencia|duplicados"):
+    with pytest.raises(ValueError, match="referencia|duplicados|cabeza rellena"):
         build_review_package(data, score_id="score-invalid-references")
