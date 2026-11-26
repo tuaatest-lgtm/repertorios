@@ -81,7 +81,7 @@ def test_detects_curved_brace_shape_candidate():
     assert len(results) == 1
     assert results[0].kind == "curly_brace_candidate"
     assert results[0].staff_indices == (0, 1)
-    assert "no confirma piano" in results[0].warning
+    assert "No confirma piano" in results[0].warning
 
 
 def test_validates_system_spacing_threshold():
