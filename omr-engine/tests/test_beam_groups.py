@@ -43,13 +43,16 @@ def test_groups_two_noteheads_connected_by_shared_beam():
     assert "candidato" in groups[0].warning.lower()
 
 
-def test_detects_partial_beam_attached_to_one_notehead():
+@pytest.mark.parametrize("beam_count", [1, 2])
+def test_detects_partial_beam_attached_to_one_notehead(beam_count):
     image, staves, heads, rhythms = _fixture(with_beam=False)
-    cv2.line(image, (112, 35), (132, 35), 0, 3)
+    for offset in range(beam_count):
+        y = 35 + offset * 7
+        cv2.line(image, (112, y), (132, y), 0, 3)
     groups = detect_beam_group_candidates(image, staves, heads, rhythms)
     assert len(groups) == 1
     assert groups[0].notehead_indices == [0]
-    assert groups[0].beam_count_candidate == 1
+    assert groups[0].beam_count_candidate == beam_count
     assert groups[0].connection_type_candidate == "partial"
     assert "haz parcial" in groups[0].warning.lower()
 
