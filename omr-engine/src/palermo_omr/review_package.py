@@ -71,11 +71,18 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                 })
                 total_noteheads += 1
 
+        # Se conserva también la geometría que relaciona símbolos y compases.
+        # Estas relaciones siguen siendo candidatos y requieren revisión humana.
         other_families = (
             ("rest_shape", "rest_shape_candidates"),
             ("tie_slur_shape", "tie_slur_shape_candidates"),
             ("augmentation_dot", "augmentation_dot_candidates"),
             ("barline", "barline_candidates"),
+            ("beam_group", "beam_group_candidates"),
+            ("barline_group", "barline_group_candidates"),
+            ("system_barline", "system_barline_candidates"),
+            ("staff_system", "staff_system_candidates"),
+            ("measure_span", "measure_span_candidates"),
         )
         other_candidates = []
         for family, key in other_families:
@@ -103,6 +110,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                 "filled_noteheads": page.get("notehead_overlay"),
                 "hollow_noteheads": page.get("hollow_notehead_overlay"),
             },
+            "staff_system_candidates": page.get("staff_system_candidates", []),
+            "measure_span_candidates": page.get("measure_span_candidates", []),
             "notehead_candidates": candidates,
             "other_candidates": other_candidates,
         })
