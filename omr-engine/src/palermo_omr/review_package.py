@@ -111,11 +111,13 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                 related_ids = []
                 if family == "beam_group":
                     indices = value.get("notehead_indices", [])
-                    if not isinstance(indices, list) or any(
-                        not isinstance(item, int) or isinstance(item, bool)
-                        or item < 0 or item >= len(filled_candidate_ids)
-                        for item in indices
-                    ):
+                    if (not isinstance(indices, list) or not indices
+                            or len(set(indices)) != len(indices) if isinstance(indices, list) else True
+                            or any(
+                                not isinstance(item, int) or isinstance(item, bool)
+                                or item < 0 or item >= len(filled_candidate_ids)
+                                for item in indices
+                            )):
                         raise ValueError("Un grupo de vigas referencia índices de cabezas inexistentes")
                     related_ids = [
                         filled_candidate_ids[item] for item in indices
@@ -128,11 +130,14 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
                 elif family in {"system_barline", "staff_system"}:
                     indices = value.get("staff_indices", [])
-                    if not isinstance(indices, list) or any(
-                        not isinstance(item, int) or isinstance(item, bool)
-                        or item < 0 or item >= staff_count
-                        for item in indices
-                    ):
+                    if (not isinstance(indices, list) or not indices
+                            or (all(isinstance(item, int) and not isinstance(item, bool) for item in indices)
+                                and len(set(indices)) != len(indices))
+                            or any(
+                                not isinstance(item, int) or isinstance(item, bool)
+                                or item < 0 or item >= staff_count
+                                for item in indices
+                            )):
                         raise ValueError(f"{key} referencia pentagramas inexistentes")
                     related_ids = [
                         f"p{page_number}-staff-{item + 1}" for item in indices
