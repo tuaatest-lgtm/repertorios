@@ -24,6 +24,19 @@ def test_shared_beam_count_maps_to_candidate_duration(beam_count, expected):
     assert all(item.beam_group_indices == (0,) for item in result)
 
 
+def test_partial_beam_produces_lower_confidence_candidate():
+    rhythms = [_rhythm()]
+    group = BeamGroupCandidate(
+        0, [0], (10, 10, 20, 3), 1, .42, "haz parcial candidato",
+        connection_type_candidate="partial",
+    )
+    result = interpret_rhythm_from_beam_groups(rhythms, [group])[0]
+    assert result.duration_candidate == "eighth"
+    assert result.status == "candidate_from_partial_beam"
+    assert result.confidence <= .55
+    assert any("confianza reducida" in warning for warning in result.warnings)
+
+
 def test_incompatible_groups_make_duration_ambiguous():
     rhythms = [_rhythm()]
     groups = [
