@@ -83,3 +83,38 @@ def test_recognizes_labels_with_common_score_qualifiers(tmp_path):
         "TENORS", "BASSES", "LADIES"
     ]
     assert [item.staff_index for item in results] == [0, 1, 2]
+
+
+def test_recognizes_standalone_satb_abbreviations(tmp_path):
+    pdf_path = tmp_path / "satb-abbreviations.pdf"
+    make_pdf(pdf_path, [
+        (20, 120, "S"),
+        (20, 300, "A"),
+        (20, 480, "T"),
+        (20, 660, "B"),
+    ])
+    staves = [
+        StaffCandidate([100, 110, 120, 130, 140], 10.0, 1.0),
+        StaffCandidate([280, 290, 300, 310, 320], 10.0, 1.0),
+        StaffCandidate([460, 470, 480, 490, 500], 10.0, 1.0),
+        StaffCandidate([640, 650, 660, 670, 680], 10.0, 1.0),
+    ]
+
+    results = extract_printed_label_candidates(pdf_path, 1, staves, dpi=72)
+
+    assert [item.normalized_text for item in results] == ["S", "A", "T", "B"]
+    assert [item.label_kind for item in results] == ["vocal"] * 4
+    assert [item.staff_index for item in results] == [0, 1, 2, 3]
+    assert all(item.association_status == "associated_candidate" for item in results)
+
+
+def test_does_not_match_satb_letters_inside_other_words(tmp_path):
+    pdf_path = tmp_path / "not-labels.pdf"
+    make_pdf(pdf_path, [
+        (20, 120, "Score"),
+        (20, 300, "Allegro"),
+        (20, 480, "Bassoon"),
+    ])
+    staff = [StaffCandidate([100, 110, 120, 130, 140], 10.0, 1.0)]
+
+    assert extract_printed_label_candidates(pdf_path, 1, staff, dpi=72) == []
