@@ -108,7 +108,7 @@ Se añadió `palermo_omr.staff_grouping` para proponer trazos verticales largos 
 
 ## Etiquetas musicales impresas
 
-El módulo `palermo_omr.printed_labels` extrae etiquetas conocidas desde la capa de texto PDF y propone una asociación geométrica con el pentagrama más cercano. No realiza OCR de partituras escaneadas ni confirma asignaciones de partes o voces. Consulta `docs/printed-labels.md` y los resultados exploratorios en `docs/printed-labels-validation.md`.
+El módulo `palermo_omr.printed_labels` extrae etiquetas conocidas desde la capa de texto PDF y propone una asociación geométrica con el pentagrama más cercano. Reconoce nombres completos y abreviaturas SATB aisladas (`S`, `A`, `T`, `B`), sin confirmar asignaciones de partes o voces. No realiza OCR de partituras escaneadas. Consulta `docs/printed-labels.md` y los resultados exploratorios, incluido MAR-007, en `docs/printed-labels-validation.md`.
 
 
 ## Regiones rasterizadas candidatas a texto
