@@ -167,6 +167,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "overlays": {
                 "filled_noteheads": page.get("notehead_overlay"),
                 "hollow_noteheads": page.get("hollow_notehead_overlay"),
+                "geometry": page.get("geometry_overlay"),
             },
             "notehead_candidates": candidates,
             "other_candidates": other_candidates,
