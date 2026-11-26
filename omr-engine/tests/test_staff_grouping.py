@@ -46,9 +46,9 @@ def test_validates_image_and_parameters():
 
 def test_classifies_vertical_mark_with_two_external_terminals_as_square_bracket():
     image = np.full((220, 600), 255, dtype=np.uint8)
-    cv2.line(image, (35, 38), (35, 167), 0, 2)
-    cv2.line(image, (35, 38), (46, 38), 0, 2)
-    cv2.line(image, (35, 167), (46, 167), 0, 2)
+    cv2.line(image, (35, 36), (35, 169), 0, 2)
+    cv2.line(image, (35, 36), (46, 36), 0, 2)
+    cv2.line(image, (35, 169), (46, 169), 0, 2)
 
     results = detect_staff_grouping_mark_candidates(image, two_staves())
 
