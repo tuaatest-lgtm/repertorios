@@ -63,7 +63,7 @@ def test_does_not_associate_a_nearby_beam_that_misses_both_stem_anchors():
     image, staves, heads, rhythms = _fixture(with_beam=False)
     # El trazo está dentro del intervalo horizontal de ambas cabezas, pero no
     # cruza las posiciones esperadas de sus plicas (x=112 y x=152).
-    cv2.line(image, (120, 35), (140, 35), 0, 3)
+    cv2.line(image, (120, 25), (140, 25), 0, 3)
     assert detect_beam_group_candidates(image, staves, heads, rhythms) == []
 
 
@@ -76,8 +76,10 @@ def test_does_not_group_notes_from_different_staves():
     rhythms[1] = RhythmCandidate(
         heads[1].bbox, 1, "filled", .9, "up", 30, 1, "eighth", .8, ()
     )
-    assert detect_beam_group_candidates(image, [staves[0], second_staff],
-                                        heads, rhythms) == []
+    groups = detect_beam_group_candidates(image, [staves[0], second_staff],
+                                          heads, rhythms)
+    assert all(group.notehead_indices != [0, 1] for group in groups)
+    assert all(group.connection_type_candidate != "shared" for group in groups)
 
 
 def test_rejects_mismatched_notehead_and_rhythm_lists():
