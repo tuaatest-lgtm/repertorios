@@ -42,6 +42,7 @@ def sample_analysis():
             "measure_span_candidates": [{"staff_index": 0, "measure_index": 0}],
             "notehead_overlay": "page-001-noteheads-overlay.png",
             "hollow_notehead_overlay": "page-001-hollow-noteheads-overlay.png",
+            "geometry_overlay": "page-001-geometry-overlay.png",
         }],
     }
 
@@ -60,6 +61,7 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     assert hollow["related_candidate_ids"] == ["p1-staff-2"]
     assert filled["decision"] is hollow["decision"] is None
     assert package["pages"][0]["overlays"]["filled_noteheads"].endswith(".png")
+    assert package["pages"][0]["overlays"]["geometry"] == "page-001-geometry-overlay.png"
     assert "No representan eventos" in package["review_policy"]
 
 
