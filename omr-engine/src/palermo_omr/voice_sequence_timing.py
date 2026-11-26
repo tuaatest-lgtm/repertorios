@@ -96,6 +96,7 @@ def derive_voice_sequence_timing(
             onset_quarters=onset,
             duration_quarters=event.duration_quarters,
             event_type=event.event_type,
+            notehead_ids=event.notehead_ids,
         ))
         if cursor is not None:
             if event.duration_quarters is None:
