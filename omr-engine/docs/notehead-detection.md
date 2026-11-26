@@ -36,3 +36,10 @@ El CLI conserva esta interpretación en `hollow_rhythm_candidates`, separada de 
 ### Acordes con cabezas huecas
 
 La revisión de la partitura de validación mostró que algunos acordes con cabezas huecas apiladas no se recuperan completos. Los intentos de corregirlo solo estrechando la deduplicación no superaron una prueba sintética representativa, por lo que esa modificación se retiró. La recuperación de acordes huecos queda como limitación conocida y requiere un método de separación de contornos más robusto antes de considerarse resuelta.
+
+#### Pruebas sintéticas de acordes huecos
+
+Se añadieron pruebas para comprobar que el detector conserva los huecos interiores como candidatos distintos cuando dos o tres cabezas comparten una plica y un contorno exterior. También se cubrió un acorde de segundas, donde las cabezas alternan su desplazamiento horizontal para no superponerse.
+
+Estas pruebas confirman el comportamiento en geometrías sintéticas controladas; **no demuestran que todos los acordes de partituras reales estén recuperados**. La revisión de la partitura de 20 páginas sigue mostrando casos que requieren inspección visual y una validación de cobertura con anotación manual.
+
