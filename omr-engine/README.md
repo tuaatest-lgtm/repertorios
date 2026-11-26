@@ -99,3 +99,8 @@ Se añadió `palermo_omr.score_document` para ordenar estructuras de página, en
 ## Evidencia para identificar pentagramas
 
 Se añadió `palermo_omr.staff_identity` para registrar etiquetas, claves, llaves, corchetes y otras evidencias, y formular propuestas de parte o voz. Las identidades solo pueden confirmarse con revisión humana explícita y evidencia asociada. El módulo no realiza todavía OCR ni reconocimiento automático de claves, llaves, piano o voces SATB. Consulta `docs/staff-identity.md`.
+
+
+## Candidatos de marcas de agrupación
+
+Se añadió `palermo_omr.staff_grouping` para proponer trazos verticales largos en el margen izquierdo de sistemas con varios pentagramas. No determina si son llaves o corchetes ni confirma que los pentagramas pertenezcan al piano o al coro. Consulta `docs/staff-grouping.md`.
