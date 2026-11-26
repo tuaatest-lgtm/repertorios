@@ -14,7 +14,7 @@ from .symbols import (
     detect_hollow_notehead_candidates,
     detect_notehead_candidates,
 )
-from .visualization import draw_notehead_overlay
+from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
@@ -103,6 +103,11 @@ def main() -> int:
         page_data["system_barline_candidates"] = [item.to_dict() for item in system_barlines]
         page_data["measure_span_candidates"] = [item.to_dict() for item in measure_spans]
         page_data["measure_span_candidate_count"] = len(measure_spans)
+        geometry_overlay = draw_geometry_overlay(page, page_data)
+        geometry_overlay_path = output_dir / f"page-{page_number:03d}-geometry-overlay.png"
+        if not cv2.imwrite(str(geometry_overlay_path), geometry_overlay):
+            raise OSError(f"No se pudo escribir {geometry_overlay_path}")
+        page_data["geometry_overlay"] = geometry_overlay_path.name
         analyses.append(page_data)
 
     report = {
