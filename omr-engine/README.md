@@ -137,3 +137,9 @@ El módulo `palermo_omr.staff_voice_layers` detecta zonas donde coexisten
 cabezas con plicas hacia arriba y abajo dentro del mismo pentagrama. Solo
 produce propuestas geométricas de posibles capas: no asigna voces ni genera
 eventos temporales. Consulta `docs/staff-voice-layers.md`.
+
+
+La construcción de eventos temporales también admite asignación explícita de
+voz por evento mediante `build_reviewed_voice_events_by_voice`, de modo que
+un mismo pentagrama pueda contener más de una voz sin forzar una identidad
+global para todo el pentagrama. Consulta `docs/staff-voice-layers.md`.
