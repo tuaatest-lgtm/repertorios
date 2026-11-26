@@ -44,17 +44,17 @@ def _component_regions(
     ink_without_staff: np.ndarray,
     *,
     left_width: int,
+    top_height: int,
     min_area: int,
     max_area: int,
     max_component_height: int,
 ) -> list[tuple[int, int, int, int, int]]:
     """Agrupa componentes próximos horizontalmente como bloques tipo texto."""
-    roi = ink_without_staff[:, :left_width]
-    if roi.size == 0:
-        return []
-
-    count, labels, stats, _ = cv2.connectedComponentsWithStats(roi, 8)
-    filtered = np.zeros(roi.shape, dtype=np.uint8)
+    search = np.zeros(ink_without_staff.shape, dtype=np.uint8)
+    search[:, :left_width] = ink_without_staff[:, :left_width]
+    search[:top_height, :] = ink_without_staff[:top_height, :]
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(search, 8)
+    filtered = np.zeros(search.shape, dtype=np.uint8)
     original_components = 0
     for label in range(1, count):
         x, y, width, height, area = (int(v) for v in stats[label])
@@ -94,7 +94,8 @@ def detect_text_region_candidates(
     binary: np.ndarray,
     staves: list[StaffCandidate],
     *,
-    left_margin_ratio: float = 0.22,
+    left_margin_ratio: float = 0.12,
+    top_margin_ratio: float = 0.14,
     min_component_area: int = 3,
     max_component_area_spacing: float = 1.2,
     max_component_height_spacing: float = 1.8,
@@ -113,6 +114,8 @@ def detect_text_region_candidates(
         raise ValueError("Se requiere una imagen binaria monocroma no vacía")
     if not 0 < left_margin_ratio <= 1:
         raise ValueError("left_margin_ratio debe estar entre 0 y 1")
+    if not 0 <= top_margin_ratio <= 1:
+        raise ValueError("top_margin_ratio debe estar entre 0 y 1")
     if min_component_area < 1:
         raise ValueError("min_component_area debe ser positivo")
     for value, name in (
@@ -134,6 +137,7 @@ def detect_text_region_candidates(
 
     height, width = binary.shape
     left_width = max(1, int(round(width * left_margin_ratio)))
+    top_height = max(1, int(round(height * top_margin_ratio)))
     typical_spacing = float(np.median([
         staff.spacing_px for _, staff in valid_staves
     ]))
@@ -142,6 +146,7 @@ def detect_text_region_candidates(
     regions = _component_regions(
         ink_without_staff,
         left_width=left_width,
+        top_height=top_height,
         min_area=min_component_area,
         max_area=max(min_component_area, int(round(typical_spacing ** 2 * max_component_area_spacing))),
         max_component_height=max(3, int(round(typical_spacing * max_component_height_spacing))),
@@ -166,15 +171,12 @@ def detect_text_region_candidates(
             )
             for index, staff in valid_staves
         )
-        if not distances:
-            continue
         nearest_distance, nearest_index, nearest_spacing = distances[0]
-        if nearest_distance > nearest_spacing * max_staff_distance_spacing:
-            continue
-
+        is_near_staff = nearest_distance <= nearest_spacing * max_staff_distance_spacing
         tied = [
             index for distance, index, spacing in distances
-            if abs(distance - nearest_distance) <= max(1.0, spacing * 0.45)
+            if is_near_staff
+            and abs(distance - nearest_distance) <= max(1.0, spacing * 0.45)
         ]
         if len(tied) > 1:
             nearby = tuple(sorted(tied))
@@ -184,22 +186,36 @@ def detect_text_region_candidates(
                 "Región tipo texto próxima a varios pentagramas; no se puede "
                 "determinar a cuál pertenece sin revisión visual."
             )
-        else:
+        elif is_near_staff:
             nearby = (nearest_index,)
             status = "nearby_staff_candidate"
             confidence = 0.48
             warning = (
-                "Bloque geométrico tipo texto en el margen izquierdo; no se "
-                "ha leído su contenido ni confirmado que sea una etiqueta musical."
+                "Bloque geométrico tipo texto; no se ha leído su contenido ni "
+                "confirmado que sea una etiqueta musical o que pertenezca a "
+                "este pentagrama."
+            )
+        else:
+            nearby = ()
+            status = "unassigned"
+            confidence = 0.25
+            warning = (
+                "Región tipo texto en margen o cabecera; no hay asociación "
+                "geométrica suficientemente cercana a un pentagrama."
             )
 
-        staff_top = staves[nearest_index].lines_y[0]
-        if y + region_height <= staff_top:
-            location_hint = "above_staff"
-        elif y >= staves[nearest_index].lines_y[-1]:
-            location_hint = "below_staff"
+        if y + region_height <= top_height:
+            location_hint = "page_header"
+        elif not is_near_staff:
+            location_hint = "unassigned_area"
         else:
-            location_hint = "beside_staff"
+            staff_top = staves[nearest_index].lines_y[0]
+            if y + region_height <= staff_top:
+                location_hint = "above_staff"
+            elif y >= staves[nearest_index].lines_y[-1]:
+                location_hint = "below_staff"
+            else:
+                location_hint = "beside_staff"
 
         results.append(TextRegionCandidate(
             region_id=f"text-region-{len(results) + 1}",
