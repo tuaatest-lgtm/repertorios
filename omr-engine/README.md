@@ -40,6 +40,7 @@ El comando genera una imagen binarizada por página y un archivo `analysis.json`
 
 - Los trazos de barras, texto, ligaduras y otros símbolos pueden producir falsos positivos.
 - Las cabezas de nota unidas a plicas o atravesadas por líneas pueden fragmentarse.
+- La recuperación de dos cabezas desplazadas que se tocan aplica filtros de compacidad para no confundir vigas diagonales con notas; sigue siendo una hipótesis geométrica y requiere validación visual. Consulta `docs/notehead-detection.md`.
 - La posición diatónica no equivale a una nota identificada: falta reconocer la clave y aplicar armadura y alteraciones desde la imagen.
 - La sugerencia de familia de silencio es de confianza baja y no distingue todavía de forma fiable todos los tipos; cuartos, corcheas, semicorcheas, silencios compuestos y símbolos fragmentados requieren un clasificador más robusto.
 - Los arcos detectados son candidatos visuales: no distinguen ligaduras de prolongación (tie) de ligaduras de expresión (slur), ni se enlazan todavía con cabezas de nota.
