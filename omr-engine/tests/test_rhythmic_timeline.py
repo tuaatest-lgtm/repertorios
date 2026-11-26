@@ -94,3 +94,21 @@ def test_rejects_nonpositive_duration_and_negative_onset():
         analyze_measure_timeline(
             [TimedRhythmicEvent("a", "s", 0, -1, 1)], 4, 4, measure_index=0
         )
+
+
+def test_serializes_exact_times_without_float_rounding():
+    event = TimedRhythmicEvent("e1", "soprano", 0, Fraction(1, 3), Fraction(2, 3))
+    result = analyze_measure_timeline([event], 4, 4, measure_index=0)
+    data = result.to_dict()
+
+    assert data["expected_quarters"] == "4"
+    assert data["events"][0]["onset_quarters"] == "1/3"
+    assert data["events"][0]["duration_quarters"] == "2/3"
+    assert data["onset_groups"][0]["onset_quarters"] == "1/3"
+
+
+@pytest.mark.parametrize("event_measure", [-1, True, 0.5])
+def test_rejects_invalid_event_measure_index(event_measure):
+    event = TimedRhythmicEvent("e1", "alto", event_measure, 0, 1)
+    with pytest.raises(ValueError, match="measure_index"):
+        analyze_measure_timeline([event], 4, 4, measure_index=0)
