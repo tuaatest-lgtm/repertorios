@@ -264,7 +264,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Permite borradores; no los habilita como ground truth de evaluación",
     )
 
-    import_parser = subparsers.add_parser(\n        "import-events", help="Importa eventos musicales desde un archivo JSON"\n    )\n    import_parser.add_argument("manifest")\n    import_parser.add_argument("--score-id", required=True)\n    import_parser.add_argument("--events", required=True)\n\n    review_parser = subparsers.add_parser(
+    import_parser = subparsers.add_parser(
+        "import-events", help="Importa eventos musicales desde un archivo JSON"
+    )
+    import_parser.add_argument("manifest")
+    import_parser.add_argument("--score-id", required=True)
+    import_parser.add_argument("--events", required=True)
+
+    review_parser = subparsers.add_parser(
         "review", help="Aprueba una partitura tras revisión humana explícita"
     )
     review_parser.add_argument("manifest")
@@ -308,7 +315,12 @@ def main(argv: list[str] | None = None) -> int:
                     f"- {score.score_id}: {score.page_count} páginas, "
                     f"{len(score.events)} eventos, {score.split}, {score.review_status}"
                 )
-        elif args.command == "import-events":\n            dataset = import_score_events(args.manifest, args.score_id, args.events)\n            score = next(item for item in dataset.scores if item.score_id == args.score_id)\n            print(f"Eventos importados: {len(score.events)}")\n            print("Estado: draft (requiere revisión humana)")\n        elif args.command == "review":
+        elif args.command == "import-events":
+            dataset = import_score_events(args.manifest, args.score_id, args.events)
+            score = next(item for item in dataset.scores if item.score_id == args.score_id)
+            print(f"Eventos importados: {len(score.events)}")
+            print("Estado: draft (requiere revisión humana)")
+        elif args.command == "review":
             dataset = confirm_score_review(
                 args.manifest, args.score_id,
                 human_review_confirmed=args.confirm_human_review,
