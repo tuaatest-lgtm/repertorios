@@ -5,7 +5,7 @@ Motor OMR independiente para Palermo Music. Esta iteración implementa entrada P
 **Estado:** prototipo geométrico 0.3.0. Incluye candidatos de cabezas, conversión de posición diatónica cuando la clave ya es conocida, análisis rítmico preliminar, grupos candidatos de barras compartidas, interpretación rítmica candidata y candidatos de puntillos, silencios, barras e intervalos de compás. Todo resultado requiere validación; no es una transcripción musical completa. No está integrado con el reproductor ni desplegado como servicio.
 
 
-- **Ligaduras de prolongación candidatas**: `tie_candidates.py` cruza arcos geométricos con notas de igual altura, misma voz/pentagrama y continuidad temporal exacta. Solo propone; exige revisión humana y no suma duraciones ni se conecta al reproductor. Ver `docs/tie-candidates.md`.
+- **Ligaduras de prolongación candidatas**: `tie_candidates.py` cruza arcos geométricos con notas de igual altura, misma voz/pentagrama y continuidad temporal exacta. Solo propone; la suma de duraciones requiere confirmación humana de que el arco es tie y ambas notas tienen la misma escritura. No se conecta al reproductor. Ver `docs/tie-candidates.md`.
 
 
 - **Silencios revisados por voz**: `rest_events.py` convierte candidatos geométricos en eventos temporales solo con confirmación humana de símbolo, duración, voz, compás y orden. Ver `docs/rest-events.md`.
