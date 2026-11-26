@@ -22,6 +22,7 @@ class BeamGroupCandidate:
     beam_count_candidate: int
     confidence: float
     warning: str
+    connection_type_candidate: str = "shared"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -150,7 +151,9 @@ def detect_beam_group_candidates(
                 matched.append(head_index)
 
             matched_tuple = tuple(sorted(set(matched), key=lambda idx: noteheads[idx].center_x))
-            if len(matched_tuple) >= 2:
+            # Una barra corta puede ser un haz parcial unido a una sola plica.
+            # Se conserva como candidato separado, nunca como grupo compartido.
+            if len(matched_tuple) >= 1:
                 segments_by_heads.setdefault(matched_tuple, []).append((x, y, w, h))
 
         for matched, segments in segments_by_heads.items():
@@ -176,7 +179,13 @@ def detect_beam_group_candidates(
                 right = max(item[0] + item[2] for item in cluster)
                 lower = max(item[1] + item[3] for item in cluster)
                 beam_count = min(4, len(cluster))
-                confidence = min(0.78, 0.48 + 0.08 * (len(matched) - 2) + 0.04 * (beam_count - 1))
+                is_partial = len(matched) == 1
+                confidence = min(
+                    0.78,
+                    (0.42 if is_partial else 0.48)
+                    + 0.08 * max(0, len(matched) - 2)
+                    + 0.04 * (beam_count - 1),
+                )
                 results.append(BeamGroupCandidate(
                     staff_index=staff_index,
                     notehead_indices=list(matched),
@@ -184,9 +193,13 @@ def detect_beam_group_candidates(
                     beam_count_candidate=beam_count,
                     confidence=round(confidence, 3),
                     warning=(
+                        "Haz parcial candidato unido a una sola plica; puede confundirse "
+                        "con una bandera o trazo y requiere validación visual."
+                        if is_partial else
                         "Grupo de barras compartidas candidato: el recuento geométrico "
                         "no confirma por sí solo figuras, subdivisión rítmica ni voces."
                     ),
+                    connection_type_candidate="partial" if is_partial else "shared",
                 ))
 
     results.sort(key=lambda item: (item.staff_index, item.bbox[0], item.bbox[1]))
