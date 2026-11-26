@@ -233,3 +233,28 @@ def test_detects_three_hollow_noteheads_sharing_one_outer_contour():
     assert len(chord) == 3
     assert len({item.diatonic_step_from_bottom for item in chord}) == 3
 
+def test_detects_hollow_second_interval_chord_with_displaced_heads():
+    image = np.full((300, 500), 255, dtype=np.uint8)
+    lines = [80, 100, 120, 140, 160]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # En una segunda, las cabezas se desplazan horizontalmente para evitar
+    # superponerse; sus huecos deben seguir siendo candidatos independientes.
+    centers = [(240, 120), (250, 130), (240, 140)]
+    for x, y in centers:
+        cv2.ellipse(image, (x, y), (9, 5), -20, 0, 360, 0, 2)
+    cv2.line(image, (259, 120), (259, 144), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=20.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    expected_steps = {2, 3, 4}
+    chord = [
+        item for item in candidates
+        if 235 <= item.center_x <= 256
+        and item.diatonic_step_from_bottom in expected_steps
+    ]
+    assert len(chord) == 3
+    assert {item.diatonic_step_from_bottom for item in chord} == expected_steps
+
