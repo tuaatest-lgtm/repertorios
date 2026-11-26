@@ -91,3 +91,17 @@ def test_validates_system_spacing_threshold():
         detect_staff_grouping_mark_candidates(
             image, two_staves(), max_interstaff_gap_spacing=0
         )
+
+
+def test_default_gap_threshold_keeps_widely_spaced_grand_staff_pair_together():
+    image = np.full((250, 600), 255, dtype=np.uint8)
+    cv2.line(image, (35, 40), (35, 195), 0, 2)
+    wide_pair = [
+        StaffCandidate([40, 50, 60, 70, 80], 10.0, 1.0),
+        StaffCandidate([155, 165, 175, 185, 195], 10.0, 1.0),
+    ]
+
+    results = detect_staff_grouping_mark_candidates(image, wide_pair)
+
+    assert len(results) == 1
+    assert results[0].staff_indices == (0, 1)
