@@ -129,3 +129,11 @@ las plicas o duraciones no concuerdan y nunca asigna voces por sí solo. La
 posición horizontal solo sirve para proponer el agrupamiento; el tiempo musical
 debe derivarse después a partir de duraciones conocidas por voz. Consulta
 `docs/rhythmic-event-groups.md`.
+
+
+## Propuestas de voces independientes en un pentagrama
+
+El módulo `palermo_omr.staff_voice_layers` detecta zonas donde coexisten
+cabezas con plicas hacia arriba y abajo dentro del mismo pentagrama. Solo
+produce propuestas geométricas de posibles capas: no asigna voces ni genera
+eventos temporales. Consulta `docs/staff-voice-layers.md`.
