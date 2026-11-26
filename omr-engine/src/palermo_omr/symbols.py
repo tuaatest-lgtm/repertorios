@@ -332,9 +332,11 @@ def detect_hollow_notehead_candidates(
 
             center_x = x + w / 2.0
             center_y = top + y + h / 2.0
+            candidate_top = top + y
+            candidate_bottom = candidate_top + h
             outside_staff_core = (
-                center_y < float(staff.lines_y[0]) - spacing * 1.5
-                or center_y > float(staff.lines_y[-1]) + spacing * 1.5
+                candidate_top < float(staff.lines_y[0]) - spacing * 1.5
+                or candidate_bottom > float(staff.lines_y[-1]) + spacing * 1.5
             )
             if outside_staff_core:
                 # Fuera del pentagrama aceptamos solo cabezas con evidencia
