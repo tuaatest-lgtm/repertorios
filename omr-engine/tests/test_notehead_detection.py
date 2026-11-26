@@ -258,3 +258,42 @@ def test_detects_hollow_second_interval_chord_with_displaced_heads():
     assert len(chord) == 3
     assert {item.diatonic_step_from_bottom for item in chord} == expected_steps
 
+def test_detects_hollow_notehead_two_staff_spacings_above_top_line():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Nota en línea adicional, dos separaciones de pentagrama por encima.
+    cv2.ellipse(image, (300, 40), (9, 5), -20, 0, 360, 0, 2)
+    cv2.line(image, (308, 40), (308, 15), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    assert any(
+        abs(item.center_x - 300) <= 2
+        and item.diatonic_step_from_bottom == 12
+        for item in candidates
+    )
+
+
+def test_detects_hollow_notehead_two_staff_spacings_below_bottom_line():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Nota en línea adicional, dos separaciones de pentagrama por debajo.
+    cv2.ellipse(image, (300, 120), (9, 5), -20, 0, 360, 0, 2)
+    cv2.line(image, (292, 120), (292, 145), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    assert any(
+        abs(item.center_x - 300) <= 2
+        and item.diatonic_step_from_bottom == -4
+        for item in candidates
+    )
+
