@@ -68,6 +68,10 @@ def test_draw_geometry_overlay_marks_candidate_families_without_mutating_source(
         "measure_span_candidates": [{
             "staff_index": 0, "x_start": 150.0, "x_end": 170.0,
         }],
+        "staff_grouping_mark_candidates": [{
+            "x": 12.0, "y_top": 28, "y_bottom": 52, "width_px": 5,
+            "kind": "curly_brace_candidate", "staff_indices": [0],
+        }],
     }
 
     overlay = draw_geometry_overlay(image, page_data)
