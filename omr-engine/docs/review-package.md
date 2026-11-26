@@ -32,7 +32,9 @@ Las relaciones geométricas se guardan como candidatos independientes dentro de
 `other_candidates`, con su familia, datos originales y `related_candidate_ids`
 cuando la relación se puede resolver con índices válidos. Los pentagramas se
 exponen en `staff_candidates`; las referencias usan IDs como
-`p1-staff-1` y `p1-filled_notehead-1`. Los índices fuera de rango o booleanos
+`p1-staff-1` y `p1-filled_notehead-1`. Los puntillos se vinculan a la cabeza
+rellena que el detector propone como asociada y a su pentagrama; los silencios,
+arcos y barras se vinculan al pentagrama indicado por su candidato geométrico. Los índices fuera de rango o booleanos
 se rechazan, en lugar de crear vínculos rotos. No se interpretan como
 agrupaciones musicales confirmadas ni como numeración definitiva de compases.
 Cada elemento conserva `review_status: pending` y `decision: null` y no se
