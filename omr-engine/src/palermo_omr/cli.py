@@ -51,6 +51,10 @@ def main() -> int:
         noteheads = detect_notehead_candidates(binary, analysis.staves)
         hollow_noteheads = detect_hollow_notehead_candidates(binary, analysis.staves)
         overlay = draw_notehead_overlay(page, noteheads)
+        hollow_overlay = draw_notehead_overlay(page, hollow_noteheads)
+        hollow_overlay_path = output_dir / f"page-{page_number:03d}-hollow-noteheads-overlay.png"
+        if not cv2.imwrite(str(hollow_overlay_path), hollow_overlay):
+            raise OSError(f"No se pudo escribir {hollow_overlay_path}")
         overlay_path = output_dir / f"page-{page_number:03d}-noteheads-overlay.png"
         if not cv2.imwrite(str(overlay_path), overlay):
             raise OSError(f"No se pudo escribir {overlay_path}")
@@ -58,6 +62,7 @@ def main() -> int:
         page_data["notehead_candidate_count"] = len(noteheads)
         page_data["hollow_notehead_candidates"] = [item.to_dict() for item in hollow_noteheads]
         page_data["hollow_notehead_candidate_count"] = len(hollow_noteheads)
+        page_data["hollow_notehead_overlay"] = hollow_overlay_path.name
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
         beam_groups = detect_beam_group_candidates(binary, analysis.staves, noteheads, rhythms)
