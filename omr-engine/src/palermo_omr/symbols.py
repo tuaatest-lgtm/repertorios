@@ -354,9 +354,28 @@ def detect_hollow_notehead_candidates(
                     binary.shape[1],
                     int(round(center_x + spacing * 1.4)) + 1,
                 )
-                if not np.any(
-                    ledger_mask[ledger_y0:ledger_y1, ledger_x0:ledger_x1]
-                ):
+                ledger_region = ledger_mask[
+                    ledger_y0:ledger_y1, ledger_x0:ledger_x1
+                ]
+                note_x0 = max(0, int(round(x)))
+                note_x1 = min(binary.shape[1], int(round(x + w)))
+                min_extension = max(2, int(round(spacing * 0.20)))
+                has_extended_ledger_line = False
+                for ledger_row in ledger_region:
+                    left_extension = int(
+                        np.count_nonzero(ledger_row[:note_x0 - ledger_x0])
+                    )
+                    right_start = max(0, note_x1 - ledger_x0)
+                    right_extension = int(
+                        np.count_nonzero(ledger_row[right_start:])
+                    )
+                    if (
+                        left_extension >= min_extension
+                        and right_extension >= min_extension
+                    ):
+                        has_extended_ledger_line = True
+                        break
+                if not has_extended_ledger_line:
                     continue
 
             step = int(round(
