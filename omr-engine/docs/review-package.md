@@ -13,6 +13,13 @@ palermo-omr-dataset prepare-review omr-output/analysis.json \
   --output review/score-01-review.json
 ```
 
+La CLI produce tres overlays PNG por página: cabezas rellenas, cabezas huecas y
+un overlay geométrico combinado para silencios/arcos, puntillos, vigas, barras,
+sistemas e intervalos de compás. El overlay geométrico diferencia familias por
+color y etiqueta las formas como candidatas; los colores no son puntuaciones
+de confianza ni validaciones. El paquete incluye sus nombres para abrirlos junto
+al PDF original.
+
 El paquete agrupa por página:
 - cabezas rellenas y huecas como familias independientes;
 - hipótesis rítmicas e interpretaciones candidatas relacionadas por índice;
@@ -48,4 +55,5 @@ solicitar la aprobación humana del documento.
 Este paquete es una interfaz de intercambio JSON, no una interfaz gráfica
 interactiva. Los PNG referenciados deben permanecer junto al `analysis.json`
 o copiarse conservando sus nombres para que los pueda abrir la herramienta
-de revisión elegida.
+de revisión elegida. El overlay geométrico es una guía de localización, no
+sustituye la inspección de los píxeles originales ni el PDF.
