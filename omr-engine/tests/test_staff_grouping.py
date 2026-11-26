@@ -134,3 +134,10 @@ def test_validates_curved_brace_spacing_threshold():
         detect_staff_grouping_mark_candidates(
             image, two_staves(), max_brace_gap_spacing=0
         )
+
+
+def test_ignores_invalid_staff_candidates_without_five_lines():
+    invalid = [StaffCandidate([], 0.0, 0.0)]
+    image = np.full((120, 300), 255, dtype=np.uint8)
+
+    assert detect_staff_grouping_mark_candidates(image, invalid) == []
