@@ -237,3 +237,136 @@ def detect_notehead_candidates(
 
     candidates.sort(key=lambda item: (item.staff_index, item.center_x, item.center_y))
     return candidates
+
+
+def detect_hollow_notehead_candidates(
+    binary: np.ndarray,
+    staves: list[StaffCandidate],
+) -> list[NoteheadCandidate]:
+    """Propone cabezas huecas mediante contornos con hueco interior.
+
+    Se eliminan primero las líneas largas del pentagrama y se cierran pequeñas
+    interrupciones del contorno. La función es independiente del detector de
+    cabezas rellenas: sus resultados no deben tratarse como notas confirmadas.
+    """
+    if binary is None or binary.ndim != 2 or binary.size == 0:
+        raise ValueError("Se requiere una imagen binaria monocroma no vacía")
+    if not staves:
+        return []
+
+    ink = (binary < 128).astype(np.uint8) * 255
+    line_width = max(25, binary.shape[1] // 6)
+    line_kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT, (line_width, 1)
+    )
+    staff_lines = cv2.morphologyEx(ink, cv2.MORPH_OPEN, line_kernel)
+    cleaned = cv2.subtract(ink, staff_lines)
+    close_kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (3, 3)
+    )
+    cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, close_kernel)
+
+    results: list[NoteheadCandidate] = []
+    for staff_index, staff in enumerate(staves):
+        spacing = float(staff.spacing_px)
+        if len(staff.lines_y) != 5 or spacing <= 1:
+            continue
+
+        top = max(0, int(round(staff.lines_y[0] - spacing * 1.5)))
+        bottom = min(
+            binary.shape[0],
+            int(round(staff.lines_y[-1] + spacing * 1.5)),
+        )
+        roi = cleaned[top:bottom, :]
+        contours, hierarchy = cv2.findContours(
+            roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
+        )
+        if hierarchy is None:
+            continue
+
+        staff_results: list[NoteheadCandidate] = []
+        for contour_index, contour in enumerate(contours):
+            parent_index = int(hierarchy[0][contour_index][3])
+            if parent_index < 0:
+                continue
+
+            x, y, w, h = cv2.boundingRect(contour)
+            if not (
+                spacing * 0.60 <= w <= spacing * 1.35
+                and spacing * 0.30 <= h <= spacing * 0.90
+            ):
+                continue
+
+            aspect = w / max(h, 1)
+            if not 0.90 <= aspect <= 2.40:
+                continue
+
+            parent_area = float(cv2.contourArea(contours[parent_index]))
+            if not (
+                spacing * spacing * 0.35
+                <= parent_area
+                <= spacing * spacing * 3.0
+            ):
+                continue
+
+            hole_area = float(cv2.contourArea(contour))
+            if hole_area < spacing * spacing * 0.08:
+                continue
+
+            center_x = x + w / 2.0
+            center_y = top + y + h / 2.0
+            step = int(round(
+                (float(staff.lines_y[-1]) - center_y) / (spacing / 2.0)
+            ))
+            snapped_y = float(staff.lines_y[-1]) - step * spacing / 2.0
+            vertical_error = abs(center_y - snapped_y) / max(spacing / 2.0, 1.0)
+            if vertical_error > 0.55:
+                continue
+
+            alignment_score = max(0.0, 1.0 - vertical_error)
+            hole_score = min(1.0, hole_area / max(spacing * spacing * 0.45, 1.0))
+            confidence = min(
+                0.68,
+                0.42 + 0.16 * alignment_score + 0.08 * hole_score,
+            )
+            box_width = max(3, int(round(spacing * 1.70)))
+            box_height = max(3, int(round(spacing * 1.10)))
+            staff_results.append(
+                NoteheadCandidate(
+                    bbox=(
+                        int(round(center_x - box_width / 2.0)),
+                        int(round(center_y - box_height / 2.0)),
+                        box_width,
+                        box_height,
+                    ),
+                    center_x=round(center_x, 2),
+                    center_y=round(center_y, 2),
+                    staff_index=staff_index,
+                    diatonic_step_from_bottom=step,
+                    fill_ratio=0.25,
+                    notehead_shape_score=round(
+                        max(0.0, 1.0 - abs(aspect - 1.35) / 1.75), 3
+                    ),
+                    confidence=round(confidence, 3),
+                )
+            )
+
+        # Una línea del pentagrama puede partir el hueco en dos fragmentos.
+        # Fusionamos solo fragmentos casi coincidentes; dos cabezas de segunda
+        # suelen estar desplazadas horizontalmente y se mantienen separadas.
+        staff_results.sort(key=lambda item: (item.center_x, item.center_y))
+        deduplicated: list[NoteheadCandidate] = []
+        for candidate in staff_results:
+            duplicate = any(
+                abs(candidate.center_x - previous.center_x) < spacing * 0.30
+                and abs(candidate.center_y - previous.center_y) < spacing * 0.65
+                for previous in deduplicated
+            )
+            if not duplicate:
+                deduplicated.append(candidate)
+        results.extend(deduplicated)
+
+    results.sort(
+        key=lambda item: (item.staff_index, item.center_x, item.center_y)
+    )
+    return results
