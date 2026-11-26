@@ -19,10 +19,10 @@ def _fixture(with_beam=True, beam_count=1):
     for x in [105, 145]:
         cv2.ellipse(image, (x, 80), (8, 5), -20, 0, 360, 0, -1)
     for x in [112, 152]:
-        cv2.line(image, (x, 80), (x, 40), 0, 2)
+        cv2.line(image, (x, 80), (x, 35), 0, 2)
     if with_beam:
         for offset in range(beam_count):
-            y = 40 + offset * 5
+            y = 35 + offset * 7
             cv2.line(image, (112, y), (152, y), 0, 3)
     staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
     rhythms = [
