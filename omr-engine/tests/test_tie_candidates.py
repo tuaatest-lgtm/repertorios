@@ -5,6 +5,8 @@ import pytest
 from palermo_omr.tie_candidates import (
     TieArcObservation,
     TieNoteObservation,
+    TieReviewConfirmation,
+    build_reviewed_tie_durations,
     build_tie_link_candidates,
 )
 
@@ -115,3 +117,43 @@ def test_validation_rejects_duplicate_ids_and_invalid_boxes():
     )
     with pytest.raises(ValueError, match="notehead_bbox"):
         build_tie_link_candidates([invalid], [])
+
+
+
+def test_tie_duration_is_summed_only_after_explicit_human_confirmation():
+    candidates = build_tie_link_candidates(
+        [note("a", 0, x=40), note("b", 1, x=80)],
+        [arc()],
+    )
+    result = build_reviewed_tie_durations(
+        candidates,
+        [TieReviewConfirmation(0, True, True, True)],
+        {"a": Fraction(1), "b": Fraction(2)},
+    )
+    assert result[0].combined_duration_quarters == Fraction(3)
+
+
+def test_tie_duration_is_not_summed_when_human_confirmation_is_incomplete():
+    candidates = build_tie_link_candidates(
+        [note("a", 0, x=40), note("b", 1, x=80)],
+        [arc()],
+    )
+    with pytest.raises(ValueError, match="misma escritura"):
+        build_reviewed_tie_durations(
+            candidates,
+            [TieReviewConfirmation(0, True, True, False)],
+            {"a": Fraction(1), "b": Fraction(2)},
+        )
+
+
+def test_ambiguous_tie_candidate_cannot_be_confirmed_or_summed():
+    candidates = build_tie_link_candidates(
+        [note("a", 0, x=40), note("b", 1, x=80)],
+        [arc("arc-1"), arc("arc-2", x=51, y=65, w=32, h=8)],
+    )
+    with pytest.raises(ValueError, match="ambigua"):
+        build_reviewed_tie_durations(
+            candidates,
+            [TieReviewConfirmation(0, True, True, True)],
+            {"a": 1, "b": 1},
+        )
