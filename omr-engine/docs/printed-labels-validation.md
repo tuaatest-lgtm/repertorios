@@ -23,3 +23,21 @@ En *Brand New Hallelujah* se encontraron indicaciones como `MALE SOLO`, `TENORS 
 - La asociación no se conecta a `ScorePart`, `ScoreVoice` ni a las asignaciones de pentagramas. Sigue siendo evidencia candidata que requiere revisión humana.
 
 El módulo no realiza OCR, no interpreta texto arbitrario y no se ha conectado al CLI. Para reconocer rótulos en partituras escaneadas hará falta una etapa visual propia adicional, con su validación independiente.
+
+
+## Caso adicional: MAR-007 - PARTITURA
+
+Se revisó el PDF de tres páginas generado mediante Quartz PDFContext de iOS. El documento contiene objetos de imagen incrustados en las tres páginas, pero también conserva texto seleccionable para los nombres de las voces y otros elementos musicales.
+
+La detección geométrica existente propuso 8 pentagramas en la página 1, 8 en la página 2 y 4 en la página 3 (20 en total). La extracción de texto permitió identificar 20 rótulos vocales:
+
+- Página 1, primer sistema: `Soprano`, `Alto`, `Tenor`, `Bass`.
+- Página 1, segundo sistema: `S`, `A`, `T`, `B`.
+- Página 2: dos sistemas con `S`, `A`, `T`, `B`.
+- Página 3: un sistema con `S`, `A`, `T`, `B`.
+
+En esta revisión exploratoria, los centros verticales de los 20 rótulos quedaron próximos a un pentagrama distinto, de acuerdo con la geometría detectada. Esto representa 20 asociaciones geométricas candidatas observadas, no 20 identidades musicales confirmadas ni una medición de precisión/recall. No existe una anotación humana independiente completa para calcular esas métricas.
+
+El caso motivó la incorporación de las abreviaturas aisladas `S`, `A`, `T`, `B` al vocabulario del módulo. La regla es exacta por línea: no se reconocen esas letras dentro de palabras. Las asociaciones siguen siendo candidatas y no crean partes, voces ni asignaciones confirmadas.
+
+La prueba del módulo usa PDFs sintéticos generados durante los tests; no incorpora el PDF de usuario al repositorio. El caso MAR-007 se conserva como validación exploratoria documentada, no como fixture binario versionado.
