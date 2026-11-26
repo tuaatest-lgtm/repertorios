@@ -17,7 +17,14 @@ El paquete agrupa por página:
 - cabezas rellenas y huecas como familias independientes;
 - hipótesis rítmicas e interpretaciones candidatas relacionadas por índice;
 - candidatos de silencios, ligaduras/arcos, puntillos y barras;
+- grupos de vigas, agrupaciones de barras y barras compartidas entre pentagramas;
+- sistemas de pentagramas e intervalos geométricos entre barras que podrían ser compases;
 - nombres de los overlays para consultar la evidencia visual original.
+
+Las relaciones geométricas se guardan como candidatos independientes dentro de
+`other_candidates`, con su familia y datos originales. No se interpretan como
+agrupaciones musicales confirmadas ni como numeración definitiva de compases.
+Cada elemento conserva `review_status: pending` y `decision: null`.
 
 Cada candidato empieza con `review_status: pending` y `decision: null`.
 La herramienta no convierte una posición diatónica en altura MIDI, no decide
