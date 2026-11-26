@@ -48,6 +48,14 @@ def test_does_not_group_nearby_notes_without_horizontal_beam():
     assert detect_beam_group_candidates(image, staves, heads, rhythms) == []
 
 
+def test_does_not_associate_a_nearby_beam_that_misses_both_stem_anchors():
+    image, staves, heads, rhythms = _fixture(with_beam=False)
+    # El trazo está dentro del intervalo horizontal de ambas cabezas, pero no
+    # cruza las posiciones esperadas de sus plicas (x=112 y x=152).
+    cv2.line(image, (120, 35), (140, 35), 0, 3)
+    assert detect_beam_group_candidates(image, staves, heads, rhythms) == []
+
+
 def test_does_not_group_notes_from_different_staves():
     image, staves, heads, rhythms = _fixture()
     second_staff = StaffCandidate([115, 125, 135, 145, 155], 10.0, 1.0)
