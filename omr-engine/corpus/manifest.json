@@ -1,0 +1,14 @@
+{
+  "dataset_version": "0.1",
+  "scores": [
+    {
+      "score_id": "clamare-a-dios-coro",
+      "source_sha256": "bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74c",
+      "page_count": 3,
+      "split": "train",
+      "annotation_version": "1.0",
+      "review_status": "draft",
+      "events": []
+    }
+  ]
+}
