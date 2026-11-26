@@ -299,3 +299,18 @@ def test_detects_hollow_notehead_two_staff_spacings_below_bottom_line():
         for item in candidates
     )
 
+def test_rejects_hollow_text_like_shape_outside_staff_without_ledger_line():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Un óvalo hueco aislado fuera del pentagrama no basta para afirmar
+    # que existe una nota en línea adicional.
+    cv2.ellipse(image, (300, 40), (9, 5), -20, 0, 360, 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    assert not any(abs(item.center_x - 300) <= 2 for item in candidates)
+
