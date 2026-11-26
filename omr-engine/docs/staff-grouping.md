@@ -8,7 +8,7 @@
 - `curly_brace_candidate`: componente alto y estrecho cuyo centro se desplaza lateralmente respecto de sus tercios superior e inferior, una geometría compatible con una llave curva.
 - `vertical_grouping_mark_candidate`: trazo vertical largo que no reúne evidencia suficiente para clasificarlo como corchete.
 
-El umbral de separación entre pentagramas se puede ajustar con `max_interstaff_gap_spacing`. Su valor predeterminado en este detector es 8.0 veces el espaciado entre líneas. Este ajuste es local al detector de marcas y no modifica la agrupación general de sistemas del resto del motor.
+Los trazos verticales usan `max_interstaff_gap_spacing` (7.0 por defecto) para agrupar sistemas. Las llaves curvas se buscan por pares de pentagramas adyacentes, con `max_brace_gap_spacing` (8.0 por defecto). Esta búsqueda por pares evita que un tercer pentagrama cercano agrande el sistema y oculte una llave que solo abarca dos pentagramas. Ambos ajustes son locales a este detector y no modifican la agrupación general de sistemas del resto del motor.
 
 ## Qué no concluye
 
