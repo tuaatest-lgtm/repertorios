@@ -8,7 +8,7 @@ El módulo `palermo_omr.rhythm_symbols` añade:
 
 ## Límites actuales
 
-Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede confundirse con ruido o texto; un candidato de silencio puede ser una articulación, letra, fragmento de símbolo o artefacto. Las barras cercanas pueden pertenecer a otra nota o ser trazos de la página.
+Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede confundirse con ruido o texto; un candidato de silencio puede ser una articulación, letra, fragmento de símbolo o artefacto. Las barras cercanas pueden pertenecer a otra nota o ser trazos de la página. La agrupación compartida ahora exige además que cada barra candidata cruce una de las posiciones geométricas esperadas de la plica; esto reduce asociaciones por mera proximidad, pero no demuestra todavía la conexión musical ni resuelve vigas parciales.
 
 Todavía no se reconocen de forma fiable:
 - tipo y duración exacta de cada silencio;
