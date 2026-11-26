@@ -22,3 +22,12 @@ Estas reglas son filtros geométricos, no un clasificador musical. Los candidato
 Se añadió una búsqueda independiente de contornos con hueco interior. Primero elimina líneas horizontales largas del pentagrama y cierra interrupciones pequeñas; luego evalúa el tamaño del hueco, el área del contorno exterior, la circularidad del hueco (mínimo 0.66) y la alineación vertical con posiciones del pentagrama. Fragmentos de un mismo hueco se deduplican si sus centros casi coinciden. La prueba de regresión incluye dos cabezas rellenas próximas para evitar interpretar el espacio entre ellas como una cabeza hueca.
 
 Los candidatos huecos se guardan por separado en `hollow_notehead_candidates` dentro de `analysis.json`. No se mezclan todavía con las cabezas rellenas ni se usan para interpretar ritmo: las formas circulares de claves, silencios, letras y otros símbolos pueden contener huecos similares. La puntuación está limitada a 0.68 y todos los resultados requieren revisión visual.
+
+## Diferencia entre blanca y redonda
+
+La cabeza hueca se detecta una sola vez, sin clasificarla todavía como blanca o redonda. Después, el análisis rítmico busca la plica:
+
+- Cabeza hueca con plica: propone `half` (blanca).
+- Cabeza hueca sin plica: propone `whole` (redonda).
+
+El CLI conserva esta interpretación en `hollow_rhythm_candidates`, separada de las figuras de cabeza rellena. La presencia o ausencia de plica también es una hipótesis visual: una plica tenue, tapada o cortada puede causar errores. La propuesta no se considera duración confirmada.
