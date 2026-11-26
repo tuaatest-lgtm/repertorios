@@ -9,7 +9,7 @@ La primera versión reconoce coincidencias exactas normalizadas para etiquetas f
 - Voces o grupos vocales: `MALE SOLO`, `FEMALE SOLO`, `LADIES`, `WOMEN`, `MEN`, `SOPRANO(S)`, `ALTO(S)`, `CONTRALTO`, `TENOR(S)`, `BASS(ES)`, `BARITONE`.
 - Instrumentos: `PIANO`, `KEYBOARD`, `ORGAN`.
 
-La normalización ignora mayúsculas, acentos y puntuación. No reconoce frases libres ni variantes que no estén en el vocabulario explícito.
+La normalización ignora mayúsculas, acentos y puntuación. También admite calificadores editoriales frecuentes como `Add`, `only` y `unis.` alrededor de una etiqueta reconocida. No reconoce frases libres ni variantes que no estén en el vocabulario explícito.
 
 ## Asociación a pentagramas
 
