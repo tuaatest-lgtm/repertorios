@@ -19,6 +19,7 @@ class TimedRhythmicEvent:
     onset_quarters: Fraction | int | float | None
     duration_quarters: Fraction | int | float | None
     event_type: str = "note"
+    notehead_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -134,6 +135,8 @@ def analyze_measure_timeline(
             raise ValueError("No se pueden mezclar eventos de distintos compases")
         if event.event_type not in {"note", "rest"}:
             raise ValueError("event_type debe ser 'note' o 'rest'")
+        if len(set(event.notehead_ids)) != len(event.notehead_ids):
+            raise ValueError("Un evento no puede repetir notehead_ids")
         voices.add(event.voice_id)
 
         onset = None if event.onset_quarters is None else _fraction(event.onset_quarters)
