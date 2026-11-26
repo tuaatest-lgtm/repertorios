@@ -1,0 +1,39 @@
+# Paquete de revisión visual humana
+
+El módulo `review_package.py` convierte el `analysis.json` de la CLI OMR en
+un paquete de trabajo para revisar candidatos visuales. Conserva la referencia
+a los overlays PNG creados durante el análisis, la página, el pentagrama,
+la caja y posición de cada cabeza, y las hipótesis rítmicas relacionadas.
+
+## Generar el paquete
+
+```bash
+palermo-omr-dataset prepare-review omr-output/analysis.json \
+  --score-id score-01 \
+  --output review/score-01-review.json
+```
+
+El paquete agrupa por página:
+- cabezas rellenas y huecas como familias independientes;
+- hipótesis rítmicas e interpretaciones candidatas relacionadas por índice;
+- candidatos de silencios, ligaduras/arcos, puntillos y barras;
+- nombres de los overlays para consultar la evidencia visual original.
+
+Cada candidato empieza con `review_status: pending` y `decision: null`.
+La herramienta no convierte una posición diatónica en altura MIDI, no decide
+clave ni armadura, no asigna voces ni duraciones confirmadas y no crea eventos
+ScoreEvent. Las hipótesis de duración se conservan como evidencia, nunca como
+verdad musical.
+
+## Paso siguiente de la revisión
+
+El revisor consulta el PDF y los overlays y registra sus decisiones en el
+paquete de trabajo. Los eventos de referencia se importan por separado al
+manifiesto del corpus mediante `import-events`, con compás, voz, altura MIDI,
+ataque y duración explícitos. Solo después de revisar cada evento se puede
+solicitar la aprobación humana del documento.
+
+Este paquete es una interfaz de intercambio JSON, no una interfaz gráfica
+interactiva. Los PNG referenciados deben permanecer junto al `analysis.json`
+o copiarse conservando sus nombres para que los pueda abrir la herramienta
+de revisión elegida.
