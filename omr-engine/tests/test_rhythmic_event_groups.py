@@ -5,7 +5,7 @@ import pytest
 from palermo_omr.imaging import StaffCandidate
 from palermo_omr.rhythm import RhythmCandidate
 from palermo_omr.rhythm_interpretation import RhythmicInterpretationCandidate
-from palermo_omr.rhythmic_event_groups import (\n    build_rhythmic_event_group_candidates,\n    build_reviewed_voice_events,\n)
+from palermo_omr.rhythmic_event_groups import build_rhythmic_event_group_candidates, build_reviewed_voice_events
 from palermo_omr.symbols import NoteheadCandidate
 
 
