@@ -2,72 +2,64 @@
 
 **Corte:** 26 de noviembre de 2026  
 **Rama:** `feature/omr-propio-palermo`  
-**Objetivo medido:** motor OMR propio, capaz de convertir partituras en eventos musicales polifónicos estructurados y verificables.  
-**Fuera del alcance de este porcentaje:** integración con Sonoro, publicación, despliegue o cambios al reproductor. Esas acciones requieren autorización independiente.
+**Objetivo medido:** motor OMR propio que convierta partituras en eventos musicales polifónicos estructurados y verificables.  
+**Fuera del alcance:** integración con Sonoro, publicación, despliegue o cambios al reproductor; requieren autorización independiente.
 
 ## Indicador general
 
-- **Avance estimado: 60%**
-- **Trabajo restante estimado: 40%**
+- **Avance estimado anterior:** 62%
+- **Avance estimado actual:** 63%
+- **Variación:** +1 punto porcentual
+- **Trabajo restante estimado:** 37%
 
-El porcentaje es una estimación de madurez por hitos ponderados, no un porcentaje de código escrito ni una medición de precisión musical. Se redondea al entero más cercano. Una etapa no se considera completa solo porque tenga módulos o pruebas unitarias.
+El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce que las marcas de agrupación de pentagramas ya recorren la CLI, el overlay y el paquete de revisión humana, con pruebas automatizadas aprobadas. No reconoce precisión musical nueva sobre partituras reales.
 
-## Desglose ponderado
+## Evolución por aspecto
 
-| Etapa | Peso | Madurez estimada | Aporte |
-|---|---:|---:|---:|
-| Imagen, pentagramas y candidatos geométricos | 20% | 60% | 12,00 |
-| Interpretación de notación, alturas y ritmo | 20% | 40% | 8,00 |
-| Estructura de partitura, sistemas, partes y voces | 15% | 55% | 8,25 |
-| Eventos, polifonía y línea temporal | 15% | 70% | 10,50 |
-| Revisión humana y ensamblaje musical | 15% | 35% | 5,25 |
-| Evaluación contra anotaciones humanas y corpus real | 10% | 65% | 6,50 |
-| Orquestación CLI y preparación integral | 5% | 90% | 4,50 |
-| **Total ponderado** | **100%** |  | **59,50% ≈ 60%** |
+| Aspecto | Anterior | Actual | Evidencia del cambio |
+|---|---:|---:|---|
+| Detección geométrica y símbolos | 55% | 56% | Las marcas de agrupación ya se ejecutan desde la CLI y quedan en el análisis por página. |
+| Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
+| Paquete de revisión humana | 90% | 92% | El paquete incorpora marcas de agrupación pendientes y valida sus referencias a pentagramas. |
+| Evidencia visual y overlays | 85% | 88% | El overlay ahora representa llaves, corchetes y marcas verticales con etiquetas explícitas de candidato. |
+| Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
+| Validación integral con partituras | 0% | 0% | Sin cambio: el motor todavía no se ha ejecutado y evaluado de extremo a extremo sobre el PDF coral de referencia en un entorno reproducible. |
 
-## Qué respalda cada estimación
+Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
-### 1. Imagen y geometría — 60%
+## Trabajo verificado en este corte
 
-Existe renderizado de PDF, análisis de imagen, candidatos de pentagramas, cabezas de nota, cabezas huecas, plicas/vigas, barras, agrupaciones y regiones. Las limitaciones de escaneos y falsos positivos siguen abiertas; falta calibrar detectores con anotaciones humanas de imágenes reales.
+- La CLI principal ejecuta `detect_staff_grouping_mark_candidates` para cada página y guarda `staff_grouping_mark_candidates` y su contador.
+- El overlay geométrico representa las marcas candidatas como `BRACE?`, `BRACKET?` o `GROUP?`; no las presenta como relaciones musicales confirmadas.
+- El paquete de revisión humana incluye la familia `staff_grouping_mark`, mantiene cada candidato pendiente y valida los índices de pentagrama asociados.
+- Se añadieron pruebas para la integración en overlay y paquete de revisión, incluidos índices inexistentes y duplicados.
+- CI: ejecución [45903752937](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903752937), commit `45eee72cef309f49cc376594f57ef679afabf7c8`, resultado exitoso: **312 pruebas aprobadas**.
 
-### 2. Interpretación musical — 40%
+## Límites que siguen abiertos
 
-Hay conversión de posición diatónica a MIDI cuando la clave está dada, manejo parcial de alteraciones, candidatos de duración, puntillos, silencios y arcos. Aún no se reconocen de forma fiable y completa claves, armaduras, compases, articulaciones, tresillos, ligaduras, silencios y grafías complejas desde imagen.
+- Una llave detectada no demuestra por sí sola que dos pentagramas sean piano ni identifica las manos.
+- Un corchete o trazo vertical no confirma que los pentagramas pertenezcan a una parte instrumental o vocal.
+- La extracción de etiquetas impresas y la geometría todavía requieren revisión conjunta; algunos PDF no contienen texto seleccionable.
+- No se ha demostrado precisión/recall de cabezas, alturas, duraciones, silencios, ligaduras ni asignación SATB en un corpus real anotado.
+- Las pruebas aprobadas son pruebas de software, no una certificación de transcripción musical.
 
-### 3. Estructura de partitura y voces — 55%
+## Proyección de hitos pendientes
 
-Existen modelos para páginas, sistemas, pentagramas, partes, voces, regiones de compás, continuidad entre páginas y evidencia para revisión de identidad. Hay extracción de algunas etiquetas impresas y candidatos de agrupación. Falta resolver automáticamente y validar de forma fiable llaves, corchetes, instrumentos, piano/manos y asignaciones SATB.
+| Próximo hito | Aporte estimado al avance global | Condición para reconocerlo |
+|---|---:|---|
+| Ejecutar el motor sobre partituras reales y revisar overlays | +2 a 3 pp | Ejecución reproducible, archivos de salida inspeccionados y errores documentados. |
+| Crear anotaciones humanas de un conjunto representativo | +3 a 5 pp | Partituras, páginas, pentagramas, voces y eventos revisados; manifiestos validados. |
+| Medir precisión y recuperación por familia de símbolos y eventos | +3 a 5 pp | Informes calculados contra referencias humanas, no pruebas sintéticas. |
+| Corregir errores principales y repetir medición | +4 a 6 pp | Comparación antes/después en el mismo corpus y regresión independiente. |
+| Integrar y validar la polifonía completa | +6 a 9 pp | Voces simultáneas con ataques y duraciones independientes, incluidos acordes y silencios, comprobados en partituras reales. |
 
-### 4. Eventos y polifonía — 70%
+Estas cifras son proyecciones, no trabajo ya completado, y pueden variar según los resultados. No se sumarán automáticamente: los hitos pueden compartir trabajo y sus resultados deben comprobarse.
 
-Hay agrupación candidata de notas/acordes, capas potenciales en un pentagrama, secuencias temporales por voz y líneas temporales de varias voces con duraciones independientes. También hay candidatos de continuidad melódica. Falta extraer y agrupar eventos completos desde imágenes reales con precisión suficiente.
+## Reglas de control
 
-### 5. Revisión humana y ensamblaje — 65%
-
-Existen compuertas explícitas para confirmar grupos de notas, asignaciones de voz, ligaduras y silencios. Se añadió un flujo persistente de anotación basado en manifiestos: registro de PDF, importación de eventos, validación y aprobación mediante confirmación humana explícita. La anotación ya puede conservarse y validarse entre sesiones; aún falta una interfaz visual que reúna decisiones y evidencia gráfica en una sesión única.
-
-### 6. Evaluación y corpus — 65%
-
-Hay evaluación geométrica de regiones de texto y un evaluador para comparar eventos musicales con anotaciones humanas. También existe un formato reproducible de corpus que valida huellas SHA-256, particiones sin duplicados, eventos completos y estado de revisión. Se incorporó evaluación por evento, agregación micro por partición, desglose por partitura y un comando CLI que genera informes desde predicciones JSON. Las pruebas actuales siguen siendo sintéticas: todavía falta incorporar partituras reales anotadas y publicar métricas de precisión/recall.
-
-### 7. CLI e integración de etapas — 90%
-
-Existe una CLI de análisis visual y una CLI de corpus separada para registrar PDFs, generar manifiestos borrador, importar eventos, validar, solicitar aprobación humana y evaluar predicciones por partición. El circuito de datos de anotación y evaluación es ejecutable; aún falta conectar automáticamente la salida de análisis visual con la revisión y la evaluación. No hay integración con Sonoro.
-
-## Hitos para el trabajo restante
-
-1. Incorporar y anotar un conjunto pequeño de partituras reales representativas usando el flujo CLI y el formato validado: coral SATB, piano, páginas múltiples, acordes, voces internas, silencios y ligaduras.
-2. Medir los detectores existentes contra ese conjunto y corregir los errores de mayor impacto.
-3. Construir un flujo de revisión humana persistente para pentagramas, voces, cabezas, acordes, silencios, duraciones y ligaduras.
-4. Completar interpretación de notación y continuidad entre sistemas/páginas sin inventar datos faltantes.
-5. Conectar los módulos validados en una canalización OMR integral y producir MusicXML/eventos estructurados solo cuando la confianza y revisión lo permitan.
-6. Ejecutar regresiones con partituras no usadas durante el ajuste y documentar métricas por tipo de partitura.
-
-## Reglas de actualización
-
-- Actualizar este desglose cuando se cierre un hito verificable.
-- Citar el commit y la ejecución CI correspondiente cuando se informe que una etapa pasó.
-- Separar siempre pruebas sintéticas de validación en partituras reales.
-- No incrementar el porcentaje por documentación o cantidad de líneas de código solamente. El aumento actual corresponde a un flujo ejecutable de anotación y evaluación validado por pruebas; no equivale a tener partituras reales anotadas ni precisión musical demostrada. El 60% es una cifra redondeada desde 59,50% ponderado.
-- La integración con Sonoro seguirá fuera de alcance hasta recibir autorización expresa.
+- Todo el desarrollo permanece en `feature/omr-propio-palermo`.
+- No modificar `main`, el reproductor funcional ni producción.
+- No integrar con Sonoro sin autorización expresa.
+- No añadir servicios OMR externos ni presentar candidatos heurísticos como transcripción fiable.
+- No aumentar el avance por documentación o cantidad de código solamente.
+- Cada incremento debe indicar el cambio verificable, su evidencia y los límites que permanecen.
