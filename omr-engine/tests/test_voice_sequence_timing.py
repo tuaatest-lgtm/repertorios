@@ -113,3 +113,13 @@ def test_rejects_invalid_duration_and_duplicate_chord_heads():
             [OrderedVoiceEvent("a", "alto", 0, 0, 1, notehead_ids=("n1", "n1"))],
             voice_id="alto", measure_index=0,
         )
+
+
+def test_preserves_notehead_ids_when_building_shared_timeline_events():
+    event = OrderedVoiceEvent(
+        "chord", "bass", 0, 0, 2, notehead_ids=("head_a", "head_b")
+    )
+    result = derive_voice_sequence_timing(
+        [event], voice_id="bass", measure_index=0
+    )
+    assert result.events[0].notehead_ids == ("head_a", "head_b")
