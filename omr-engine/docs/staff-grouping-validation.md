@@ -10,7 +10,7 @@ Esta revisión comprueba el comportamiento geométrico en partituras reales. No 
 | Clamaré a Dios - Coro | 3 | 0 | No produjo candidatos de llave curva. |
 | ACC-001 - PDF - CORO | 2 | 0 | No produjo candidatos de llave curva. |
 
-El barrido se realizó con renderizado a 180 dpi y las reglas geométricas actuales de detección de cinco líneas, separación entre pares adyacentes y forma curva. Los conteos son propuestas visuales, no identificaciones confirmadas.
+El barrido se realizó con renderizado a 180 dpi y las reglas geométricas actuales de detección de cinco líneas, separación entre pares adyacentes y forma curva. En estas 25 páginas no se obtuvo ningún candidato de corchete recto: esa clasificación cuenta por ahora solo con pruebas sintéticas y no debe considerarse validada en partituras reales. Los conteos son propuestas visuales, no identificaciones confirmadas.
 
 ## Interpretación y límites
 
