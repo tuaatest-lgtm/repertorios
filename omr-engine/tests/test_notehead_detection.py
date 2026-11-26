@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from palermo_omr.imaging import StaffCandidate
-from palermo_omr.symbols import detect_notehead_candidates
+from palermo_omr.symbols import (\n    detect_hollow_notehead_candidates,\n    detect_notehead_candidates,\n)
 
 
 def test_proposes_notehead_and_diatonic_position():
@@ -115,3 +115,54 @@ def test_does_not_split_a_sloped_beam_into_noteheads():
     candidates = detect_notehead_candidates(image, [staff])
 
     assert not candidates, "Una viga inclinada no debe generar cabezas de nota"
+
+
+def test_detects_hollow_notehead_on_staff_line_with_stem():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    cv2.ellipse(image, (220, 90), (9, 5), -20, 0, 360, 0, 2)
+    cv2.line(image, (228, 90), (228, 45), 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    nearest = min(candidates, key=lambda item: abs(item.center_x - 220))
+    assert abs(nearest.center_x - 220) <= 2
+    assert nearest.diatonic_step_from_bottom == 2
+    assert nearest.fill_ratio < 0.5
+    assert nearest.confidence <= 0.68
+    assert len(candidates) == 1
+
+
+def test_detects_hollow_notehead_without_stem():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    cv2.ellipse(image, (300, 95), (9, 5), -20, 0, 360, 0, 2)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    nearest = min(candidates, key=lambda item: abs(item.center_x - 300))
+    assert abs(nearest.center_x - 300) <= 2
+    assert nearest.diatonic_step_from_bottom == 1
+
+
+def test_hollow_notehead_detector_rejects_oversized_hollow_symbol():
+    image = np.full((180, 500), 255, dtype=np.uint8)
+    lines = [60, 70, 80, 90, 100]
+    for y in lines:
+        cv2.line(image, (10, y), (490, y), 0, 1)
+
+    # Un símbolo hueco grande no debe confundirse con una cabeza de nota.
+    cv2.ellipse(image, (300, 90), (28, 20), 0, 0, 360, 0, 3)
+
+    staff = StaffCandidate(lines_y=lines, spacing_px=10.0, confidence=1.0)
+    candidates = detect_hollow_notehead_candidates(image, [staff])
+
+    assert not candidates
