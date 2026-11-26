@@ -104,3 +104,8 @@ Se añadió `palermo_omr.staff_identity` para registrar etiquetas, claves, llave
 ## Candidatos de marcas de agrupación
 
 Se añadió `palermo_omr.staff_grouping` para proponer trazos verticales largos en el margen izquierdo de sistemas con varios pentagramas marcar corchetes rectos candidatos por sus dos remates horizontales y proponer llaves curvas por su contorno lateral. El agrupamiento vertical usa 7.0 veces el espaciado entre líneas por defecto; la búsqueda de llaves curvas se hace por pares adyacentes y admite hasta 8.0. Ninguna etiqueta confirma que los pentagramas pertenezcan al piano o al coro. Consulta `docs/staff-grouping.md` y la revisión exploratoria en `docs/staff-grouping-validation.md`.
+
+
+## Etiquetas musicales impresas
+
+El módulo `palermo_omr.printed_labels` extrae etiquetas conocidas desde la capa de texto PDF y propone una asociación geométrica con el pentagrama más cercano. No realiza OCR de partituras escaneadas ni confirma asignaciones de partes o voces. Consulta `docs/printed-labels.md`.
