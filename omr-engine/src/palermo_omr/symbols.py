@@ -272,10 +272,13 @@ def detect_hollow_notehead_candidates(
         if len(staff.lines_y) != 5 or spacing <= 1:
             continue
 
-        top = max(0, int(round(staff.lines_y[0] - spacing * 1.5)))
+        # Las notas con líneas adicionales pueden quedar hasta dos espacios
+        # de pentagrama fuera de la primera/quinta línea. El margen de 2.5
+        # separaciones incluye la cabeza completa sin limitarse al área interna.
+        top = max(0, int(round(staff.lines_y[0] - spacing * 2.5)))
         bottom = min(
             binary.shape[0],
-            int(round(staff.lines_y[-1] + spacing * 1.5)),
+            int(round(staff.lines_y[-1] + spacing * 2.5)),
         )
         roi = cleaned[top:bottom, :]
         contours, hierarchy = cv2.findContours(
