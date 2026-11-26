@@ -32,7 +32,7 @@ def test_extracts_known_vocal_and_instrument_labels(tmp_path):
 
 def test_keeps_equal_distance_staff_association_ambiguous(tmp_path):
     pdf_path = tmp_path / "ambiguous.pdf"
-    make_pdf(pdf_path, [(20, 130, "BASSES")])
+    make_pdf(pdf_path, [(20, 137, "BASSES")])
     staves = [
         StaffCandidate([100, 110, 120, 130, 140], 10.0, 1.0),
         StaffCandidate([120, 130, 140, 150, 160], 10.0, 1.0),
