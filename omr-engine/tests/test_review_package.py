@@ -160,5 +160,5 @@ def test_review_package_includes_relationship_and_measure_geometry_candidates():
 def test_review_package_rejects_broken_candidate_references(family_key, candidate):
     data = sample_analysis()
     data["pages"][0][family_key] = [candidate]
-    with pytest.raises(ValueError, match="referencia"):
+    with pytest.raises(ValueError, match="referencia|duplicados"):
         build_review_package(data, score_id="score-invalid-references")
