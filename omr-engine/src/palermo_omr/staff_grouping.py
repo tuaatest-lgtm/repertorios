@@ -151,8 +151,14 @@ def detect_staff_grouping_mark_candidates(
         return []
 
     ordered_staves = sorted(
-        enumerate(staves), key=lambda pair: pair[1].lines_y[0]
+        (
+            (index, staff) for index, staff in enumerate(staves)
+            if len(staff.lines_y) == 5 and staff.spacing_px > 1
+        ),
+        key=lambda pair: pair[1].lines_y[0],
     )
+    if not ordered_staves:
+        return []
     ink = cv2.bitwise_not(binary)
     page_height, page_width = binary.shape
     left_width = max(1, int(page_width * left_margin_ratio))
@@ -222,8 +228,7 @@ def detect_staff_grouping_mark_candidates(
 
     typical_spacing = float(np.median([
         staff.spacing_px for _, staff in ordered_staves
-        if staff.spacing_px > 1
-    ])) if any(staff.spacing_px > 1 for _, staff in ordered_staves) else 0.0
+    ]))
     if typical_spacing > 0:
         for (first_index, first), (second_index, second) in zip(
             ordered_staves, ordered_staves[1:]
