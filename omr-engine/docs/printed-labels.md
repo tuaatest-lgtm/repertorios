@@ -13,7 +13,7 @@ La normalización ignora mayúsculas, acentos y puntuación. También admite cal
 
 ## Asociación a pentagramas
 
-La función recibe los pentagramas geométricos detectados para esa página. Convierte la caja de texto PDF a la escala de renderizado y compara el centro vertical de la etiqueta con el centro de cada pentagrama.
+La función recibe los pentagramas geométricos detectados para esa página. Convierte la caja de texto PDF a la escala de renderizado y compara el centro vertical de la etiqueta con el centro de cada pentagrama. El margen predeterminado admite hasta 8 veces el espaciado entre líneas porque algunas editoriales imprimen la indicación bastante por encima del pentagrama correspondiente.
 
 Los resultados pueden quedar como:
 
