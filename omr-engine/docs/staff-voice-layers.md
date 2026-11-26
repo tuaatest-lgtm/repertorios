@@ -34,3 +34,19 @@ Para resolver realmente dos voces en un pentagrama será necesario combinar
 esta pista con continuidad melódica, alturas, ritmos, plicas y barras, además
 de permitir una asignación de voz por evento (no una única voz por pentagrama).
 Los casos donde no haya evidencia suficiente deben permanecer ambiguos.
+
+
+## Asignación explícita por evento
+
+El módulo `rhythmic_event_groups` ofrece
+`build_reviewed_voice_events_by_voice`. Esta función admite que dos eventos
+del mismo pentagrama pertenezcan a voces diferentes, siempre que una revisión
+explícita entregue un mapa `event_id -> voice_id` para todos los eventos
+confirmados. La asignación es por evento, no por pentagrama.
+
+La función solo acepta grupos no ambiguos con duración candidata conocida,
+rechaza asignaciones ausentes o sobrantes y evita reutilizar una misma cabeza
+en dos eventos. El orden de cada voz se obtiene ordenando sus eventos por x;
+los inicios temporales se calculan después sumando duraciones en
+`voice_sequence_timing`. La función no deduce qué voz corresponde a una
+dirección de plica ni interpreta automáticamente la notación.
