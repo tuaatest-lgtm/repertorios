@@ -65,3 +65,29 @@ def test_does_not_call_plain_vertical_mark_a_square_bracket():
 
     assert len(results) == 1
     assert results[0].kind == "vertical_grouping_mark_candidate"
+
+
+def test_detects_curved_brace_shape_candidate():
+    image = np.full((220, 600), 255, dtype=np.uint8)
+    brace_points = np.array(
+        [[35, 40], [30, 50], [30, 65], [38, 78], [45, 90],
+         [45, 100], [38, 112], [30, 125], [30, 145], [35, 165]],
+        dtype=np.int32,
+    )
+    cv2.polylines(image, [brace_points], False, 0, 2)
+
+    results = detect_staff_grouping_mark_candidates(image, two_staves())
+
+    assert len(results) == 1
+    assert results[0].kind == "curly_brace_candidate"
+    assert results[0].staff_indices == (0, 1)
+    assert "no confirma piano" in results[0].warning
+
+
+def test_validates_system_spacing_threshold():
+    import pytest
+    image = np.full((220, 600), 255, dtype=np.uint8)
+    with pytest.raises(ValueError):
+        detect_staff_grouping_mark_candidates(
+            image, two_staves(), max_interstaff_gap_spacing=0
+        )
