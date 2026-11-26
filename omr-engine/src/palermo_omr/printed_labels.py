@@ -60,6 +60,13 @@ _LABELS = {
 }
 
 
+def _canonical_label(normalized: str) -> str | None:
+    qualifiers = {"ADD", "ONLY", "UNIS", "UNISON", "ALL", "DIV"}
+    tokens = [token for token in normalized.split() if token not in qualifiers]
+    candidate = " ".join(tokens)
+    return candidate if candidate in _LABELS else None
+
+
 def _line_text_candidates(page: fitz.Page):
     data = page.get_text("dict")
     for block in data.get("blocks", []):
@@ -69,12 +76,13 @@ def _line_text_candidates(page: fitz.Page):
             if not text:
                 continue
             normalized = _normalize_label(text)
-            if normalized not in _LABELS:
+            canonical = _canonical_label(normalized)
+            if canonical is None:
                 continue
             boxes = [span["bbox"] for span in spans if span.get("text", "").strip()]
             if not boxes:
                 continue
-            yield text, normalized, (
+            yield text, canonical, (
                 min(box[0] for box in boxes),
                 min(box[1] for box in boxes),
                 max(box[2] for box in boxes),
