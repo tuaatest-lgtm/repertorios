@@ -68,6 +68,10 @@ Se añadió `palermo_omr.duration_math` para calcular valores de figuras, puntil
 
 Se añadió `palermo_omr.measure_validation`, una capa matemática independiente que compara duraciones ya interpretadas con el valor esperado del indicador de compás. Distingue compases completos, incompletos, excedidos y posibles anacrusas. No reconoce figuras desde la imagen y todavía no se conecta al CLI ni al reproductor. Consulta `docs/measure-validation.md`.
 
+## Estructura musical explícita
+
+Se añadió `palermo_omr.score_structure`, un modelo validable que separa sistemas, pentagramas, partes, voces, asignaciones y regiones de compás. Permite representar dos pentagramas de piano asociados a una misma parte y flujo, o varias voces sobre un pentagrama, sin deducir relaciones por posición. Las asignaciones pueden permanecer sin resolver o ambiguas. No detecta automáticamente estos elementos desde la imagen. Consulta `docs/score-structure.md`.
+
 ## Geometría de compases
 
 Consulta `docs/measure-layout.md` para conocer cómo se detectan y agrupan las barras candidatas y qué limitaciones tienen los intervalos resultantes.
