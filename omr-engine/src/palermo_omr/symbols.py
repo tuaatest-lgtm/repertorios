@@ -312,6 +312,12 @@ def detect_hollow_notehead_candidates(
             hole_area = float(cv2.contourArea(contour))
             if hole_area < spacing * spacing * 0.08:
                 continue
+            perimeter = float(cv2.arcLength(contour, True))
+            circularity = 4.0 * np.pi * hole_area / max(perimeter * perimeter, 1e-6)
+            # Los huecos de una cabeza hueca suelen ser ovalados y continuos.
+            # Se descartan muescas irregulares entre cabezas rellenas o trazos.
+            if circularity < 0.66:
+                continue
 
             center_x = x + w / 2.0
             center_y = top + y + h / 2.0
