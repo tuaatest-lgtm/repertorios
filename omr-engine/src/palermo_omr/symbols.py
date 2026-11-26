@@ -86,6 +86,24 @@ def detect_notehead_candidates(
             # coinciden con posiciones diatónicas plausibles del pentagrama.
             component = (roi[y:y + h, x:x + w] > 0).astype(np.uint8)
             if w > spacing * 1.35 and h > spacing * 0.65 and component.size:
+                # Una barra inclinada puede producir dos máximos locales en la
+                # transformada de distancia. Antes de separarla, exigimos una
+                # masa compacta, compatible con dos cabezas tocándose, y no un
+                # trazo largo y delgado como una viga o línea de expresión.
+                component_aspect = max(w, h) / max(min(w, h), 1)
+                if component_aspect > 2.2:
+                    continue
+                ys, xs = np.nonzero(component)
+                if len(xs) < 3:
+                    continue
+                points = np.column_stack((xs, ys)).astype(np.float32)
+                eigenvalues = np.linalg.eigvalsh(np.cov(points, rowvar=False))
+                elongation = float(
+                    np.sqrt(max(eigenvalues[-1], 1e-6) / max(eigenvalues[0], 1e-6))
+                )
+                if elongation > 4.5:
+                    continue
+
                 distance = cv2.distanceTransform(component, cv2.DIST_L2, 5)
                 peak_threshold = max(1.0, float(distance.max()) * 0.62)
                 local_max = cv2.dilate(
