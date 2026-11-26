@@ -9,6 +9,20 @@ import json
 from typing import Any
 
 
+def _validated_indices(value: Any, upper_bound: int, label: str) -> list[int]:
+    if not isinstance(value, list) or not value:
+        raise ValueError(f"{label} debe contener índices")
+    if any(
+        not isinstance(item, int) or isinstance(item, bool)
+        or item < 0 or item >= upper_bound
+        for item in value
+    ):
+        raise ValueError(f"{label} referencia elementos inexistentes")
+    if len(set(value)) != len(value):
+        raise ValueError(f"{label} contiene índices duplicados")
+    return value
+
+
 def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str, Any]:
     if not isinstance(analysis, dict) or not isinstance(analysis.get("pages"), list):
         raise ValueError("analysis.json debe contener una lista pages")
@@ -110,15 +124,11 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     raise ValueError(f"Cada elemento de {key} debe ser un objeto")
                 related_ids = []
                 if family == "beam_group":
-                    indices = value.get("notehead_indices", [])
-                    if (not isinstance(indices, list) or not indices
-                            or len(set(indices)) != len(indices) if isinstance(indices, list) else True
-                            or any(
-                                not isinstance(item, int) or isinstance(item, bool)
-                                or item < 0 or item >= len(filled_candidate_ids)
-                                for item in indices
-                            )):
-                        raise ValueError("Un grupo de vigas referencia índices de cabezas inexistentes")
+                    indices = _validated_indices(
+                        value.get("notehead_indices", []),
+                        len(filled_candidate_ids),
+                        "Un grupo de vigas",
+                    )
                     related_ids = [
                         filled_candidate_ids[item] for item in indices
                     ]
@@ -129,16 +139,11 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                         raise ValueError(f"{key} referencia un pentagrama inexistente")
                     related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
                 elif family in {"system_barline", "staff_system"}:
-                    indices = value.get("staff_indices", [])
-                    if (not isinstance(indices, list) or not indices
-                            or (all(isinstance(item, int) and not isinstance(item, bool) for item in indices)
-                                and len(set(indices)) != len(indices))
-                            or any(
-                                not isinstance(item, int) or isinstance(item, bool)
-                                or item < 0 or item >= staff_count
-                                for item in indices
-                            )):
-                        raise ValueError(f"{key} referencia pentagramas inexistentes")
+                    indices = _validated_indices(
+                        value.get("staff_indices", []),
+                        staff_count,
+                        key,
+                    )
                     related_ids = [
                         f"p{page_number}-staff-{item + 1}" for item in indices
                     ]
