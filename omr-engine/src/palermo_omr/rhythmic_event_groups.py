@@ -15,6 +15,7 @@ from .imaging import StaffCandidate
 from .rhythm import RhythmCandidate
 from .rhythm_interpretation import RhythmicInterpretationCandidate
 from .symbols import NoteheadCandidate
+from .voice_sequence_timing import OrderedVoiceEvent
 
 
 @dataclass(frozen=True)
@@ -164,3 +165,62 @@ def build_rhythmic_event_group_candidates(
             ))
 
     return tuple(sorted(groups, key=lambda group: (group.staff_index, group.center_x, group.event_id)))
+
+
+
+def build_reviewed_voice_events(
+    groups: Sequence[RhythmicEventGroupCandidate],
+    *,
+    voice_id: str,
+    measure_index: int,
+    confirmed_event_ids: set[str] | frozenset[str],
+) -> tuple[OrderedVoiceEvent, ...]:
+    """Convierte solo grupos revisados explícitamente en eventos ordenables.
+
+    La revisión humana se representa mediante confirmed_event_ids. No se
+    aceptan grupos ambiguos, sin duración conocida ni sin la misma asignación
+    explícita de voz. El orden horizontal solo establece order_index; la
+    secuencia temporal posterior suma duraciones musicales.
+    """
+    if not isinstance(voice_id, str) or not voice_id.strip():
+        raise ValueError("voice_id debe ser texto no vacío")
+    if not isinstance(measure_index, int) or isinstance(measure_index, bool) or measure_index < 0:
+        raise ValueError("measure_index debe ser un entero no negativo")
+    if not isinstance(confirmed_event_ids, (set, frozenset)):
+        raise ValueError("confirmed_event_ids debe ser un conjunto de IDs revisados")
+
+    by_id = {group.event_id: group for group in groups}
+    if len(by_id) != len(groups):
+        raise ValueError("Los event_id de los grupos deben ser únicos")
+    unknown_ids = set(confirmed_event_ids) - set(by_id)
+    if unknown_ids:
+        raise ValueError("La revisión referencia event_id inexistentes")
+
+    selected = []
+    for event_id in confirmed_event_ids:
+        group = by_id[event_id]
+        if group.status not in {"single_note_candidate", "proposed_chord"}:
+            raise ValueError("No se puede confirmar un grupo ambiguo")
+        if group.voice_id_candidate != voice_id:
+            raise ValueError("El grupo no tiene esa asignación explícita de voz")
+        if group.duration_quarters_candidate is None:
+            raise ValueError("El grupo no tiene duración candidata conocida")
+        selected.append(group)
+
+    selected.sort(key=lambda group: (group.center_x, group.event_id))
+    seen_heads: set[int] = set()
+    events = []
+    for order_index, group in enumerate(selected):
+        if seen_heads.intersection(group.notehead_indices):
+            raise ValueError("Una cabeza de nota no puede pertenecer a dos eventos confirmados")
+        seen_heads.update(group.notehead_indices)
+        events.append(OrderedVoiceEvent(
+            event_id=group.event_id,
+            voice_id=voice_id,
+            measure_index=measure_index,
+            order_index=order_index,
+            duration_quarters=group.duration_quarters_candidate,
+            event_type="note",
+            notehead_ids=tuple(f"staff-{group.staff_index + 1}-head-{index}" for index in group.notehead_indices),
+        ))
+    return tuple(events)
