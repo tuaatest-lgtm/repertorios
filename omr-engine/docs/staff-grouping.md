@@ -1,15 +1,17 @@
 # Marcas de agrupación de pentagramas
 
-`palermo_omr.staff_grouping` propone trazos verticales largos situados en el margen izquierdo de sistemas con dos o más pentagramas.
+`palermo_omr.staff_grouping` propone formas gráficas situadas en el margen izquierdo de sistemas con dos o más pentagramas.
 
 ## Qué detecta
 
-Busca segmentos verticales que cubren una parte sustancial de la altura del sistema geométrico. Si encuentra además dos remates horizontales cortos, uno por encima y otro por debajo del sistema, etiqueta la forma como `square_bracket_candidate`. Si no encuentra ambos remates, conserva la etiqueta genérica `vertical_grouping_mark_candidate`.
+- `square_bracket_candidate`: trazo vertical con dos remates horizontales cortos, uno arriba y otro abajo.
+- `curly_brace_candidate`: componente alto y estrecho cuyo centro se desplaza lateralmente respecto de sus tercios superior e inferior, una geometría compatible con una llave curva.
+- `vertical_grouping_mark_candidate`: trazo vertical largo que no reúne evidencia suficiente para clasificarlo como corchete.
 
-La detección de remates es intencionalmente estricta: busca evidencia fuera de las líneas superior e inferior del pentagrama para reducir confusiones con las propias líneas musicales.
+El umbral de separación entre pentagramas se puede ajustar con `max_interstaff_gap_spacing`. Su valor predeterminado en este detector es 7.0 veces el espaciado entre líneas. Este ajuste es local al detector de marcas y no modifica la agrupación general de sistemas del resto del motor.
 
 ## Qué no concluye
 
-Un corchete recto candidato no demuestra que los pentagramas pertenezcan al piano ni que compartan una parte musical. Una marca vertical también puede ser parte de una llave u otro elemento gráfico. El módulo no reconoce llaves curvas, no distingue instrumentación y no identifica voces SATB.
+Ninguna etiqueta demuestra que los pentagramas pertenezcan al piano, al coro o a otra parte. La forma curva puede confundirse con otros trazos gráficos y las puntuaciones son heurísticas, no probabilidades calibradas. El detector no reconoce etiquetas impresas, no asigna instrumentos y no identifica voces SATB.
 
-La detección depende de que los sistemas geométricos previos sean razonables. Las puntuaciones son heurísticas y no están calibradas como probabilidades. Los candidatos no se convierten automáticamente en asignaciones de partes o voces; requieren revisión visual y evaluación con partituras reales anotadas.
+La detección depende de que los pentagramas previos sean razonables. Los candidatos requieren revisión visual y evaluación con partituras reales anotadas antes de usarse para proponer relaciones estructurales. No se conectan automáticamente con asignaciones de partes o voces.
