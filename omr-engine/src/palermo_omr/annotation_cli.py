@@ -13,6 +13,7 @@ from fractions import Fraction
 
 from .dataset_evaluation import evaluate_annotation_dataset
 from .event_evaluation import ScoreEvent
+from .review_package import prepare_review_package
 
 
 def _load_dataset(path: Path) -> AnnotationDataset:
@@ -249,6 +250,13 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--split", choices=("train", "validation", "test"), required=True)
     init_parser.add_argument("--annotation-version", default="1.0")
 
+    prepare_parser = subparsers.add_parser(
+        "prepare-review", help="Prepara un paquete de revisión desde analysis.json"
+    )
+    prepare_parser.add_argument("analysis")
+    prepare_parser.add_argument("--score-id", required=True)
+    prepare_parser.add_argument("--output", required=True)
+
     evaluate_parser = subparsers.add_parser(
         "evaluate", help="Evalúa predicciones contra una partición revisada"
     )
@@ -297,6 +305,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"SHA-256: {score.source_sha256}")
             print(f"Páginas: {score.page_count}")
             print("Estado: draft (sin eventos; aún no es ground truth)")
+        elif args.command == "prepare-review":
+            package = prepare_review_package(
+                args.analysis, args.output, score_id=args.score_id
+            )
+            print("Paquete de revisión: {}".format(args.output))
+            print("Candidatos de cabezas: {}".format(package["summary"]["notehead_candidate_count"]))
+            print("Otros candidatos: {}".format(package["summary"]["other_candidate_count"]))
+            print("Todos requieren revisión humana; no son eventos confirmados.")
         elif args.command == "evaluate":
             report = evaluate_manifest(args.manifest, args.predictions, split=args.split)
             Path(args.output).parent.mkdir(parents=True, exist_ok=True)
