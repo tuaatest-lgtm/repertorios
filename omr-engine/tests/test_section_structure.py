@@ -635,3 +635,48 @@ def test_global_measure_alignment_accepts_close_centers_and_boundaries():
     }])
     assert result["cross_staff_aligned_candidate_count"] == 1
     assert result["global_measure_candidates"][0]["staff_support"] == 2
+
+
+
+@pytest.mark.parametrize(
+    ("ratio", "position_kind", "partial"),
+    [
+        (-0.5, "before_measure_candidate", False),
+        (0.35, "inside_measure_candidate", True),
+        (1.5, "after_measure_candidate", False),
+    ],
+)
+def test_section_boundary_preserves_partial_and_adjacent_measure_positions(
+    ratio, position_kind, partial
+):
+    from palermo_omr.section_structure import resolve_section_range_boundaries
+
+    resolved = resolve_section_range_boundaries(
+        [{
+            "section_range_id": "section-partial-boundary",
+            "start": {
+                "page_number": 1,
+                "measure_anchors": [{
+                    "staff_index": 0,
+                    "measure_index_on_staff": 2,
+                    "position_ratio_in_interval": ratio,
+                    "confidence": 0.5,
+                    "vertical_distance_px": 0,
+                }],
+            },
+            "end": None,
+        }],
+        {"staff_measure_map": [{
+            "page_number": 1,
+            "staff_index": 0,
+            "measure_index_on_staff": 2,
+            "global_measure_candidate": 7,
+            "alignment_status": "single_staff_only_unmatched",
+            "staff_support": 1,
+        }]},
+    )
+    boundary = resolved[0]["start"]["musical_boundary_candidate"]
+    assert boundary["position_kind"] == position_kind
+    assert boundary["partial_measure_boundary"] is partial
+    assert boundary["global_measure_candidate"] == 7
+    assert boundary["review_status"] == "pending"
