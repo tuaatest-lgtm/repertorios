@@ -193,6 +193,7 @@ def test_cli_applies_human_reviewed_accidental_manifest_to_pitch_candidates(tmp_
                 "source_kind": "filled",
                 "source_index": 0,
                 "measure_id": "p1-s0-m1",
+                "event_order": 0,
                 "explicit_accidental": "natural",
             }],
         }],
