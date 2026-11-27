@@ -29,10 +29,17 @@ def test_cli_exports_printed_labels_and_identity_evidence_for_review(tmp_path, m
     analysis = json.loads((output_dir / "analysis.json").read_text(encoding="utf-8"))
     page_data = analysis["pages"][0]
     assert page_data["printed_label_candidate_count"] == 1
-    assert page_data["rhythmic_event_group_candidates"] == []
-    assert page_data["rhythmic_event_group_candidate_count"] == 0
-    assert page_data["staff_voice_layer_candidates"] == []
-    assert page_data["staff_voice_layer_candidate_count"] == 0
+    assert page_data["rhythmic_event_group_candidate_count"] == len(
+        page_data["rhythmic_event_group_candidates"]
+    )
+    assert page_data["rhythmic_event_group_candidate_count"] == page_data["rhythm_candidate_count"]
+    assert all(
+        item["voice_id_candidate"] is None
+        for item in page_data["rhythmic_event_group_candidates"]
+    )
+    assert page_data["staff_voice_layer_candidate_count"] == len(
+        page_data["staff_voice_layer_candidates"]
+    )
     label = page_data["printed_label_candidates"][0]
     assert label["normalized_text"] == "SOPRANO"
     assert label["association_status"] == "associated_candidate"
