@@ -396,15 +396,23 @@ def anchor_section_markers_to_measure_spans(
     measure_spans: list,
     *,
     max_distance_measures: float = 1.0,
+    staff_system_candidates: list | None = None,
+    max_system_distance_spacing: float = 12.0,
 ) -> list[dict]:
-    """Asocia cada marca con el intervalo geométrico más cercano del pentagrama.
+    """Asocia rótulos a intervalos locales del sistema geométrico más cercano.
 
-    La posición relativa dentro del intervalo es una referencia visual, no una
-    afirmación de que el intervalo sea un compás musical confirmado.
+    Cuando se proporcionan sistemas, devuelve una ancla por cada pentagrama
+    del sistema elegido. Esto permite que la resolución posterior prefiera
+    una correspondencia transversal si existe, sin perder la referencia local.
     """
     if max_distance_measures <= 0:
         raise ValueError("max_distance_measures debe ser positivo")
+    if max_system_distance_spacing <= 0:
+        raise ValueError("max_system_distance_spacing debe ser positivo")
     from statistics import median
+
+    def field(value, name, default=None):
+        return value.get(name, default) if isinstance(value, dict) else getattr(value, name, default)
 
     by_staff: dict[int, list] = {}
     for span in measure_spans:
@@ -417,61 +425,113 @@ def anchor_section_markers_to_measure_spans(
         y = marker.get("center_y_px")
         if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
             continue
+
+        if staff_system_candidates is not None:
+            possible_systems = []
+            for system in staff_system_candidates:
+                indices = field(system, "staff_indices", [])
+                if not isinstance(indices, list) or not indices:
+                    continue
+                valid_indices = [
+                    index for index in indices
+                    if isinstance(index, int) and not isinstance(index, bool)
+                    and 0 <= index < len(staves)
+                    and len(staves[index].lines_y) == 5
+                    and staves[index].spacing_px > 0
+                ]
+                if not valid_indices:
+                    continue
+                top = field(system, "y_top")
+                bottom = field(system, "y_bottom")
+                if not isinstance(top, (int, float)) or not isinstance(bottom, (int, float)):
+                    continue
+                spacing = float(median([staves[index].spacing_px for index in valid_indices]))
+                vertical_gap = max(float(top) - y, 0.0, y - float(bottom))
+                if vertical_gap <= spacing * max_system_distance_spacing:
+                    possible_systems.append((
+                        vertical_gap, abs(y - (float(top) + float(bottom)) / 2),
+                        field(system, "system_index"), valid_indices,
+                    ))
+            if not possible_systems:
+                continue
+            _, _, system_index, staff_indices = min(
+                possible_systems, key=lambda item: (item[0], item[1])
+            )
+            system_mode = True
+        else:
+            staff_indices = list(range(len(staves)))
+            system_index = None
+            system_mode = False
+
         possible = []
-        for staff_index, staff in enumerate(staves):
+        for staff_index in staff_indices:
+            staff = staves[staff_index]
             if len(staff.lines_y) != 5 or staff.spacing_px <= 0:
                 continue
             spans = by_staff.get(staff_index, [])
             if not spans:
                 continue
-            staff_center = sum(staff.lines_y) / 5
             typical_width = float(median([span.width_px for span in spans]))
+            staff_center = sum(staff.lines_y) / 5
+            vertical_distance = abs(y - staff_center)
             for span in spans:
                 gap = max(span.x_start - x, 0, x - span.x_end)
                 distance_measures = gap / max(typical_width, 1.0)
-                vertical_distance = abs(y - staff_center)
-                possible.append((
-                    distance_measures, vertical_distance, staff_index,
-                    span, typical_width,
-                ))
+                if distance_measures <= max_distance_measures:
+                    possible.append((
+                        distance_measures, vertical_distance, staff_index,
+                        span, typical_width,
+                    ))
         if not possible:
             continue
-        distance, vertical_distance, staff_index, span, typical_width = min(
-            possible, key=lambda item: (
-                item[0] + item[1] / max(staves[item[2]].spacing_px * 10, 1),
-                item[1],
-            )
-        )
-        # Evita anclar rótulos de encabezado/pie de página a un pentagrama
-        # solo porque sea el más cercano disponible. La tolerancia vertical
-        # se expresa en espacios del pentagrama para escalar con el tamaño.
-        if vertical_distance > staves[staff_index].spacing_px * 12:
-            continue
-        if distance > max_distance_measures:
-            continue
-        ratio = (x - span.x_start) / max(span.width_px, 1.0)
-        anchors.append({
-            "marker_index": marker_index,
-            "staff_index": staff_index,
-            "measure_index_on_staff": span.measure_index,
-            "interval_x_start": span.x_start,
-            "interval_x_end": span.x_end,
-            "position_ratio_in_interval": round(float(ratio), 3),
-            "relation": (
-                "before_interval" if ratio < 0
-                else "after_interval" if ratio > 1
-                else "inside_interval"
-            ),
-            "distance_in_measure_widths": round(float(distance), 3),
-            "vertical_distance_px": round(float(vertical_distance), 2),
-            "confidence": round(min(0.6, span.confidence * 0.7), 3),
-            "review_status": "pending",
-            "warning": (
-                "Ancla geométrica local a un intervalo entre barras candidatas. "
-                "El índice de compás es local al pentagrama/página, no global, y "
-                "el intervalo no está validado como compás musical."
-            ),
-        })
+
+        if system_mode:
+            # Una marca de sección describe el sistema; conservar anclas de
+            # todos sus pentagramas permite resolver después la mejor pareja.
+            best_by_staff = {}
+            for item in possible:
+                staff_index = item[2]
+                current = best_by_staff.get(staff_index)
+                if current is None or (item[0], item[1]) < (current[0], current[1]):
+                    best_by_staff[staff_index] = item
+            selected = list(best_by_staff.values())
+        else:
+            selected = [min(
+                possible, key=lambda item: (
+                    item[0] + item[1] / max(staves[item[2]].spacing_px * 10, 1),
+                    item[1],
+                )
+            )]
+
+        for distance, vertical_distance, staff_index, span, typical_width in selected:
+            if not system_mode and vertical_distance > staves[staff_index].spacing_px * 12:
+                continue
+            ratio = (x - span.x_start) / max(span.width_px, 1.0)
+            anchors.append({
+                "marker_index": marker_index,
+                "staff_index": staff_index,
+                "system_index": system_index,
+                "anchor_scope": "system_candidate" if system_mode else "nearest_staff_candidate",
+                "system_staff_count": len(staff_indices) if system_mode else 1,
+                "measure_index_on_staff": span.measure_index,
+                "interval_x_start": span.x_start,
+                "interval_x_end": span.x_end,
+                "position_ratio_in_interval": round(float(ratio), 3),
+                "relation": (
+                    "before_interval" if ratio < 0
+                    else "after_interval" if ratio > 1
+                    else "inside_interval"
+                ),
+                "distance_in_measure_widths": round(float(distance), 3),
+                "vertical_distance_px": round(float(vertical_distance), 2),
+                "confidence": round(min(0.6, span.confidence * 0.7), 3),
+                "review_status": "pending",
+                "warning": (
+                    "Ancla geométrica local a un intervalo entre barras candidatas. "
+                    "La marca se relaciona con el sistema, pero el índice sigue siendo "
+                    "local al pentagrama/página y no confirma un compás musical."
+                ),
+            })
     return anchors
 
 
@@ -667,6 +727,7 @@ def resolve_section_range_boundaries(
         measure_map[key] = {
             "global_measure_candidate": item.get("global_measure_candidate"),
             "alignment_status": item.get("alignment_status", "unknown"),
+            "staff_support": item.get("staff_support", 1),
         }
 
     from copy import deepcopy
@@ -691,13 +752,21 @@ def resolve_section_range_boundaries(
             if not valid:
                 boundary["musical_boundary_candidate"] = None
                 continue
-            anchor = max(
-                valid,
-                key=lambda value: (
+            def anchor_rank(value):
+                reference = measure_map.get((
+                    boundary.get("page_number"),
+                    value.get("staff_index"),
+                    value.get("measure_index_on_staff"),
+                ))
+                return (
+                    reference is not None
+                    and reference.get("alignment_status") == "cross_staff_alignment_candidate",
+                    reference.get("staff_support", 1) if reference else 0,
                     value.get("confidence", 0),
                     -value.get("vertical_distance_px", float("inf")),
-                ),
-            )
+                )
+
+            anchor = max(valid, key=anchor_rank)
             ratio = float(anchor["position_ratio_in_interval"])
             measure_reference = measure_map.get((
                 boundary.get("page_number"),
@@ -713,6 +782,10 @@ def resolve_section_range_boundaries(
                 "global_alignment_status": (
                     measure_reference.get("alignment_status")
                     if measure_reference else "unmatched_local_interval"
+                ),
+                "staff_support": (
+                    measure_reference.get("staff_support", 1)
+                    if measure_reference else 0
                 ),
                 "staff_index": anchor.get("staff_index"),
                 "measure_index_on_staff": anchor.get("measure_index_on_staff"),
