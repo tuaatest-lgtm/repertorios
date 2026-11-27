@@ -7,12 +7,12 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 66%
-- **Avance estimado actual:** 68%
-- **Variación:** +2 puntos porcentuales
-- **Trabajo restante estimado:** 32%
+- **Avance estimado anterior:** 68%
+- **Avance estimado actual:** 69%
+- **Variación:** +1 punto porcentual
+- **Trabajo restante estimado:** 31%
 
-El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la primera ejecución reproducible del motor sobre una partitura coral real de tres páginas, la inspección de sus overlays y la corrección de un exceso de candidatos a silencio. Esta ejecución no equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
+El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la primera implementación de candidatos de estructura de secciones, integrada en la CLI y en el paquete de revisión, además de la validación previa sobre una partitura coral real. Esta ejecución no equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
 
 ## Evolución por aspecto
 
@@ -24,7 +24,7 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Evidencia visual y overlays | 91% | 92% | Se inspeccionaron los overlays generados en las tres páginas reales y se documentaron las principales confusiones visuales. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 10% | Primera ejecución reproducible sobre tres páginas reales y revisión visual de salidas; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
-| Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
+| Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |\n| Estructura de secciones musicales | 0% | 20% | Primera detección de rótulos, letras próximas y rangos candidatos de página; sin continuidad entre páginas ni compases confirmados. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -48,7 +48,12 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - CI del adaptador de evidencia: ejecución [45903872219](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903872219), commit `afb236bd3c109c766e6853c72d34d50303954826`, resultado exitoso: **317 pruebas aprobadas**.
 - CI de evidencia combinada y paquete de revisión: ejecución [45933249039](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933249039), commit `0079fb041dcc65c3da2f7b601e8607418911bcf9`, resultado exitoso: **322 pruebas aprobadas** en ese corte. La integración de CLI quedó aprobada también en [45933208974](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933208974). Tras ampliar la validación de estados de etiqueta y corregir la expresión de una prueba, la rama completa volvió a pasar: ejecución [45933376574](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933376574), commit `27b349b96820452600d17db77757270aa70b10bb`, **325 pruebas aprobadas**. La nueva visualización de etiquetas pasó también en ejecución [45933685409](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933685409), commit `333484f815051bdb8aea7011c490b5abc6069271`, con **327 pruebas aprobadas**. La prueba de integración CLI con PDF sintético pasó en [45933805391](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933805391), commit `fa608b216d1035ea835f75aeeee3299e997e1871`, elevando la suite a **328 pruebas aprobadas**. La corrección de abreviaturas SATB pasó en [45934028737](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45934028737), commit `4ba76e0ae20f6de5b6105db33d3c94a1221e589a`, con **330 pruebas aprobadas**. Los filtros de silencios y la prueba de integración pasaron en [45934441387](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45934441387), commit `5ae2eb2c6b5e8bcd909d9e1c848fe99802edb934`, con **333 pruebas aprobadas**.
 
-## Límites que siguen abiertos
+\n- Se incorporó `section_structure.py`: extrae rótulos como CORO, ESTROFA, PUENTE, FINAL, INTRO y CODA desde la capa de texto PDF; reconoce letras aisladas a no más de un ancho medio de compás candidato y conserva la relación como identificador posible, no como voz SATB.
+- La CLI exporta `section_marker_candidates`, `section_identifier_candidates` y `section_range_candidates`; las letras ya relacionadas con una sección se excluyen de la lista duplicada de etiquetas SATB. El paquete de revisión humana conserva las tres familias como pendientes.
+- Los rangos se proponen entre marcas sucesivas en orden de lectura dentro de cada página. Pueden comenzar o terminar dentro de un sistema y no se limitan a un único compás o sistema. El último rango queda abierto en esa página.
+- Límite explícito: todavía no se enlazan rangos entre páginas, no se reconstruye el orden global de compases y la proximidad usa anchos de intervalos geométricos entre barras candidatas. Los rótulos deben estar en la capa de texto PDF; no hay OCR.
+- Pruebas nuevas de marcas, letras cercanas, letras lejanas y rangos abiertos. CI de la rama: ejecución [45937270176](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45937270176), commit `4d8feb09e7aef0b748e182aae99c1aae561f98aa`, resultado exitoso: **336 pruebas aprobadas**.
+\n## Límites que siguen abiertos
 
 - Una llave detectada no demuestra por sí sola que dos pentagramas sean piano ni identifica las manos.
 - Un corchete o trazo vertical no confirma que los pentagramas pertenezcan a una parte instrumental o vocal.
@@ -60,7 +65,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 
 | Próximo hito | Aporte estimado al avance global | Condición para reconocerlo |
 |---|---:|---|
-| Ejecutar el motor sobre más partituras reales y revisar overlays | +1 a 2 pp | Ampliar el análisis a partituras de distinta edición y calidad; revisar los overlays y documentar fallos por familia. |
+| Conectar rangos de sección entre páginas y ordenar compases globalmente | +1 a 2 pp | Resolver continuidad de página/sistema con evidencia geométrica y revisión humana. |\n| Ejecutar el motor sobre más partituras reales y revisar overlays | +1 a 2 pp | Ampliar el análisis a partituras de distinta edición y calidad; revisar los overlays y documentar fallos por familia. |
 | Crear anotaciones humanas de un conjunto representativo | +3 a 5 pp | Partituras, páginas, pentagramas, voces y eventos revisados; manifiestos validados. |
 | Medir precisión y recuperación por familia de símbolos y eventos | +3 a 5 pp | Informes calculados contra referencias humanas, no pruebas sintéticas. |
 | Corregir errores principales y repetir medición | +4 a 6 pp | Comparación antes/después en el mismo corpus y regresión independiente. |
