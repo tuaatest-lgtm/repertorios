@@ -75,6 +75,7 @@ La mayor incertidumbre del calendario no es escribir más módulos: es disponer 
 - La revisión del flujo de continuidad encontró un caso concreto que el diseño anterior no resolvía: si un pentagrama tiene dos intervalos consecutivos y otro pentagrama del mismo sistema perdió la barra intermedia, el intervalo largo podía contarse como un tercer compás global candidato.
 - Se ajustó `build_global_measure_sequence`: los intervalos que abarcan varios candidatos de otro pentagrama quedan como `ambiguous_spans_multiple_measure_candidates`, sin ordinal global inventado; el mapa conserva los ordinales posibles para revisión.
 - Se añadieron pruebas para barras omitidas y continuidad de ordinales a través de la página siguiente. La suite completa pasó en [45946981542](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45946981542): **413 pruebas aprobadas**.
+- El paquete de revisión ahora expone el número de intervalos ambiguos y los límites de sección que heredan esa ambigüedad; si una ancla depende de un intervalo que abarca varios compases candidatos, conserva las alternativas y no asigna un ordinal único. La validación de esa conducta también pasó en la suite de 416 pruebas.
 - Este avance mejora el manejo conservador de un caso sintético; no se incrementa el 36% global porque aún no se ha validado la mejora en un corpus musical real.
 
 ## Trabajo verificado en este corte
