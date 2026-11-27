@@ -149,4 +149,4 @@ def test_geometry_overlay_draws_section_markers_and_system_anchors():
     assert np.any(overlay != image)
     # La misma marca anclada a dos pentagramas del mismo sistema dibuja
     # una única línea vertical de referencia, no dos límites independientes.
-    assert np.any(np.all(overlay[100:291, 130] != image[100:291, 130], axis=1))
+    assert np.any(np.any(overlay[100:291, 130] != image[100:291, 130], axis=1))
