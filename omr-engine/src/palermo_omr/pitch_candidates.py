@@ -95,6 +95,7 @@ def build_pitch_candidates(
     explicit_accidentals: Sequence[str | None] | None = None,
     measure_ids: Sequence[str | int] | None = None,
     simultaneous_group_ids: Sequence[str | int] | None = None,
+    source_indices: Sequence[int] | None = None,
 ) -> list[PitchCandidate]:
     """Construye alturas con claves suministradas y alteraciones revisadas.
 
@@ -109,6 +110,12 @@ def build_pitch_candidates(
     count = len(noteheads)
     if source_kinds is not None and len(source_kinds) != count:
         raise ValueError("source_kinds debe tener un elemento por cada cabeza de nota")
+    if source_indices is not None and (
+        len(source_indices) != count
+        or any(not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in source_indices)
+        or len(set(source_indices)) != count
+    ):
+        raise ValueError("source_indices debe contener índices enteros únicos y no negativos")
     if (explicit_accidentals is None) != (measure_ids is None):
         raise ValueError("explicit_accidentals y measure_ids deben proporcionarse juntos")
     if explicit_accidentals is not None and len(explicit_accidentals) != count:
@@ -218,7 +225,7 @@ def build_pitch_candidates(
                 status = "resolved_from_supplied_clef"
             results[index] = PitchCandidate(
                 source_kind=source_kind,
-                source_index=index,
+                source_index=source_indices[index] if source_indices is not None else index,
                 staff_index=staff_index,
                 diatonic_step_from_bottom=step,
                 clef=clef,

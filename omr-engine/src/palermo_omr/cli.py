@@ -209,13 +209,39 @@ def main() -> int:
                 "explicit_accidentals": accidentals,
                 "simultaneous_group_ids": groups,
             }
-        pitch_candidates = build_pitch_candidates(
-            combined_heads,
-            staff_clefs=supplied_clefs,
-            key_signatures=page_key_signatures,
-            source_kinds=source_kinds,
-            **pitch_kwargs,
-        )
+        if review_heads is not None:
+            ordered_indices = sorted(
+                range(len(combined_heads)),
+                key=lambda index: (
+                    int(combined_heads[index].staff_index),
+                    pitch_kwargs["measure_ids"][index],
+                    float(getattr(combined_heads[index], "center_x", index)),
+                    index,
+                ),
+            )
+            ordered_kwargs = {
+                "measure_ids": [pitch_kwargs["measure_ids"][index] for index in ordered_indices],
+                "explicit_accidentals": [pitch_kwargs["explicit_accidentals"][index] for index in ordered_indices],
+                "simultaneous_group_ids": [pitch_kwargs["simultaneous_group_ids"][index] for index in ordered_indices],
+                "source_indices": ordered_indices,
+            }
+            ordered_candidates = build_pitch_candidates(
+                [combined_heads[index] for index in ordered_indices],
+                staff_clefs=supplied_clefs,
+                key_signatures=page_key_signatures,
+                source_kinds=[source_kinds[index] for index in ordered_indices],
+                **ordered_kwargs,
+            )
+            pitch_candidates = [None] * len(combined_heads)
+            for candidate in ordered_candidates:
+                pitch_candidates[candidate.source_index] = candidate
+        else:
+            pitch_candidates = build_pitch_candidates(
+                combined_heads,
+                staff_clefs=supplied_clefs,
+                key_signatures=page_key_signatures,
+                source_kinds=source_kinds,
+            )
         pitch_candidates_by_page[page_number] = pitch_candidates
         page_data["pitch_candidates"] = [item.to_dict() for item in pitch_candidates]
         page_data["pitch_candidate_count"] = len(pitch_candidates)
