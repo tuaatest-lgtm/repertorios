@@ -119,3 +119,34 @@ def test_geometry_overlay_scales_printed_label_bbox_with_render_dpi():
     overlay = draw_geometry_overlay(image, page_data)
 
     assert np.any(overlay[20:31, 20:41] != 255)
+
+
+
+def test_geometry_overlay_draws_section_markers_and_system_anchors():
+    image = np.full((320, 420, 3), 255, dtype=np.uint8)
+    page_data = {
+        "render_dpi": 72,
+        "staves": [
+            {"lines_y": [100, 110, 120, 130, 140]},
+            {"lines_y": [250, 260, 270, 280, 290]},
+        ],
+        "staff_system_candidates": [
+            {"system_index": 0, "staff_indices": [0, 1], "y_top": 100, "y_bottom": 290}
+        ],
+        "section_marker_candidates": [{
+            "text": "Intro", "bbox_pdf": [90, 70, 120, 85],
+        }],
+        "section_measure_anchor_candidates": [
+            {"marker_index": 0, "system_index": 0, "staff_index": 0,
+             "interval_x_start": 80, "interval_x_end": 180,
+             "position_ratio_in_interval": 0.5},
+            {"marker_index": 0, "system_index": 0, "staff_index": 1,
+             "interval_x_start": 80, "interval_x_end": 180,
+             "position_ratio_in_interval": 0.5},
+        ],
+    }
+    overlay = draw_geometry_overlay(image, page_data)
+    assert np.any(overlay != image)
+    # La misma marca anclada a dos pentagramas del mismo sistema dibuja
+    # una única línea vertical de referencia, no dos límites independientes.
+    assert np.any(np.all(overlay[100:291, 130] != image[100:291, 130], axis=1))
