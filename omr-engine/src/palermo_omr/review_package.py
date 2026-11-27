@@ -126,6 +126,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             ("section_marker", "section_marker_candidates"),
             ("section_identifier", "section_identifier_candidates"),
             ("section_range", "section_range_candidates"),
+            ("rhythmic_event_group", "rhythmic_event_group_candidates"),
+            ("staff_voice_layer", "staff_voice_layer_candidates"),
         )
         other_candidates = []
         for family, key in other_families:
@@ -161,6 +163,32 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                             or not 0 <= staff_index < staff_count):
                         raise ValueError(f"{key} referencia un pentagrama inexistente")
                     related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
+                elif family in {"rhythmic_event_group", "staff_voice_layer"}:
+                    staff_index = value.get("staff_index")
+                    if (not isinstance(staff_index, int) or isinstance(staff_index, bool)
+                            or not 0 <= staff_index < staff_count):
+                        raise ValueError(f"{key} referencia un pentagrama inexistente")
+                    if family == "rhythmic_event_group":
+                        indices = _validated_indices(
+                            value.get("notehead_indices", []),
+                            len(filled_candidate_ids),
+                            "Un grupo de ataque rítmico",
+                        )
+                    else:
+                        upward = value.get("upward_notehead_indices", [])
+                        downward = value.get("downward_notehead_indices", [])
+                        if not isinstance(upward, list) or not isinstance(downward, list):
+                            raise ValueError("Las capas de voz deben contener listas de índices")
+                        indices = sorted(set(upward + downward))
+                        indices = _validated_indices(
+                            indices, len(filled_candidate_ids), "Una capa de voz"
+                        )
+                    if any(filled_candidate_staff_indices[item] != staff_index for item in indices):
+                        raise ValueError(f"{key} mezcla cabezas de pentagramas distintos")
+                    related_ids = [
+                        *[filled_candidate_ids[item] for item in indices],
+                        f"p{page_number}-staff-{staff_index + 1}",
+                    ]
                 elif family == "printed_label":
                     status = value.get("association_status")
                     if status not in {"associated_candidate", "ambiguous", "unassigned"}:
