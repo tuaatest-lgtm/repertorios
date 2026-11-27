@@ -27,21 +27,20 @@ Por tanto, todas las propuestas requieren revisión humana. No se clasifican
 automáticamente los arcos que no cumplen las condiciones como slurs: pueden
 ser arcos editoriales, errores geométricos o detecciones incompletas.
 
-La función `build_reviewed_tie_durations` permite sumar las dos duraciones
-solo después de que una persona confirme explícitamente que el arco es una
-ligadura de prolongación y que ambas notas tienen la misma escritura musical.
-Rechaza propuestas ambiguas o confirmaciones incompletas. La función `apply_reviewed_tie_chains_to_timeline` integra cadenas confirmadas
-en la línea temporal revisada: conserva el primer ataque, suma la duración,
-retira los ataques intermedios y registra `tied_event_ids` y
-`reviewed_tie_chains` para trazabilidad. La integración se ejecuta desde
-`build_reviewed_page_timelines` cuando el compás contiene `tie_candidates` y
-`tie_confirmations` en el manifiesto `--reviewed-rhythm-manifest`. No está
-conectada a Sonoro ni produce detección automática de ligaduras.
+Las funciones `build_reviewed_tie_durations` y
+`build_reviewed_tie_chains` suman duraciones solo después de que una persona
+confirme explícitamente que el arco es una ligadura de prolongación y que ambas
+notas tienen la misma escritura musical. Se rechazan propuestas ambiguas,
+confirmaciones incompletas, bifurcaciones, fusiones y ciclos.
 
-## Integración en el manifiesto de ritmo revisado
+## Integración en el manifiesto revisado
 
-Dentro de cada objeto de `measures`, se pueden incluir las propuestas y las
-confirmaciones. Los índices de confirmación apuntan a la lista local de
+Hay dos ámbitos admitidos:
+
+### 1. Ligaduras dentro de un compás
+
+Las propuestas y confirmaciones pueden estar dentro de un objeto de
+`measures`. Los índices de confirmación apuntan a la lista local de
 `tie_candidates` de ese compás:
 
 ```json
@@ -70,9 +69,65 @@ confirmaciones. Los índices de confirmación apuntan a la lista local de
 }
 ```
 
-Los dos eventos deben estar incluidos en el mismo compás y pertenecer a la
-misma voz; deben tener inicio y duración conocidos y continuidad temporal
-exacta. Si hay alturas confirmadas en ambos eventos, deben coincidir. Los
-cruces de compás o página se rechazan deliberadamente hasta que exista una
-línea temporal global revisada que los pueda validar sin reiniciar el tiempo
-local de cada compás. Las confirmaciones no se infieren de `geometry_score`.
+Los dos eventos deben pertenecer al mismo compás y a la misma voz; deben tener
+inicio y duración conocidos y continuidad temporal exacta.
+
+### 2. Ligaduras entre compases consecutivos de una misma página
+
+Cuando una ligadura cruza una barra de compás, las propuestas y confirmaciones
+se colocan en el nivel de página, como hermanos de `page_number` y
+`measures`, no dentro de un compás. Los IDs de origen y destino deben
+pertenecer a eventos confirmados de esa página:
+
+```json
+{
+  "page_number": 1,
+  "measures": [
+    {
+      "measure_index": 0,
+      "numerator": 4,
+      "denominator": 4,
+      "confirmed_event_ids": ["n1"],
+      "event_voice_ids": {"n1": "alto"}
+    },
+    {
+      "measure_index": 1,
+      "numerator": 4,
+      "denominator": 4,
+      "confirmed_event_ids": ["n2"],
+      "event_voice_ids": {"n2": "alto"}
+    }
+  ],
+  "tie_candidates": [{
+    "arc_id": "arc-page-1",
+    "source_event_id": "n1",
+    "target_event_id": "n2",
+    "status": "proposed_tie",
+    "pitch_match": true,
+    "temporal_continuity": true,
+    "geometry_score": 0.9,
+    "warnings": []
+  }],
+  "tie_confirmations": [{
+    "candidate_index": 0,
+    "reviewer_confirmed": true,
+    "arc_is_tie_confirmed": true,
+    "same_notated_pitch_confirmed": true
+  }]
+}
+```
+
+La integración de página calcula offsets acumulados con la métrica de cada
+compás. Solo admite continuidad entre compases consecutivos presentes en la
+secuencia revisada; no presume continuidad si falta un índice de compás. Se
+exige misma voz, eventos de tipo nota y continuidad temporal global exacta.
+Si ambas notas tienen alturas confirmadas, estas deben coincidir. La nota
+inicial conserva el ataque y recibe la duración combinada; los eventos de
+destino dejan de generar ataques y quedan registrados en
+`tied_event_ids`.
+
+**Límite actual:** el ámbito de página no cruza páginas. Las ligaduras entre
+páginas requieren una línea temporal de documento que valide explícitamente
+orden de páginas, compases, continuidad y saltos de sistema; no se deben
+resolver concatenando tiempos locales a ciegas. Ninguna de estas rutas detecta
+ni confirma ligaduras automáticamente, y no están conectadas a Sonoro.
