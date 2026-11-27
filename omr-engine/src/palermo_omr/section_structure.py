@@ -299,3 +299,83 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
             ),
         })
     return ranges
+
+
+def anchor_section_markers_to_measure_spans(
+    markers: list[dict],
+    staves: list,
+    measure_spans: list,
+    *,
+    max_distance_measures: float = 1.0,
+) -> list[dict]:
+    """Asocia cada marca con el intervalo geométrico más cercano del pentagrama.
+
+    La posición relativa dentro del intervalo es una referencia visual, no una
+    afirmación de que el intervalo sea un compás musical confirmado.
+    """
+    if max_distance_measures <= 0:
+        raise ValueError("max_distance_measures debe ser positivo")
+    from statistics import median
+
+    by_staff: dict[int, list] = {}
+    for span in measure_spans:
+        if span.width_px > 0:
+            by_staff.setdefault(span.staff_index, []).append(span)
+
+    anchors = []
+    for marker_index, marker in enumerate(markers):
+        x = marker.get("center_x_px")
+        y = marker.get("center_y_px")
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+            continue
+        possible = []
+        for staff_index, staff in enumerate(staves):
+            if len(staff.lines_y) != 5 or staff.spacing_px <= 0:
+                continue
+            spans = by_staff.get(staff_index, [])
+            if not spans:
+                continue
+            staff_center = sum(staff.lines_y) / 5
+            typical_width = float(median([span.width_px for span in spans]))
+            for span in spans:
+                gap = max(span.x_start - x, 0, x - span.x_end)
+                distance_measures = gap / max(typical_width, 1.0)
+                vertical_distance = abs(y - staff_center)
+                possible.append((
+                    distance_measures, vertical_distance, staff_index,
+                    span, typical_width,
+                ))
+        if not possible:
+            continue
+        distance, vertical_distance, staff_index, span, typical_width = min(
+            possible, key=lambda item: (
+                item[0] + item[1] / max(staves[item[2]].spacing_px * 10, 1),
+                item[1],
+            )
+        )
+        if distance > max_distance_measures:
+            continue
+        ratio = (x - span.x_start) / max(span.width_px, 1.0)
+        anchors.append({
+            "marker_index": marker_index,
+            "staff_index": staff_index,
+            "measure_index_on_staff": span.measure_index,
+            "interval_x_start": span.x_start,
+            "interval_x_end": span.x_end,
+            "position_ratio_in_interval": round(float(ratio), 3),
+            "relation": (
+                "before_interval" if ratio < 0
+                else "after_interval" if ratio > 1
+                else "inside_interval"
+            ),
+            "distance_in_measure_widths": round(float(distance), 3),
+            "vertical_distance_px": round(float(vertical_distance), 2),
+            "confidence": round(min(0.6, span.confidence * 0.7), 3),
+            "review_status": "pending",
+            "warning": (
+                "Ancla geométrica local a un intervalo entre barras candidatas. "
+                "El índice de compás es local al pentagrama/página, no global, y "
+                "el intervalo no está validado como compás musical."
+            ),
+        })
+    return anchors
