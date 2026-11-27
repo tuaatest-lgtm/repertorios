@@ -250,6 +250,21 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         1 for item in global_measure_candidates
         if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
     )
+    section_marker_reviews = [
+        item for page in pages for item in page["other_candidates"]
+        if item["family"] == "section_marker"
+    ]
+    section_marker_statuses = [
+        item["candidate_data"].get("global_boundary_status")
+        for item in section_marker_reviews
+    ]
+    eligible_section_markers = sum(
+        status == "eligible_candidate" for status in section_marker_statuses
+    )
+    excluded_section_markers = sum(
+        isinstance(status, str) and status.startswith("excluded_")
+        for status in section_marker_statuses
+    )
     return {
         "review_package_version": "1.0",
         "score_id": score_id,
@@ -271,6 +286,12 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "pending_global_measure_candidate_count": pending_measure_candidates,
             "global_section_range_candidate_count": len(global_section_ranges),
             "pending_global_section_range_candidate_count": pending_section_ranges,
+            "section_marker_candidate_count": len(section_marker_reviews),
+            "eligible_global_section_marker_candidate_count": eligible_section_markers,
+            "excluded_global_section_marker_candidate_count": excluded_section_markers,
+            "unclassified_global_section_marker_candidate_count": (
+                len(section_marker_reviews) - eligible_section_markers - excluded_section_markers
+            ),
         },
         "pages": pages,
     }
