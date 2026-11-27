@@ -14,7 +14,7 @@ def group(event_id, staff, center_x, duration="quarter", status="single_note_can
         center_x=center_x,
         stem_direction_candidate="up",
         duration_candidate=duration,
-        duration_quarters_candidate=Fraction(1) if duration == "quarter" else None,
+        duration_quarters_candidate={"quarter": Fraction(1), "half": Fraction(2)}.get(duration),
         voice_id_candidate=None,
         status=status,
         confidence=.8,
@@ -24,7 +24,7 @@ def group(event_id, staff, center_x, duration="quarter", status="single_note_can
 
 def test_builds_polyrhythmic_timeline_from_explicit_voice_review():
     groups = [
-        group("s1", 0, 10, indices=(0,)),
+        group("s1", 0, 10, duration="half", indices=(0,)),
         group("s2", 0, 30, indices=(1,)),
         group("a1", 1, 10, indices=(0,)),
         group("a2", 1, 20, indices=(1,)),
