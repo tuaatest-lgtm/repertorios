@@ -527,7 +527,9 @@ def resolve_section_range_boundaries(
                 "measure_index_on_staff": anchor.get("measure_index_on_staff"),
                 "position_ratio_in_interval": round(ratio, 4),
                 "position_kind": (
-                    "inside_measure_candidate" if 0 <= ratio <= 1
+                    "at_measure_start_candidate" if ratio == 0
+                    else "at_measure_end_candidate" if ratio == 1
+                    else "inside_measure_candidate" if 0 < ratio < 1
                     else "before_measure_candidate" if ratio < 0
                     else "after_measure_candidate"
                 ),
