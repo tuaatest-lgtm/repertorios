@@ -261,6 +261,25 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         1 for item in global_section_ranges
         if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
     )
+    section_boundary_candidates = [
+        boundary.get("musical_boundary_candidate")
+        for item in global_section_ranges if isinstance(item, dict)
+        for boundary in (item.get("start"), item.get("end"))
+        if isinstance(boundary, dict)
+        and isinstance(boundary.get("musical_boundary_candidate"), dict)
+    ]
+    cross_staff_section_boundaries = sum(
+        item.get("global_alignment_status") == "cross_staff_alignment_candidate"
+        for item in section_boundary_candidates
+    )
+    single_staff_section_boundaries = sum(
+        item.get("global_alignment_status") == "single_staff_only_unmatched"
+        for item in section_boundary_candidates
+    )
+    unmatched_section_boundaries = sum(
+        item.get("global_alignment_status") in (None, "unmatched_local_interval", "unknown")
+        for item in section_boundary_candidates
+    )
     pending_measure_candidates = sum(
         1 for item in global_measure_candidates
         if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
@@ -303,6 +322,10 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "single_staff_only_measure_candidate_count": single_staff_only_count,
             "global_section_range_candidate_count": len(global_section_ranges),
             "pending_global_section_range_candidate_count": pending_section_ranges,
+            "section_boundary_candidate_count": len(section_boundary_candidates),
+            "cross_staff_aligned_section_boundary_candidate_count": cross_staff_section_boundaries,
+            "single_staff_only_section_boundary_candidate_count": single_staff_section_boundaries,
+            "unmatched_section_boundary_candidate_count": unmatched_section_boundaries,
             "section_marker_candidate_count": len(section_marker_reviews),
             "eligible_global_section_marker_candidate_count": eligible_section_markers,
             "excluded_global_section_marker_candidate_count": excluded_section_markers,
