@@ -270,6 +270,8 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
                 "identifier": identifier,
                 "center_x_px": marker.get("center_x_px"),
                 "center_y_px": marker.get("center_y_px"),
+                "page_width_px": marker.get("page_width_px"),
+                "page_height_px": marker.get("page_height_px"),
             })
 
     # Un rótulo repetido en la misma coordenada de la franja superior
