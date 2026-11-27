@@ -171,8 +171,8 @@ def test_detect_staff_systems_from_connectors_groups_only_connected_pairs():
         for y in lines:
             cv2.line(binary, (40, y), (300, y), 0, 1)
     # Los conectores separan dos sistemas: (0, 1) y (2, 3).
-    cv2.line(binary, (20, 35), (20, 195), 0, 2)
-    cv2.line(binary, (20, 255), (20, 415), 0, 2)
+    cv2.line(binary, (10, 35), (10, 195), 0, 2)
+    cv2.line(binary, (10, 255), (10, 415), 0, 2)
 
     systems = detect_staff_systems_from_connectors(staves, binary)
     assert [item.staff_indices for item in systems] == [[0, 1], [2, 3]]
