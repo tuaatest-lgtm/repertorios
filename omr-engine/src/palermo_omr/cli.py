@@ -180,15 +180,18 @@ def main() -> int:
     global_measure_sequence = build_global_measure_sequence(analyses)
     global_measure_map = {
         (item["page_number"], item["staff_index"], item["measure_index_on_staff"]):
-        item["global_measure_candidate"]
+        item
         for item in global_measure_sequence["staff_measure_map"]
     }
     for page_data in analyses:
         for anchor in page_data.get("section_measure_anchor_candidates", []):
-            anchor["global_measure_candidate"] = global_measure_map.get((
+            measure_reference = global_measure_map.get((
                 page_data["page_number"], anchor["staff_index"],
                 anchor["measure_index_on_staff"],
-            ))
+            ), {})
+            anchor["global_measure_candidate"] = measure_reference.get("global_measure_candidate")
+            anchor["global_alignment_status"] = measure_reference.get("alignment_status", "unmatched_local_interval")
+            anchor["staff_support"] = measure_reference.get("staff_support", 0)
             anchor["warning"] += (
                 " El ordinal global asociado también es provisional y depende "
                 "de la conciliación geométrica de pentagramas."
@@ -207,6 +210,14 @@ def main() -> int:
     global_section_ranges = resolve_section_range_boundaries(
         global_section_ranges, global_measure_sequence
     )
+    # La clasificación global de encabezados y límites se calcula después de
+    # reunir todas las páginas. Redibujar ahora hace visible esa decisión en
+    # los overlays, sin perder los candidatos locales originales.
+    for page, page_data in zip(pages, analyses):
+        geometry_overlay = draw_geometry_overlay(page, page_data)
+        geometry_overlay_path = output_dir / page_data["geometry_overlay"]
+        if not cv2.imwrite(str(geometry_overlay_path), geometry_overlay):
+            raise OSError(f"No se pudo escribir {geometry_overlay_path}")
     report = {
         "global_measure_sequence": global_measure_sequence,
         "engine": "Palermo OMR",
