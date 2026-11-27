@@ -26,7 +26,7 @@ def duration_in_quarters(base_duration: str, dots: int = 0) -> Fraction:
 
     Un puntillo multiplica por 3/2; dos por 7/4; tres por 15/8.
     """
-    if base_duration not in BASE_DURATIONS:
+    if not isinstance(base_duration, str) or base_duration not in BASE_DURATIONS:
         raise ValueError(f"Figura base desconocida: {base_duration}")
     if not isinstance(dots, int) or isinstance(dots, bool) or dots < 0 or dots > 4:
         raise ValueError("dots debe ser un entero entre 0 y 4")
@@ -42,9 +42,11 @@ def sum_tied_durations(durations: Iterable[Fraction | int | float]) -> Fraction:
     """
     values = []
     for value in durations:
+        if isinstance(value, bool) or not isinstance(value, (Fraction, int, float)):
+            raise ValueError("Todas las duraciones deben ser números válidos")
         try:
             exact = value if isinstance(value, Fraction) else Fraction(str(value))
-        except (ValueError, ZeroDivisionError, TypeError) as exc:
+        except (ValueError, ZeroDivisionError, TypeError, OverflowError) as exc:
             raise ValueError("Todas las duraciones deben ser números válidos") from exc
         if exact <= 0:
             raise ValueError("Las duraciones deben ser mayores que cero")
