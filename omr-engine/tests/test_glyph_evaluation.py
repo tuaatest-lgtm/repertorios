@@ -5,12 +5,7 @@ from palermo_omr.glyph_evaluation import evaluate_glyph_predictions, write_glyph
 
 
 def manifest(path):
-    glyphs = [
-        ("a", "treble_clef"),
-        ("b", "sharp"),
-        ("c", "sharp"),
-        ("d", "flat"),
-    ]
+    glyphs = [("a", "treble_clef"), ("b", "sharp"), ("c", "sharp"), ("d", "flat")]
     records = [{
         "candidate_id": candidate,
         "page_number": 1,
@@ -90,7 +85,7 @@ def test_rejects_duplicate_unknown_and_invalid_predictions(tmp_path):
         evaluate_glyph_predictions([truth], invalid)
 
 
-def test_rejects_bad_confidence_and_writes_report(tmp_path):
+def test_rejects_bad_confidence_and_writes_valid_json_with_newline(tmp_path):
     truth = manifest(tmp_path / "truth.json")
     preds = predictions(tmp_path / "preds.json", [
         {"score_id": "score-a", "candidate_id": "a", "label": "treble_clef", "confidence": 1.5},
@@ -103,4 +98,5 @@ def test_rejects_bad_confidence_and_writes_report(tmp_path):
     report = evaluate_glyph_predictions([truth], valid)
     output = tmp_path / "out" / "report.json"
     write_glyph_evaluation(report, output)
+    assert output.read_text(encoding="utf-8").endswith("\n")
     assert json.loads(output.read_text()) == report

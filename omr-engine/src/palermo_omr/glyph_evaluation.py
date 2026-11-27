@@ -19,7 +19,7 @@ def _write_json(path: str | Path, value: dict) -> None:
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(destination)
 
 
@@ -57,9 +57,9 @@ def evaluate_glyph_predictions(manifest_paths: list[str | Path], predictions_pat
         if key not in truth:
             raise ValueError(f"Predicción sin etiqueta humana correspondiente: {key}")
         label = item.get("label")
-        if label in (None, "abstain", "unclassified"):
+        if label is None or label in ("abstain", "unclassified"):
             label = None
-        elif label not in GLYPH_LABELS:
+        elif not isinstance(label, str) or label not in GLYPH_LABELS:
             raise ValueError(f"Clase predicha no permitida para {key}: {label}")
         confidence = item.get("confidence")
         if confidence is not None and (
