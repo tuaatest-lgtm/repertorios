@@ -26,6 +26,7 @@ from .section_structure import (
     detect_section_candidates,
     link_section_ranges_across_pages,
     build_global_measure_sequence,
+    resolve_section_range_boundaries,
 )
 from .identity_evidence import build_page_identity_evidence
 from .score_structure import ScoreStaff, ScoreStructure
@@ -197,6 +198,9 @@ def main() -> int:
                     boundary["page_number"], anchor["staff_index"],
                     anchor["measure_index_on_staff"],
                 ))
+    global_section_ranges = resolve_section_range_boundaries(
+        global_section_ranges, global_measure_sequence
+    )
     report = {
         "global_measure_sequence": global_measure_sequence,
         "engine": "Palermo OMR",
