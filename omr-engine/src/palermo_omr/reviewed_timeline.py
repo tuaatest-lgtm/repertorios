@@ -13,11 +13,15 @@ from .rhythmic_event_groups import (
     build_reviewed_voice_events_by_voice,
 )
 from .rhythmic_timeline import analyze_ordered_measure_voices
+from .rest_events import RestReviewAssignment, build_reviewed_rest_events
+from .rhythm_symbols import RestSymbolCandidate
 
 
 def build_reviewed_page_timelines(
     groups: Sequence[RhythmicEventGroupCandidate],
     page_manifest: Mapping[str, Any],
+    *,
+    rest_candidates: Sequence[RestSymbolCandidate] = (),
 ) -> list[dict[str, Any]]:
     """Construye líneas temporales por compás sin aceptar inferencias visuales.
 
@@ -39,6 +43,7 @@ def build_reviewed_page_timelines(
     if len(known_group_ids) != len(groups):
         raise ValueError("Los grupos rítmicos deben tener event_id únicos")
     used_event_ids: set[str] = set()
+    used_rest_candidate_indices: set[int] = set()
     results: list[dict[str, Any]] = []
     seen_measure_indices: set[int] = set()
 
@@ -83,9 +88,37 @@ def build_reviewed_page_timelines(
             confirmed_event_ids=set(confirmed),
             event_dot_counts=dot_counts,
         )
+        # Los silencios también ocupan tiempo dentro de una voz. Se integran
+        # solo si la revisión aporta candidato, tipo, voz, orden y duración.
+        raw_rest_assignments = measure.get("rest_assignments", [])
+        if not isinstance(raw_rest_assignments, list):
+            raise ValueError("rest_assignments debe ser una lista")
+        rest_assignments = []
+        for item in raw_rest_assignments:
+            if not isinstance(item, Mapping):
+                raise ValueError("Cada rest_assignment debe ser un objeto")
+            try:
+                rest_assignments.append(RestReviewAssignment(**item))
+            except TypeError as exc:
+                raise ValueError("rest_assignment contiene campos ausentes o desconocidos") from exc
+        rest_events = build_reviewed_rest_events(rest_candidates, rest_assignments)
+        rest_indices = {item.candidate_index for item in rest_assignments}
+        if used_rest_candidate_indices.intersection(rest_indices):
+            raise ValueError("Un candidato de silencio no puede reutilizarse en dos compases")
+        used_rest_candidate_indices.update(rest_indices)
+
         by_voice: dict[str, list] = {}
-        for event in events:
+        for event in (*events, *rest_events):
             by_voice.setdefault(event.voice_id, []).append(event)
+        for voice_id, voice_events in by_voice.items():
+            event_ids = [event.event_id for event in voice_events]
+            order_indices = [event.order_index for event in voice_events]
+            if len(event_ids) != len(set(event_ids)):
+                raise ValueError("Los IDs de notas y silencios deben ser únicos en la voz")
+            if len(order_indices) != len(set(order_indices)):
+                raise ValueError(
+                    f"Notas y silencios tienen order_index repetido en la voz {voice_id}"
+                )
         timeline = analyze_ordered_measure_voices(
             [
                 (voice_id, measure_index, voice_events)

@@ -4,6 +4,7 @@ import pytest
 
 from palermo_omr.rhythmic_event_groups import RhythmicEventGroupCandidate
 from palermo_omr.reviewed_timeline import build_reviewed_page_timelines
+from palermo_omr.rhythm_symbols import RestSymbolCandidate
 
 
 def group(event_id, staff, center_x, duration="quarter", status="single_note_candidate", indices=(0,)):
@@ -122,3 +123,58 @@ def test_rejects_unreviewed_voice_mapping_or_invalid_meter():
     base["measures"][0]["denominator"] = 0
     with pytest.raises(ValueError, match="denominator"):
         build_reviewed_page_timelines(groups, base)
+
+
+
+def test_reviewed_rest_is_placed_in_the_same_polyphonic_timeline():
+    rest = RestSymbolCandidate(
+        bbox=(20, 40, 8, 14), staff_index=0, shape_score=0.4,
+        confidence=0.2, warning="requires review",
+        rest_type_candidate="unclassified", type_confidence=0.0,
+    )
+    groups = [
+        group("n1", 0, 10, indices=(0,)),
+        group("n2", 0, 30, indices=(1,)),
+    ]
+    result = build_reviewed_page_timelines(groups, {
+        "page_number": 1,
+        "measures": [{
+            "measure_index": 0, "numerator": 4, "denominator": 4,
+            "confirmed_event_ids": ["n1", "n2"],
+            "event_voice_ids": {"n1": "soprano", "n2": "soprano"},
+            "rest_assignments": [{
+                "candidate_index": 0, "event_id": "r1", "voice_id": "soprano",
+                "measure_index": 0, "order_index": 1, "duration_quarters": "1",
+                "confirmed_rest_type": "quarter", "reviewer_confirmed": True,
+            }],
+        }],
+    }, rest_candidates=[rest])
+    timeline = result[0]
+    assert [(event["event_id"], event["event_type"], event["onset_quarters"])
+            for event in timeline["events"]] == [
+        ("n1", "note", "0"), ("r1", "rest", "1"), ("n2", "note", "2"),
+    ]
+
+
+def test_reviewed_rest_cannot_be_reused_in_two_measures():
+    rest = RestSymbolCandidate(
+        bbox=(20, 40, 8, 14), staff_index=0, shape_score=0.4,
+        confidence=0.2, warning="requires review",
+        rest_type_candidate="unclassified", type_confidence=0.0,
+    )
+    groups = [group("n1", 0, 10, indices=(0,)), group("n2", 0, 30, indices=(1,))]
+    assignment = {
+        "candidate_index": 0, "event_id": "r1", "voice_id": "soprano",
+        "measure_index": 0, "order_index": 1, "duration_quarters": "1",
+        "confirmed_rest_type": "quarter", "reviewer_confirmed": True,
+    }
+    measures = [
+        {"measure_index": i, "numerator": 4, "denominator": 4,
+         "confirmed_event_ids": [event_id],
+         "event_voice_ids": {event_id: "soprano"},
+         "rest_assignments": [{**assignment, "measure_index": i}]}
+        for i, event_id in enumerate(("n1", "n2"))
+    ]
+    with pytest.raises(ValueError, match="reutilizarse"):
+        build_reviewed_page_timelines(groups, {"page_number": 1, "measures": measures},
+                                      rest_candidates=[rest])

@@ -90,6 +90,7 @@ def main() -> int:
     pages = render_pdf(args.pdf, dpi=args.dpi)
     analyses = []
     rhythmic_groups_by_page = {}
+    rest_candidates_by_page = {}
     human_glyph_manifest = (
         validate_glyph_manifest(args.glyph_manifest) if args.glyph_manifest else None
     )
@@ -225,6 +226,7 @@ def main() -> int:
         rests = detect_rest_shape_candidates(
             binary, analysis.staves, noteheads + hollow_noteheads
         )
+        rest_candidates_by_page[page_number] = rests
         tie_slurs = detect_tie_slur_shape_candidates(binary, analysis.staves)
         barlines = detect_barline_candidates(binary, analysis.staves)
         barline_groups = classify_barline_groups(barlines, analysis.staves)
@@ -324,7 +326,8 @@ def main() -> int:
             seen_review_pages.add(page_number)
             page_data = analyses[page_number - 1]
             page_data["reviewed_measure_timelines"] = build_reviewed_page_timelines(
-                rhythmic_groups_by_page[page_number], page_manifest
+                rhythmic_groups_by_page[page_number], page_manifest,
+                rest_candidates=rest_candidates_by_page[page_number],
             )
         report_reviewed_count = sum(
             len(page.get("reviewed_measure_timelines", [])) for page in analyses
