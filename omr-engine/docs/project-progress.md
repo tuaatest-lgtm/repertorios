@@ -46,6 +46,7 @@ El cálculo ponderado da aproximadamente **36%**. Las fases no significan que el
 - Modelo de eventos temporales polifónicos que conserva ataques simultáneos y duraciones distintas cuando esos datos ya existen.
 - Estructura preliminar de partes/voces, continuidad, eventos y evaluación.
 - Paquetes de revisión, overlays, exportación de candidatos y decisiones humanas explícitas.
+- El comando `palermo-omr-dataset review-sections` aplica decisiones humanas a rangos globales (`accepted`, `rejected`, `needs_revision`) desde un JSON de decisiones. Exige `--confirm-human-review`; aceptar un rango abierto requiere además `--allow-open-ended`. Actualiza los contadores de revisión y no modifica el paquete de origen. Esto mejora el flujo de revisión, pero no constituye transcripción musical ni aumenta la línea base funcional por sí solo.
 - Detección provisional de secciones, enlaces entre páginas y límites dentro de intervalos.
 - Suite amplia de pruebas automatizadas. Las pruebas de software demuestran contratos y regresiones, no precisión musical.
 
