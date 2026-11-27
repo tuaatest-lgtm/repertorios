@@ -1,0 +1,32 @@
+{
+  "evaluation_type": "pdf_embedded_glyph_notehead_geometry",
+  "source_pdf": "Clamaré a Dios - Coro.pdf",
+  "source_sha256": "bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74c",
+  "engine_commit": "d892953bc841d12ff75c5286e985e34b46d15223",
+  "render_dpi": 300,
+  "page_count": 3,
+  "reference_font": "RepriseStd",
+  "reference_glyph": "œ",
+  "tolerance_points": 3.0,
+  "predicted_count": 569,
+  "reference_count": 534,
+  "true_positive": 494,
+  "false_positive": 75,
+  "false_negative": 40,
+  "precision": 0.8681898066783831,
+  "recall": 0.9250936329588015,
+  "f1": 0.8957388939256573,
+  "mean_matched_center_error_points": 1.7491484572726697,
+  "pages": [
+    {"page_number": 1, "predicted_count": 200, "reference_count": 155, "true_positive": 150, "false_positive": 50, "false_negative": 5, "precision": 0.75, "recall": 0.967741935483871, "f1": 0.8450704225352113, "mean_matched_center_error_points": 1.7914856948592273},
+    {"page_number": 2, "predicted_count": 275, "reference_count": 275, "true_positive": 257, "false_positive": 18, "false_negative": 18, "precision": 0.9345454545454546, "recall": 0.9345454545454546, "f1": 0.9345454545454546, "mean_matched_center_error_points": 1.7540745637107913},
+    {"page_number": 3, "predicted_count": 94, "reference_count": 104, "true_positive": 87, "false_positive": 7, "false_negative": 17, "precision": 0.925531914893617, "recall": 0.8365384615384616, "f1": 0.8787878787878788, "mean_matched_center_error_points": 1.6616013883924294}
+  ],
+  "limitations": [
+    "Solo evalúa localización de cabezas contra glifos vectoriales del PDF.",
+    "No mide alturas, alteraciones, figuras, duraciones, silencios, voces ni polifonía.",
+    "No es una métrica de precisión musical global ni una validación de partituras escaneadas.",
+    "El mapa de fuente y glifo de referencia debe verificarse para cada familia tipográfica.",
+    "El manifiesto musical del corpus sigue en draft y sin eventos anotados."
+  ]
+}

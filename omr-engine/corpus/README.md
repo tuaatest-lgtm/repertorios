@@ -30,3 +30,22 @@ voces, alturas, ritmos, compases o instrumentos.
 
 El manifiesto `manifest.json` se mantiene como borrador hasta completar y
 revisar las anotaciones.
+
+## Evaluación geométrica disponible
+
+Se ejecutó el motor sobre el PDF original de 3 páginas y se contrastaron los
+centros de candidatos de cabeza con el glifo vectorial `œ` de la fuente
+`RepriseStd` embebida en ese mismo PDF. El hash coincide con el registrado
+arriba. A 300 DPI y con tolerancia de 3 puntos PDF, el resultado fue:
+
+- 569 candidatos; 534 glifos de referencia.
+- 494 correspondencias 1:1, 75 falsos positivos y 40 falsos negativos.
+- Precisión geométrica: 86.82%; recall: 92.51%; F1: 89.57%.
+- Error medio entre centros emparejados: 1.75 puntos PDF.
+
+El detalle reproducible está en
+`clamare-notehead-geometry-evaluation.json`. Esta prueba solo mide localización
+de cabezas en un PDF digital cuya fuente/glyph map pudo identificarse. No mide
+transcripción musical, alturas, ritmo, duración, silencios, voces ni polifonía.
+Por eso `manifest.json` permanece en `draft`, sin eventos aprobados, y esta
+métrica no debe interpretarse como precisión OMR global.
