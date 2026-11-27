@@ -87,11 +87,12 @@ def detect_augmentation_dot_candidates(
 def detect_rest_shape_candidates(
     binary: np.ndarray,
     staves: list[StaffCandidate],
+    noteheads: list[NoteheadCandidate] | None = None,
 ) -> list[RestSymbolCandidate]:
     """Marca componentes compactos dentro de pentagramas como posibles símbolos.
 
-    Es deliberadamente inclusivo: letras, articulaciones y fragmentos pueden
-    parecer silencios. No identifica todavía el tipo ni la duración del silencio.
+    Excluye componentes fuera del pentagrama, poco compactos o coincidentes con
+    cabezas detectadas. No identifica todavía tipo ni duración definitivos.
     """
     if binary is None or binary.ndim != 2 or binary.size == 0:
         raise ValueError("Se requiere una imagen binaria monocroma no vacía")
@@ -108,6 +109,11 @@ def detect_rest_shape_candidates(
         cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)),
     )
     count, _, stats, centroids = cv2.connectedComponentsWithStats(cleaned,8)
+    notehead_boxes: dict[int, list[tuple[int, int, int, int]]] = {}
+    for head in noteheads or []:
+        if 0 <= head.staff_index < len(staves):
+            notehead_boxes.setdefault(head.staff_index, []).append(head.bbox)
+
     results = []
     for label in range(1,count):
         x,y,w,h,area = (int(v) for v in stats[label])
@@ -116,15 +122,29 @@ def detect_rest_shape_candidates(
         cx,cy = centroids[label]
         for staff_index,staff in enumerate(staves):
             spacing=float(staff.spacing_px)
-            if spacing <= 1 or not (staff.lines_y[0]-spacing*.7 <= cy <= staff.lines_y[-1]+spacing*.7):
+            staff_top=float(staff.lines_y[0])
+            staff_bottom=float(staff.lines_y[-1])
+            if spacing <= 1 or not (staff_top <= cy <= staff_bottom):
                 continue
             if not (.18*spacing <= w <= 2.2*spacing and .25*spacing <= h <= 2.8*spacing):
                 continue
             aspect=w/max(h,1)
             compactness=min(w,h)/max(w,h)
-            shape_score=max(0.0,1.0-abs(aspect-.75)/2.0)
-            if compactness < .12:
+            if compactness < .35:
                 continue
+
+            # Una cabeza detectada no debe reaparecer como posible silencio.
+            # El pequeño margen absorbe cambios de contorno tras retirar líneas.
+            margin=.12*spacing
+            overlaps_notehead=any(
+                x < hx+hw+margin and x+w > hx-margin
+                and y < hy+hh+margin and y+h > hy-margin
+                for hx,hy,hw,hh in notehead_boxes.get(staff_index,[])
+            )
+            if overlaps_notehead:
+                continue
+
+            shape_score=max(0.0,1.0-abs(aspect-.75)/2.0)
 
             # Clasificación muy conservadora: solo propone familias visuales.
             # La posición vertical ayuda a separar los rectángulos de silencio
