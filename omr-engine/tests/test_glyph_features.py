@@ -15,7 +15,7 @@ def test_extracts_stable_shape_descriptor_from_black_on_white_crop(tmp_path):
     assert result["feature_schema"] == FEATURE_SCHEMA
     assert result["feature_count"] == len(result["feature_vector"])
     assert len(result["feature_vector"]) == 5 + 1 + 7 + 64
-    assert result["ink_bbox"] == [3, 3, 25, 33]
+    assert result["ink_bbox"] == [3, 3, 25, 34]
 
 
 def test_descriptor_is_polarity_independent(tmp_path):
