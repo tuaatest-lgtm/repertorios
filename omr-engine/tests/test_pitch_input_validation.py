@@ -40,3 +40,26 @@ def test_accidental_state_rejects_invalid_pitch_coordinates():
         state.resolve("H", 4)
     with pytest.raises(ValueError, match="octava"):
         state.resolve("C", True)
+
+@pytest.mark.parametrize("clef", [None, [], {}])
+def test_pitch_rejects_non_string_clef(clef):
+    with pytest.raises(ValueError, match="Clave no soportada"):
+        pitch_from_staff_step(0, clef)
+
+
+@pytest.mark.parametrize("accidental", [[], {}, 1])
+def test_pitch_rejects_non_string_accidental(accidental):
+    with pytest.raises(ValueError, match="Alteración no reconocida"):
+        pitch_from_staff_step(0, "treble", explicit_accidental=accidental)
+
+
+def test_pitch_rejects_wrong_accidental_state_type():
+    with pytest.raises(ValueError, match="accidental_state"):
+        pitch_from_staff_step(0, "treble", accidental_state={})
+
+
+def test_natural_cancellation_persists_for_same_octave_only():
+    state = MeasureAccidentals()
+    assert state.resolve("F", 4, {"F": 1}, "natural") == 0
+    assert state.resolve("F", 4, {"F": 1}) == 0
+    assert state.resolve("F", 5, {"F": 1}) == 1
