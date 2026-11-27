@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 76%
-- **Avance estimado actual:** 77%
+- **Avance estimado anterior:** 77%
+- **Avance estimado actual:** 78%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 23%
+- **Trabajo restante estimado:** 22%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. La ejecución real ahora agrupa sistemas mediante conectores verticales y logra alineación geométrica transversal parcial: 61 de 312 grupos de intervalos cumplen ahora una tolerancia simultánea de centro y límites en dos pentagramas; 251 siguen siendo intervalos de un solo pentagrama. Los ordinales y las posiciones siguen siendo candidatos, no números de compás musical confirmados. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
 
@@ -21,11 +21,11 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Detección geométrica y símbolos | 58% | 59% | La ejecución real reveló demasiados candidatos a silencio; se añadieron filtros y el conteo bajó de 680 a 140 sin cambiar los demás detectores. |
 | Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
 | Paquete de revisión humana | 98% | 99% | El resumen también cuenta marcas de sección elegibles, excluidas y aún no clasificadas, sin cambiar su estado pendiente de revisión. |
-| Evidencia visual y overlays | 91% | 92% | Se inspeccionaron los overlays generados en las tres páginas reales y se documentaron las principales confusiones visuales. |
+| Evidencia visual y overlays | 92% | 93% | El overlay muestra los rótulos de sección y sus anclas verticales sobre todo el sistema, además de los límites geométricos existentes. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
-| Validación integral con partituras | 14% | 15% | La ejecución real aplica concordancia de centro y extremos para alinear intervalos, y el paquete distingue límites de sección con soporte transversal; aún no hay anotación de referencia. |
+| Validación integral con partituras | 15% | 16% | Se verificó visualmente en las tres páginas reales el recorrido de rótulo a ancla de sistema y su relación con los intervalos candidatos; falta referencia humana. |
 | Modelo de identidad de pentagramas | 61% | 62% | La detección de conectores de sistema genera 30 marcas de agrupación candidatas y 60 evidencias asociadas para revisión, sin asignar instrumentos ni voces. |
-| Estructura de secciones musicales | 67% | 68% | La conciliación exige concordancia de centro y de ambos extremos; en el PDF real 4 de 5 límites de sección tienen soporte de dos pentagramas y uno sigue siendo local. |
+| Estructura de secciones musicales | 68% | 69% | El overlay hace visibles los rótulos y las anclas que atraviesan el sistema; se conservan las advertencias de que son posiciones candidatas, no límites confirmados. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -80,6 +80,8 @@ CI de robustez de agrupación por pentagrama: ejecución [45939428989](https://g
 - `anchor_section_markers_to_measure_spans` ahora conserva una ancla por cada pentagrama del sistema más cercano. `resolve_section_range_boundaries` prioriza una ancla con evidencia transversal cuando existe, sin descartar las demás referencias locales. En la ejecución real de `Clamaré a Dios - Coro`, el inicio de `INTRO` queda asociado a un intervalo con soporte de dos pentagramas; los otros cuatro extremos de los tres rangos siguen apoyados en un solo pentagrama.
 - El paquete de revisión cuenta ahora también la evidencia de los extremos: 5 límites musicales candidatos, 4 con soporte de dos pentagramas y 1 de un solo pentagrama. Los 3 rangos globales siguen pendientes de revisión humana.
 - CI de anclaje por sistema y selección de límites con soporte transversal: ejecución [45942991575](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45942991575), commit `752dfc8aea5db6b0a545f755007528b0d68b7a6b`, **377 pruebas aprobadas**. CI de resumen de soporte en límites de sección: ejecución [45943086403](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45943086403), commit `97ee6cbedefc5b99f8d5e43329bfea11f78e3f1b`, **378 pruebas aprobadas**.
+- El overlay geométrico ahora dibuja cada rótulo de sección con `SECTION?` y una línea vertical `SECTION-ANCHOR?` que atraviesa el sistema candidato. Cuando la misma marca tiene anclas en dos pentagramas del sistema, se dibuja una sola referencia visual para evitar aparentar dos límites distintos. La prueba sintética verifica la representación y la ejecución real de tres páginas confirmó que las cajas y líneas aparecen en el overlay.
+- CI del overlay de marcas y anclas de sección: ejecución [45943787468](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45943787468), commit `bd936ecdc07a69d0d0185aa46098af2c80b3cb2b`, **381 pruebas aprobadas**.
 - Se endureció la conciliación de intervalos: además de la cercanía entre centros, ahora deben concordar los límites inicial y final dentro de una tolerancia proporcional al ancho del intervalo. Una prueba impide fusionar intervalos anidados que comparten centro pero no representan el mismo tramo. La ejecución real resultante produce 312 grupos, 61 con soporte de dos pentagramas y 251 locales; los cinco extremos de sección mejoran a cuatro con soporte transversal y uno local.
 - CI de conciliación estricta de intervalos entre pentagramas: ejecución [45943459347](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45943459347), commit `76b7b8045377a5c4f0ae8a345dfd6eb7feefbcb3`, **378 pruebas aprobadas**.
 - La asociación de letras aisladas próximas a una sección se volvió más conservadora: baja la confianza a 0,30 e indica explícitamente que puede tratarse de cifrado armónico o texto editorial. El rango global conserva la letra solo como `unconfirmed_candidate`, nunca como identificador confirmado. Una prueba usa una `B` cercana al rótulo `Intro` para asegurar que la advertencia y la baja confianza se mantengan.
