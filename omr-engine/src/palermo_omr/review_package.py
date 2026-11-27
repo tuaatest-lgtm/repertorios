@@ -214,18 +214,35 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     if not pages:
         raise ValueError("El análisis no contiene páginas")
     pages.sort(key=lambda item: item["page_number"])
+    global_section_ranges = analysis.get("global_section_range_candidates", [])
+    global_measure_sequence = analysis.get("global_measure_sequence", {
+        "global_measure_candidates": [],
+        "global_measure_candidate_count": 0,
+        "staff_measure_map": [],
+        "warning": "No se proporcionó una secuencia global de intervalos candidatos.",
+    })
+    if not isinstance(global_section_ranges, list):
+        raise ValueError("global_section_range_candidates debe ser una lista")
+    if not isinstance(global_measure_sequence, dict):
+        raise ValueError("global_measure_sequence debe ser un objeto")
+    global_measure_candidates = global_measure_sequence.get("global_measure_candidates", [])
+    if not isinstance(global_measure_candidates, list):
+        raise ValueError("global_measure_candidates debe ser una lista")
+    pending_section_ranges = sum(
+        1 for item in global_section_ranges
+        if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
+    )
+    pending_measure_candidates = sum(
+        1 for item in global_measure_candidates
+        if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
+    )
     return {
         "review_package_version": "1.0",
         "score_id": score_id,
         "source_pdf": analysis.get("source_pdf"),
         "analysis_version": analysis.get("version"),
-        "global_section_range_candidates": analysis.get("global_section_range_candidates", []),
-        "global_measure_sequence": analysis.get("global_measure_sequence", {
-            "global_measure_candidates": [],
-            "global_measure_candidate_count": 0,
-            "staff_measure_map": [],
-            "warning": "No se proporcionó una secuencia global de intervalos candidatos.",
-        }),
+        "global_section_range_candidates": global_section_ranges,
+        "global_measure_sequence": global_measure_sequence,
         "review_policy": (
             "Todos los elementos son candidatos visuales. No representan eventos, "
             "alturas, voces ni duraciones confirmadas. La revisión humana debe "
@@ -236,6 +253,10 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "notehead_candidate_count": total_noteheads,
             "other_candidate_count": total_other,
             "pending_count": total_noteheads + total_other,
+            "global_measure_candidate_count": len(global_measure_candidates),
+            "pending_global_measure_candidate_count": pending_measure_candidates,
+            "global_section_range_candidate_count": len(global_section_ranges),
+            "pending_global_section_range_candidate_count": pending_section_ranges,
         },
         "pages": pages,
     }
