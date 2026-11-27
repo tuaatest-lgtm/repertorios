@@ -107,6 +107,8 @@ def test_links_sections_across_pages_without_closing_at_page_break():
     assert len(ranges) == 2
     assert ranges[0]["section_name"] == "CORO"
     assert ranges[0]["identifier"] == "A"
+    assert ranges[0]["identifier_status"] == "unconfirmed_candidate"
+    assert "cifrado armónico" in ranges[0]["identifier_warning"]
     assert ranges[0]["start"]["page_number"] == 1
     assert ranges[0]["end"]["page_number"] == 3
     assert ranges[0]["extent"] == "cross_page_candidate"
