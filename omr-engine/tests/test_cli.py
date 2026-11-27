@@ -115,3 +115,38 @@ def test_cli_aligns_measure_intervals_across_connector_grouped_staves(tmp_path, 
         for item in sequence["global_measure_candidates"]
         if item["alignment_status"] == "cross_staff_alignment_candidate"
     )
+
+
+
+def test_cli_redraws_overlays_after_global_header_classification(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "repeated-header-score.pdf"
+    document = fitz.open()
+    for _ in range(2):
+        page = document.new_page(width=612, height=792)
+        page.insert_text((100, 50), "Coro", fontsize=12)
+    document.save(pdf_path)
+    document.close()
+
+    import palermo_omr.cli as cli_module
+    original_draw = cli_module.draw_geometry_overlay
+    observed_statuses = []
+
+    def capture_overlay(page_image, page_data):
+        observed_statuses.extend(
+            item.get("global_boundary_status")
+            for item in page_data.get("section_marker_candidates", [])
+        )
+        return original_draw(page_image, page_data)
+
+    monkeypatch.setattr(cli_module, "draw_geometry_overlay", capture_overlay)
+    output_dir = tmp_path / "header-overlay-output"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["palermo-omr", str(pdf_path), "--output", str(output_dir), "--dpi", "72"],
+    )
+
+    assert main() == 0
+    assert observed_statuses.count("excluded_repeated_page_header_candidate") == 2
+    for page_number in (1, 2):
+        assert (output_dir / f"page-{page_number:03d}-geometry-overlay.png").exists()
