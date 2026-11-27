@@ -144,7 +144,7 @@ def test_reviewed_rest_is_placed_in_the_same_polyphonic_timeline():
             "event_voice_ids": {"n1": "soprano", "n2": "soprano"},
             "rest_assignments": [{
                 "candidate_index": 0, "event_id": "r1", "voice_id": "soprano",
-                "measure_index": 0, "order_index": 1, "duration_quarters": "1",
+                "measure_index": 0, "order_index": 2, "duration_quarters": "1",
                 "confirmed_rest_type": "quarter", "reviewer_confirmed": True,
             }],
         }],
@@ -152,7 +152,7 @@ def test_reviewed_rest_is_placed_in_the_same_polyphonic_timeline():
     timeline = result[0]
     assert [(event["event_id"], event["event_type"], event["onset_quarters"])
             for event in timeline["events"]] == [
-        ("n1", "note", "0"), ("r1", "rest", "1"), ("n2", "note", "2"),
+        ("n1", "note", "0"), ("n2", "note", "1"), ("r1", "rest", "2"),
     ]
 
 
