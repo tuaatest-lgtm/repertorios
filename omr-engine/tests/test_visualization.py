@@ -150,3 +150,20 @@ def test_geometry_overlay_draws_section_markers_and_system_anchors():
     # La misma marca anclada a dos pentagramas del mismo sistema dibuja
     # una única línea vertical de referencia, no dos límites independientes.
     assert np.any(np.any(overlay[100:291, 130] != image[100:291, 130], axis=1))
+
+
+
+def test_geometry_overlay_distinguishes_excluded_headers_from_section_labels():
+    image = np.full((100, 160, 3), 255, dtype=np.uint8)
+    overlay = draw_geometry_overlay(image, {
+        "render_dpi": 72,
+        "staves": [],
+        "section_marker_candidates": [
+            {"text": "Coro", "bbox_pdf": [10, 10, 30, 30],
+             "global_boundary_status": "excluded_repeated_page_header_candidate"},
+            {"text": "Intro", "bbox_pdf": [50, 10, 70, 30],
+             "global_boundary_status": "eligible_candidate"},
+        ],
+    })
+    assert tuple(overlay[10, 10]) == (120, 120, 150)
+    assert tuple(overlay[10, 50]) == (180, 60, 220)
