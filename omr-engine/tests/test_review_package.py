@@ -63,6 +63,10 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     assert package["summary"] == {
         "page_count": 1, "notehead_candidate_count": 2,
         "other_candidate_count": 13, "pending_count": 15,
+        "global_measure_candidate_count": 1,
+        "pending_global_measure_candidate_count": 1,
+        "global_section_range_candidate_count": 0,
+        "pending_global_section_range_candidate_count": 0,
     }
     filled, hollow = package["pages"][0]["notehead_candidates"]
     assert filled["rhythm_hypothesis"]["base_duration"] == "quarter"
@@ -193,3 +197,17 @@ def test_review_package_rejects_broken_candidate_references(family_key, candidat
     data["pages"][0][family_key] = [candidate]
     with pytest.raises(ValueError, match="referencia|duplicados|cabeza rellena|estado de asociación"):
         build_review_package(data, score_id="score-invalid-references")
+
+
+
+def test_review_summary_counts_global_section_and_measure_candidates():
+    data = sample_analysis()
+    data["global_section_range_candidates"] = [
+        {"section_range_id": "section-1", "review_status": "pending"},
+        {"section_range_id": "section-2", "review_status": "accepted"},
+    ]
+    package = build_review_package(data, score_id="score-section-summary")
+    assert package["summary"]["global_measure_candidate_count"] == 1
+    assert package["summary"]["pending_global_measure_candidate_count"] == 1
+    assert package["summary"]["global_section_range_candidate_count"] == 2
+    assert package["summary"]["pending_global_section_range_candidate_count"] == 1
