@@ -234,3 +234,24 @@ def test_detect_staff_systems_from_connectors_ignores_page_edge_border():
 
     systems = detect_staff_systems_from_connectors(staves, binary)
     assert [item.staff_indices for item in systems] == [[0], [1]]
+
+
+def test_refines_systems_from_curly_brace_evidence():
+    from palermo_omr.measure_layout import StaffSystemCandidate, merge_staff_systems_from_grouping_marks
+    from palermo_omr.staff_grouping import StaffGroupingMarkCandidate
+    staves = [_staff(40), _staff(150), _staff(270)]
+    systems = [StaffSystemCandidate(i,[i],staves[i].lines_y[0],staves[i].lines_y[-1],0.45,"single") for i in range(3)]
+    mark = StaffGroupingMarkCandidate(25,40,190,12,(0,1),0.9,"curly_brace_candidate",0.72,"brace")
+    result = merge_staff_systems_from_grouping_marks(staves,systems,[mark])
+    assert [s.staff_indices for s in result] == [[0,1],[2]]
+    assert result[0].confidence == 0.76
+
+
+def test_generic_vertical_mark_does_not_merge_systems():
+    from palermo_omr.measure_layout import StaffSystemCandidate, merge_staff_systems_from_grouping_marks
+    from palermo_omr.staff_grouping import StaffGroupingMarkCandidate
+    staves = [_staff(40), _staff(150)]
+    systems = [StaffSystemCandidate(i,[i],staves[i].lines_y[0],staves[i].lines_y[-1],0.45,"single") for i in range(2)]
+    mark = StaffGroupingMarkCandidate(25,40,190,12,(0,1),0.9,"vertical_grouping_mark_candidate",0.54,"line")
+    result = merge_staff_systems_from_grouping_marks(staves,systems,[mark])
+    assert [s.staff_indices for s in result] == [[0],[1]]

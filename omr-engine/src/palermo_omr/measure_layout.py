@@ -499,3 +499,48 @@ def classify_barline_groups(
                 )
             )
     return results
+
+
+def merge_staff_systems_from_grouping_marks(staves, systems, grouping_marks):
+    """Refina sistemas con llaves curvas/corchetes entre pentagramas adyacentes."""
+    if not staves:
+        return []
+    parent = list(range(len(staves)))
+    evidence = set()
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+    def union(a, b):
+        a, b = find(a), find(b)
+        if a != b:
+            parent[b] = a
+    for system in systems:
+        members = sorted(set(system.staff_indices))
+        if any(i < 0 or i >= len(staves) for i in members):
+            raise ValueError("Índice de pentagrama inexistente")
+        for i in members[1:]: union(members[0], i)
+    for mark in grouping_marks:
+        if mark.kind not in {"curly_brace_candidate", "square_bracket_candidate"}: continue
+        pair = tuple(sorted(set(mark.staff_indices)))
+        if len(pair) != 2: continue
+        a, b = pair
+        if a < 0 or b >= len(staves): raise ValueError("Índice de pentagrama inexistente en marca")
+        if b - a != 1: continue
+        union(a, b); evidence.add(pair)
+    confidence = {i: s.confidence for s in systems for i in s.staff_indices}
+    groups = {}
+    for i in range(len(staves)): groups.setdefault(find(i), []).append(i)
+    ordered = sorted(groups.values(), key=lambda g: min(staves[i].lines_y[0] for i in g))
+    result = []
+    for si, members in enumerate(ordered):
+        supported = any(a in members and b in members for a,b in evidence)
+        score = max([confidence.get(i, 0.35) for i in members] + ([0.76] if supported else []))
+        result.append(StaffSystemCandidate(si, members,
+            round(float(min(staves[i].lines_y[0] for i in members)),2),
+            round(float(max(staves[i].lines_y[-1] for i in members)),2),
+            round(score,3),
+            "Sistema candidato refinado con evidencia de llave/corchete; requiere revisión." if supported else
+            "Sistema candidato conservado sin inferir relación musical adicional."))
+    return result
