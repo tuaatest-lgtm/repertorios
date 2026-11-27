@@ -19,6 +19,8 @@ def apply_section_range_decisions(
     A range is never accepted implicitly: callers must provide explicit human
     confirmation. Open-ended ranges require a second explicit opt-in.
     """
+    if not isinstance(human_review_confirmed, bool):
+        raise ValueError("human_review_confirmed debe ser booleano")
     if not human_review_confirmed:
         raise ValueError(
             "Se requiere confirmación humana explícita antes de aplicar decisiones"
@@ -62,7 +64,7 @@ def apply_section_range_decisions(
         seen.add(range_id)
         if range_id not in by_id:
             raise ValueError(f"No existe el rango section_range_id={range_id}")
-        if status not in _ALLOWED_DECISIONS:
+        if not isinstance(status, str) or status not in _ALLOWED_DECISIONS:
             raise ValueError("decision debe ser accepted, rejected o needs_revision")
         if not isinstance(notes, str):
             raise ValueError("notes debe ser texto")
@@ -99,13 +101,14 @@ def apply_section_range_decisions(
         }
 
     summary = reviewed.get("summary")
-    if isinstance(summary, dict):
-        statuses = [item.get("review_status", "pending") for item in ranges]
-        summary["global_section_range_candidate_count"] = len(ranges)
-        summary["pending_global_section_range_candidate_count"] = statuses.count("pending")
-        summary["accepted_global_section_range_candidate_count"] = statuses.count("accepted")
-        summary["rejected_global_section_range_candidate_count"] = statuses.count("rejected")
-        summary["needs_revision_global_section_range_candidate_count"] = statuses.count(
-            "needs_revision"
-        )
+    if not isinstance(summary, dict):
+        raise ValueError("El paquete requiere un resumen de revisión")
+    statuses = [item.get("review_status", "pending") for item in ranges]
+    summary["global_section_range_candidate_count"] = len(ranges)
+    summary["pending_global_section_range_candidate_count"] = statuses.count("pending")
+    summary["accepted_global_section_range_candidate_count"] = statuses.count("accepted")
+    summary["rejected_global_section_range_candidate_count"] = statuses.count("rejected")
+    summary["needs_revision_global_section_range_candidate_count"] = statuses.count(
+        "needs_revision"
+    )
     return reviewed
