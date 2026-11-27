@@ -12,7 +12,7 @@
 - **Variación:** +1 punto porcentual
 - **Trabajo restante estimado:** 25%
 
-El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El ajuste de este corte corrige una sobreestimación: la ejecución real confirmó el flujo de análisis y revisión, pero también mostró que los intervalos de esa partitura no están conciliados entre varios pentagramas. Los ordinales actuales son de orden documental por pentagrama, no números de compás globales. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
+El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. La ejecución real ahora agrupa sistemas mediante conectores verticales y logra alineación geométrica transversal parcial: 67 de 306 grupos de intervalos tienen soporte de dos pentagramas; 239 siguen sin pareja. Los ordinales y las posiciones siguen siendo candidatos, no números de compás musical confirmados. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
 
 ## Evolución por aspecto
 
@@ -39,7 +39,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - Se ejecutó el motor Palermo completo sobre `Clamaré a Dios - Coro.pdf` a 300 DPI, usando una copia del código de la rama obtenida desde un artefacto de CI. La salida contiene 3 páginas y 20 pentagramas candidatos (8 + 8 + 4), coincidentes con el recuento geométrico inspeccionado previamente.
 - Primera ejecución: 564 cabezas rellenas, 5 huecas, 33 grupos de vigas, 14 puntillos, 680 formas candidatas a silencio, 191 arcos, 400 barras de compás y 373 intervalos entre barras. La inspección visual reveló demasiados candidatos de silencio sobre texto y otros trazos.
 - Tras aplicar filtros conservadores (centro dentro del pentagrama, compactación mínima y exclusión de componentes superpuestos con cabezas detectadas), se repitió la ejecución: las formas candidatas a silencio bajaron de 680 a 140 (reducción del 79,4% en cantidad de candidatos); 85 de las 140 recibieron solo una familia geométrica sugerida. No es una medición de precisión: algunas formas válidas pueden haberse descartado y aún hay candidatos falsos.
-- En este PDF la CLI no encontró etiquetas del vocabulario actual ni marcas de agrupación de pentagramas; palabras como `Coro` y `Voz` no están en el vocabulario, por lo que no se identificaron automáticamente partes o voces.
+- En la primera ejecución de este PDF no se detectaron marcas de agrupación ni etiquetas impresas. Tras añadir la detección de conectores verticales entre pentagramas, la ejecución actual propone 30 marcas de agrupación y 60 evidencias de identidad pendientes; no asigna automáticamente partes, instrumentos ni voces.
 - El paquete de revisión humana incluye la familia `staff_grouping_mark`, mantiene cada candidato pendiente y valida los índices de pentagrama asociados.
 - `staff_grouping_adapter` convierte marcas curvas, corchetes y trazos verticales en evidencias de identidad ligadas a cada pentagrama. La evidencia mantiene `source=visual_candidate`; no crea partes, voces ni asignaciones.
 - `identity_evidence.build_page_identity_evidence` combina la evidencia de etiquetas impresas y marcas de agrupación por página. La CLI incorpora etiquetas extraíbles desde el texto PDF y guarda candidatos y evidencias en `analysis.json`.
