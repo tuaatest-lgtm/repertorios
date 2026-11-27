@@ -75,6 +75,10 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "cross_staff_aligned_section_boundary_candidate_count": 0,
         "single_staff_only_section_boundary_candidate_count": 0,
         "unmatched_section_boundary_candidate_count": 0,
+        "partial_section_boundary_candidate_count": 0,
+        "inside_measure_section_boundary_candidate_count": 0,
+        "before_measure_section_boundary_candidate_count": 0,
+        "after_measure_section_boundary_candidate_count": 0,
         "section_marker_candidate_count": 0,
         "eligible_global_section_marker_candidate_count": 0,
         "excluded_global_section_marker_candidate_count": 0,
@@ -349,3 +353,24 @@ def test_review_summary_exposes_global_measure_scope_and_system_barline_count():
         "partially_cross_staff_aligned"
     )
     assert package["summary"]["system_barline_candidate_count"] == 4
+
+
+
+def test_review_summary_counts_partial_and_adjacent_section_boundaries():
+    data = sample_analysis()
+    data["global_section_range_candidates"] = [{
+        "section_range_id": "section-partial",
+        "start": {"page_number": 1, "musical_boundary_candidate": {
+            "position_kind": "inside_measure_candidate", "partial_measure_boundary": True,
+        }},
+        "end": {"page_number": 1, "musical_boundary_candidate": {
+            "position_kind": "after_measure_candidate", "partial_measure_boundary": False,
+        }},
+    }]
+    package = build_review_package(data, score_id="score-partial-boundary-counts")
+    summary = package["summary"]
+    assert summary["section_boundary_candidate_count"] == 2
+    assert summary["partial_section_boundary_candidate_count"] == 1
+    assert summary["inside_measure_section_boundary_candidate_count"] == 1
+    assert summary["before_measure_section_boundary_candidate_count"] == 0
+    assert summary["after_measure_section_boundary_candidate_count"] == 1
