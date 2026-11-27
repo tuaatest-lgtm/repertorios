@@ -89,7 +89,9 @@ def main() -> int:
         page_data["rhythmic_interpretation_candidates"] = [item.to_dict() for item in rhythmic_interpretations]
         page_data["rhythmic_interpretation_candidate_count"] = len(rhythmic_interpretations)
         dots = detect_augmentation_dot_candidates(binary, analysis.staves, noteheads)
-        rests = detect_rest_shape_candidates(binary, analysis.staves)
+        rests = detect_rest_shape_candidates(
+            binary, analysis.staves, noteheads + hollow_noteheads
+        )
         tie_slurs = detect_tie_slur_shape_candidates(binary, analysis.staves)
         barlines = detect_barline_candidates(binary, analysis.staves)
         barline_groups = classify_barline_groups(barlines, analysis.staves)
