@@ -193,3 +193,26 @@ def test_detect_staff_systems_from_connectors_keeps_unconnected_staves_separate(
     systems = detect_staff_systems_from_connectors(staves, binary)
     assert [item.staff_indices for item in systems] == [[0], [1]]
     assert all(item.confidence == 0.45 for item in systems)
+
+
+
+def test_group_system_barlines_uses_supplied_connector_systems():
+    from palermo_omr.measure_layout import (
+        BarlineCandidate,
+        StaffSystemCandidate,
+        group_system_barlines,
+    )
+
+    staves = [
+        StaffCandidate([40, 50, 60, 70, 80], 10, 1.0),
+        StaffCandidate([150, 160, 170, 180, 190], 10, 1.0),
+    ]
+    bars = [
+        BarlineCandidate(100, 40, 80, 1, 0, 1.0, 0.9, "test"),
+        BarlineCandidate(100.5, 150, 190, 1, 1, 1.0, 0.9, "test"),
+    ]
+    systems = [StaffSystemCandidate(0, [0, 1], 40, 190, 0.82, "connector")]
+    result = group_system_barlines(bars, staves, system_candidates=systems)
+    assert len(result) == 1
+    assert result[0].staff_indices == [0, 1]
+    assert result[0].support_count == 2
