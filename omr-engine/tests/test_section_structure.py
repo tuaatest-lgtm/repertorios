@@ -466,3 +466,24 @@ def test_link_section_ranges_rejects_boolean_page_number():
         assert "entero positivo" in str(error)
     else:
         raise AssertionError("Expected boolean page number to be rejected")
+
+
+
+def test_nearby_section_letter_remains_low_confidence_and_ambiguous(tmp_path):
+    path = tmp_path / "ambiguous-letter.pdf"
+    document = fitz.open()
+    page = document.new_page(width=600, height=400)
+    page.insert_text((100, 90), "Intro", fontsize=12)
+    page.insert_text((150, 90), "B", fontsize=12)
+    document.save(path)
+    document.close()
+
+    result = detect_section_candidates(
+        path, 1, [StaffCandidate([100, 110, 120, 130, 140], 10, 1)],
+        [_span()], dpi=72,
+    )
+    assert len(result["section_identifier_candidates"]) == 1
+    candidate = result["section_identifier_candidates"][0]
+    assert candidate.confidence <= 0.4
+    assert "cifrado armónico" in candidate.warning
+    assert "revisión humana" in candidate.warning
