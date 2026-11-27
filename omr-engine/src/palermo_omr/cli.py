@@ -19,7 +19,10 @@ from .notation_preamble import (
     export_notation_preamble_crops,
 )
 from .pitch_candidates import build_pitch_candidates
-from .key_signature_candidates import build_key_signature_candidates
+from .key_signature_candidates import (
+    build_key_signature_candidates,
+    apply_accepted_key_signature_candidates,
+)
 from .glyph_labeling import build_staff_clef_map, validate_glyph_manifest
 from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
@@ -69,6 +72,10 @@ def main() -> int:
     parser.add_argument(
         "--key-signatures", default="{}",
         help="JSON opcional: armaduras por índice de pentagrama, p. ej. '{\"0\":{\"F\":1,\"C\":1}}'",
+    )
+    parser.add_argument(
+        "--accept-key-signature-candidates", action="store_true",
+        help="Acepta explícitamente candidatos de armadura válidos derivados de etiquetas humanas confirmadas.",
     )
     args = parser.parse_args()
 
@@ -137,10 +144,18 @@ def main() -> int:
         ]
         page_data["key_signature_candidate_count"] = len(key_signature_candidates)
 
+        page_key_signatures = json.loads(args.key_signatures)
+        if not isinstance(page_key_signatures, dict):
+            raise ValueError("--key-signatures debe ser un objeto JSON")
+        if args.accept_key_signature_candidates:
+            page_key_signatures = apply_accepted_key_signature_candidates(
+                page_key_signatures, key_signature_candidates
+            )
+
         pitch_candidates = build_pitch_candidates(
             noteheads + hollow_noteheads,
             staff_clefs=supplied_clefs,
-            key_signatures=json.loads(args.key_signatures),
+            key_signatures=page_key_signatures,
             source_kinds=(["filled"] * len(noteheads) + ["hollow"] * len(hollow_noteheads)),
         )
         page_data["pitch_candidates"] = [item.to_dict() for item in pitch_candidates]

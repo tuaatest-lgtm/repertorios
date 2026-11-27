@@ -133,3 +133,38 @@ def build_key_signature_candidates(
             "Armadura candidata derivada de etiquetas humanas; no se aplica automáticamente a las notas.",
         ))
     return results
+
+
+
+def apply_accepted_key_signature_candidates(
+    existing: Mapping[int | str, Mapping[str, int]],
+    candidates: list[KeySignatureCandidate],
+) -> dict[str, dict[str, int]]:
+    """Aplica solo candidatos válidos cuando el operador lo solicita explícitamente."""
+    if not isinstance(existing, Mapping):
+        raise ValueError("Las armaduras existentes deben ser un objeto por pentagrama")
+    result: dict[str, dict[str, int]] = {}
+    for raw_index, signature in existing.items():
+        try:
+            index = int(raw_index)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Índice de pentagrama inválido: {raw_index!r}") from exc
+        if isinstance(raw_index, bool) or index < 0 or str(index) != str(raw_index):
+            raise ValueError(f"Índice de pentagrama inválido: {raw_index!r}")
+        if not isinstance(signature, Mapping):
+            raise ValueError(f"Armadura inválida para pentagrama {index}")
+        result[str(index)] = dict(signature)
+
+    for candidate in candidates:
+        if candidate.status != "candidate_requires_human_acceptance":
+            continue
+        if candidate.key_signature is None:
+            continue
+        key = str(candidate.staff_index)
+        proposed = dict(candidate.key_signature)
+        if key in result and result[key] != proposed:
+            raise ValueError(
+                f"Conflicto entre --key-signatures y candidato aceptado en pentagrama {key}"
+            )
+        result[key] = proposed
+    return result

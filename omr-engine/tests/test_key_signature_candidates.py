@@ -1,4 +1,4 @@
-from palermo_omr.key_signature_candidates import build_key_signature_candidates
+from palermo_omr.key_signature_candidates import (\n    apply_accepted_key_signature_candidates,\n    build_key_signature_candidates,\n)
 
 
 def glyph(label, x, y, candidate_id):
@@ -75,3 +75,40 @@ def test_rejects_non_finite_glyph_coordinates():
         assert "candidate_bbox inválido" in str(exc)
     else:
         raise AssertionError("Se esperaba rechazar coordenadas no finitas")
+
+
+
+def test_candidate_is_not_applied_until_explicit_acceptance():
+    manifest = {"glyphs": [glyph("sharp", 10, 35, "s1")]}
+    candidate = build_key_signature_candidates(
+        manifest, page_number=1, staff_clefs={0: "treble"},
+        staff_lines={0: [40, 50, 60, 70, 80]},
+    )
+    assert apply_accepted_key_signature_candidates({}, []) == {}
+    assert apply_accepted_key_signature_candidates({}, candidate) == {"0": {"F": 1}}
+
+
+def test_does_not_apply_ambiguous_candidates():
+    manifest = {"glyphs": [
+        glyph("sharp", 10, 16, "s1"),
+        glyph("sharp", 20, 35, "s2"),
+    ]}
+    candidate = build_key_signature_candidates(
+        manifest, page_number=1, staff_clefs={0: "treble"},
+        staff_lines={0: [40, 50, 60, 70, 80]},
+    )
+    assert apply_accepted_key_signature_candidates({}, candidate) == {}
+
+
+def test_rejects_conflict_between_supplied_and_accepted_signature():
+    manifest = {"glyphs": [glyph("sharp", 10, 35, "s1")]}
+    candidate = build_key_signature_candidates(
+        manifest, page_number=1, staff_clefs={0: "treble"},
+        staff_lines={0: [40, 50, 60, 70, 80]},
+    )
+    try:
+        apply_accepted_key_signature_candidates({"0": {"B": -1}}, candidate)
+    except ValueError as exc:
+        assert "Conflicto" in str(exc)
+    else:
+        raise AssertionError("Se esperaba detectar conflicto de armaduras")
