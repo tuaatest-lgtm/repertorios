@@ -47,6 +47,10 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         if not isinstance(staves, list):
             raise ValueError("staves debe ser una lista")
         staff_count = len(staves)
+        staff_id_by_index = {
+            f"p{page_number}-staff-{index + 1}": index
+            for index in range(staff_count)
+        }
         candidates = []
         filled_candidate_ids = []
         filled_candidate_staff_indices = []
@@ -117,6 +121,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             ("staff_system", "staff_system_candidates"),
             ("measure_span", "measure_span_candidates"),
             ("staff_grouping_mark", "staff_grouping_mark_candidates"),
+            ("printed_label", "printed_label_candidates"),
+            ("staff_identity_evidence", "staff_identity_evidence"),
         )
         other_candidates = []
         for family, key in other_families:
@@ -151,6 +157,22 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     if (not isinstance(staff_index, int) or isinstance(staff_index, bool)
                             or not 0 <= staff_index < staff_count):
                         raise ValueError(f"{key} referencia un pentagrama inexistente")
+                    related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
+                elif family == "printed_label":
+                    status = value.get("association_status")
+                    if status not in {"associated_candidate", "ambiguous", "unassigned"}:
+                        raise ValueError("Una etiqueta impresa tiene estado de asociación no válido")
+                    if status == "associated_candidate":
+                        staff_index = value.get("staff_index")
+                        if (not isinstance(staff_index, int) or isinstance(staff_index, bool)
+                                or not 0 <= staff_index < staff_count):
+                            raise ValueError("Una etiqueta impresa referencia un pentagrama inexistente")
+                        related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
+                elif family == "staff_identity_evidence":
+                    staff_id = value.get("staff_id")
+                    staff_index = staff_id_by_index.get(staff_id)
+                    if staff_index is None:
+                        raise ValueError("Una evidencia de identidad referencia un pentagrama inexistente")
                     related_ids = [f"p{page_number}-staff-{staff_index + 1}"]
                 elif family in {"system_barline", "staff_system", "staff_grouping_mark"}:
                     indices = _validated_indices(
