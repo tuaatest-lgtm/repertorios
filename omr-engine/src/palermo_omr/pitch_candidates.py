@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping, Sequence
 
-from .pitch import Pitch, pitch_from_staff_step
+from .pitch import MeasureAccidentals, Pitch, pitch_from_staff_step
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,8 @@ class PitchCandidate:
     key_signature: dict[str, int]
     status: str
     pitch: Pitch | None
+    explicit_accidental: str | None = None
+    measure_id: str | int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         result = asdict(self)
@@ -56,13 +58,24 @@ def build_pitch_candidates(
     staff_clefs: Mapping[int | str, str] | None = None,
     key_signatures: Mapping[int | str, Mapping[str, int]] | None = None,
     source_kinds: Sequence[str] | None = None,
+    explicit_accidentals: Sequence[str | None] | None = None,
+    measure_ids: Sequence[str | int] | None = None,
 ) -> list[PitchCandidate]:
     """Construye alturas solo cuando la clave ha sido suministrada explícitamente."""
     clefs = _normalize_staff_map(staff_clefs, "staff_clefs")
     signatures = _normalize_staff_map(key_signatures, "key_signatures")
     if source_kinds is not None and len(source_kinds) != len(noteheads):
         raise ValueError("source_kinds debe tener un elemento por cada cabeza de nota")
+    if (explicit_accidentals is None) != (measure_ids is None):
+        raise ValueError("explicit_accidentals y measure_ids deben proporcionarse juntos")
+    if explicit_accidentals is not None and len(explicit_accidentals) != len(noteheads):
+        raise ValueError("explicit_accidentals debe tener un elemento por cada cabeza de nota")
+    if measure_ids is not None and len(measure_ids) != len(noteheads):
+        raise ValueError("measure_ids debe tener un elemento por cada cabeza de nota")
 
+    # Estado independiente por pentagrama y compás. El llamador debe entregar
+    # las cabezas en orden de lectura musical dentro de cada compás.
+    accidental_states: dict[tuple[int, str | int], MeasureAccidentals] = {}
     results: list[PitchCandidate] = []
     for index, notehead in enumerate(noteheads):
         staff_index = int(notehead.staff_index)
@@ -72,6 +85,10 @@ def build_pitch_candidates(
         if not isinstance(signature, Mapping):
             raise ValueError(f"La armadura del pentagrama {staff_index} debe ser un objeto")
         source_kind = source_kinds[index] if source_kinds is not None else "filled"
+        explicit_accidental = explicit_accidentals[index] if explicit_accidentals is not None else None
+        measure_id = measure_ids[index] if measure_ids is not None else None
+        if measure_id is not None and (not isinstance(measure_id, (str, int)) or isinstance(measure_id, bool) or (isinstance(measure_id, str) and not measure_id.strip())):
+            raise ValueError(f"measure_id no válido para la cabeza {index}")
         if source_kind not in {"filled", "hollow"}:
             raise ValueError(f"Tipo de cabeza de nota no válido: {source_kind!r}")
 
@@ -79,7 +96,15 @@ def build_pitch_candidates(
             pitch = None
             status = "unresolved_clef"
         else:
-            pitch = pitch_from_staff_step(step, clef, dict(signature))
+            accidental_state = None
+            if measure_id is not None:
+                state_key = (staff_index, measure_id)
+                accidental_state = accidental_states.setdefault(state_key, MeasureAccidentals())
+            pitch = pitch_from_staff_step(
+                step, clef, dict(signature),
+                explicit_accidental=explicit_accidental,
+                accidental_state=accidental_state,
+            )
             status = "resolved_from_supplied_clef"
 
         results.append(PitchCandidate(
@@ -91,5 +116,7 @@ def build_pitch_candidates(
             key_signature=dict(signature),
             status=status,
             pitch=pitch,
+            explicit_accidental=explicit_accidental,
+            measure_id=measure_id,
         ))
     return results

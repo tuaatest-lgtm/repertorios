@@ -61,3 +61,33 @@ def test_rejects_invalid_staff_indices_or_unsupported_clefs(clefs):
 def test_rejects_mismatched_source_kinds():
     with pytest.raises(ValueError, match="source_kinds"):
         build_pitch_candidates([head()], source_kinds=[])
+
+
+def test_explicit_accidental_persists_within_measure_and_resets_in_next_measure():
+    heads = [head(step=1), head(step=1), head(step=1)]
+    result = build_pitch_candidates(
+        heads,
+        staff_clefs={0: "treble"},
+        key_signatures={0: {"F": 1}},
+        explicit_accidentals=["natural", None, None],
+        measure_ids=["m1", "m1", "m2"],
+    )
+    assert [item.pitch.alteration for item in result] == [0, 0, 1]
+    assert [item.pitch.midi for item in result] == [65, 65, 66]
+
+
+def test_accidental_state_is_independent_per_staff_and_measure():
+    result = build_pitch_candidates(
+        [head(0, 1), head(1, 1), head(0, 1)],
+        staff_clefs={0: "treble", 1: "treble"},
+        explicit_accidentals=["flat", None, None],
+        measure_ids=[1, 1, 1],
+    )
+    assert [item.pitch.alteration for item in result] == [-1, 0, -1]
+
+
+def test_requires_measure_ids_when_explicit_accidentals_are_provided():
+    with pytest.raises(ValueError, match="deben proporcionarse juntos"):
+        build_pitch_candidates(
+            [head()], staff_clefs={0: "treble"}, explicit_accidentals=["sharp"]
+        )
