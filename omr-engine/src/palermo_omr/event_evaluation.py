@@ -227,9 +227,15 @@ def evaluate_score_events(
         predicted[m.predicted_index].event_type == reference[m.reference_index].event_type
         for m in matches
     )
+    # La exactitud de alturas se calcula solo sobre eventos cuya referencia
+    # es una nota. Los silencios no tienen altura y no deben inflar la métrica.
+    reference_note_matches = tuple(
+        m for m in matches
+        if reference[m.reference_index].event_type == "note"
+    )
     pitch_correct = sum(
         predicted[m.predicted_index].pitches_midi == reference[m.reference_index].pitches_midi
-        for m in matches
+        for m in reference_note_matches
     )
     duration_correct = sum(
         predicted[m.predicted_index].duration_quarters is not None
@@ -262,7 +268,7 @@ def evaluate_score_events(
         event_type_correct=type_correct,
         event_type_accuracy=_accuracy(type_correct, tp),
         pitch_correct=pitch_correct,
-        pitch_accuracy=_accuracy(pitch_correct, tp),
+        pitch_accuracy=_accuracy(pitch_correct, len(reference_note_matches)),
         duration_correct=duration_correct,
         duration_accuracy=_accuracy(duration_correct, tp),
         voice_correct=voice_correct,
