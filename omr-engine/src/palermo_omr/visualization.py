@@ -320,8 +320,17 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
             continue
         x1, x2 = item.get("x_start"), item.get("x_end")
         if isinstance(x1, (int, float)) and isinstance(x2, (int, float)):
-            cv2.line(overlay, point(x1, lines[0]), point(x1, lines[-1]), (120, 180, 40), 1)
-            cv2.line(overlay, point(x2, lines[0]), point(x2, lines[-1]), (120, 180, 40), 1)
-            label("MEASURE?", int(x1), int(lines[0]) - 4, (120, 180, 40))
+            alignment_status = item.get("alignment_status")
+            if alignment_status == "ambiguous_spans_multiple_measure_candidates":
+                color, tag = (0, 0, 255), "AMBIG?"
+            elif alignment_status == "cross_staff_alignment_candidate":
+                color, tag = (20, 150, 30), "MEASURE-X?"
+            elif alignment_status == "single_staff_only_unmatched":
+                color, tag = (255, 100, 20), "MEASURE-LOCAL?"
+            else:
+                color, tag = (120, 180, 40), "MEASURE?"
+            cv2.line(overlay, point(x1, lines[0]), point(x1, lines[-1]), color, 1)
+            cv2.line(overlay, point(x2, lines[0]), point(x2, lines[-1]), color, 1)
+            label(tag, int(x1), int(lines[0]) - 4, color)
 
     return overlay
