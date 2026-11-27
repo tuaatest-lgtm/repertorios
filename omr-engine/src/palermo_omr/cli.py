@@ -29,6 +29,7 @@ from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythmic_event_groups import build_rhythmic_event_group_candidates
+from .reviewed_timeline import build_reviewed_page_timelines
 from .staff_voice_layers import detect_staff_voice_layer_candidates
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
@@ -77,6 +78,10 @@ def main() -> int:
         "--accept-key-signature-candidates", action="store_true",
         help="Acepta explícitamente candidatos de armadura válidos derivados de etiquetas humanas confirmadas.",
     )
+    parser.add_argument(
+        "--reviewed-rhythm-manifest", default=None,
+        help="JSON de eventos rítmicos confirmados por persona; genera líneas temporales polifónicas por compás.",
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -84,6 +89,7 @@ def main() -> int:
 
     pages = render_pdf(args.pdf, dpi=args.dpi)
     analyses = []
+    rhythmic_groups_by_page = {}
     human_glyph_manifest = (
         validate_glyph_manifest(args.glyph_manifest) if args.glyph_manifest else None
     )
@@ -195,6 +201,7 @@ def main() -> int:
         rhythmic_event_groups = build_rhythmic_event_group_candidates(
             analysis.staves, noteheads, rhythms, rhythmic_interpretations
         )
+        rhythmic_groups_by_page[page_number] = rhythmic_event_groups
         voice_layer_candidates = detect_staff_voice_layer_candidates(
             analysis.staves, noteheads, rhythms
         )
@@ -301,6 +308,30 @@ def main() -> int:
         page_data["geometry_overlay"] = geometry_overlay_path.name
         analyses.append(page_data)
 
+    if args.reviewed_rhythm_manifest:
+        reviewed_manifest = json.loads(Path(args.reviewed_rhythm_manifest).read_text(encoding="utf-8"))
+        if not isinstance(reviewed_manifest, dict) or not isinstance(reviewed_manifest.get("pages"), list):
+            raise ValueError("El manifiesto rítmico debe contener una lista 'pages'")
+        seen_review_pages = set()
+        for page_manifest in reviewed_manifest["pages"]:
+            if not isinstance(page_manifest, dict):
+                raise ValueError("Cada página del manifiesto rítmico debe ser un objeto")
+            page_number = page_manifest.get("page_number")
+            if page_number not in rhythmic_groups_by_page:
+                raise ValueError(f"El manifiesto rítmico referencia una página inexistente: {page_number}")
+            if page_number in seen_review_pages:
+                raise ValueError(f"Página repetida en el manifiesto rítmico: {page_number}")
+            seen_review_pages.add(page_number)
+            page_data = analyses[page_number - 1]
+            page_data["reviewed_measure_timelines"] = build_reviewed_page_timelines(
+                rhythmic_groups_by_page[page_number], page_manifest
+            )
+        report_reviewed_count = sum(
+            len(page.get("reviewed_measure_timelines", [])) for page in analyses
+        )
+    else:
+        report_reviewed_count = 0
+
     global_measure_sequence = build_global_measure_sequence(analyses)
     global_measure_map = {
         (item["page_number"], item["staff_index"], item["measure_index_on_staff"]):
@@ -366,6 +397,7 @@ def main() -> int:
             "Los detectores de puntillos, silencios, barras y regiones de compás solo generan candidatos."
         ),
         "source_pdf": Path(args.pdf).name,
+        "reviewed_measure_timeline_count": report_reviewed_count,
         "pages": analyses,
     }
     report_path = output_dir / "analysis.json"
