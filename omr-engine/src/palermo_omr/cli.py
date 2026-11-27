@@ -160,7 +160,7 @@ def main() -> int:
         page_data["printed_label_candidates"] = [item.to_dict() for item in printed_labels]
         page_data["printed_label_candidate_count"] = len(printed_labels)
         for key, values in section_data.items():
-            page_data[key] = [item.to_dict() for item in values]
+            page_data[key] = [item.to_dict() if hasattr(item, "to_dict") else item for item in values]
             page_data[key.replace("_candidates", "_candidate_count")] = len(values)
         page_data["staff_identity_evidence"] = [item.__dict__ for item in identity_evidence]
         page_data["staff_identity_evidence_count"] = len(identity_evidence)
