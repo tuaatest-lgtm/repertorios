@@ -140,6 +140,72 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
             text = str(item.get("text", "label")).replace("\\n", " ").strip()
             label(f"LABEL? {text[:24]}", left, top - 3, color)
 
+    # Rótulos de sección y anclas: se visualizan como hipótesis de ubicación.
+    # La línea atraviesa el sistema candidato, no confirma un límite de compás.
+    section_markers = page_data.get("section_marker_candidates", [])
+    for item in section_markers:
+        if not isinstance(item, dict):
+            continue
+        box = item.get("bbox_pdf")
+        if not isinstance(box, (list, tuple)) or len(box) != 4:
+            continue
+        try:
+            x0, y0, x1, y1 = (int(round(float(value) * float(render_dpi) / 72.0)) for value in box)
+        except (TypeError, ValueError):
+            continue
+        left, top = max(0, x0), max(0, y0)
+        right, bottom = min(width - 1, x1), min(height - 1, y1)
+        if left <= right and top <= bottom:
+            color = (180, 60, 220)
+            cv2.rectangle(overlay, (left, top), (right, bottom), color, 2)
+            label(f"SECTION? {str(item.get('text', ''))[:18]}", left, top - 4, color)
+
+    systems_by_index = {
+        item.get("system_index"): item
+        for item in page_data.get("staff_system_candidates", [])
+        if isinstance(item, dict) and isinstance(item.get("system_index"), int)
+    }
+    drawn_anchors = set()
+    for anchor in page_data.get("section_measure_anchor_candidates", []):
+        if not isinstance(anchor, dict):
+            continue
+        system_index = anchor.get("system_index")
+        staff_index = anchor.get("staff_index")
+        x_start, x_end = anchor.get("interval_x_start"), anchor.get("interval_x_end")
+        ratio = anchor.get("position_ratio_in_interval")
+        if not all(isinstance(value, (int, float)) for value in (x_start, x_end, ratio)):
+            continue
+        x = int(round(x_start + (x_end - x_start) * ratio))
+        system = systems_by_index.get(system_index)
+        if system is not None:
+            indices = system.get("staff_indices", [])
+            selected = [
+                staves[index] for index in indices
+                if isinstance(indices, list) and isinstance(index, int)
+                and not isinstance(index, bool) and 0 <= index < len(staves)
+                and len(staves[index].get("lines_y", [])) == 5
+            ]
+            if not selected:
+                continue
+            y_top = min(staff["lines_y"][0] for staff in selected)
+            y_bottom = max(staff["lines_y"][-1] for staff in selected)
+        elif isinstance(staff_index, int) and not isinstance(staff_index, bool) and 0 <= staff_index < len(staves):
+            lines = staves[staff_index].get("lines_y", [])
+            if len(lines) != 5:
+                continue
+            y_top, y_bottom = lines[0], lines[-1]
+        else:
+            continue
+        key = (anchor.get("marker_index"), system_index, x, y_top, y_bottom)
+        if key in drawn_anchors:
+            continue
+        drawn_anchors.add(key)
+        x = max(0, min(width - 1, x))
+        color = (255, 100, 20)
+        cv2.line(overlay, point(x, y_top), point(x, y_bottom), color, 2, cv2.LINE_AA)
+        cv2.circle(overlay, point(x, y_top), 5, color, -1)
+        label("SECTION-ANCHOR?", x + 5, int(y_top) - 4, color)
+
     # Puntillos: se muestra el punto y su relación geométrica candidata.
     for item in page_data.get("augmentation_dot_candidates", []):
         if not isinstance(item, dict):
