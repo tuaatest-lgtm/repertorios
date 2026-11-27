@@ -214,7 +214,7 @@ def main() -> int:
                 range(len(combined_heads)),
                 key=lambda index: (
                     int(combined_heads[index].staff_index),
-                    pitch_kwargs["measure_ids"][index],
+                    str(pitch_kwargs["measure_ids"][index]),
                     float(getattr(combined_heads[index], "center_x", index)),
                     index,
                 ),

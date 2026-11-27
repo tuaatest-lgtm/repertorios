@@ -156,3 +156,22 @@ def test_simultaneous_group_requires_confirmed_measure_ids():
             staff_clefs={0: "treble"},
             simultaneous_group_ids=["chord"],
         )
+
+
+
+def test_preserves_external_source_indices_after_internal_sorting():
+    result = build_pitch_candidates(
+        [head(step=1), head(step=2)],
+        staff_clefs={0: "treble"},
+        source_indices=[7, 3],
+    )
+    assert [item.source_index for item in result] == [7, 3]
+
+
+def test_rejects_duplicate_external_source_indices():
+    with pytest.raises(ValueError, match="source_indices"):
+        build_pitch_candidates(
+            [head(), head(step=1)],
+            staff_clefs={0: "treble"},
+            source_indices=[2, 2],
+        )
