@@ -5,6 +5,8 @@ import pytest
 from palermo_omr.rhythmic_event_groups import RhythmicEventGroupCandidate
 from palermo_omr.reviewed_timeline import build_reviewed_page_timelines
 from palermo_omr.rhythm_symbols import RestSymbolCandidate
+from palermo_omr.pitch import Pitch
+from palermo_omr.pitch_candidates import PitchCandidate
 
 
 def group(event_id, staff, center_x, duration="quarter", status="single_note_candidate", indices=(0,)):
@@ -209,3 +211,47 @@ def test_event_order_indices_must_cover_each_confirmed_note_exactly_once():
                 "event_order_indices": {"n1": 0},
             }],
         })
+
+
+
+def test_confirmed_pitch_is_attached_to_its_reviewed_rhythmic_event():
+    groups = [group("note-c", 0, 10, indices=(0,))]
+    pitches = [PitchCandidate(
+        source_kind="filled", source_index=0, staff_index=0,
+        diatonic_step_from_bottom=0, clef="treble", key_signature={},
+        status="resolved_from_supplied_clef",
+        pitch=Pitch(step="E", octave=4, alteration=0, midi=64),
+    )]
+    result = build_reviewed_page_timelines(groups, {
+        "page_number": 1,
+        "measures": [{
+            "measure_index": 0, "numerator": 4, "denominator": 4,
+            "confirmed_event_ids": ["note-c"],
+            "event_voice_ids": {"note-c": "soprano"},
+            "confirmed_pitch_candidate_indices": {"note-c": [0]},
+        }],
+    }, pitch_candidates=pitches)
+    event = result[0]["events"][0]
+    assert event["confirmed_pitches"] == [{
+        "source_index": 0, "source_kind": "filled",
+        "step": "E", "octave": 4, "alteration": 0, "midi": 64,
+    }]
+
+
+def test_unresolved_pitch_cannot_be_confirmed_as_a_musical_note():
+    groups = [group("note-c", 0, 10, indices=(0,))]
+    pitches = [PitchCandidate(
+        source_kind="filled", source_index=0, staff_index=0,
+        diatonic_step_from_bottom=0, clef=None, key_signature={},
+        status="unresolved_clef", pitch=None,
+    )]
+    with pytest.raises(ValueError, match="sin clave"):
+        build_reviewed_page_timelines(groups, {
+            "page_number": 1,
+            "measures": [{
+                "measure_index": 0, "numerator": 4, "denominator": 4,
+                "confirmed_event_ids": ["note-c"],
+                "event_voice_ids": {"note-c": "soprano"},
+                "confirmed_pitch_candidate_indices": {"note-c": [0]},
+            }],
+        }, pitch_candidates=pitches)

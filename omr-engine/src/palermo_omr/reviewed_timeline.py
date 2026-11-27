@@ -23,6 +23,7 @@ def build_reviewed_page_timelines(
     page_manifest: Mapping[str, Any],
     *,
     rest_candidates: Sequence[RestSymbolCandidate] = (),
+    pitch_candidates: Sequence[Any] = (),
 ) -> list[dict[str, Any]]:
     """Construye líneas temporales por compás sin aceptar inferencias visuales.
 
@@ -45,6 +46,7 @@ def build_reviewed_page_timelines(
         raise ValueError("Los grupos rítmicos deben tener event_id únicos")
     used_event_ids: set[str] = set()
     used_rest_candidate_indices: set[int] = set()
+    used_pitch_candidate_indices: set[int] = set()
     results: list[dict[str, Any]] = []
     seen_measure_indices: set[int] = set()
 
@@ -144,10 +146,53 @@ def build_reviewed_page_timelines(
             denominator,
             measure_index=measure_index,
         )
+        timeline_data = timeline.to_dict()
+        pitch_map = measure.get("confirmed_pitch_candidate_indices")
+        if pitch_map is not None:
+            note_ids = set(confirmed)
+            if not isinstance(pitch_map, Mapping) or set(pitch_map) != note_ids:
+                raise ValueError(
+                    "confirmed_pitch_candidate_indices debe cubrir exactamente cada evento de nota"
+                )
+            event_pitch_data = {}
+            for event_id, indices in pitch_map.items():
+                group = next(item for item in groups if item.event_id == event_id)
+                if not isinstance(indices, list) or len(indices) != len(group.notehead_indices):
+                    raise ValueError("Cada evento debe confirmar una altura por cabeza de nota")
+                if any(
+                    not isinstance(index, int) or isinstance(index, bool)
+                    or not 0 <= index < len(pitch_candidates)
+                    for index in indices
+                ):
+                    raise ValueError("Índice de candidato de altura fuera de rango")
+                if len(indices) != len(set(indices)):
+                    raise ValueError("Un evento no puede repetir candidatos de altura")
+                if used_pitch_candidate_indices.intersection(indices):
+                    raise ValueError("Un candidato de altura no puede reutilizarse en dos eventos")
+                used_pitch_candidate_indices.update(indices)
+                selected_pitches = []
+                for notehead_index, pitch_index in zip(group.notehead_indices, indices):
+                    candidate = pitch_candidates[pitch_index]
+                    if candidate.source_index != notehead_index or candidate.staff_index != group.staff_index:
+                        raise ValueError("La altura confirmada no corresponde a la cabeza del evento")
+                    if candidate.status != "resolved_from_supplied_clef" or candidate.pitch is None:
+                        raise ValueError("No se puede confirmar una altura sin clave y altura resueltas")
+                    selected_pitches.append({
+                        "source_index": candidate.source_index,
+                        "source_kind": candidate.source_kind,
+                        "step": candidate.pitch.step,
+                        "octave": candidate.pitch.octave,
+                        "alteration": candidate.pitch.alteration,
+                        "midi": candidate.pitch.midi,
+                    })
+                event_pitch_data[event_id] = selected_pitches
+            for event in timeline_data["events"]:
+                if event["event_id"] in event_pitch_data:
+                    event["confirmed_pitches"] = event_pitch_data[event["event_id"]]
         results.append({
             "page_number": page_number,
             "time_signature": {"numerator": numerator, "denominator": denominator},
-            **timeline.to_dict(),
+            **timeline_data,
             "review_status": "human_confirmed_events",
             "warning": (
                 "La línea temporal usa únicamente eventos confirmados en el manifiesto. "

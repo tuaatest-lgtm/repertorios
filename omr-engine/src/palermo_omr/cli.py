@@ -92,6 +92,7 @@ def main() -> int:
     analyses = []
     rhythmic_groups_by_page = {}
     rest_candidates_by_page = {}
+    pitch_candidates_by_page = {}
     human_glyph_manifest = (
         validate_glyph_manifest(args.glyph_manifest) if args.glyph_manifest else None
     )
@@ -166,6 +167,7 @@ def main() -> int:
             key_signatures=page_key_signatures,
             source_kinds=(["filled"] * len(noteheads) + ["hollow"] * len(hollow_noteheads)),
         )
+        pitch_candidates_by_page[page_number] = pitch_candidates
         page_data["pitch_candidates"] = [item.to_dict() for item in pitch_candidates]
         page_data["pitch_candidate_count"] = len(pitch_candidates)
         page_data["resolved_pitch_candidate_count"] = sum(
@@ -346,6 +348,7 @@ def main() -> int:
             page_data["reviewed_measure_timelines"] = build_reviewed_page_timelines(
                 rhythmic_groups_by_page[page_number], page_manifest,
                 rest_candidates=rest_candidates_by_page[page_number],
+                pitch_candidates=pitch_candidates_by_page[page_number],
             )
         report_reviewed_count = sum(
             len(page.get("reviewed_measure_timelines", [])) for page in analyses
