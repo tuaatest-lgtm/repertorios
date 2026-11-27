@@ -24,3 +24,8 @@ Las notas ligadas deben consolidarse antes de crear eventos de ataque, para no c
 La línea temporal informa `overlapping_event_ids` cuando dos eventos con duración e inicio conocidos pertenecen a la misma voz, comienzan en instantes distintos y el segundo ataque ocurre antes de que termine el primero. Los ataques simultáneos no se marcan: pueden representar notas de un acorde. Tampoco se marcan solapamientos entre voces distintas, porque la polifonía exige que sus duraciones sean independientes.
 
 Esta comprobación detecta contradicciones en los datos temporales ya asignados; no decide automáticamente qué nota, duración o voz está equivocada. Los eventos con inicio o duración desconocidos quedan fuera de esta comprobación.
+
+
+## Puntillos confirmados en la conversión a eventos
+
+La conversión de grupos de notas revisados a eventos temporales acepta `event_dot_counts`, un mapa explícito de `event_id` a cantidad de puntillos (0–4). La duración se calcula con fracciones exactas: un puntillo aplica 3/2, dos 7/4, tres 15/8 y cuatro 31/16. Los candidatos geométricos de puntillo no se aplican automáticamente: la cantidad debe ser confirmada por revisión. El mismo mecanismo funciona cuando dos voces independientes comparten un pentagrama.

@@ -184,3 +184,40 @@ def test_event_voice_assignment_rejects_ambiguous_groups():
             event_voice_ids={groups[0].event_id: "soprano"},
             confirmed_event_ids={groups[0].event_id},
         )
+
+
+def test_reviewed_single_dotted_quarter_extends_exact_duration():
+    values = _inputs([100])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values, staff_voice_ids={0: "soprano"})
+    events = build_reviewed_voice_events(groups, voice_id="soprano", measure_index=0, confirmed_event_ids={groups[0].event_id}, event_dot_counts={groups[0].event_id: 1})
+    assert events[0].duration_quarters == Fraction(3, 2)
+
+
+def test_reviewed_double_dotted_note_uses_exact_rational_duration():
+    values = _inputs([100])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values, staff_voice_ids={0: "alto"})
+    events = build_reviewed_voice_events(groups, voice_id="alto", measure_index=0, confirmed_event_ids={groups[0].event_id}, event_dot_counts={groups[0].event_id: 2})
+    assert events[0].duration_quarters == Fraction(7, 4)
+
+
+def test_reviewed_dot_counts_work_with_multiple_voices_on_one_staff():
+    values = _inputs([100, 130])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values)
+    events = build_reviewed_voice_events_by_voice(groups, measure_index=0, event_voice_ids={groups[0].event_id: "soprano", groups[1].event_id: "alto"}, confirmed_event_ids={groups[0].event_id, groups[1].event_id}, event_dot_counts={groups[0].event_id: 1, groups[1].event_id: 0})
+    durations = {event.voice_id: event.duration_quarters for event in events}
+    assert durations == {"alto": Fraction(1), "soprano": Fraction(3, 2)}
+
+
+@pytest.mark.parametrize("count", [-1, 5, True, 1.5])
+def test_reviewed_dot_counts_reject_invalid_values(count):
+    values = _inputs([100])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values, staff_voice_ids={0: "soprano"})
+    with pytest.raises(ValueError, match="puntillos"):
+        build_reviewed_voice_events(groups, voice_id="soprano", measure_index=0, confirmed_event_ids={groups[0].event_id}, event_dot_counts={groups[0].event_id: count})
+
+
+def test_dot_review_cannot_reference_unconfirmed_event():
+    values = _inputs([100, 130])
+    groups = build_rhythmic_event_group_candidates(_staffs(), *values, staff_voice_ids={0: "soprano"})
+    with pytest.raises(ValueError, match="confirmados"):
+        build_reviewed_voice_events(groups, voice_id="soprano", measure_index=0, confirmed_event_ids={groups[0].event_id}, event_dot_counts={groups[1].event_id: 1})

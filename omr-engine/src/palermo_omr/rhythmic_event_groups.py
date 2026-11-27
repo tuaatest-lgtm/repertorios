@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from fractions import Fraction
 from collections.abc import Mapping, Sequence
 
-from .duration_math import BASE_DURATIONS
+from .duration_math import BASE_DURATIONS, duration_in_quarters
 from .imaging import StaffCandidate
 from .rhythm import RhythmCandidate
 from .rhythm_interpretation import RhythmicInterpretationCandidate
@@ -174,6 +174,7 @@ def build_reviewed_voice_events(
     voice_id: str,
     measure_index: int,
     confirmed_event_ids: set[str] | frozenset[str],
+    event_dot_counts: Mapping[str, int] | None = None,
 ) -> tuple[OrderedVoiceEvent, ...]:
     """Convierte solo grupos revisados explícitamente en eventos ordenables.
 
@@ -195,6 +196,7 @@ def build_reviewed_voice_events(
     unknown_ids = set(confirmed_event_ids) - set(by_id)
     if unknown_ids:
         raise ValueError("La revisión referencia event_id inexistentes")
+    dot_counts = _validate_reviewed_dot_counts(event_dot_counts, set(confirmed_event_ids))
 
     selected = []
     for event_id in confirmed_event_ids:
@@ -219,7 +221,7 @@ def build_reviewed_voice_events(
             voice_id=voice_id,
             measure_index=measure_index,
             order_index=order_index,
-            duration_quarters=group.duration_quarters_candidate,
+            duration_quarters=duration_in_quarters(group.duration_candidate, dot_counts.get(group.event_id, 0)),
             event_type="note",
             notehead_ids=tuple(f"staff-{group.staff_index + 1}-head-{index}" for index in group.notehead_indices),
         ))
@@ -233,6 +235,7 @@ def build_reviewed_voice_events_by_voice(
     measure_index: int,
     event_voice_ids: Mapping[str, str],
     confirmed_event_ids: set[str] | frozenset[str],
+    event_dot_counts: Mapping[str, int] | None = None,
 ) -> tuple[OrderedVoiceEvent, ...]:
     """Asigna voz por evento revisado, permitiendo varias voces en un staff.
 
@@ -254,6 +257,7 @@ def build_reviewed_voice_events_by_voice(
     confirmed = set(confirmed_event_ids)
     if confirmed - set(by_id):
         raise ValueError("La revisión referencia event_id inexistentes")
+    dot_counts = _validate_reviewed_dot_counts(event_dot_counts, confirmed)
     if set(event_voice_ids) != confirmed:
         raise ValueError("Debe existir exactamente una asignación de voz por evento confirmado")
 
@@ -283,7 +287,7 @@ def build_reviewed_voice_events_by_voice(
                 voice_id=voice_id,
                 measure_index=measure_index,
                 order_index=order_index,
-                duration_quarters=group.duration_quarters_candidate,
+                duration_quarters=duration_in_quarters(group.duration_candidate, dot_counts.get(group.event_id, 0)),
                 event_type="note",
                 notehead_ids=tuple(
                     f"staff-{group.staff_index + 1}-head-{index}"
@@ -291,3 +295,20 @@ def build_reviewed_voice_events_by_voice(
                 ),
             ))
     return tuple(events)
+
+
+def _validate_reviewed_dot_counts(event_dot_counts, confirmed_event_ids):
+    if event_dot_counts is None:
+        return {}
+    if not isinstance(event_dot_counts, Mapping):
+        raise ValueError("event_dot_counts debe ser un mapa de evento a puntillos")
+    if set(event_dot_counts) - confirmed_event_ids:
+        raise ValueError("Los puntillos solo pueden asignarse a eventos confirmados")
+    normalized = {}
+    for event_id, count in event_dot_counts.items():
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError("Los IDs de eventos con puntillos deben ser texto no vacío")
+        if not isinstance(count, int) or isinstance(count, bool) or not 0 <= count <= 4:
+            raise ValueError("Cada evento debe tener entre cero y cuatro puntillos revisados")
+        normalized[event_id] = count
+    return normalized
