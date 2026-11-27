@@ -573,6 +573,11 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
             for local_index, cluster in enumerate(clusters, start=1):
                 global_index += 1
                 centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
+                staff_support = len({v["staff_index"] for v in cluster})
+                alignment_status = (
+                    "cross_staff_alignment_candidate" if staff_support >= 2
+                    else "single_staff_only_unmatched"
+                )
                 record = {
                     "global_measure_candidate": global_index,
                     "page_number": page_number,
@@ -581,31 +586,57 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                     "x_start_median": round(float(median([v["x_start"] for v in cluster])), 2),
                     "x_end_median": round(float(median([v["x_end"] for v in cluster])), 2),
                     "center_x_median": round(float(median(centers)), 2),
-                    "staff_support": len({v["staff_index"] for v in cluster}),
+                    "staff_support": staff_support,
+                    "alignment_status": alignment_status,
                     "staff_measure_refs": [
                         {"staff_index": v["staff_index"], "measure_index_on_staff": v["measure_index"]}
                         for v in cluster
                     ],
-                    "confidence": round(min(0.65, float(median([v.get("confidence", 0.3) for v in cluster]))), 3),
+                    "confidence": round(min(
+                        0.65 if staff_support >= 2 else 0.3,
+                        float(median([v.get("confidence", 0.3) for v in cluster]))
+                    ), 3),
                     "review_status": "pending",
                     "warning": (
-                        "Ordinal global provisional por alineación horizontal de intervalos "
-                        "entre barras candidatas; no es numeración musical confirmada."
+                        "Alineación horizontal candidata entre varios pentagramas; "
+                        "no confirma el número de compás."
+                        if staff_support >= 2 else
+                        "Intervalo local sin correspondencia geométrica demostrada en otro "
+                        "pentagrama. Su ordinal documental no es un compás global confirmado."
                     ),
                 }
                 sequence.append(record)
                 for span in cluster:
                     staff_measure_map[(page_number, span["staff_index"], span["measure_index"])] = global_index
+    cross_staff_count = sum(
+        item["alignment_status"] == "cross_staff_alignment_candidate"
+        for item in sequence
+    )
+    single_staff_count = len(sequence) - cross_staff_count
+    sequence_scope = (
+        "cross_staff_aligned_candidates" if cross_staff_count and not single_staff_count
+        else "partially_cross_staff_aligned" if cross_staff_count
+        else "document_ordered_single_staff_intervals"
+    )
     return {
         "global_measure_candidates": sequence,
         "global_measure_candidate_count": len(sequence),
+        "cross_staff_aligned_candidate_count": cross_staff_count,
+        "single_staff_only_candidate_count": single_staff_count,
+        "sequence_scope": sequence_scope,
         "staff_measure_map": [
             {"page_number": k[0], "staff_index": k[1],
-             "measure_index_on_staff": k[2], "global_measure_candidate": v}
+             "measure_index_on_staff": k[2], "global_measure_candidate": v,
+             "alignment_status": next(
+                 (item["alignment_status"] for item in sequence
+                  if item["global_measure_candidate"] == v), "unknown"
+             )}
             for k, v in sorted(staff_measure_map.items())
         ],
         "warning": (
-            "Secuencia provisional por página, sistema y posición horizontal. "
+            "La secuencia conserva el orden documental de los intervalos. Solo los "
+            "candidatos con soporte de varios pentagramas tienen evidencia de alineación "
+            "transversal; los candidatos de un solo pentagrama no son compases globales. "
             "Anacrusas, compases incompletos, barras omitidas y alineación irregular "
             "requieren revisión humana."
         ),
@@ -633,7 +664,10 @@ def resolve_section_range_boundaries(
             raise ValueError("Cada referencia de compás debe ser un objeto")
         key = (item.get("page_number"), item.get("staff_index"),
                item.get("measure_index_on_staff"))
-        measure_map[key] = item.get("global_measure_candidate")
+        measure_map[key] = {
+            "global_measure_candidate": item.get("global_measure_candidate"),
+            "alignment_status": item.get("alignment_status", "unknown"),
+        }
 
     from copy import deepcopy
     from math import isfinite
@@ -665,13 +699,21 @@ def resolve_section_range_boundaries(
                 ),
             )
             ratio = float(anchor["position_ratio_in_interval"])
-            global_measure = measure_map.get((
+            measure_reference = measure_map.get((
                 boundary.get("page_number"),
                 anchor.get("staff_index"),
                 anchor.get("measure_index_on_staff"),
             ))
+            global_measure = (
+                measure_reference.get("global_measure_candidate")
+                if measure_reference else None
+            )
             boundary["musical_boundary_candidate"] = {
                 "global_measure_candidate": global_measure,
+                "global_alignment_status": (
+                    measure_reference.get("alignment_status")
+                    if measure_reference else "unmatched_local_interval"
+                ),
                 "staff_index": anchor.get("staff_index"),
                 "measure_index_on_staff": anchor.get("measure_index_on_staff"),
                 "position_ratio_in_interval": round(ratio, 4),
