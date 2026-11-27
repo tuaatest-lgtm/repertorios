@@ -292,6 +292,27 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         item["candidate_data"].get("global_boundary_status")
         for item in section_marker_reviews
     ]
+    source_pages = analysis.get("pages", [])
+    system_candidates = [
+        system for page in source_pages if isinstance(page, dict)
+        for system in page.get("staff_system_candidates", [])
+        if isinstance(system, dict)
+    ]
+    multi_staff_system_count = sum(
+        len(system.get("staff_indices", [])) >= 2
+        for system in system_candidates
+    )
+    single_staff_system_count = len(system_candidates) - multi_staff_system_count
+    grouping_mark_count = sum(
+        len(page.get("staff_grouping_mark_candidates", []))
+        for page in source_pages if isinstance(page, dict)
+        and isinstance(page.get("staff_grouping_mark_candidates", []), list)
+    )
+    identity_evidence_count = sum(
+        len(page.get("staff_identity_evidence", []))
+        for page in source_pages if isinstance(page, dict)
+        and isinstance(page.get("staff_identity_evidence", []), list)
+    )
     eligible_section_markers = sum(
         status == "eligible_candidate" for status in section_marker_statuses
     )
@@ -332,6 +353,11 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "unclassified_global_section_marker_candidate_count": (
                 len(section_marker_reviews) - eligible_section_markers - excluded_section_markers
             ),
+            "staff_system_candidate_count": len(system_candidates),
+            "multi_staff_system_candidate_count": multi_staff_system_count,
+            "single_staff_system_candidate_count": single_staff_system_count,
+            "staff_grouping_mark_candidate_count": grouping_mark_count,
+            "staff_identity_evidence_count": identity_evidence_count,
         },
         "pages": pages,
     }
