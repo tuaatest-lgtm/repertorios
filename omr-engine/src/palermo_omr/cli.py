@@ -114,7 +114,13 @@ def main() -> int:
         page_data["notation_preamble_candidates"] = [
             item.to_dict() for item in preamble_candidates
         ]
-        page_data["notation_preamble_candidate_count"] = len(preamble_candidates)\n        preamble_crops = export_notation_preamble_crops(\n            binary, preamble_candidates, analysis.staves,\n            output_dir / "notation-preamble-crops", page_number=page_number,\n        )\n        page_data["notation_preamble_crop_exports"] = preamble_crops\n        page_data["notation_preamble_crop_export_count"] = len(preamble_crops)
+        page_data["notation_preamble_candidate_count"] = len(preamble_candidates)
+        preamble_crops = export_notation_preamble_crops(
+            binary, preamble_candidates, analysis.staves,
+            output_dir / "notation-preamble-crops", page_number=page_number,
+        )
+        page_data["notation_preamble_crop_exports"] = preamble_crops
+        page_data["notation_preamble_crop_export_count"] = len(preamble_crops)
         page_data["hollow_notehead_overlay"] = hollow_overlay_path.name
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
