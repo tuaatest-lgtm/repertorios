@@ -209,3 +209,38 @@ def test_evaluate_cli_adapter_rejects_malformed_predictions(tmp_path):
     predictions.write_text('{"score-01":[{"event_id":"missing-fields"}]}')
     with pytest.raises(ValueError, match="campos ausentes"):
         evaluate_manifest(manifest, predictions)
+
+
+
+def test_review_section_package_requires_confirmation_and_writes_decisions(tmp_path):
+    package_path = tmp_path / "review-package.json"
+    decisions_path = tmp_path / "decisions.json"
+    output_path = tmp_path / "reviewed-package.json"
+    package = {
+        "global_section_range_candidates": [{
+            "section_range_id": "section-1",
+            "start": {"musical_boundary_candidate": {"page_number": 1}},
+            "end": {"musical_boundary_candidate": {"page_number": 1}},
+            "review_status": "pending",
+        }],
+        "summary": {
+            "global_section_range_candidate_count": 1,
+            "pending_global_section_range_candidate_count": 1,
+        },
+    }
+    package_path.write_text(json.dumps(package), encoding="utf-8")
+    decisions_path.write_text(json.dumps([{
+        "section_range_id": "section-1", "decision": "accepted", "notes": "Revisado visualmente"
+    }]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="confirmación humana"):
+        review_section_package(
+            package_path, decisions_path, output_path,
+            human_review_confirmed=False,
+        )
+    updated = review_section_package(
+        package_path, decisions_path, output_path,
+        human_review_confirmed=True,
+    )
+    assert updated["global_section_range_candidates"][0]["review_status"] == "accepted"
+    assert json.loads(output_path.read_text(encoding="utf-8")) == updated
