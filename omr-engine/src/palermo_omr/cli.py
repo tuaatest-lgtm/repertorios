@@ -21,7 +21,7 @@ from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
 from .printed_labels import extract_printed_label_candidates
-from .section_structure import detect_section_candidates, link_section_ranges_across_pages
+from .section_structure import (\n    anchor_section_markers_to_measure_spans,\n    detect_section_candidates,\n    link_section_ranges_across_pages,\n)
 from .identity_evidence import build_page_identity_evidence
 from .score_structure import ScoreStaff, ScoreStructure
 from .measure_layout import (
@@ -102,6 +102,11 @@ def main() -> int:
         grouping_marks = detect_staff_grouping_mark_candidates(binary, analysis.staves)
         section_data = detect_section_candidates(
             args.pdf, page_number, analysis.staves, measure_spans, dpi=args.dpi
+        )
+        section_data["section_measure_anchor_candidates"] = anchor_section_markers_to_measure_spans(
+            [item.to_dict() for item in section_data["section_marker_candidates"]],
+            analysis.staves,
+            measure_spans,
         )
         section_identifiers = section_data["section_identifier_candidates"]
         section_identifier_boxes = {
