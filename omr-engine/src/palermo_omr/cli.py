@@ -14,6 +14,7 @@ from .symbols import (
     detect_hollow_notehead_candidates,
     detect_notehead_candidates,
 )
+from .notation_preamble import detect_notation_preamble_candidates
 from .pitch_candidates import build_pitch_candidates
 from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
@@ -104,6 +105,13 @@ def main() -> int:
         page_data["unresolved_pitch_candidate_count"] = (
             len(pitch_candidates) - page_data["resolved_pitch_candidate_count"]
         )
+        preamble_candidates = detect_notation_preamble_candidates(
+            binary, analysis.staves, noteheads + hollow_noteheads
+        )
+        page_data["notation_preamble_candidates"] = [
+            item.to_dict() for item in preamble_candidates
+        ]
+        page_data["notation_preamble_candidate_count"] = len(preamble_candidates)
         page_data["hollow_notehead_overlay"] = hollow_overlay_path.name
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
