@@ -69,7 +69,10 @@ def apply_section_range_decisions(
         if not isinstance(notes, str):
             raise ValueError("notes debe ser texto")
         target = by_id[range_id]
-        if target.get("review_status", "pending") != "pending":
+        current_status = target.get("review_status", "pending")
+        if current_status not in {"pending", *_ALLOWED_DECISIONS}:
+            raise ValueError(f"El rango {range_id} tiene un estado de revisión inválido")
+        if current_status != "pending":
             raise ValueError(f"El rango {range_id} ya tiene una decisión previa")
 
         if status == "accepted":
