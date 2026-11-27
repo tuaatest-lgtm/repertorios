@@ -730,6 +730,7 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
         "global_measure_candidate_count": len(sequence),
         "cross_staff_aligned_candidate_count": cross_staff_count,
         "single_staff_only_candidate_count": single_staff_count,
+        "ambiguous_staff_interval_count": len(ambiguous_staff_spans),
         "sequence_scope": sequence_scope,
         "staff_measure_map": (
             [
@@ -789,6 +790,7 @@ def resolve_section_range_boundaries(
             "global_measure_candidate": item.get("global_measure_candidate"),
             "alignment_status": item.get("alignment_status", "unknown"),
             "staff_support": item.get("staff_support", 1),
+            "possible_global_measure_candidates": item.get("possible_global_measure_candidates", []),
         }
 
     from copy import deepcopy
@@ -847,6 +849,10 @@ def resolve_section_range_boundaries(
                 "staff_support": (
                     measure_reference.get("staff_support", 1)
                     if measure_reference else 0
+                ),
+                "possible_global_measure_candidates": (
+                    measure_reference.get("possible_global_measure_candidates", [])
+                    if measure_reference else []
                 ),
                 "staff_index": anchor.get("staff_index"),
                 "measure_index_on_staff": anchor.get("measure_index_on_staff"),
