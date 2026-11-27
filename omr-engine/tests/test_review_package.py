@@ -381,6 +381,7 @@ def test_review_summary_counts_partial_and_adjacent_section_boundaries():
     ("field", "value", "message"),
     [
         ("staff_system_candidates", "bad", "staff_system_candidates"),
+        ("staff_system_candidates", [{"system_index": 0, "staff_indices": []}], "staff_indices"),
         ("system_barline_candidates", "bad", "system_barline_candidates"),
         ("staff_grouping_mark_candidates", ["bad"], "marca de agrupación"),
         ("staff_identity_evidence", ["bad"], "evidencia de identidad"),
