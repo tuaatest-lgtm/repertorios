@@ -68,7 +68,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 
 | Próximo hito | Aporte estimado al avance global | Condición para reconocerlo |
 |---|---:|---|
-| Conectar rangos de sección entre páginas y ordenar compases globalmente | +1 a 2 pp | Resolver continuidad de página/sistema con evidencia geométrica y revisión humana. |
+| Delimitar compases y posiciones de inicio/final de cada sección | +1 a 2 pp | Vincular marcas con intervalos de compás por pentagrama/sistema y revisar límites parciales. |
 | Ejecutar el motor sobre más partituras reales y revisar overlays | +1 a 2 pp | Ampliar el análisis a partituras de distinta edición y calidad; revisar los overlays y documentar fallos por familia. |
 | Crear anotaciones humanas de un conjunto representativo | +3 a 5 pp | Partituras, páginas, pentagramas, voces y eventos revisados; manifiestos validados. |
 | Medir precisión y recuperación por familia de símbolos y eventos | +3 a 5 pp | Informes calculados contra referencias humanas, no pruebas sintéticas. |
