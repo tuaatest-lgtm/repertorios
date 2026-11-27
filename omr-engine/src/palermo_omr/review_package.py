@@ -281,6 +281,22 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         item.get("global_alignment_status") in (None, "unmatched_local_interval", "unknown")
         for item in section_boundary_candidates
     )
+    partial_section_boundaries = sum(
+        item.get("partial_measure_boundary") is True
+        for item in section_boundary_candidates
+    )
+    inside_measure_section_boundaries = sum(
+        item.get("position_kind") == "inside_measure_candidate"
+        for item in section_boundary_candidates
+    )
+    before_measure_section_boundaries = sum(
+        item.get("position_kind") == "before_measure_candidate"
+        for item in section_boundary_candidates
+    )
+    after_measure_section_boundaries = sum(
+        item.get("position_kind") == "after_measure_candidate"
+        for item in section_boundary_candidates
+    )
     pending_measure_candidates = sum(
         1 for item in global_measure_candidates
         if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
@@ -357,6 +373,10 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "cross_staff_aligned_section_boundary_candidate_count": cross_staff_section_boundaries,
             "single_staff_only_section_boundary_candidate_count": single_staff_section_boundaries,
             "unmatched_section_boundary_candidate_count": unmatched_section_boundaries,
+            "partial_section_boundary_candidate_count": partial_section_boundaries,
+            "inside_measure_section_boundary_candidate_count": inside_measure_section_boundaries,
+            "before_measure_section_boundary_candidate_count": before_measure_section_boundaries,
+            "after_measure_section_boundary_candidate_count": after_measure_section_boundaries,
             "section_marker_candidate_count": len(section_marker_reviews),
             "eligible_global_section_marker_candidate_count": eligible_section_markers,
             "excluded_global_section_marker_candidate_count": excluded_section_markers,
