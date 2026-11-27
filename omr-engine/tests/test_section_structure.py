@@ -319,3 +319,47 @@ def test_global_measure_sequence_rejects_invalid_interval_geometry(field, value)
             "staff_system_candidates": [{"system_index": 0, "staff_indices": [0]}],
             "measure_span_candidates": [span],
         }])
+
+
+
+def test_repeated_top_page_headers_do_not_split_global_sections():
+    from palermo_omr.section_structure import link_section_ranges_across_pages
+
+    header = {
+        "normalized_text": "CORO", "text": "Coro",
+        "bbox_pdf": [250, 10, 270, 20],
+        "center_x_px": 1275, "center_y_px": 70,
+        "page_width_px": 2550, "page_height_px": 3300,
+    }
+    pages = [
+        {
+            "page_number": 1,
+            "section_marker_candidates": [
+                dict(header),
+                {"normalized_text": "ESTROFA", "text": "Estrofa",
+                 "bbox_pdf": [20, 100, 70, 120], "center_x_px": 180,
+                 "center_y_px": 500, "page_width_px": 2550, "page_height_px": 3300},
+            ],
+            "section_identifier_candidates": [],
+        },
+        {
+            "page_number": 2,
+            "section_marker_candidates": [
+                dict(header),
+                {"normalized_text": "PUENTE", "text": "Puente",
+                 "bbox_pdf": [20, 200, 70, 220], "center_x_px": 180,
+                 "center_y_px": 1000, "page_width_px": 2550, "page_height_px": 3300},
+            ],
+            "section_identifier_candidates": [],
+        },
+        {
+            "page_number": 3,
+            "section_marker_candidates": [dict(header)],
+            "section_identifier_candidates": [],
+        },
+    ]
+
+    ranges = link_section_ranges_across_pages(pages)
+    assert [item["section_name"] for item in ranges] == ["ESTROFA", "PUENTE"]
+    assert ranges[0]["end"]["page_number"] == 2
+    assert ranges[1]["extent"] == "open_ended_score_candidate"
