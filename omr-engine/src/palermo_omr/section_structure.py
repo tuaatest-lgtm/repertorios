@@ -388,3 +388,89 @@ def anchor_section_markers_to_measure_spans(
             ),
         })
     return anchors
+
+
+def build_global_measure_sequence(pages: list[dict]) -> dict:
+    """Construye ordinales globales provisionales conciliando pentagramas por sistema."""
+    from statistics import median
+
+    ordered_pages = sorted(pages, key=lambda item: item.get("page_number", 0))
+    sequence, staff_measure_map = [], {}
+    global_index = 0
+    for page in ordered_pages:
+        page_number = page.get("page_number")
+        if not isinstance(page_number, int) or page_number < 1:
+            raise ValueError("Cada página requiere page_number positivo")
+        spans = page.get("measure_span_candidates", [])
+        systems = page.get("staff_system_candidates", [])
+        if not isinstance(spans, list) or not isinstance(systems, list):
+            raise ValueError("Los intervalos y sistemas deben ser listas")
+        staff_to_system = {
+            staff_index: system.get("system_index")
+            for system in systems for staff_index in system.get("staff_indices", [])
+        }
+        by_system = {}
+        for span in spans:
+            system_index = staff_to_system.get(span.get("staff_index"))
+            if system_index is not None and span.get("width_px", 0) > 0:
+                by_system.setdefault(system_index, []).append(span)
+        for system_index in sorted(by_system):
+            candidates = sorted(by_system[system_index],
+                key=lambda v: (v["x_start"] + v["x_end"]) / 2)
+            clusters = []
+            for span in candidates:
+                center, width = (span["x_start"] + span["x_end"]) / 2, span["width_px"]
+                match = None
+                for cluster in reversed(clusters):
+                    centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
+                    widths = [v["width_px"] for v in cluster]
+                    tolerance = max(3.0, min(float(median(widths)), float(width)) * 0.18)
+                    if abs(center - float(median(centers))) <= tolerance:
+                        match = cluster
+                        break
+                    if center - float(median(centers)) > max(width, float(median(widths))):
+                        break
+                if match is None:
+                    clusters.append([span])
+                else:
+                    match.append(span)
+            for local_index, cluster in enumerate(clusters, start=1):
+                global_index += 1
+                centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
+                record = {
+                    "global_measure_candidate": global_index,
+                    "page_number": page_number,
+                    "system_index": system_index,
+                    "measure_index_in_system": local_index,
+                    "x_start_median": round(float(median([v["x_start"] for v in cluster])), 2),
+                    "x_end_median": round(float(median([v["x_end"] for v in cluster])), 2),
+                    "center_x_median": round(float(median(centers)), 2),
+                    "staff_support": len({v["staff_index"] for v in cluster}),
+                    "staff_measure_refs": [
+                        {"staff_index": v["staff_index"], "measure_index_on_staff": v["measure_index"]}
+                        for v in cluster
+                    ],
+                    "confidence": round(min(0.65, float(median([v.get("confidence", 0.3) for v in cluster]))), 3),
+                    "review_status": "pending",
+                    "warning": (
+                        "Ordinal global provisional por alineación horizontal de intervalos "
+                        "entre barras candidatas; no es numeración musical confirmada."
+                    ),
+                }
+                sequence.append(record)
+                for span in cluster:
+                    staff_measure_map[(page_number, span["staff_index"], span["measure_index"])] = global_index
+    return {
+        "global_measure_candidates": sequence,
+        "global_measure_candidate_count": len(sequence),
+        "staff_measure_map": [
+            {"page_number": k[0], "staff_index": k[1],
+             "measure_index_on_staff": k[2], "global_measure_candidate": v}
+            for k, v in sorted(staff_measure_map.items())
+        ],
+        "warning": (
+            "Secuencia provisional por página, sistema y posición horizontal. "
+            "Anacrusas, compases incompletos, barras omitidas y alineación irregular "
+            "requieren revisión humana."
+        ),
+    }
