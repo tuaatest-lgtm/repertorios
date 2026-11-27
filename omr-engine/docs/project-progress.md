@@ -216,3 +216,14 @@ Estas cifras son proyecciones, no trabajo ya completado, y pueden variar según 
 - No añadir servicios OMR externos ni presentar candidatos heurísticos como transcripción fiable.
 - No aumentar el avance por documentación o cantidad de código solamente.
 - Cada incremento debe indicar el cambio verificable, su evidencia y los límites que permanecen.
+
+
+## Refinamiento de sistemas con evidencia de llaves y corchetes — 27 de noviembre de 2026
+
+- La CLI ya no depende exclusivamente de conectores verticales continuos para agrupar pentagramas.
+- Primero calcula sistemas iniciales mediante conectores; después detecta marcas de agrupación y usa únicamente llaves curvas y corchetes rectos candidatos entre dos pentagramas adyacentes para refinar la agrupación.
+- Las líneas verticales genéricas no se usan como evidencia suficiente para fusionar sistemas. Se mantienen como indicios pendientes.
+- El refinamiento conserva la advertencia de que la relación es geométrica y requiere revisión; no asigna piano, coro, instrumento ni voces.
+- Se añadieron pruebas para unir un par con llave curva y para evitar unirlo por una línea vertical genérica.
+- CI de la rama: [45952465000](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45952465000), commit `5f99463330ded5f79838ed679e89f141396ecc2e`: **464 pruebas aprobadas**.
+- El avance funcional global se mantiene en **36%**. Esta mejora aumenta la evidencia geométrica disponible, pero no demuestra todavía una lectura musical correcta sobre un corpus real anotado.
