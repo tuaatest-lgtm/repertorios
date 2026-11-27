@@ -55,32 +55,50 @@ def detect_augmentation_dot_candidates(
             continue
         aspect = w / max(h,1)
         if .55 <= aspect <= 1.8 and area >= 2:
-            components.append((x,y,w,h,area,centroids[label]))
-    found = []
-    used = set()
+            components.append((label,x,y,w,h,area,centroids[label]))
+
+    # Construir todas las asociaciones plausibles antes de elegir. Un mismo
+    # componente físico no puede convertirse en el puntillo de varias cabezas.
+    # La selección global prioriza las asociaciones geométricamente mejores y
+    # mantiene una relación uno-a-uno, con desempate determinista.
+    associations = []
     for note_index, head in enumerate(noteheads):
         if not 0 <= head.staff_index < len(staves):
             continue
         spacing = float(staves[head.staff_index].spacing_px)
-        best = None
-        for x,y,w,h,area,center in components:
+        if spacing <= 1:
+            continue
+        for component_label,x,y,w,h,area,center in components:
             cx,cy = float(center[0]),float(center[1])
             dx,dy = cx-head.center_x,abs(cy-head.center_y)
-            if (note_index, x, y) in used:
-                continue
             if not .75*spacing <= dx <= 1.8*spacing:
                 continue
             if dy > .32*spacing or not .12*spacing <= w <= .6*spacing:
                 continue
             if not .12*spacing <= h <= .6*spacing:
                 continue
-            score = max(0.0,1.0-dy/(.32*spacing)) * max(0.0,1.0-abs(dx-1.25*spacing)/(.8*spacing))
-            if best is None or score > best[0]:
-                best = (score,cx,cy,x,y)
-        if best and best[0] >= .2:
-            score,cx,cy,x,y = best
-            used.add((note_index,x,y))
-            found.append(DotCandidate(round(cx,2),round(cy,2),note_index,round(min(.85,score),3)))
+            score = (
+                max(0.0,1.0-dy/(.32*spacing))
+                * max(0.0,1.0-abs(dx-1.25*spacing)/(.8*spacing))
+            )
+            if score >= .2:
+                associations.append(
+                    (score,note_index,component_label,cx,cy)
+                )
+
+    associations.sort(key=lambda item: (-item[0],item[1],item[2]))
+    used_noteheads = set()
+    used_components = set()
+    found = []
+    for score,note_index,component_label,cx,cy in associations:
+        if note_index in used_noteheads or component_label in used_components:
+            continue
+        used_noteheads.add(note_index)
+        used_components.add(component_label)
+        found.append(DotCandidate(
+            round(cx,2),round(cy,2),note_index,round(min(.85,score),3)
+        ))
+    found.sort(key=lambda item: item.associated_notehead_index)
     return found
 
 

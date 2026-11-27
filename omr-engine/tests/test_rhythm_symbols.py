@@ -17,6 +17,32 @@ def test_detects_dot_candidate_next_to_notehead():
     assert dots[0].associated_notehead_index==0
 
 
+def test_one_physical_dot_is_not_assigned_to_two_noteheads():
+    image = np.full((160, 260), 255, dtype=np.uint8)
+    cv2.circle(image, (116, 80), 2, 0, -1)
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    first = NoteheadCandidate((92, 75, 16, 10), 100.0, 80.0, 0, 2, .8, .9, .9)
+    second = NoteheadCandidate((94, 75, 16, 10), 102.0, 80.0, 0, 2, .8, .9, .9)
+
+    dots = detect_augmentation_dot_candidates(image, [staff], [first, second])
+
+    assert len(dots) == 1
+    assert dots[0].associated_notehead_index in {0, 1}
+
+
+def test_distinct_dots_can_be_assigned_to_distinct_noteheads():
+    image = np.full((160, 260), 255, dtype=np.uint8)
+    cv2.circle(image, (116, 80), 2, 0, -1)
+    cv2.circle(image, (156, 90), 2, 0, -1)
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    first = NoteheadCandidate((92, 75, 16, 10), 100.0, 80.0, 0, 2, .8, .9, .9)
+    second = NoteheadCandidate((132, 85, 16, 10), 140.0, 90.0, 0, 1, .8, .9, .9)
+
+    dots = detect_augmentation_dot_candidates(image, [staff], [first, second])
+
+    assert [dot.associated_notehead_index for dot in dots] == [0, 1]
+
+
 def test_rest_candidates_are_explicitly_unconfirmed():
     image=np.full((160,260),255,dtype=np.uint8)
     for y in [60,70,80,90,100]:
