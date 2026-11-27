@@ -86,3 +86,36 @@ def test_draw_geometry_overlay_rejects_invalid_inputs():
         draw_geometry_overlay(np.zeros((20, 20), dtype=np.uint8), {})
     with pytest.raises(ValueError, match="objeto"):
         draw_geometry_overlay(np.zeros((20, 20, 3), dtype=np.uint8), [])
+
+
+def test_geometry_overlay_draws_printed_pdf_label_bbox_in_render_pixels():
+    image = np.full((100, 120, 3), 255, dtype=np.uint8)
+    page_data = {
+        "render_dpi": 72,
+        "printed_label_candidates": [
+            {
+                "text": "Soprano",
+                "bbox_pdf": [10.0, 20.0, 45.0, 32.0],
+                "association_status": "associated_candidate",
+            }
+        ],
+    }
+
+    overlay = draw_geometry_overlay(image, page_data)
+
+    assert not np.array_equal(overlay, image)
+    assert np.any(overlay[20:33, 10:46] != 255)
+
+
+def test_geometry_overlay_scales_printed_label_bbox_with_render_dpi():
+    image = np.full((100, 120, 3), 255, dtype=np.uint8)
+    page_data = {
+        "render_dpi": 144,
+        "printed_label_candidates": [
+            {"text": "Alto", "bbox_pdf": [10.0, 10.0, 20.0, 15.0]},
+        ],
+    }
+
+    overlay = draw_geometry_overlay(image, page_data)
+
+    assert np.any(overlay[20:31, 20:41] != 255)
