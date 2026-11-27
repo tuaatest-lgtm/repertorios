@@ -21,7 +21,11 @@ from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
 from .printed_labels import extract_printed_label_candidates
-from .section_structure import (\n    anchor_section_markers_to_measure_spans,\n    detect_section_candidates,\n    link_section_ranges_across_pages,\n)
+from .section_structure import (
+    anchor_section_markers_to_measure_spans,
+    detect_section_candidates,
+    link_section_ranges_across_pages,
+)
 from .identity_evidence import build_page_identity_evidence
 from .score_structure import ScoreStaff, ScoreStructure
 from .measure_layout import (
