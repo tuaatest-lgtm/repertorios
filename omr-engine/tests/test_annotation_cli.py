@@ -214,6 +214,8 @@ def test_evaluate_cli_adapter_rejects_malformed_predictions(tmp_path):
 
 
 def test_review_section_package_requires_confirmation_and_writes_decisions(tmp_path):
+    # Import local explícito: mantiene el adaptador bajo prueba ligado a esta prueba.
+    from palermo_omr.annotation_cli import review_section_package
     package_path = tmp_path / "review-package.json"
     decisions_path = tmp_path / "decisions.json"
     output_path = tmp_path / "reviewed-package.json"
