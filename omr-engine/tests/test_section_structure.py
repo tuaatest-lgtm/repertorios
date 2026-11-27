@@ -533,6 +533,7 @@ def test_global_measure_sequence_marks_multi_staff_alignment_candidate():
     assert result["global_measure_candidates"][0]["alignment_status"] == (
         "cross_staff_alignment_candidate"
     )
+    assert all(item["staff_support"] == 2 for item in result["staff_measure_map"])
 
 
 
