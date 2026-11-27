@@ -397,18 +397,38 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
     ordered_pages = sorted(pages, key=lambda item: item.get("page_number", 0))
     sequence, staff_measure_map = [], {}
     global_index = 0
+    seen_pages = set()
     for page in ordered_pages:
         page_number = page.get("page_number")
-        if not isinstance(page_number, int) or page_number < 1:
+        if not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
             raise ValueError("Cada página requiere page_number positivo")
+        if page_number in seen_pages:
+            raise ValueError("page_number duplicado en la secuencia global")
+        seen_pages.add(page_number)
         spans = page.get("measure_span_candidates", [])
         systems = page.get("staff_system_candidates", [])
         if not isinstance(spans, list) or not isinstance(systems, list):
             raise ValueError("Los intervalos y sistemas deben ser listas")
-        staff_to_system = {
-            staff_index: system.get("system_index")
-            for system in systems for staff_index in system.get("staff_indices", [])
-        }
+        staff_to_system = {}
+        seen_systems = set()
+        for system in systems:
+            if not isinstance(system, dict):
+                raise ValueError("Cada sistema debe ser un objeto")
+            system_index = system.get("system_index")
+            staff_indices = system.get("staff_indices")
+            if (not isinstance(system_index, int) or isinstance(system_index, bool)
+                    or system_index < 0 or system_index in seen_systems):
+                raise ValueError("Cada sistema requiere un system_index único no negativo")
+            if not isinstance(staff_indices, list):
+                raise ValueError("staff_indices debe ser una lista")
+            seen_systems.add(system_index)
+            for staff_index in staff_indices:
+                if (not isinstance(staff_index, int) or isinstance(staff_index, bool)
+                        or staff_index < 0):
+                    raise ValueError("staff_indices debe contener índices no negativos")
+                if staff_index in staff_to_system:
+                    raise ValueError("Un pentagrama no puede pertenecer a dos sistemas")
+                staff_to_system[staff_index] = system_index
         by_system = {}
         for span in spans:
             system_index = staff_to_system.get(span.get("staff_index"))
