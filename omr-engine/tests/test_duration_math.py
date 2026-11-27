@@ -47,3 +47,14 @@ def test_rejects_invalid_figure_or_dot_count(figure, dots):
 def test_rejects_invalid_tie_duration_lists(values):
     with pytest.raises(ValueError):
         sum_tied_durations(values)
+
+@pytest.mark.parametrize("figure", [None, [], {}, 1])
+def test_rejects_non_string_base_figure(figure):
+    with pytest.raises(ValueError, match="Figura base desconocida"):
+        duration_in_quarters(figure)
+
+
+@pytest.mark.parametrize("values", [[True], ["1"], [None], [object()]])
+def test_rejects_non_numeric_tied_durations(values):
+    with pytest.raises(ValueError, match="números válidos"):
+        sum_tied_durations(values)
