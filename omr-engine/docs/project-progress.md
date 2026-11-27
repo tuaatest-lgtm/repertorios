@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 77%
-- **Avance estimado actual:** 78%
+- **Avance estimado anterior:** 78%
+- **Avance estimado actual:** 79%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 22%
+- **Trabajo restante estimado:** 21%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. La ejecución real ahora agrupa sistemas mediante conectores verticales y logra alineación geométrica transversal parcial: 61 de 312 grupos de intervalos cumplen ahora una tolerancia simultánea de centro y límites en dos pentagramas; 251 siguen siendo intervalos de un solo pentagrama. Los ordinales y las posiciones siguen siendo candidatos, no números de compás musical confirmados. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
 
@@ -21,13 +21,17 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Detección geométrica y símbolos | 58% | 59% | La ejecución real reveló demasiados candidatos a silencio; se añadieron filtros y el conteo bajó de 680 a 140 sin cambiar los demás detectores. |
 | Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
 | Paquete de revisión humana | 98% | 99% | El resumen también cuenta marcas de sección elegibles, excluidas y aún no clasificadas, sin cambiar su estado pendiente de revisión. |
-| Evidencia visual y overlays | 92% | 93% | El overlay muestra los rótulos de sección y sus anclas verticales sobre todo el sistema, además de los límites geométricos existentes. |
+| Evidencia visual y overlays | 93% | 94% | El overlay distingue visualmente encabezados excluidos de rótulos de sección elegibles y se redibuja después de la clasificación global entre páginas. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
-| Validación integral con partituras | 15% | 16% | Se verificó visualmente en las tres páginas reales el recorrido de rótulo a ancla de sistema y su relación con los intervalos candidatos; falta referencia humana. |
+| Validación integral con partituras | 16% | 17% | La CLI ahora vuelve a generar los overlays después de clasificar encabezados repetidos entre páginas; pruebas sintéticas cubren el recorrido de clasificación a imagen. |
 | Modelo de identidad de pentagramas | 61% | 62% | La detección de conectores de sistema genera 30 marcas de agrupación candidatas y 60 evidencias asociadas para revisión, sin asignar instrumentos ni voces. |
-| Estructura de secciones musicales | 68% | 69% | El overlay hace visibles los rótulos y las anclas que atraviesan el sistema; se conservan las advertencias de que son posiciones candidatas, no límites confirmados. |
+| Estructura de secciones musicales | 69% | 70% | Los encabezados superiores repetidos se excluyen de los rangos globales y se distinguen de las marcas elegibles en los overlays finales. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
+
+- La clasificación de marcas de sección entre páginas ahora se refleja en la imagen final: los encabezados repetidos en la franja superior y las marcas superiores sin ancla se dibujan como `HEADER?`, mientras que las marcas elegibles permanecen como `SECTION?`. La CLI vuelve a generar los overlays después de construir los rangos globales, por lo que la visualización ya no queda desfasada respecto a la clasificación documental.
+- Se añadieron pruebas para comprobar el tratamiento visual de marcas excluidas frente a elegibles y una prueba de integración de CLI que confirma que los overlays se redibujan después de la clasificación entre páginas.
+- CI de integración CLI y redibujado posterior a clasificación: ejecución [45944192845](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944192845), commit `faf5bb8bcdf54952fc236a946bfff1842f84a444`, **383 pruebas aprobadas**. CI de clasificación y representación visual: ejecución [45944188513](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944188513), **382 pruebas aprobadas**.
 
 ## Trabajo verificado en este corte
 
