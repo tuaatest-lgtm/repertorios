@@ -75,5 +75,5 @@ def write_score_group_split(split: dict, output_path: str | Path) -> None:
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
-    temporary.write_text(json.dumps(split, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    temporary.write_text(json.dumps(split, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(destination)
