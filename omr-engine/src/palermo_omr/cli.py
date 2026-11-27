@@ -14,7 +14,10 @@ from .symbols import (
     detect_hollow_notehead_candidates,
     detect_notehead_candidates,
 )
-from .notation_preamble import (\n    detect_notation_preamble_candidates,\n    export_notation_preamble_crops,\n)
+from .notation_preamble import (
+    detect_notation_preamble_candidates,
+    export_notation_preamble_crops,
+)
 from .pitch_candidates import build_pitch_candidates
 from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
