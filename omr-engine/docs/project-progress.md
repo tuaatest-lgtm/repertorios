@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 71%
-- **Avance estimado actual:** 72%
+- **Avance estimado anterior:** 72%
+- **Avance estimado actual:** 73%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 28%
+- **Trabajo restante estimado:** 27%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la continuidad de rangos de sección entre páginas, su exportación global y su conservación en el paquete de revisión. La prueba de continuidad es sintética; no equivale a validación musical real. Esta ejecución no equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
 
@@ -20,12 +20,12 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 |---|---:|---:|---|
 | Detección geométrica y símbolos | 58% | 59% | La ejecución real reveló demasiados candidatos a silencio; se añadieron filtros y el conteo bajó de 680 a 140 sin cambiar los demás detectores. |
 | Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
-| Paquete de revisión humana | 93% | 95% | El paquete incorpora etiquetas impresas y evidencias combinadas de identidad, enlazadas con los pentagramas. |
+| Paquete de revisión humana | 95% | 97% | El paquete conserva la secuencia global provisional de compases y las coordenadas de inicio/final de sección, incluidas posiciones parciales dentro de intervalos. |
 | Evidencia visual y overlays | 91% | 92% | Se inspeccionaron los overlays generados en las tres páginas reales y se documentaron las principales confusiones visuales. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 10% | Primera ejecución reproducible sobre tres páginas reales y revisión visual de salidas; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
 | Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
-| Estructura de secciones musicales | 45% | 55% | Se construye una secuencia global provisional de intervalos por página/sistema y se relacionan las anclas de sección con ordinales globales, conciliando pentagramas por alineación horizontal. |
+| Estructura de secciones musicales | 55% | 60% | Los extremos de sección ahora incluyen coordenadas candidatas de compás global, posición fraccional y distinción entre inicio, final e interior del intervalo. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -62,6 +62,10 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - La CLI incorpora `global_measure_sequence` en `analysis.json` y adjunta a cada ancla de sección su ordinal global candidato. Las referencias locales siguen disponibles para rastrear el origen.
 - La secuencia no fuerza intervalos sin barras detectadas y separa sistemas geométricos; no reconoce aún anacrusas, compases parciales, barras omitidas ni compases métricos reales. Los ordinales son coordenadas de revisión, no números de compás definitivos.
 - Pruebas sintéticas verifican conciliación de pentagramas alineados, separación de sistemas, orden de páginas fuera de secuencia y exclusión de intervalos sin sistema. CI de la rama: ejecución [45938579297](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45938579297), commit `52ce0812bb6c737063c3400d7800f7e055c0ae7f`, **342 pruebas aprobadas**.
+\n\n- Se añadió `resolve_section_range_boundaries`: para cada inicio y final de sección selecciona la mejor ancla disponible, vincula el intervalo con el ordinal global provisional y conserva la fracción horizontal. Distingue posición dentro del compás candidato, antes/después y coincidencia con sus extremos; no confunde una marca textual con una barra musical.
+- La CLI incorpora estas coordenadas en `global_section_range_candidates`. El paquete de revisión humana ahora conserva también `global_measure_sequence`, para que el revisor pueda consultar el mapa global y las referencias locales originales.
+- Las pruebas verifican posiciones parciales, extremos exactos, límites sin ancla y conservación de la secuencia en el paquete de revisión. CI de la rama: ejecución [45939141059](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939141059), commit `e32775b625c34525bbfdf5466d9f26d1b7827fcd`, **344 pruebas aprobadas**.
+- Precaución: la posición se deriva del centro del rótulo y del intervalo geométrico candidato. No demuestra el punto musical exacto donde comienza o termina la sección. La revisión humana sigue siendo obligatoria.
 \n## Límites que siguen abiertos
 
 - Una llave detectada no demuestra por sí sola que dos pentagramas sean piano ni identifica las manos.
