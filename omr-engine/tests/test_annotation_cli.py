@@ -6,6 +6,7 @@ import pytest
 from palermo_omr.annotation_dataset import AnnotatedScore, AnnotationDataset
 from palermo_omr.annotation_cli import (
     review_section_package,
+    main,
     confirm_score_review,
     initialize_score_manifest,
     validate_manifest,
@@ -247,3 +248,34 @@ def test_review_section_package_requires_confirmation_and_writes_decisions(tmp_p
     )
     assert updated["global_section_range_candidates"][0]["review_status"] == "accepted"
     assert json.loads(output_path.read_text(encoding="utf-8")) == updated
+
+
+
+def test_review_sections_cli_command_applies_human_decision(tmp_path, monkeypatch):
+    package_path = tmp_path / "package.json"
+    decisions_path = tmp_path / "decisions.json"
+    output_path = tmp_path / "reviewed.json"
+    package_path.write_text(json.dumps({
+        "global_section_range_candidates": [{
+            "section_range_id": "section-cli",
+            "start": {"musical_boundary_candidate": {"page_number": 1}},
+            "end": {"musical_boundary_candidate": {"page_number": 1}},
+            "review_status": "pending",
+        }],
+        "summary": {
+            "global_section_range_candidate_count": 1,
+            "pending_global_section_range_candidate_count": 1,
+        },
+    }), encoding="utf-8")
+    decisions_path.write_text(json.dumps([{
+        "section_range_id": "section-cli", "decision": "accepted"
+    }]), encoding="utf-8")
+    monkeypatch.setattr(
+        "sys.argv",
+        ["palermo-omr-dataset", "review-sections", str(package_path),
+         "--decisions", str(decisions_path), "--output", str(output_path),
+         "--confirm-human-review"],
+    )
+    assert main() == 0
+    result = json.loads(output_path.read_text(encoding="utf-8"))
+    assert result["global_section_range_candidates"][0]["review_status"] == "accepted"
