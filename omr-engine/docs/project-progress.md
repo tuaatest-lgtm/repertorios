@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 69%
-- **Avance estimado actual:** 70%
+- **Avance estimado anterior:** 70%
+- **Avance estimado actual:** 71%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 30%
+- **Trabajo restante estimado:** 29%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la continuidad de rangos de sección entre páginas, su exportación global y su conservación en el paquete de revisión. La prueba de continuidad es sintética; no equivale a validación musical real. Esta ejecución no equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
 
@@ -25,7 +25,7 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 10% | Primera ejecución reproducible sobre tres páginas reales y revisión visual de salidas; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
 | Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
-| Estructura de secciones musicales | 20% | 35% | Los rangos candidatos ya se enlazan entre páginas y se conservan en el paquete de revisión; los límites exactos de compás siguen pendientes. |
+| Estructura de secciones musicales | 35% | 45% | Los rangos se enlazan entre páginas y cada marca se ancla al intervalo geométrico de compás más cercano; la numeración sigue siendo local y provisional. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -53,7 +53,8 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - La CLI exporta `section_marker_candidates`, `section_identifier_candidates` y `section_range_candidates`; las letras ya relacionadas con una sección se excluyen de la lista duplicada de etiquetas SATB. El paquete de revisión humana conserva las tres familias como pendientes.
 - Los rangos locales se proponen entre marcas sucesivas y permiten límites dentro de sistemas. Se añadió `link_section_ranges_across_pages`: una marca en la página siguiente cierra el rango anterior, incluso si hay páginas intermedias sin marcas. El último rango queda abierto hasta el final de la partitura; el final de página no cierra la sección.
 - La CLI exporta `global_section_range_candidates` y el paquete de revisión conserva esos rangos para revisión humana. Cada rango contiene página/posición de inicio, página/posición de final, extensión en páginas y estado pendiente.
-- Se añadió una primera ancla local entre cada marca de sección y el intervalo geométrico entre barras más cercano del pentagrama candidato. Se conserva el índice de compás local al pentagrama, la posición relativa dentro del intervalo y la distancia; aún no se trata como numeración global ni como compás confirmado. Las pruebas de esta ampliación están en validación CI. La primera ejecución de integración detectó un error de formato en la importación de la CLI; se corrigió en el commit posterior y se está repitiendo la suite completa.
+- Se añadió una primera ancla local entre cada marca de sección y el intervalo geométrico entre barras más cercano del pentagrama candidato. Se conserva el índice de compás local al pentagrama, la posición relativa dentro del intervalo y la distancia; aún no se trata como numeración global ni como compás confirmado.
+- La suite completa pasó en [45937807139](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45937807139), commit `1fada1449e67c680f7fc12c922a0da10a8282246`, con **340 pruebas aprobadas**. La integración de la CLI también pasó en [45937789485](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45937789485), commit `b730937a2156337238767cf2cd766dd83e4c9069`, con el mismo total.
 - Límite explícito: el enlace global usa el orden de páginas y el orden de marcas detectadas; no reconstruye todavía los compases globales ni sus límites exactos. La asociación letra-marca sigue basada en anchos geométricos candidatos. Los rótulos deben estar en la capa de texto PDF; no hay OCR.
 - Se añadieron pruebas de continuidad entre páginas, páginas intermedias sin marcas, ordenación independiente del orden de entrada y rangos abiertos. CI exacta de la rama: ejecución [45937522902](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45937522902), commit `617870de9fe35193b36ef8ee59ee729e76457521`, resultado exitoso: **338 pruebas aprobadas**.
 
@@ -69,7 +70,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 
 | Próximo hito | Aporte estimado al avance global | Condición para reconocerlo |
 |---|---:|---|
-| Delimitar compases y posiciones de inicio/final de cada sección | +1 a 2 pp | Vincular marcas con intervalos de compás por pentagrama/sistema y revisar límites parciales. |
+| Reconstruir numeración global de compases y límites parciales | +1 a 2 pp | Conciliar índices locales entre pentagramas/sistemas y resolver límites de sección dentro de un compás con revisión humana. |
 | Ejecutar el motor sobre más partituras reales y revisar overlays | +1 a 2 pp | Ampliar el análisis a partituras de distinta edición y calidad; revisar los overlays y documentar fallos por familia. |
 | Crear anotaciones humanas de un conjunto representativo | +3 a 5 pp | Partituras, páginas, pentagramas, voces y eventos revisados; manifiestos validados. |
 | Medir precisión y recuperación por familia de símbolos y eventos | +3 a 5 pp | Informes calculados contra referencias humanas, no pruebas sintéticas. |
