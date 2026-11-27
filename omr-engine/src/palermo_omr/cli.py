@@ -80,6 +80,10 @@ def main() -> int:
         help="Acepta explícitamente candidatos de armadura válidos derivados de etiquetas humanas confirmadas.",
     )
     parser.add_argument(
+        "--pitch-review-manifest", default=None,
+        help="JSON de asignaciones humanas de compás, acorde y alteraciones.",
+    )
+    parser.add_argument(
         "--reviewed-rhythm-manifest", default=None,
         help="JSON de eventos rítmicos confirmados por persona; genera líneas temporales polifónicas por compás.",
     )
@@ -96,6 +100,18 @@ def main() -> int:
     human_glyph_manifest = (
         validate_glyph_manifest(args.glyph_manifest) if args.glyph_manifest else None
     )
+    pitch_review_pages = {}
+    if args.pitch_review_manifest:
+        review_data = json.loads(Path(args.pitch_review_manifest).read_text(encoding="utf-8"))
+        if not isinstance(review_data, dict) or review_data.get("schema_version") != "1" or not isinstance(review_data.get("pages"), list):
+            raise ValueError("El manifiesto de alturas requiere schema_version 1 y pages")
+        for item in review_data["pages"]:
+            if not isinstance(item, dict) or item.get("reviewer_confirmed") is not True:
+                raise ValueError("Cada página del manifiesto debe estar confirmada por una persona")
+            number = item.get("page_number")
+            if not isinstance(number, int) or isinstance(number, bool) or number < 1 or number in pitch_review_pages or not isinstance(item.get("heads"), list):
+                raise ValueError("page_number inválido/duplicado o heads ausente")
+            pitch_review_pages[number] = item["heads"]
 
     for page_number, page in enumerate(pages, start=1):
         binary, analysis = analyze_page(page, page_number)
@@ -161,11 +177,44 @@ def main() -> int:
                 page_key_signatures, key_signature_candidates
             )
 
+        combined_heads = noteheads + hollow_noteheads
+        source_kinds = ["filled"] * len(noteheads) + ["hollow"] * len(hollow_noteheads)
+        review_heads = pitch_review_pages.get(page_number)
+        pitch_kwargs = {}
+        if review_heads is not None:
+            if len(review_heads) != len(combined_heads):
+                raise ValueError("El manifiesto debe asignar todas las cabezas en el orden de candidatos del análisis")
+            measure_ids, accidentals, groups = [], [], []
+            for index, item in enumerate(review_heads):
+                if not isinstance(item, dict):
+                    raise ValueError("Cada asignación de altura debe ser un objeto")
+                expected_kind = source_kinds[index]
+                expected_local_index = index if expected_kind == "filled" else index - len(noteheads)
+                if item.get("source_kind") != expected_kind or item.get("source_index") != expected_local_index:
+                    raise ValueError("source_kind/source_index no coincide con el orden de candidatos geométricos")
+                measure_id = item.get("measure_id")
+                if not isinstance(measure_id, (str, int)) or isinstance(measure_id, bool) or (isinstance(measure_id, str) and not measure_id.strip()):
+                    raise ValueError("Cada cabeza revisada requiere measure_id")
+                accidental = item.get("explicit_accidental")
+                if accidental not in (None, "natural", "sharp", "flat", "double_sharp", "double_flat"):
+                    raise ValueError("explicit_accidental no válido")
+                group = item.get("simultaneous_group_id")
+                if group is not None and (not isinstance(group, (str, int)) or isinstance(group, bool)):
+                    raise ValueError("simultaneous_group_id no válido")
+                measure_ids.append(measure_id)
+                accidentals.append(accidental)
+                groups.append(group if group is not None else f"single-{index}")
+            pitch_kwargs = {
+                "measure_ids": measure_ids,
+                "explicit_accidentals": accidentals,
+                "simultaneous_group_ids": groups,
+            }
         pitch_candidates = build_pitch_candidates(
-            noteheads + hollow_noteheads,
+            combined_heads,
             staff_clefs=supplied_clefs,
             key_signatures=page_key_signatures,
-            source_kinds=(["filled"] * len(noteheads) + ["hollow"] * len(hollow_noteheads)),
+            source_kinds=source_kinds,
+            **pitch_kwargs,
         )
         pitch_candidates_by_page[page_number] = pitch_candidates
         page_data["pitch_candidates"] = [item.to_dict() for item in pitch_candidates]
