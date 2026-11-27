@@ -230,3 +230,24 @@ def test_review_package_rejects_malformed_global_candidates(field, value, messag
         data["global_measure_sequence"][field] = value
     with pytest.raises(ValueError, match=message):
         build_review_package(data, score_id="score-invalid-global")
+
+
+
+def test_review_package_preserves_global_section_marker_disposition():
+    data = sample_analysis()
+    data["pages"][0]["section_marker_candidates"] = [{
+        "normalized_text": "CORO",
+        "text": "Coro",
+        "global_boundary_status": "excluded_repeated_page_header_candidate",
+        "global_boundary_reason": "Repeated page header",
+    }]
+    package = build_review_package(data, score_id="score-header-review")
+    marker = next(
+        item for item in package["pages"][0]["other_candidates"]
+        if item["family"] == "section_marker"
+    )
+    assert marker["candidate_data"]["global_boundary_status"] == (
+        "excluded_repeated_page_header_candidate"
+    )
+    assert marker["candidate_data"]["global_boundary_reason"] == "Repeated page header"
+    assert marker["review_status"] == "pending"
