@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 79%
-- **Avance estimado actual:** 80%
+- **Avance estimado anterior:** 80%
+- **Avance estimado actual:** 81%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 20%
+- **Trabajo restante estimado:** 19%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. La ejecución real ahora agrupa sistemas mediante conectores verticales y logra alineación geométrica transversal parcial: 61 de 312 grupos de intervalos cumplen ahora una tolerancia simultánea de centro y límites en dos pentagramas; 251 siguen siendo intervalos de un solo pentagrama. Los ordinales y las posiciones siguen siendo candidatos, no números de compás musical confirmados. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
 
@@ -23,9 +23,9 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Paquete de revisión humana | 98% | 99% | El resumen también cuenta marcas de sección elegibles, excluidas y aún no clasificadas, sin cambiar su estado pendiente de revisión. |
 | Evidencia visual y overlays | 93% | 94% | El overlay distingue visualmente encabezados excluidos de rótulos de sección elegibles y se redibuja después de la clasificación global entre páginas. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
-| Validación integral con partituras | 17% | 18% | Pruebas de límites musicales verifican posiciones anteriores, interiores y posteriores al intervalo, preservando el ordinal provisional y la revisión pendiente. |
+| Validación integral con partituras | 18% | 19% | En la partitura real los cinco extremos de sección se representan como posiciones interiores parciales; cuatro tienen soporte transversal y uno conserva solo referencia local. |
 | Modelo de identidad de pentagramas | 61% | 62% | La detección de conectores de sistema genera 30 marcas de agrupación candidatas y 60 evidencias asociadas para revisión, sin asignar instrumentos ni voces. |
-| Estructura de secciones musicales | 70% | 71% | Se prueban límites de sección dentro del compás candidato y hasta un intervalo adyacente antes/después, sin forzar el límite a una barra. |
+| Estructura de secciones musicales | 71% | 72% | La partitura real produce cinco extremos parciales dentro de intervalos candidatos, conservando sus fracciones y su evidencia de alineación. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -91,6 +91,7 @@ CI de robustez de agrupación por pentagrama: ejecución [45939428989](https://g
 - `anchor_section_markers_to_measure_spans` ahora conserva una ancla por cada pentagrama del sistema más cercano. `resolve_section_range_boundaries` prioriza una ancla con evidencia transversal cuando existe, sin descartar las demás referencias locales. En la ejecución real de `Clamaré a Dios - Coro`, el inicio de `INTRO` queda asociado a un intervalo con soporte de dos pentagramas; los otros cuatro extremos de los tres rangos siguen apoyados en un solo pentagrama.
 - El paquete de revisión cuenta ahora también la evidencia de los extremos: 5 límites musicales candidatos, 4 con soporte de dos pentagramas y 1 de un solo pentagrama. Los 3 rangos globales siguen pendientes de revisión humana.
 - CI de anclaje por sistema y selección de límites con soporte transversal: ejecución [45942991575](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45942991575), commit `752dfc8aea5db6b0a545f755007528b0d68b7a6b`, **377 pruebas aprobadas**. CI de resumen de soporte en límites de sección: ejecución [45943086403](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45943086403), commit `97ee6cbedefc5b99f8d5e43329bfea11f78e3f1b`, **378 pruebas aprobadas**.
+- La ejecución real de `Clamaré a Dios - Coro` confirma que los cinco extremos de los tres rangos tienen `position_kind=inside_measure_candidate` y `partial_measure_boundary=true`. Sus fracciones horizontales candidatas son 0,082; 0,561; 0,561; 0,379 y 0,379. Cuatro extremos tienen soporte de dos pentagramas y uno sigue siendo local. Esto demuestra que el motor conserva límites dentro de intervalos, no que haya reconocido su ubicación musical exacta; todos continúan pendientes de revisión.
 - Las anclas del overlay distinguen ahora soporte transversal (`SECTION-X?`, verde) de una referencia local a un solo pentagrama (`SECTION-LOCAL?`, naranja). Si el mismo rótulo tiene varias anclas en un sistema, la visualización prioriza la que tiene evidencia transversal, sin ocultar sus datos alternativos en el JSON. CI de clasificación visual de anclas: ejecución [45945344490](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45945344490), commit `f2c3e655d346780b63abe9b6ece81836eb47f653`, **390 pruebas aprobadas**.
 - La CLI redibuja los overlays después de clasificar las marcas globales entre páginas. Así los rótulos que solo son encabezados se muestran como `HEADER?` en lugar de `SECTION?`; una prueba de integración crea dos páginas con el mismo encabezado y verifica que ambas imágenes se regeneren con esa clasificación.
 - CI del redibujado posterior a la clasificación global: ejecución [45944192845](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944192845), commit `faf5bb8bcdf54952fc236a946bfff1842f84a444`, **383 pruebas aprobadas**.
