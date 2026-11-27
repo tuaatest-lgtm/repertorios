@@ -20,6 +20,9 @@ from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
+from .printed_labels import extract_printed_label_candidates
+from .identity_evidence import build_page_identity_evidence
+from .score_structure import ScoreStaff, ScoreStructure
 from .measure_layout import (
     classify_barline_groups,
     detect_barline_candidates,
@@ -93,6 +96,25 @@ def main() -> int:
         system_barlines = group_system_barlines(barlines, analysis.staves)
         measure_spans = infer_measure_spans(barlines)
         grouping_marks = detect_staff_grouping_mark_candidates(binary, analysis.staves)
+        printed_labels = extract_printed_label_candidates(
+            args.pdf, page_number, analysis.staves, dpi=args.dpi
+        )
+        score_structure = ScoreStructure(
+            page_number=page_number,
+            staves=tuple(
+                ScoreStaff(
+                    staff_id=f"p{page_number}-staff-{index + 1}",
+                    page_number=page_number,
+                    detected_staff_index=index,
+                )
+                for index, _ in enumerate(analysis.staves)
+            ),
+        )
+        identity_evidence = build_page_identity_evidence(
+            score_structure,
+            printed_labels=printed_labels,
+            grouping_marks=grouping_marks,
+        )
         page_data["augmentation_dot_candidates"] = [item.to_dict() for item in dots]
         page_data["rest_shape_candidates"] = [item.to_dict() for item in rests]
         page_data["tie_slur_shape_candidates"] = [item.to_dict() for item in tie_slurs]
@@ -107,6 +129,10 @@ def main() -> int:
         page_data["measure_span_candidate_count"] = len(measure_spans)
         page_data["staff_grouping_mark_candidates"] = [item.to_dict() for item in grouping_marks]
         page_data["staff_grouping_mark_candidate_count"] = len(grouping_marks)
+        page_data["printed_label_candidates"] = [item.to_dict() for item in printed_labels]
+        page_data["printed_label_candidate_count"] = len(printed_labels)
+        page_data["staff_identity_evidence"] = [item.__dict__ for item in identity_evidence]
+        page_data["staff_identity_evidence_count"] = len(identity_evidence)
         geometry_overlay = draw_geometry_overlay(page, page_data)
         geometry_overlay_path = output_dir / f"page-{page_number:03d}-geometry-overlay.png"
         if not cv2.imwrite(str(geometry_overlay_path), geometry_overlay):
@@ -149,6 +175,8 @@ def main() -> int:
     total_barlines = sum(page["barline_candidate_count"] for page in analyses)
     total_spans = sum(page["measure_span_candidate_count"] for page in analyses)
     total_grouping_marks = sum(page["staff_grouping_mark_candidate_count"] for page in analyses)
+    total_printed_labels = sum(page["printed_label_candidate_count"] for page in analyses)
+    total_identity_evidence = sum(page["staff_identity_evidence_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
     print(f"Cabezas de nota rellenas candidatas: {total_heads}")
@@ -164,6 +192,8 @@ def main() -> int:
     print(f"Barras de compás candidatas: {total_barlines}")
     print(f"Intervalos entre barras candidatas: {total_spans}")
     print(f"Marcas de agrupación de pentagramas candidatas: {total_grouping_marks}")
+    print(f"Etiquetas musicales impresas candidatas: {total_printed_labels}")
+    print(f"Evidencias de identidad pendientes de revisión: {total_identity_evidence}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
     return 0
 
