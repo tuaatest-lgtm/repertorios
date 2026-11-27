@@ -117,3 +117,28 @@ def test_acceptance_requires_both_reviewable_boundaries():
             [{"section_range_id": "section-1", "decision": "accepted"}],
             human_review_confirmed=True,
         )
+
+
+
+def test_section_review_rejects_non_boolean_confirmation_and_invalid_status_type():
+    with pytest.raises(ValueError, match="human_review_confirmed debe ser booleano"):
+        apply_section_range_decisions(
+            sample_package(), [], human_review_confirmed="yes"
+        )
+    with pytest.raises(ValueError, match="decision debe ser"):
+        apply_section_range_decisions(
+            sample_package(),
+            [{"section_range_id": "section-1", "decision": []}],
+            human_review_confirmed=True,
+        )
+
+
+def test_section_review_requires_summary_object():
+    package = sample_package()
+    package["summary"] = None
+    with pytest.raises(ValueError, match="resumen de revisión"):
+        apply_section_range_decisions(
+            package,
+            [{"section_range_id": "section-1", "decision": "rejected"}],
+            human_review_confirmed=True,
+        )
