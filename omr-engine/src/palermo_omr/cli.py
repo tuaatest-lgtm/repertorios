@@ -184,7 +184,7 @@ def main() -> int:
         if review_heads is not None:
             if len(review_heads) != len(combined_heads):
                 raise ValueError("El manifiesto debe asignar todas las cabezas en el orden de candidatos del análisis")
-            measure_ids, accidentals, groups = [], [], []
+            measure_ids, accidentals, groups, event_orders = [], [], [], []
             for index, item in enumerate(review_heads):
                 if not isinstance(item, dict):
                     raise ValueError("Cada asignación de altura debe ser un objeto")
@@ -195,6 +195,9 @@ def main() -> int:
                 measure_id = item.get("measure_id")
                 if not isinstance(measure_id, (str, int)) or isinstance(measure_id, bool) or (isinstance(measure_id, str) and not measure_id.strip()):
                     raise ValueError("Cada cabeza revisada requiere measure_id")
+                event_order = item.get("event_order")
+                if not isinstance(event_order, int) or isinstance(event_order, bool) or event_order < 0:
+                    raise ValueError("Cada cabeza revisada requiere event_order entero no negativo")
                 accidental = item.get("explicit_accidental")
                 if accidental not in (None, "natural", "sharp", "flat", "double_sharp", "double_flat"):
                     raise ValueError("explicit_accidental no válido")
@@ -204,6 +207,14 @@ def main() -> int:
                 measure_ids.append(measure_id)
                 accidentals.append(accidental)
                 groups.append(group if group is not None else f"single-{index}")
+                event_orders.append(event_order)
+            attacks = {}
+            for index, event_order in enumerate(event_orders):
+                attack = (int(combined_heads[index].staff_index), measure_ids[index], event_order)
+                attacks.setdefault(attack, []).append(index)
+            for attack, indices in attacks.items():
+                if len(indices) > 1 and len({groups[index] for index in indices}) != 1:
+                    raise ValueError(f"Las cabezas de un mismo ataque {attack!r} deben compartir simultaneous_group_id")
             pitch_kwargs = {
                 "measure_ids": measure_ids,
                 "explicit_accidentals": accidentals,
@@ -215,6 +226,7 @@ def main() -> int:
                 key=lambda index: (
                     int(combined_heads[index].staff_index),
                     str(pitch_kwargs["measure_ids"][index]),
+                    event_orders[index],
                     float(getattr(combined_heads[index], "center_x", index)),
                     index,
                 ),
