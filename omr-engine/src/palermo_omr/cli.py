@@ -18,7 +18,8 @@ from .notation_preamble import (
     detect_notation_preamble_candidates,
     export_notation_preamble_crops,
 )
-from .pitch_candidates import build_pitch_candidates\nfrom .glyph_labeling import build_staff_clef_map, validate_glyph_manifest
+from .pitch_candidates import build_pitch_candidates
+from .glyph_labeling import build_staff_clef_map, validate_glyph_manifest
 from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
