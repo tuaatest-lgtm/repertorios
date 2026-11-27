@@ -29,6 +29,7 @@ Incluso una asociación candidata es solo proximidad geométrica; no demuestra q
 - Si la partitura es un escaneo o una imagen incrustada sin texto seleccionable, no encontrará estas etiquetas.
 - No interpreta etiquetas desconocidas, abreviaturas no incluidas ni instrucciones musicales generales.
 - No decide por sí sola la asignación de partes, piano/manos ni voces SATB.
-- El CLI no incorpora todavía este detector; primero debe validarse con partituras reales y compararse con una anotación humana.
+- La evidencia de etiquetas puede combinarse con la evidencia de llaves/corchetes mediante `identity_evidence.build_page_identity_evidence`; ambas fuentes permanecen como observaciones visuales sin confirmar.
+- La CLI aún no incorpora la extracción de etiquetas; primero debe integrarse con cuidado y validarse con partituras reales y anotación humana.
 
 No se añade ninguna dependencia: se reutiliza PyMuPDF, que ya forma parte del motor.
