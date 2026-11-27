@@ -229,7 +229,7 @@ def test_anchor_rejects_section_marker_far_above_all_staves():
     from palermo_omr.section_structure import anchor_section_markers_to_measure_spans
 
     anchors = anchor_section_markers_to_measure_spans(
-        [{"center_x_px": 100, "center_y_px": 20}],
+        [{"center_x_px": 100, "center_y_px": -30}],
         [StaffCandidate([100, 110, 120, 130, 140], 10, 1)],
         [_span()],
     )
