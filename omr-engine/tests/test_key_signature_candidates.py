@@ -48,3 +48,30 @@ def test_ignores_unconfirmed_glyph_suggestions():
         staff_lines={0: [40, 50, 60, 70, 80]},
     )
     assert result == []
+
+
+def test_rejects_staff_lines_not_sorted_top_to_bottom():
+    manifest = {"glyphs": [glyph("sharp", 10, 35, "s1")]}
+    try:
+        build_key_signature_candidates(
+            manifest, page_number=1, staff_clefs={0: "treble"},
+            staff_lines={0: [40, 60, 50, 70, 80]},
+        )
+    except ValueError as exc:
+        assert "ordenadas de arriba hacia abajo" in str(exc)
+    else:
+        raise AssertionError("Se esperaba rechazar líneas de pentagrama desordenadas")
+
+
+def test_rejects_non_finite_glyph_coordinates():
+    item = glyph("sharp", 10, 35, "s1")
+    item["candidate_bbox"][1] = float("inf")
+    try:
+        build_key_signature_candidates(
+            {"glyphs": [item]}, page_number=1, staff_clefs={0: "treble"},
+            staff_lines={0: [40, 50, 60, 70, 80]},
+        )
+    except ValueError as exc:
+        assert "candidate_bbox inválido" in str(exc)
+    else:
+        raise AssertionError("Se esperaba rechazar coordenadas no finitas")

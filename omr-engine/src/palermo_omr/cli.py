@@ -19,6 +19,7 @@ from .notation_preamble import (
     export_notation_preamble_crops,
 )
 from .pitch_candidates import build_pitch_candidates
+from .key_signature_candidates import build_key_signature_candidates
 from .glyph_labeling import build_staff_clef_map, validate_glyph_manifest
 from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
@@ -115,6 +116,27 @@ def main() -> int:
                     f"Conflicto entre --staff-clefs y etiqueta humana en pentagrama {staff_index}"
                 )
             supplied_clefs[str(staff_index)] = clef
+        # Las armaduras visuales se proponen solo desde etiquetas humanas
+        # confirmadas. Siguen siendo candidatas y no alteran las alturas hasta
+        # que el operador las acepte y las suministre en --key-signatures.
+        key_signature_candidates = []
+        if human_glyph_manifest is not None:
+            confirmed_clefs = {int(index): clef for index, clef in supplied_clefs.items()}
+            staff_lines = {
+                index: list(staff.lines_y)
+                for index, staff in enumerate(analysis.staves)
+            }
+            key_signature_candidates = build_key_signature_candidates(
+                human_glyph_manifest,
+                page_number=page_number,
+                staff_clefs=confirmed_clefs,
+                staff_lines=staff_lines,
+            )
+        page_data["key_signature_candidates"] = [
+            item.to_dict() for item in key_signature_candidates
+        ]
+        page_data["key_signature_candidate_count"] = len(key_signature_candidates)
+
         pitch_candidates = build_pitch_candidates(
             noteheads + hollow_noteheads,
             staff_clefs=supplied_clefs,

@@ -6,6 +6,7 @@ siendo candidato: nunca se aplica a alturas sin una aceptación posterior.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import math
 from typing import Mapping
 
 from .pitch import pitch_from_staff_step
@@ -62,9 +63,12 @@ def build_key_signature_candidates(
         if not isinstance(staff_index, int) or isinstance(staff_index, bool) or staff_index < 0:
             raise ValueError("staff_index inválido en glifo etiquetado")
         if not isinstance(bbox, list) or len(bbox) != 4 or any(
-            not isinstance(value, (int, float)) or isinstance(value, bool) for value in bbox
+            not isinstance(value, (int, float)) or isinstance(value, bool)
+            or not math.isfinite(float(value)) for value in bbox
         ):
             raise ValueError("candidate_bbox inválido en glifo etiquetado")
+        if bbox[0] < 0 or bbox[1] < 0 or bbox[2] <= 0 or bbox[3] <= 0:
+            raise ValueError("candidate_bbox debe tener origen no negativo y dimensiones positivas")
         grouped.setdefault(staff_index, []).append(glyph)
 
     results = []
@@ -78,6 +82,13 @@ def build_key_signature_candidates(
                 "Falta clave confirmada o las cinco líneas del pentagrama; no se infiere armadura.",
             ))
             continue
+        if any(
+            isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(float(value)) for value in lines
+        ):
+            raise ValueError("Las líneas del pentagrama deben ser coordenadas finitas")
+        if any(float(lines[index]) >= float(lines[index + 1]) for index in range(4)):
+            raise ValueError("Las cinco líneas deben estar ordenadas de arriba hacia abajo")
         spacing = (float(lines[-1]) - float(lines[0])) / 4.0
         if spacing <= 1:
             raise ValueError("El espaciado del pentagrama no es válido")
