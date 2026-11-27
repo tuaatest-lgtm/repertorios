@@ -194,3 +194,22 @@ def test_geometry_overlay_prefers_cross_staff_anchor_for_system_label():
     }
     overlay = draw_geometry_overlay(image, page_data)
     assert tuple(overlay[100, 130]) == (20, 150, 30)
+
+
+
+def test_geometry_overlay_marks_ambiguous_measure_spans_in_red():
+    image = np.full((200, 240, 3), 255, dtype=np.uint8)
+    overlay = draw_geometry_overlay(image, {
+        "render_dpi": 72,
+        "staves": [{"lines_y": [50, 60, 70, 80, 90]}],
+        "measure_span_candidates": [{
+            "staff_index": 0,
+            "measure_index": 1,
+            "x_start": 40,
+            "x_end": 140,
+            "width_px": 100,
+            "alignment_status": "ambiguous_spans_multiple_measure_candidates",
+            "possible_global_measure_candidates": [1, 2],
+        }],
+    })
+    assert tuple(overlay[70, 40]) == (0, 0, 255)
