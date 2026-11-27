@@ -67,6 +67,8 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "pending_global_measure_candidate_count": 1,
         "cross_staff_aligned_measure_candidate_count": 0,
         "single_staff_only_measure_candidate_count": 1,
+        "global_measure_sequence_scope": "unknown",
+        "system_barline_candidate_count": 0,
         "global_section_range_candidate_count": 0,
         "pending_global_section_range_candidate_count": 0,
         "section_boundary_candidate_count": 0,
@@ -335,3 +337,15 @@ def test_review_summary_counts_staff_systems_and_identity_evidence():
     assert summary["single_staff_system_candidate_count"] == 1
     assert summary["staff_grouping_mark_candidate_count"] == 3
     assert summary["staff_identity_evidence_count"] == 2
+
+
+
+def test_review_summary_exposes_global_measure_scope_and_system_barline_count():
+    data = sample_analysis()
+    data["global_measure_sequence"]["sequence_scope"] = "partially_cross_staff_aligned"
+    data["pages"][0]["system_barline_candidates"] = [{"staff_indices": [0, 1]}] * 4
+    package = build_review_package(data, score_id="score-measure-scope")
+    assert package["summary"]["global_measure_sequence_scope"] == (
+        "partially_cross_staff_aligned"
+    )
+    assert package["summary"]["system_barline_candidate_count"] == 4
