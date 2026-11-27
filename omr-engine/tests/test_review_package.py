@@ -77,6 +77,11 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "eligible_global_section_marker_candidate_count": 0,
         "excluded_global_section_marker_candidate_count": 0,
         "unclassified_global_section_marker_candidate_count": 0,
+        "staff_system_candidate_count": 0,
+        "multi_staff_system_candidate_count": 0,
+        "single_staff_system_candidate_count": 0,
+        "staff_grouping_mark_candidate_count": 0,
+        "staff_identity_evidence_count": 0,
     }
     filled, hollow = package["pages"][0]["notehead_candidates"]
     assert filled["rhythm_hypothesis"]["base_duration"] == "quarter"
@@ -309,3 +314,21 @@ def test_review_summary_reports_section_boundary_alignment_support():
     assert summary["cross_staff_aligned_section_boundary_candidate_count"] == 1
     assert summary["single_staff_only_section_boundary_candidate_count"] == 2
     assert summary["unmatched_section_boundary_candidate_count"] == 0
+
+
+
+def test_review_summary_counts_staff_systems_and_identity_evidence():
+    data = sample_analysis()
+    data["pages"][0]["staff_system_candidates"] = [
+        {"system_index": 0, "staff_indices": [0, 1]},
+        {"system_index": 1, "staff_indices": [2]},
+    ]
+    data["pages"][0]["staff_grouping_mark_candidates"] = [{}, {}, {}]
+    data["pages"][0]["staff_identity_evidence"] = [{}, {}]
+    package = build_review_package(data, score_id="score-system-review")
+    summary = package["summary"]
+    assert summary["staff_system_candidate_count"] == 2
+    assert summary["multi_staff_system_candidate_count"] == 1
+    assert summary["single_staff_system_candidate_count"] == 1
+    assert summary["staff_grouping_mark_candidate_count"] == 3
+    assert summary["staff_identity_evidence_count"] == 2
