@@ -161,3 +161,78 @@ def test_cli_redraws_overlays_after_global_header_classification(tmp_path, monke
     assert observed_statuses.count("excluded_repeated_page_header_candidate") == 2
     for page_number in (1, 2):
         assert (output_dir / f"page-{page_number:03d}-geometry-overlay.png").exists()
+
+
+
+def test_cli_applies_human_reviewed_accidental_manifest_to_pitch_candidates(tmp_path, monkeypatch):
+    from palermo_omr.symbols import NoteheadCandidate
+
+    pdf_path = tmp_path / "reviewed-pitch-score.pdf"
+    document = fitz.open()
+    page = document.new_page(width=612, height=792)
+    for y in (250, 255, 260, 265, 270):
+        page.draw_line((100, y), (550, y), color=(0, 0, 0), width=0.7)
+    document.save(pdf_path)
+    document.close()
+
+    candidate = NoteheadCandidate(
+        bbox=(195, 255, 205, 265), center_x=200.0, center_y=260.0,
+        staff_index=0, diatonic_step_from_bottom=1,
+        fill_ratio=0.8, notehead_shape_score=0.9, confidence=0.9,
+    )
+    monkeypatch.setattr("palermo_omr.cli.detect_notehead_candidates", lambda *args: [candidate])
+    monkeypatch.setattr("palermo_omr.cli.detect_hollow_notehead_candidates", lambda *args: [])
+
+    manifest_path = tmp_path / "pitch-review.json"
+    manifest_path.write_text(json.dumps({
+        "schema_version": "1",
+        "pages": [{
+            "page_number": 1,
+            "reviewer_confirmed": True,
+            "heads": [{
+                "source_kind": "filled",
+                "source_index": 0,
+                "measure_id": "p1-s0-m1",
+                "explicit_accidental": "natural",
+            }],
+        }],
+    }), encoding="utf-8")
+    output_dir = tmp_path / "reviewed-pitch-output"
+    monkeypatch.setattr(
+        sys, "argv",
+        [
+            "palermo-omr", str(pdf_path), "--output", str(output_dir), "--dpi", "72",
+            "--staff-clefs", '{"0":"treble"}',
+            "--key-signatures", '{"0":{"F":1}}',
+            "--pitch-review-manifest", str(manifest_path),
+        ],
+    )
+
+    assert main() == 0
+    analysis = json.loads((output_dir / "analysis.json").read_text(encoding="utf-8"))
+    pitch = analysis["pages"][0]["pitch_candidates"]
+    assert len(pitch) == 1
+    assert pitch[0]["source_index"] == 0
+    assert pitch[0]["explicit_accidental"] == "natural"
+    assert pitch[0]["pitch"]["midi"] == 65
+
+
+def test_cli_rejects_unconfirmed_pitch_review_manifest(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "unconfirmed-pitch-score.pdf"
+    document = fitz.open()
+    document.new_page(width=612, height=792)
+    document.save(pdf_path)
+    document.close()
+
+    manifest_path = tmp_path / "unconfirmed-pitch-review.json"
+    manifest_path.write_text(json.dumps({
+        "schema_version": "1",
+        "pages": [{"page_number": 1, "reviewer_confirmed": False, "heads": []}],
+    }), encoding="utf-8")
+    monkeypatch.setattr(
+        sys, "argv",
+        ["palermo-omr", str(pdf_path), "--pitch-review-manifest", str(manifest_path)],
+    )
+    import pytest
+    with pytest.raises(ValueError, match="confirmada"):
+        main()
