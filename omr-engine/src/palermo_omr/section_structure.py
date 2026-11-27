@@ -422,6 +422,12 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                 center, width = (span["x_start"] + span["x_end"]) / 2, span["width_px"]
                 match = None
                 for cluster in reversed(clusters):
+                    # Un pentagrama no puede aportar dos intervalos al mismo
+                    # compás global candidato. Esta restricción evita que dos
+                    # intervalos locales cercanos del mismo staff se fusionen
+                    # por una tolerancia geométrica amplia.
+                    if any(v.get("staff_index") == span.get("staff_index") for v in cluster):
+                        continue
                     centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
                     widths = [v["width_px"] for v in cluster]
                     tolerance = max(3.0, min(float(median(widths)), float(width)) * 0.18)
