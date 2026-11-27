@@ -12,7 +12,6 @@ from fractions import Fraction
 
 from .duration_math import sum_tied_durations
 from .tie_candidates import TieLinkCandidate, TieReviewConfirmation
-from .tie_candidates import TieLinkCandidate, TieReviewConfirmation
 
 
 @dataclass(frozen=True)
@@ -186,3 +185,92 @@ def apply_reviewed_tie_chains_to_timeline(
     timeline_data["reviewed_tie_chains"] = chain_records
     timeline_data["tie_review_status"] = "human_confirmed_ties_applied"
     return timeline_data
+
+
+def apply_reviewed_tie_chains_to_page_timelines(
+    timelines: list[dict],
+    candidates: Sequence[TieLinkCandidate],
+    confirmations: Sequence[TieReviewConfirmation],
+) -> list[dict]:
+    """Aplica ligaduras revisadas también entre compases contiguos de una página."""
+    if not isinstance(timelines, list):
+        raise ValueError("timelines debe ser una lista")
+    measure_offsets: dict[int, Fraction] = {}
+    cursor = Fraction(0)
+    previous_index = None
+    for timeline in timelines:
+        index = timeline.get("measure_index")
+        if not isinstance(index, int) or isinstance(index, bool):
+            raise ValueError("Cada timeline debe tener measure_index")
+        if previous_index is not None and index <= previous_index:
+            raise ValueError("Los compases deben estar en orden estrictamente creciente")
+        if previous_index is not None and index != previous_index + 1:
+            raise ValueError("No se puede asumir continuidad entre compases no consecutivos")
+        measure_offsets[index] = cursor
+        cursor += Fraction(timeline["expected_quarters"])
+        previous_index = index
+
+    by_id: dict[str, tuple[dict, dict]] = {}
+    for timeline in timelines:
+        for event in timeline.get("events", []):
+            event_id = event.get("event_id")
+            if not isinstance(event_id, str) or not event_id or event_id in by_id:
+                raise ValueError("Los IDs de evento deben ser únicos en la página")
+            by_id[event_id] = (event, timeline)
+    for candidate in candidates:
+        if candidate.source_event_id not in by_id or candidate.target_event_id not in by_id:
+            raise ValueError("Una ligadura de página referencia un evento inexistente")
+
+    chains = build_reviewed_tie_chains(
+        candidates, confirmations,
+        {event_id: Fraction(event["duration_quarters"])
+         for event_id, (event, _) in by_id.items()
+         if event.get("duration_quarters") is not None},
+    )
+    consumed: set[str] = set()
+    records = []
+    for chain in chains:
+        chain_events = [by_id[event_id] for event_id in chain.event_ids]
+        for event, _ in chain_events:
+            if event.get("event_type") != "note":
+                raise ValueError("Una ligadura solo puede unir eventos de nota")
+        for (previous, previous_timeline), (current, current_timeline) in zip(chain_events, chain_events[1:]):
+            if previous.get("voice_id") != current.get("voice_id"):
+                raise ValueError("Una ligadura no puede cruzar voces")
+            prev_measure, curr_measure = previous_timeline["measure_index"], current_timeline["measure_index"]
+            if curr_measure not in {prev_measure, prev_measure + 1}:
+                raise ValueError("Una ligadura solo puede cruzar al compás consecutivo")
+            if previous.get("onset_quarters") is None or previous.get("duration_quarters") is None or current.get("onset_quarters") is None:
+                raise ValueError("La ligadura requiere inicios y duraciones conocidos")
+            previous_global_end = measure_offsets[prev_measure] + Fraction(previous["onset_quarters"]) + Fraction(previous["duration_quarters"])
+            current_global_onset = measure_offsets[curr_measure] + Fraction(current["onset_quarters"])
+            if previous_global_end != current_global_onset:
+                raise ValueError("Los eventos ligados no son temporalmente contiguos")
+            previous_pitch, current_pitch = previous.get("confirmed_pitches"), current.get("confirmed_pitches")
+            if previous_pitch is not None and current_pitch is not None and previous_pitch != current_pitch:
+                raise ValueError("Las alturas revisadas de las notas ligadas no coinciden")
+        first = chain_events[0][0]
+        first["duration_quarters"] = str(chain.combined_duration_quarters)
+        first["tied_event_ids"] = list(chain.event_ids)
+        first["tie_global_end_quarters"] = str(
+            measure_offsets[chain_events[-1][1]["measure_index"]]
+            + Fraction(chain_events[-1][0]["onset_quarters"])
+            + Fraction(chain_events[-1][0]["duration_quarters"])
+        )
+        consumed.update(chain.event_ids[1:])
+        records.append(chain.to_dict())
+
+    for timeline in timelines:
+        timeline["events"] = [event for event in timeline.get("events", []) if event["event_id"] not in consumed]
+        grouped: dict[str, list[str]] = {}
+        for event in timeline["events"]:
+            if event.get("onset_quarters") is not None:
+                grouped.setdefault(str(event["onset_quarters"]), []).append(event["event_id"])
+        timeline["onset_groups"] = [
+            {"onset_quarters": onset, "event_ids": sorted(ids)}
+            for onset, ids in sorted(grouped.items(), key=lambda item: Fraction(item[0]))
+        ]
+    if records:
+        timelines[0]["reviewed_tie_chains_across_measures"] = records
+        timelines[0]["tie_review_status"] = "human_confirmed_ties_applied_across_measures"
+    return timelines

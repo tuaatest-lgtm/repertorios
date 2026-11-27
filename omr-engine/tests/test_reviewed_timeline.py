@@ -304,3 +304,55 @@ def test_tie_candidate_cannot_reference_an_event_outside_its_measure():
                     "arc_is_tie_confirmed": True, "same_notated_pitch_confirmed": True}],
             }],
         })
+
+
+def test_confirmed_tie_can_cross_into_the_next_measure_without_second_attack():
+    groups = [
+        group("lead-1", 0, 5, duration="quarter", indices=(0,)),
+        group("lead-2", 0, 15, duration="quarter", indices=(1,)),
+        group("tie-start", 0, 25, duration="half", indices=(2,)),
+        group("tie-end", 0, 45, duration="quarter", indices=(3,)),
+    ]
+    tie = TieLinkCandidate("arc-cross-bar", "tie-start", "tie-end", "proposed_tie", True, True, .95, ())
+    result = build_reviewed_page_timelines(groups, {
+        "page_number": 1,
+        "tie_candidates": [tie.to_dict()],
+        "tie_confirmations": [{
+            "candidate_index": 0, "reviewer_confirmed": True,
+            "arc_is_tie_confirmed": True, "same_notated_pitch_confirmed": True,
+        }],
+        "measures": [
+            {"measure_index": 0, "numerator": 4, "denominator": 4,
+             "confirmed_event_ids": ["lead-1", "lead-2", "tie-start"],
+             "event_voice_ids": {"lead-1": "soprano", "lead-2": "soprano", "tie-start": "soprano"}},
+            {"measure_index": 1, "numerator": 4, "denominator": 4,
+             "confirmed_event_ids": ["tie-end"], "event_voice_ids": {"tie-end": "soprano"}},
+        ],
+    })
+    assert [event["event_id"] for event in result[0]["events"]] == ["lead-1", "lead-2", "tie-start"]
+    assert result[1]["events"] == []
+    tied = next(event for event in result[0]["events"] if event["event_id"] == "tie-start")
+    assert tied["onset_quarters"] == "2"
+    assert tied["duration_quarters"] == "3"
+    assert tied["tied_event_ids"] == ["tie-start", "tie-end"]
+    assert result[0]["tie_review_status"] == "human_confirmed_ties_applied_across_measures"
+
+
+def test_page_tie_rejects_non_contiguous_measure_events():
+    groups = [group("a", 0, 10, duration="quarter", indices=(0,)), group("b", 0, 30, duration="quarter", indices=(1,))]
+    tie = TieLinkCandidate("arc", "a", "b", "proposed_tie", True, True, .9, ())
+    with pytest.raises(ValueError, match="no son temporalmente contiguos"):
+        build_reviewed_page_timelines(groups, {
+            "page_number": 1,
+            "tie_candidates": [tie.to_dict()],
+            "tie_confirmations": [{
+                "candidate_index": 0, "reviewer_confirmed": True,
+                "arc_is_tie_confirmed": True, "same_notated_pitch_confirmed": True,
+            }],
+            "measures": [
+                {"measure_index": 0, "numerator": 4, "denominator": 4,
+                 "confirmed_event_ids": ["a"], "event_voice_ids": {"a": "soprano"}},
+                {"measure_index": 1, "numerator": 4, "denominator": 4,
+                 "confirmed_event_ids": ["b"], "event_voice_ids": {"b": "soprano"}},
+            ],
+        })

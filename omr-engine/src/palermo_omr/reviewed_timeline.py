@@ -17,7 +17,7 @@ from .rhythmic_timeline import analyze_ordered_measure_voices
 from .rest_events import RestReviewAssignment, build_reviewed_rest_events
 from .rhythm_symbols import RestSymbolCandidate
 from .tie_candidates import TieLinkCandidate, TieReviewConfirmation
-from .reviewed_tie_chains import apply_reviewed_tie_chains_to_timeline
+from .reviewed_tie_chains import (\n    apply_reviewed_tie_chains_to_timeline,\n    apply_reviewed_tie_chains_to_page_timelines,\n)
 
 
 def build_reviewed_page_timelines(
@@ -221,4 +221,22 @@ def build_reviewed_page_timelines(
                 "No implica que la detección visual automática haya sido validada."
             ),
         })
+    raw_page_tie_candidates = page_manifest.get("tie_candidates", [])
+    raw_page_tie_confirmations = page_manifest.get("tie_confirmations", [])
+    if not isinstance(raw_page_tie_candidates, list) or not isinstance(raw_page_tie_confirmations, list):
+        raise ValueError("Las ligaduras de página deben ser listas")
+    if raw_page_tie_candidates or raw_page_tie_confirmations:
+        try:
+            page_tie_candidates = [
+                TieLinkCandidate(**{**item, "warnings": tuple(item.get("warnings", ()))})
+                for item in raw_page_tie_candidates
+            ]
+            page_tie_confirmations = [
+                TieReviewConfirmation(**item) for item in raw_page_tie_confirmations
+            ]
+        except (TypeError, AttributeError) as exc:
+            raise ValueError("La revisión de ligaduras de página contiene campos inválidos") from exc
+        results = apply_reviewed_tie_chains_to_page_timelines(
+            results, page_tie_candidates, page_tie_confirmations
+        )
     return results
