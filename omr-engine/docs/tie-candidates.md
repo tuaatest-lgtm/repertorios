@@ -30,6 +30,49 @@ ser arcos editoriales, errores geométricos o detecciones incompletas.
 La función `build_reviewed_tie_durations` permite sumar las dos duraciones
 solo después de que una persona confirme explícitamente que el arco es una
 ligadura de prolongación y que ambas notas tienen la misma escritura musical.
-Rechaza propuestas ambiguas o confirmaciones incompletas. No modifica los
-eventos originales, no asigna voces, no detecta alturas ni tiempos desde la
-imagen y no está conectada al CLI ni a Sonoro.
+Rechaza propuestas ambiguas o confirmaciones incompletas. La función `apply_reviewed_tie_chains_to_timeline` integra cadenas confirmadas
+en la línea temporal revisada: conserva el primer ataque, suma la duración,
+retira los ataques intermedios y registra `tied_event_ids` y
+`reviewed_tie_chains` para trazabilidad. La integración se ejecuta desde
+`build_reviewed_page_timelines` cuando el compás contiene `tie_candidates` y
+`tie_confirmations` en el manifiesto `--reviewed-rhythm-manifest`. No está
+conectada a Sonoro ni produce detección automática de ligaduras.
+
+## Integración en el manifiesto de ritmo revisado
+
+Dentro de cada objeto de `measures`, se pueden incluir las propuestas y las
+confirmaciones. Los índices de confirmación apuntan a la lista local de
+`tie_candidates` de ese compás:
+
+```json
+{
+  "measure_index": 0,
+  "numerator": 4,
+  "denominator": 4,
+  "confirmed_event_ids": ["n1", "n2"],
+  "event_voice_ids": {"n1": "soprano", "n2": "soprano"},
+  "tie_candidates": [{
+    "arc_id": "arc-1",
+    "source_event_id": "n1",
+    "target_event_id": "n2",
+    "status": "proposed_tie",
+    "pitch_match": true,
+    "temporal_continuity": true,
+    "geometry_score": 0.9,
+    "warnings": []
+  }],
+  "tie_confirmations": [{
+    "candidate_index": 0,
+    "reviewer_confirmed": true,
+    "arc_is_tie_confirmed": true,
+    "same_notated_pitch_confirmed": true
+  }]
+}
+```
+
+Los dos eventos deben estar incluidos en el mismo compás y pertenecer a la
+misma voz; deben tener inicio y duración conocidos y continuidad temporal
+exacta. Si hay alturas confirmadas en ambos eventos, deben coincidir. Los
+cruces de compás o página se rechazan deliberadamente hasta que exista una
+línea temporal global revisada que los pueda validar sin reiniciar el tiempo
+local de cada compás. Las confirmaciones no se infieren de `geometry_score`.
