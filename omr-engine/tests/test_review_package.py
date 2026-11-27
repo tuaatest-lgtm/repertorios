@@ -423,6 +423,12 @@ def test_review_package_links_rhythmic_attack_groups_and_voice_layers_to_notehea
         "center_y": 33.0, "staff_index": 0,
         "diatonic_step_from_bottom": 3, "confidence": 0.78,
     })
+    data["pages"][0]["rhythm_candidates"].append({
+        "base_duration": "quarter", "confidence": 0.55,
+    })
+    data["pages"][0]["rhythmic_interpretation_candidates"].append({
+        "duration_candidate": "quarter", "status": "local_candidate_only",
+    })
     data["pages"][0]["rhythmic_event_group_candidates"] = [{
         "event_id": "staff-1-event-1", "staff_index": 0,
         "notehead_indices": [0, 1], "status": "proposed_chord",
