@@ -240,8 +240,10 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
             raise ValueError("Cada página requiere page_number positivo")
         page_markers = page.get("section_marker_candidates", [])
         identifiers = page.get("section_identifier_candidates", [])
-        if not isinstance(page_markers, list) or not isinstance(identifiers, list):
-            raise ValueError("Las marcas e identificadores de sección deben ser listas")
+        anchors = page.get("section_measure_anchor_candidates", [])
+        if (not isinstance(page_markers, list) or not isinstance(identifiers, list)
+                or not isinstance(anchors, list)):
+            raise ValueError("Las marcas, identificadores y anclas de sección deben ser listas")
         for index, marker in enumerate(page_markers):
             if not isinstance(marker, dict):
                 raise ValueError("Cada marca de sección debe ser un objeto")
@@ -250,8 +252,13 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
                 if isinstance(item, dict) and item.get("related_marker_index") == index
             ]
             identifier = linked[0].get("identifier") if len(linked) == 1 else None
+            marker_anchors = [
+                item for item in anchors
+                if isinstance(item, dict) and item.get("marker_index") == index
+            ]
             markers.append({
                 "page_number": page_number,
+                "measure_anchors": marker_anchors,
                 "marker_index": index,
                 "section_name": marker.get("normalized_text"),
                 "text": marker.get("text"),
@@ -272,11 +279,13 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
                 "page_number": marker["page_number"],
                 "marker_index": marker["marker_index"],
                 "bbox_pdf": marker["bbox_pdf"],
+                "measure_anchors": marker["measure_anchors"],
             },
             "end": ({
                 "page_number": following["page_number"],
                 "marker_index": following["marker_index"],
                 "bbox_pdf": following["bbox_pdf"],
+                "measure_anchors": following["measure_anchors"],
                 "boundary_type": "next_section_marker",
             } if following else None),
             "extent": (
