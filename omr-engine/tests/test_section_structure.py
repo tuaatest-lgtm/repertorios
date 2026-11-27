@@ -489,3 +489,47 @@ def test_nearby_section_letter_remains_low_confidence_and_ambiguous(tmp_path):
     assert candidate.confidence <= 0.4
     assert "cifrado armónico" in candidate.warning
     assert "revisión humana" in candidate.warning
+
+
+
+def test_global_measure_sequence_marks_single_staff_intervals_unmatched():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    result = build_global_measure_sequence([{
+        "page_number": 1,
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0]}],
+        "measure_span_candidates": [{
+            "staff_index": 0, "measure_index": 1, "x_start": 40, "x_end": 60,
+            "width_px": 20, "confidence": 0.8,
+        }],
+    }])
+    assert result["sequence_scope"] == "document_ordered_single_staff_intervals"
+    assert result["cross_staff_aligned_candidate_count"] == 0
+    assert result["single_staff_only_candidate_count"] == 1
+    assert result["global_measure_candidates"][0]["alignment_status"] == (
+        "single_staff_only_unmatched"
+    )
+    assert result["staff_measure_map"][0]["alignment_status"] == (
+        "single_staff_only_unmatched"
+    )
+
+
+def test_global_measure_sequence_marks_multi_staff_alignment_candidate():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    result = build_global_measure_sequence([{
+        "page_number": 1,
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0, 1]}],
+        "measure_span_candidates": [
+            {"staff_index": 0, "measure_index": 1, "x_start": 40, "x_end": 60,
+             "width_px": 20, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 1, "x_start": 40, "x_end": 60,
+             "width_px": 20, "confidence": 0.8},
+        ],
+    }])
+    assert result["sequence_scope"] == "cross_staff_aligned_candidates"
+    assert result["cross_staff_aligned_candidate_count"] == 1
+    assert result["single_staff_only_candidate_count"] == 0
+    assert result["global_measure_candidates"][0]["alignment_status"] == (
+        "cross_staff_alignment_candidate"
+    )
