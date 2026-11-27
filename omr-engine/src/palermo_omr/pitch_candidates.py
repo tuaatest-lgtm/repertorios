@@ -120,6 +120,15 @@ def build_pitch_candidates(
         raise ValueError("explicit_accidentals y measure_ids deben proporcionarse juntos")
     if explicit_accidentals is not None and len(explicit_accidentals) != count:
         raise ValueError("explicit_accidentals debe tener un elemento por cada cabeza de nota")
+    if explicit_accidentals is not None:
+        allowed_accidentals = {
+            None, "natural", "sharp", "flat", "double_sharp", "double_flat"
+        }
+        for index, accidental in enumerate(explicit_accidentals):
+            if accidental not in allowed_accidentals:
+                raise ValueError(
+                    f"Alteración no reconocida para la cabeza {index}: {accidental!r}"
+                )
     if measure_ids is not None and len(measure_ids) != count:
         raise ValueError("measure_ids debe tener un elemento por cada cabeza de nota")
 

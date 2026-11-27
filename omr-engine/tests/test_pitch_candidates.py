@@ -175,3 +175,35 @@ def test_rejects_duplicate_external_source_indices():
             staff_clefs={0: "treble"},
             source_indices=[2, 2],
         )
+
+
+def test_rejects_unknown_explicit_accidental_even_when_clef_is_unresolved():
+    with pytest.raises(ValueError, match="Alteración no reconocida"):
+        build_pitch_candidates(
+            [head()],
+            explicit_accidentals=["quarter_sharp"],
+            measure_ids=["m1"],
+        )
+
+
+def test_natural_cancels_key_signature_and_persists_only_for_same_octave():
+    result = build_pitch_candidates(
+        [head(step=1), head(step=1), head(step=8), head(step=1)],
+        staff_clefs={0: "treble"},
+        key_signatures={0: {"F": 1}},
+        explicit_accidentals=["natural", None, None, None],
+        measure_ids=["m1", "m1", "m1", "m2"],
+    )
+    assert [item.pitch.alteration for item in result] == [0, 0, 1, 1]
+    assert [item.pitch.midi for item in result] == [65, 65, 78, 66]
+
+
+def test_double_accidentals_persist_within_measure():
+    result = build_pitch_candidates(
+        [head(step=1), head(step=1), head(step=1)],
+        staff_clefs={0: "treble"},
+        explicit_accidentals=["double_sharp", None, "double_flat"],
+        measure_ids=["m1", "m1", "m1"],
+    )
+    assert [item.pitch.alteration for item in result] == [2, 2, -2]
+    assert [item.pitch.midi for item in result] == [67, 67, 63]
