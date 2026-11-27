@@ -619,9 +619,17 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                     if any(v.get("staff_index") == span.get("staff_index") for v in cluster):
                         continue
                     centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
+                    starts = [v["x_start"] for v in cluster]
+                    ends = [v["x_end"] for v in cluster]
                     widths = [v["width_px"] for v in cluster]
-                    tolerance = max(3.0, min(float(median(widths)), float(width)) * 0.18)
-                    if abs(center - float(median(centers))) <= tolerance:
+                    reference_width = min(float(median(widths)), float(width))
+                    center_tolerance = max(3.0, reference_width * 0.22)
+                    boundary_tolerance = max(3.0, reference_width * 0.25)
+                    if (
+                        abs(center - float(median(centers))) <= center_tolerance
+                        and abs(float(span["x_start"]) - float(median(starts))) <= boundary_tolerance
+                        and abs(float(span["x_end"]) - float(median(ends))) <= boundary_tolerance
+                    ):
                         match = cluster
                         break
                     if center - float(median(centers)) > max(width, float(median(widths))):
