@@ -15,7 +15,7 @@ from .rhythmic_event_groups import (
 )
 from .rhythmic_timeline import analyze_ordered_measure_voices
 from .rest_events import RestReviewAssignment, build_reviewed_rest_events
-from .rhythm_symbols import RestSymbolCandidate
+from .rhythm_symbols import DotCandidate, RestSymbolCandidate
 from .tie_candidates import TieLinkCandidate, TieReviewConfirmation
 from .reviewed_tie_chains import (
     apply_reviewed_tie_chains_to_timeline,
@@ -29,6 +29,7 @@ def build_reviewed_page_timelines(
     *,
     rest_candidates: Sequence[RestSymbolCandidate] = (),
     pitch_candidates: Sequence[Any] = (),
+    dot_candidates: Sequence[DotCandidate] = (),
 ) -> list[dict[str, Any]]:
     """Construye líneas temporales por compás sin aceptar inferencias visuales.
 
@@ -52,6 +53,7 @@ def build_reviewed_page_timelines(
     used_event_ids: set[str] = set()
     used_rest_candidate_indices: set[int] = set()
     used_pitch_candidate_indices: set[int] = set()
+    used_dot_candidate_indices: set[int] = set()
     results: list[dict[str, Any]] = []
     seen_measure_indices: set[int] = set()
 
@@ -86,15 +88,43 @@ def build_reviewed_page_timelines(
             raise ValueError("Un grupo confirmado no puede pertenecer a dos compases")
         used_event_ids.update(confirmed)
 
+        # La revisión puede confirmar puntillos por conteo manual o enlazando
+        # candidatos visuales concretos. Los candidatos solo afectan duración
+        # cuando el manifiesto los asocia explícitamente a un evento confirmado.
         dot_counts = measure.get("event_dot_counts", {})
         if not isinstance(dot_counts, Mapping):
             raise ValueError("event_dot_counts debe ser un objeto")
+        raw_dot_links = measure.get("event_dot_candidate_indices", {})
+        if not isinstance(raw_dot_links, Mapping):
+            raise ValueError("event_dot_candidate_indices debe ser un objeto")
+        if set(raw_dot_links) - set(confirmed):
+            raise ValueError("Los puntillos visuales solo pueden enlazarse a eventos confirmados")
+        if set(raw_dot_links).intersection(dot_counts):
+            raise ValueError("No se puede mezclar conteo manual y candidatos visuales para el mismo evento")
+        linked_dot_counts = {}
+        for event_id, indices in raw_dot_links.items():
+            if not isinstance(indices, list):
+                raise ValueError("Cada enlace de puntillos debe ser una lista de índices")
+            if len(indices) > 4 or len(indices) != len(set(indices)):
+                raise ValueError("Cada evento debe enlazar entre cero y cuatro candidatos distintos")
+            group = next(item for item in groups if item.event_id == event_id)
+            for candidate_index in indices:
+                if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or not 0 <= candidate_index < len(dot_candidates):
+                    raise ValueError("Índice de candidato de puntillo fuera de rango")
+                if candidate_index in used_dot_candidate_indices:
+                    raise ValueError("Un candidato de puntillo no puede reutilizarse en dos eventos")
+                candidate = dot_candidates[candidate_index]
+                if candidate.associated_notehead_index not in group.notehead_indices:
+                    raise ValueError("El puntillo visual no corresponde a una cabeza del evento confirmado")
+                used_dot_candidate_indices.add(candidate_index)
+            linked_dot_counts[event_id] = len(indices)
+        effective_dot_counts = {**dot_counts, **linked_dot_counts}
         events = build_reviewed_voice_events_by_voice(
             groups,
             measure_index=measure_index,
             event_voice_ids=voice_map,
             confirmed_event_ids=set(confirmed),
-            event_dot_counts=dot_counts,
+            event_dot_counts=effective_dot_counts,
         )
         order_map = measure.get("event_order_indices")
         if order_map is not None:
