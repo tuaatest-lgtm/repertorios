@@ -70,6 +70,13 @@ Estimación de planificación, no compromiso ni fecha garantizada, suponiendo tr
 
 La mayor incertidumbre del calendario no es escribir más módulos: es disponer de anotaciones humanas de referencia, resolver la interpretación musical completa y medir errores reales. Si el objetivo exige precisión alta en partituras muy variadas, el horizonte puede superar los seis meses.
 
+## Ajuste técnico posterior a la auditoría
+
+- La revisión del flujo de continuidad encontró un caso concreto que el diseño anterior no resolvía: si un pentagrama tiene dos intervalos consecutivos y otro pentagrama del mismo sistema perdió la barra intermedia, el intervalo largo podía contarse como un tercer compás global candidato.
+- Se ajustó `build_global_measure_sequence`: los intervalos que abarcan varios candidatos de otro pentagrama quedan como `ambiguous_spans_multiple_measure_candidates`, sin ordinal global inventado; el mapa conserva los ordinales posibles para revisión.
+- Se añadieron pruebas para barras omitidas y continuidad de ordinales a través de la página siguiente. La suite completa pasó en [45946981542](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45946981542): **413 pruebas aprobadas**.
+- Este avance mejora el manejo conservador de un caso sintético; no se incrementa el 36% global porque aún no se ha validado la mejora en un corpus musical real.
+
 ## Trabajo verificado en este corte
 
 - La CLI principal ejecuta `detect_staff_grouping_mark_candidates` para cada página y guarda `staff_grouping_mark_candidates` y su contador.
