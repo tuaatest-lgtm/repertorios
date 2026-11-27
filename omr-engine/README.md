@@ -1,5 +1,7 @@
 # Palermo OMR Engine (desarrollo propio)
 
+> **Relevo de trabajo:** antes de contribuir, lee [`AGENTS.md`](../AGENTS.md) y [`WORK_HANDOFF.md`](WORK_HANDOFF.md). El segundo archivo contiene el encargo concreto del siguiente turno y debe actualizarse al terminar cada intervención.
+
 Motor OMR independiente para Palermo Music. Esta iteración implementa entrada PDF, preprocesamiento de páginas, detección geométrica inicial de pentagramas y propuestas de cabezas de nota.
 
 **Estado:** prototipo geométrico 0.3.0. Incluye candidatos de cabezas, conversión de posición diatónica cuando la clave ya es conocida, análisis rítmico preliminar, grupos candidatos de barras compartidas, interpretación rítmica candidata y candidatos de puntillos, silencios, barras e intervalos de compás. Todo resultado requiere validación; no es una transcripción musical completa. No está integrado con el reproductor ni desplegado como servicio.
