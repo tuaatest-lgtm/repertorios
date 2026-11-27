@@ -26,6 +26,8 @@ El paquete agrupa por página:
 - candidatos de silencios, ligaduras/arcos, puntillos y barras;
 - grupos de vigas, agrupaciones de barras y barras compartidas entre pentagramas;
 - sistemas de pentagramas e intervalos geométricos entre barras que podrían ser compases;
+- etiquetas musicales impresas extraídas de la capa de texto PDF, conservando asociaciones ambiguas/no asignadas;
+- evidencias de identidad que combinan etiquetas y llaves/corchetes, vinculadas a los pentagramas correspondientes y aún pendientes de revisión.
 - nombres de los overlays para consultar la evidencia visual original.
 
 Las relaciones geométricas se guardan como candidatos independientes dentro de
@@ -35,8 +37,12 @@ exponen en `staff_candidates`; las referencias usan IDs como
 `p1-staff-1` y `p1-filled_notehead-1`. Los puntillos se vinculan a la cabeza
 rellena que el detector propone como asociada y a su pentagrama; los silencios,
 arcos y barras se vinculan al pentagrama indicado por su candidato geométrico. Los índices fuera de rango o booleanos
-se rechazan, en lugar de crear vínculos rotos. No se interpretan como
+se rechazan, en lugar de crear vínculos rotos. Las etiquetas asociadas y las
+observaciones de identidad se vinculan a los IDs de pentagrama; las etiquetas
+ambiguas o sin asignar se conservan sin inventar una relación. No se interpretan como
 agrupaciones musicales confirmadas ni como numeración definitiva de compases.
+Las evidencias de identidad mantienen el origen `visual_candidate`: no crean
+partes, instrumentos, manos de piano ni voces SATB confirmadas.
 Cada elemento conserva `review_status: pending` y `decision: null` y no se
 confirma automáticamente ninguna relación.
 
