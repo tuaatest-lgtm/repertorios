@@ -1,8 +1,7 @@
-"""Extracción de evidencia visual en la zona de notación inicial.
+"""Extracción de glifos y descriptores visuales del preámbulo musical.
 
-No clasifica glifos como clave o armadura. Conserva recortes, geometría y
-descriptores para revisión o para un clasificador futuro, evitando inferir
-una clave musical a partir de la mera posición.
+Los descriptores permiten construir y evaluar clasificadores con ejemplos
+etiquetados. No se asigna una identidad musical sin un modelo validado.
 """
 from __future__ import annotations
 
@@ -26,6 +25,10 @@ class NotationPreambleCandidate:
     ink_density: float
     hole_count: int
     vertical_projection_peaks: int
+    contour_count: int
+    solidity: float
+    extent: float
+    hu_moments: tuple[float, ...]
     role: str
     status: str
     confidence: float
@@ -46,6 +49,33 @@ def _count_projection_peaks(values: np.ndarray) -> int:
             groups += 1
         in_group = bool(value)
     return groups
+
+
+def _shape_features(component: np.ndarray) -> tuple[int, float, float, tuple[float, ...]]:
+    """Calcula rasgos de forma invariantes aproximadamente a escala y traslación."""
+    contours, hierarchy = cv2.findContours(
+        component, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
+    )
+    holes = 0
+    if hierarchy is not None:
+        holes = sum(1 for entry in hierarchy[0] if int(entry[3]) >= 0)
+    external = [
+        contour for index, contour in enumerate(contours)
+        if hierarchy is None or int(hierarchy[0][index][3]) < 0
+    ]
+    contour_count = len(external)
+    contour_area = float(sum(cv2.contourArea(item) for item in external))
+    points = np.vstack(external) if external else np.empty((0, 1, 2), dtype=np.int32)
+    hull_area = float(cv2.contourArea(cv2.convexHull(points))) if len(points) else 0.0
+    solidity = contour_area / hull_area if hull_area > 0 else 0.0
+    extent = float(np.count_nonzero(component)) / max(component.size, 1)
+    moments = cv2.moments(component, binaryImage=True)
+    raw_hu = cv2.HuMoments(moments).flatten()
+    hu = tuple(
+        round(float(-np.sign(value) * np.log10(max(abs(float(value)), 1e-30))), 6)
+        for value in raw_hu
+    )
+    return holes, round(solidity, 4), round(extent, 4), hu
 
 
 def detect_notation_preamble_candidates(
@@ -114,14 +144,7 @@ def detect_notation_preamble_candidates(
                 continue
 
             component = (labels[y:y + height, x:x + width] == label).astype(np.uint8)
-            contours, hierarchy = cv2.findContours(
-                component, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
-            )
-            holes = 0
-            if hierarchy is not None:
-                holes = sum(
-                    1 for entry in hierarchy[0] if int(entry[3]) >= 0
-                )
+            holes, solidity, extent, hu = _shape_features(component)
             projection_peaks = _count_projection_peaks(
                 np.count_nonzero(component, axis=0)
             )
@@ -137,6 +160,12 @@ def detect_notation_preamble_candidates(
                 ink_density=round(area / max(width * height, 1), 3),
                 hole_count=holes,
                 vertical_projection_peaks=projection_peaks,
+                contour_count=len(cv2.findContours(
+                    component, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                )[0]),
+                solidity=solidity,
+                extent=extent,
+                hu_moments=hu,
                 role="clef_key_signature_or_other",
                 status="unclassified_visual_glyph",
                 confidence=0.0,
