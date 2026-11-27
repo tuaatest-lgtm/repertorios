@@ -52,6 +52,10 @@ def test_train_model_and_predict_unlabeled_candidates_without_using_labels(tmp_p
     )
     assert [row["label"] for row in result["predictions"]] == ["sharp", "flat"]
     assert all("reference_label" not in row for row in result["predictions"])
+    assert all(row["decision_status"] == "unverified_candidate_requires_review" for row in result["predictions"])
+    assert all(row["recognized_label"] is None for row in result["predictions"])
+    assert all(row["candidate_label"] == row["label"] for row in result["predictions"])
+    assert all(row["distance_margin"] is not None for row in result["predictions"])
 
 
 def test_training_rejects_overlap_between_score_partitions(tmp_path):
@@ -84,6 +88,36 @@ def test_inference_rejects_feature_dimension_mismatch(tmp_path):
         {"score_id": "s", "candidate_id": "a", "label": None, "feature_vector": [0.0]},
     ]}
     with pytest.raises(ValueError, match="Dimensión"):
+        predict_unlabeled_glyphs(
+            put(tmp_path / "model.json", model),
+            put(tmp_path / "features.json", features),
+        )
+
+
+
+def test_inference_rejects_non_finite_centroid_and_boolean_normalization(tmp_path):
+    import math
+
+    model = {
+        "model_type": "palermo_standardized_nearest_centroid",
+        "feature_schema": FEATURE_SCHEMA,
+        "feature_dimension": 1,
+        "means": [0.0],
+        "scales": [1.0],
+        "centroids": {"sharp": [math.inf]},
+    }
+    features = {"feature_schema": FEATURE_SCHEMA, "records": [
+        {"score_id": "s", "candidate_id": "a", "label": None, "feature_vector": [0.0]},
+    ]}
+    with pytest.raises(ValueError, match="Centroide"):
+        predict_unlabeled_glyphs(
+            put(tmp_path / "model.json", model),
+            put(tmp_path / "features.json", features),
+        )
+
+    model["centroids"] = {"sharp": [0.0]}
+    model["means"] = [True]
+    with pytest.raises(ValueError, match="Normalización"):
         predict_unlabeled_glyphs(
             put(tmp_path / "model.json", model),
             put(tmp_path / "features.json", features),

@@ -127,9 +127,13 @@ def predict_unlabeled_glyphs(model_path: str | Path, features_path: str | Path) 
     ):
         raise ValueError("Modelo incompleto o mal formado")
     for label, centroid in centroids.items():
-        if not isinstance(label, str) or not label or not isinstance(centroid, list) or len(centroid) != dimension:
+        if (
+            not isinstance(label, str) or not label
+            or not isinstance(centroid, list) or len(centroid) != dimension
+            or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in centroid)
+        ):
             raise ValueError("Centroide inválido")
-    if any(not isinstance(v, (int, float)) or not math.isfinite(v) for v in means + scales):
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in means + scales):
         raise ValueError("Normalización del modelo inválida")
     if any(v <= 0 for v in scales):
         raise ValueError("Escalas del modelo deben ser positivas")
@@ -143,12 +147,21 @@ def predict_unlabeled_glyphs(model_path: str | Path, features_path: str | Path) 
             label: math.sqrt(sum((normalized[i] - center[i]) ** 2 for i in range(dimension)))
             for label, center in centroids.items()
         }
-        label = min(distances, key=distances.get)
+        ranked = sorted(distances.items(), key=lambda item: (item[1], item[0]))
+        candidate_label, nearest_distance = ranked[0]
+        second_distance = ranked[1][1] if len(ranked) > 1 else None
         predictions.append({
             "score_id": score_id,
             "candidate_id": candidate_id,
-            "label": label,
-            "nearest_centroid_distance": round(distances[label], 8),
+            # "label" se conserva como candidato para compatibilidad con el evaluador;
+            # nunca representa una decisión musical confirmada.
+            "label": candidate_label,
+            "candidate_label": candidate_label,
+            "decision_status": "unverified_candidate_requires_review",
+            "recognized_label": None,
+            "nearest_centroid_distance": round(nearest_distance, 8),
+            "second_nearest_centroid_distance": round(second_distance, 8) if second_distance is not None else None,
+            "distance_margin": round(second_distance - nearest_distance, 8) if second_distance is not None else None,
         })
     return {
         "schema_version": "1.0",
@@ -156,7 +169,7 @@ def predict_unlabeled_glyphs(model_path: str | Path, features_path: str | Path) 
         "feature_schema": FEATURE_SCHEMA,
         "prediction_count": len(predictions),
         "predictions": predictions,
-        "warning": "Predicciones experimentales sin confianza calibrada. No equivalen a reconocimiento musical confirmado.",
+        "warning": "Los labels son candidatos experimentales, no reconocimientos confirmados. Toda predicción requiere revisión humana; las distancias y márgenes no son probabilidades ni umbrales calibrados.",
     }
 
 
