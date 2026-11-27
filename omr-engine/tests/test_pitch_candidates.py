@@ -93,7 +93,6 @@ def test_requires_measure_ids_when_explicit_accidentals_are_provided():
         )
 
 
-
 def test_rejects_noteheads_out_of_reading_order_when_accidental_state_is_used():
     heads = [
         SimpleNamespace(staff_index=0, diatonic_step_from_bottom=1, center_x=40.0),
@@ -105,4 +104,55 @@ def test_rejects_noteheads_out_of_reading_order_when_accidental_state_is_used():
             staff_clefs={0: "treble"},
             explicit_accidentals=["natural", None],
             measure_ids=["m1", "m1"],
+        )
+
+
+def test_accidental_in_chord_applies_to_same_written_pitch_regardless_of_head_order():
+    heads = [
+        SimpleNamespace(staff_index=0, diatonic_step_from_bottom=1, center_x=20.0),
+        SimpleNamespace(staff_index=0, diatonic_step_from_bottom=1, center_x=21.0),
+        SimpleNamespace(staff_index=0, diatonic_step_from_bottom=1, center_x=35.0),
+    ]
+    result = build_pitch_candidates(
+        heads,
+        staff_clefs={0: "treble"},
+        key_signatures={0: {"F": 1}},
+        explicit_accidentals=[None, "natural", None],
+        measure_ids=["m1", "m1", "m1"],
+        simultaneous_group_ids=["chord-1", "chord-1", "note-2"],
+    )
+    assert [item.pitch.midi for item in result] == [65, 65, 65]
+    assert [item.simultaneous_group_id for item in result] == [
+        "chord-1", "chord-1", "note-2"
+    ]
+
+
+def test_conflicting_explicit_accidentals_for_same_chord_pitch_are_rejected():
+    with pytest.raises(ValueError, match="incompatibles"):
+        build_pitch_candidates(
+            [head(step=1), head(step=1)],
+            staff_clefs={0: "treble"},
+            explicit_accidentals=["sharp", "flat"],
+            measure_ids=["m1", "m1"],
+            simultaneous_group_ids=["chord", "chord"],
+        )
+
+
+def test_simultaneous_group_must_be_contiguous():
+    with pytest.raises(ValueError, match="contiguos"):
+        build_pitch_candidates(
+            [head(), head(step=1), head(step=2)],
+            staff_clefs={0: "treble"},
+            explicit_accidentals=[None, None, None],
+            measure_ids=["m1", "m1", "m1"],
+            simultaneous_group_ids=["chord", "other", "chord"],
+        )
+
+
+def test_simultaneous_group_requires_confirmed_measure_ids():
+    with pytest.raises(ValueError, match="requiere measure_ids"):
+        build_pitch_candidates(
+            [head()],
+            staff_clefs={0: "treble"},
+            simultaneous_group_ids=["chord"],
         )

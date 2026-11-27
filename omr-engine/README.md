@@ -21,6 +21,10 @@ Motor OMR independiente para Palermo Music. Esta iteración implementa entrada P
 
 - **Seguimiento del proyecto**: `docs/project-progress.md` mantiene el porcentaje ponderado de avance, trabajo restante, alcance y criterios para actualizarlo.
 
+## Integración con la aplicación
+
+El contrato de integración HTTP v1, la separación entre navegador, worker Python y reproductor, y las puertas de seguridad están documentados en `docs/app-integration-contract.md`. Es una especificación; todavía no hay API desplegada ni conexión activa con Sonoro.
+
 ## Requisitos
 
 - Python 3.11 o superior.
