@@ -135,6 +135,7 @@ def detect_staff_systems_from_connectors(
     binary: np.ndarray,
     *,
     left_margin_ratio: float = 0.06,
+    min_connector_x_ratio: float = 0.01,
     min_vertical_coverage: float = 0.68,
     max_connector_width_spacing: float = 1.2,
 ) -> list[StaffSystemCandidate]:
@@ -148,6 +149,8 @@ def detect_staff_systems_from_connectors(
         raise ValueError("Se requiere una imagen binaria monocroma no vacía")
     if not 0 < left_margin_ratio <= 1:
         raise ValueError("left_margin_ratio debe estar entre 0 y 1")
+    if not 0 <= min_connector_x_ratio < left_margin_ratio:
+        raise ValueError("min_connector_x_ratio debe estar entre 0 y left_margin_ratio")
     if not 0 < min_vertical_coverage <= 1:
         raise ValueError("min_vertical_coverage debe estar entre 0 y 1")
     if max_connector_width_spacing <= 0:
@@ -190,6 +193,8 @@ def detect_staff_systems_from_connectors(
         for label in range(1, count):
             x, y, width, height, _ = (int(value) for value in stats[label])
             if width > spacing * max_connector_width_spacing:
+                continue
+            if x < page_width * min_connector_x_ratio:
                 continue
             component_top = y_start + y
             component_bottom = component_top + height - 1
