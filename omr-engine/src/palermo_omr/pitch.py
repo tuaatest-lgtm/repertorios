@@ -38,7 +38,7 @@ def _validate_key_signature(key_signature: Mapping[str, int] | None) -> dict[str
         raise ValueError("key_signature debe ser un mapa de letras a alteraciones")
     result: dict[str, int] = {}
     for letter, alteration in key_signature.items():
-        if letter not in _LETTERS:
+        if not isinstance(letter, str) or letter not in _LETTERS:
             raise ValueError(f"Letra no válida en la armadura: {letter!r}")
         if not isinstance(alteration, int) or isinstance(alteration, bool):
             raise ValueError("Las alteraciones de armadura deben ser enteros")
@@ -83,7 +83,7 @@ class MeasureAccidentals:
         signature = _validate_key_signature(key_signature)
         key = (letter, octave)
         if explicit_accidental is not None:
-            if explicit_accidental not in _ACCIDENTALS:
+            if not isinstance(explicit_accidental, str) or explicit_accidental not in _ACCIDENTALS:
                 raise ValueError(f"Alteración no reconocida: {explicit_accidental}")
             alteration = _ACCIDENTALS[explicit_accidental]
             self._state[key] = alteration
@@ -108,11 +108,14 @@ def pitch_from_staff_step(
     """
     if not isinstance(diatonic_step_from_bottom, int) or isinstance(diatonic_step_from_bottom, bool):
         raise ValueError("diatonic_step_from_bottom debe ser un entero")
-    if clef not in _BOTTOM_LINE:
+    if not isinstance(clef, str) or clef not in _BOTTOM_LINE:
         raise ValueError(f"Clave no soportada: {clef}")
     signature = _validate_key_signature(key_signature)
     if explicit_accidental is not None and explicit_accidental not in _ACCIDENTALS:
         raise ValueError(f"Alteración no reconocida: {explicit_accidental}")
+
+    if accidental_state is not None and not isinstance(accidental_state, MeasureAccidentals):
+        raise ValueError("accidental_state debe ser MeasureAccidentals")
 
     base_letter, base_octave = _BOTTOM_LINE[clef]
     base_index = _LETTERS.index(base_letter)
