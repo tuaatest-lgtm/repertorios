@@ -76,11 +76,11 @@ class MeasureTimelineAnalysis:
 
 
 def _fraction(value: Fraction | int | float) -> Fraction:
-    if isinstance(value, bool):
-        raise ValueError("Los tiempos musicales no pueden ser booleanos")
+    if isinstance(value, bool) or not isinstance(value, (Fraction, int, float)):
+        raise ValueError("El tiempo musical debe ser un número válido")
     try:
         result = value if isinstance(value, Fraction) else Fraction(str(value))
-    except (ValueError, ZeroDivisionError, TypeError) as exc:
+    except (ValueError, ZeroDivisionError, TypeError, OverflowError) as exc:
         raise ValueError("El tiempo musical debe ser un número válido") from exc
     return result
 
