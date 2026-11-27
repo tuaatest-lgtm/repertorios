@@ -232,6 +232,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     single_staff_only_count = global_measure_sequence.get(
         "single_staff_only_candidate_count", len(global_measure_candidates)
     )
+    measure_sequence_scope = global_measure_sequence.get("sequence_scope", "unknown")
     staff_measure_map = global_measure_sequence.get("staff_measure_map", [])
     if not isinstance(global_measure_candidates, list):
         raise ValueError("global_measure_candidates debe ser una lista")
@@ -292,7 +293,14 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         item["candidate_data"].get("global_boundary_status")
         for item in section_marker_reviews
     ]
+    if not isinstance(measure_sequence_scope, str) or not measure_sequence_scope:
+        raise ValueError("sequence_scope debe ser texto no vacío")
     source_pages = analysis.get("pages", [])
+    system_barline_count = sum(
+        len(page.get("system_barline_candidates", []))
+        for page in source_pages if isinstance(page, dict)
+        and isinstance(page.get("system_barline_candidates", []), list)
+    )
     system_candidates = [
         system for page in source_pages if isinstance(page, dict)
         for system in page.get("staff_system_candidates", [])
@@ -341,6 +349,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "pending_global_measure_candidate_count": pending_measure_candidates,
             "cross_staff_aligned_measure_candidate_count": cross_staff_aligned_count,
             "single_staff_only_measure_candidate_count": single_staff_only_count,
+            "global_measure_sequence_scope": measure_sequence_scope,
+            "system_barline_candidate_count": system_barline_count,
             "global_section_range_candidate_count": len(global_section_ranges),
             "pending_global_section_range_candidate_count": pending_section_ranges,
             "section_boundary_candidate_count": len(section_boundary_candidates),
