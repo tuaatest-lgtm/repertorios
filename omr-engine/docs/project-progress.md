@@ -31,7 +31,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 
 - La clasificación de marcas de sección entre páginas ahora se refleja en la imagen final: los encabezados repetidos en la franja superior y las marcas superiores sin ancla se dibujan como `HEADER?`, mientras que las marcas elegibles permanecen como `SECTION?`. La CLI vuelve a generar los overlays después de construir los rangos globales, por lo que la visualización ya no queda desfasada respecto a la clasificación documental.
 - Se añadieron pruebas para comprobar el tratamiento visual de marcas excluidas frente a elegibles y una prueba de integración de CLI que confirma que los overlays se redibujan después de la clasificación entre páginas.
-- CI de integración CLI y redibujado posterior a clasificación: ejecución [45944192845](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944192845), commit `faf5bb8bcdf54952fc236a946bfff1842f84a444`, **383 pruebas aprobadas**. CI de clasificación y representación visual: ejecución [45944188513](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944188513), **382 pruebas aprobadas**.
+- CI de integración CLI y redibujado posterior a clasificación: ejecución [45944192845](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944192845), commit `faf5bb8bcdf54952fc236a946bfff1842f84a444`, **383 pruebas aprobadas**. La actualización documental quedó validada en [45944294908](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944294908), también con **383 pruebas aprobadas**. CI de clasificación y representación visual: ejecución [45944188513](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944188513), **382 pruebas aprobadas**.
 
 ## Trabajo verificado en este corte
 
