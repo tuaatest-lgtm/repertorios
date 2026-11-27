@@ -382,6 +382,7 @@ def test_review_summary_counts_partial_and_adjacent_section_boundaries():
     [
         ("staff_system_candidates", "bad", "staff_system_candidates"),
         ("staff_system_candidates", [{"system_index": 0, "staff_indices": []}], "staff_indices"),
+        ("staff_system_candidates", [{"system_index": 0, "staff_indices": [0, 99]}], "pentagrama inexistente"),
         ("system_barline_candidates", "bad", "system_barline_candidates"),
         ("staff_grouping_mark_candidates", ["bad"], "staff_grouping_mark_candidates"),
         ("staff_identity_evidence", ["bad"], "staff_identity_evidence"),
