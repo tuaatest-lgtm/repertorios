@@ -259,7 +259,7 @@ def review_section_package(
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
     temporary.write_text(
-        json.dumps(updated, ensure_ascii=False, indent=2) + "\\n",
+        json.dumps(updated, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     temporary.replace(destination)
