@@ -54,6 +54,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         candidates = []
         filled_candidate_ids = []
         filled_candidate_staff_indices = []
+        all_notehead_candidate_ids = []
+        all_notehead_candidate_staff_indices = []
         staff_candidates = [
             {
                 "candidate_id": f"p{page_number}-staff-{index + 1}",
@@ -103,6 +105,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                     "decision": None,
                     "reviewer_note": "",
                 })
+                all_notehead_candidate_ids.append(candidates[-1]["candidate_id"])
+                all_notehead_candidate_staff_indices.append(staff_index)
                 if family == "filled_notehead":
                     filled_candidate_ids.append(candidates[-1]["candidate_id"])
                     filled_candidate_staff_indices.append(staff_index)
@@ -169,24 +173,31 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                             or not 0 <= staff_index < staff_count):
                         raise ValueError(f"{key} referencia un pentagrama inexistente")
                     if family == "rhythmic_event_group":
+                        # Los grupos se generan sobre noteheads + hollow_noteheads;
+                        # sus índices pertenecen al espacio combinado del análisis.
+                        candidate_ids = all_notehead_candidate_ids
+                        candidate_staff_indices = all_notehead_candidate_staff_indices
                         indices = _validated_indices(
                             value.get("notehead_indices", []),
-                            len(filled_candidate_ids),
+                            len(candidate_ids),
                             "Un grupo de ataque rítmico",
                         )
                     else:
+                        # Las capas de voz se detectan solo sobre cabezas rellenas.
+                        candidate_ids = filled_candidate_ids
+                        candidate_staff_indices = filled_candidate_staff_indices
                         upward = value.get("upward_notehead_indices", [])
                         downward = value.get("downward_notehead_indices", [])
                         if not isinstance(upward, list) or not isinstance(downward, list):
                             raise ValueError("Las capas de voz deben contener listas de índices")
                         indices = sorted(set(upward + downward))
                         indices = _validated_indices(
-                            indices, len(filled_candidate_ids), "Una capa de voz"
+                            indices, len(candidate_ids), "Una capa de voz"
                         )
-                    if any(filled_candidate_staff_indices[item] != staff_index for item in indices):
+                    if any(candidate_staff_indices[item] != staff_index for item in indices):
                         raise ValueError(f"{key} mezcla cabezas de pentagramas distintos")
                     related_ids = [
-                        *[filled_candidate_ids[item] for item in indices],
+                        *[candidate_ids[item] for item in indices],
                         f"p{page_number}-staff-{staff_index + 1}",
                     ]
                 elif family == "printed_label":
