@@ -23,6 +23,7 @@ palermo-omr-glyphs = "palermo_omr.glyph_annotation_cli:main"
 palermo-omr-glyph-dataset = "palermo_omr.glyph_dataset_cli:main"
 palermo-omr-glyph-evaluate = "palermo_omr.glyph_evaluation_cli:main"
 palermo-omr-glyph-features = "palermo_omr.glyph_features_cli:main"
+palermo-omr-glyph-baseline = "palermo_omr.glyph_baseline_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
