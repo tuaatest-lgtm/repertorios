@@ -41,6 +41,7 @@ se rechazan, en lugar de crear vínculos rotos. Las etiquetas asociadas y las
 observaciones de identidad se vinculan a los IDs de pentagrama; las etiquetas
 ambiguas o sin asignar se conservan sin inventar una relación. No se interpretan como
 agrupaciones musicales confirmadas ni como numeración definitiva de compases.
+Las etiquetas PDF extraídas también se delimitan en el overlay geométrico como `LABEL?`; sus coordenadas de texto PDF se escalan al DPI de renderizado. El recuadro identifica la región textual, no certifica su asociación con un pentagrama.
 Las evidencias de identidad mantienen el origen `visual_candidate`: no crean
 partes, instrumentos, manos de piano ni voces SATB confirmadas.
 Cada elemento conserva `review_status: pending` y `decision: null` y no se
