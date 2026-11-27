@@ -324,7 +324,9 @@ def test_review_summary_counts_staff_systems_and_identity_evidence():
         {"system_index": 0, "staff_indices": [0, 1]},
         {"system_index": 1, "staff_indices": [2]},
     ]
-    data["pages"][0]["staff_grouping_mark_candidates"] = [{}, {}, {}]
+    data["pages"][0]["staff_grouping_mark_candidates"] = [
+        {"staff_indices": [0, 1]}, {"staff_indices": [0, 1]}, {"staff_indices": [0, 1]},
+    ]
     data["pages"][0]["staff_identity_evidence"] = [{}, {}]
     package = build_review_package(data, score_id="score-system-review")
     summary = package["summary"]
