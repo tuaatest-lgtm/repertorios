@@ -327,7 +327,7 @@ def test_review_summary_counts_staff_systems_and_identity_evidence():
     data["pages"][0]["staff_grouping_mark_candidates"] = [
         {"staff_indices": [0, 1]}, {"staff_indices": [0, 1]}, {"staff_indices": [0, 1]},
     ]
-    data["pages"][0]["staff_identity_evidence"] = [{}, {}]
+    data["pages"][0]["staff_identity_evidence"].append({"evidence_id": "label-2", "staff_id": "p1-staff-2", "kind": "printed_voice_label", "source": "visual_candidate"})
     package = build_review_package(data, score_id="score-system-review")
     summary = package["summary"]
     assert summary["staff_system_candidate_count"] == 2
