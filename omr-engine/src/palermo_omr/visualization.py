@@ -168,7 +168,17 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
         if isinstance(item, dict) and isinstance(item.get("system_index"), int)
     }
     drawn_anchors = set()
-    for anchor in page_data.get("section_measure_anchor_candidates", []):
+    anchor_candidates = page_data.get("section_measure_anchor_candidates", [])
+    anchor_candidates = sorted(
+        anchor_candidates,
+        key=lambda item: (
+            isinstance(item, dict)
+            and item.get("global_alignment_status") == "cross_staff_alignment_candidate",
+            item.get("staff_support", 0) if isinstance(item, dict) else 0,
+        ),
+        reverse=True,
+    )
+    for anchor in anchor_candidates:
         if not isinstance(anchor, dict):
             continue
         system_index = anchor.get("system_index")
@@ -203,10 +213,16 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
             continue
         drawn_anchors.add(key)
         x = max(0, min(width - 1, x))
-        color = (255, 100, 20)
+        alignment_status = anchor.get("global_alignment_status")
+        if alignment_status == "cross_staff_alignment_candidate":
+            color, tag = (20, 150, 30), "SECTION-X?"
+        elif alignment_status == "single_staff_only_unmatched":
+            color, tag = (255, 100, 20), "SECTION-LOCAL?"
+        else:
+            color, tag = (180, 60, 220), "SECTION-ANCHOR?"
         cv2.line(overlay, point(x, y_top), point(x, y_bottom), color, 2, cv2.LINE_AA)
         cv2.circle(overlay, point(x, y_top), 5, color, -1)
-        label("SECTION-ANCHOR?", x + 5, int(y_top) - 4, color)
+        label(tag, x + 5, int(y_top) - 4, color)
 
     # Puntillos: se muestra el punto y su relación geométrica candidata.
     for item in page_data.get("augmentation_dot_candidates", []):
