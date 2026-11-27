@@ -474,3 +474,71 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
             "requieren revisión humana."
         ),
     }
+
+
+def resolve_section_range_boundaries(
+    section_ranges: list[dict],
+    global_measure_sequence: dict,
+) -> list[dict]:
+    """Enriquece los extremos de sección con coordenadas de compás candidatas.
+
+    Usa la mejor ancla disponible de cada marca y conserva la fracción dentro
+    del intervalo. La posición del rótulo es solo un proxy del límite musical:
+    toda resolución queda pendiente de revisión humana.
+    """
+    measure_map = {}
+    for item in global_measure_sequence.get("staff_measure_map", []):
+        key = (item.get("page_number"), item.get("staff_index"),
+               item.get("measure_index_on_staff"))
+        measure_map[key] = item.get("global_measure_candidate")
+
+    resolved = []
+    for source in section_ranges:
+        section = dict(source)
+        for boundary_name in ("start", "end"):
+            boundary = section.get(boundary_name)
+            if not isinstance(boundary, dict):
+                continue
+            anchors = boundary.get("measure_anchors", [])
+            valid = [
+                anchor for anchor in anchors
+                if isinstance(anchor, dict)
+                and isinstance(anchor.get("position_ratio_in_interval"), (int, float))
+            ]
+            if not valid:
+                boundary["musical_boundary_candidate"] = None
+                continue
+            anchor = max(
+                valid,
+                key=lambda value: (
+                    value.get("confidence", 0),
+                    -value.get("vertical_distance_px", float("inf")),
+                ),
+            )
+            ratio = float(anchor["position_ratio_in_interval"])
+            global_measure = measure_map.get((
+                boundary.get("page_number"),
+                anchor.get("staff_index"),
+                anchor.get("measure_index_on_staff"),
+            ))
+            boundary["musical_boundary_candidate"] = {
+                "global_measure_candidate": global_measure,
+                "staff_index": anchor.get("staff_index"),
+                "measure_index_on_staff": anchor.get("measure_index_on_staff"),
+                "position_ratio_in_interval": round(ratio, 4),
+                "position_kind": (
+                    "inside_measure_candidate" if 0 <= ratio <= 1
+                    else "before_measure_candidate" if ratio < 0
+                    else "after_measure_candidate"
+                ),
+                "partial_measure_boundary": 0 < ratio < 1,
+                "anchor_confidence": anchor.get("confidence"),
+                "review_status": "pending",
+                "warning": (
+                    "Coordenada basada en la posición del rótulo, no en un límite "
+                    "musical observado. La fracción identifica una ubicación visual "
+                    "dentro del intervalo candidato; debe confirmarse manualmente."
+                ),
+            }
+        resolved.append(section)
+    return resolved
