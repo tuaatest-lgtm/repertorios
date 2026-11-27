@@ -111,7 +111,10 @@ def pitch_from_staff_step(
     if not isinstance(clef, str) or clef not in _BOTTOM_LINE:
         raise ValueError(f"Clave no soportada: {clef}")
     signature = _validate_key_signature(key_signature)
-    if explicit_accidental is not None and explicit_accidental not in _ACCIDENTALS:
+    if explicit_accidental is not None and (
+        not isinstance(explicit_accidental, str)
+        or explicit_accidental not in _ACCIDENTALS
+    ):
         raise ValueError(f"Alteración no reconocida: {explicit_accidental}")
 
     if accidental_state is not None and not isinstance(accidental_state, MeasureAccidentals):
