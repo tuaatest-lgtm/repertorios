@@ -5,6 +5,7 @@ import pytest
 
 from palermo_omr.annotation_dataset import AnnotatedScore, AnnotationDataset
 from palermo_omr.annotation_cli import (
+    review_section_package,
     confirm_score_review,
     initialize_score_manifest,
     validate_manifest,
