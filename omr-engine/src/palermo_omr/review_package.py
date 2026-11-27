@@ -232,6 +232,9 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     single_staff_only_count = global_measure_sequence.get(
         "single_staff_only_candidate_count", len(global_measure_candidates)
     )
+    ambiguous_staff_interval_count = global_measure_sequence.get(
+        "ambiguous_staff_interval_count", 0
+    )
     measure_sequence_scope = global_measure_sequence.get("sequence_scope", "unknown")
     staff_measure_map = global_measure_sequence.get("staff_measure_map", [])
     if not isinstance(global_measure_candidates, list):
@@ -241,7 +244,10 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             or cross_staff_aligned_count < 0
             or not isinstance(single_staff_only_count, int)
             or isinstance(single_staff_only_count, bool)
-            or single_staff_only_count < 0):
+            or single_staff_only_count < 0
+            or not isinstance(ambiguous_staff_interval_count, int)
+            or isinstance(ambiguous_staff_interval_count, bool)
+            or ambiguous_staff_interval_count < 0):
         raise ValueError("Los conteos de alineación de compases deben ser enteros no negativos")
     if cross_staff_aligned_count + single_staff_only_count > len(global_measure_candidates):
         raise ValueError("Los conteos de alineación superan los compases candidatos")
@@ -286,6 +292,10 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     )
     unmatched_section_boundaries = sum(
         item.get("global_alignment_status") in (None, "unmatched_local_interval", "unknown")
+        for item in section_boundary_candidates
+    )
+    ambiguous_section_boundaries = sum(
+        item.get("global_alignment_status") == "ambiguous_spans_multiple_measure_candidates"
         for item in section_boundary_candidates
     )
     partial_section_boundaries = sum(
@@ -397,6 +407,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "pending_global_measure_candidate_count": pending_measure_candidates,
             "cross_staff_aligned_measure_candidate_count": cross_staff_aligned_count,
             "single_staff_only_measure_candidate_count": single_staff_only_count,
+            "ambiguous_staff_interval_count": ambiguous_staff_interval_count,
             "global_measure_sequence_scope": measure_sequence_scope,
             "system_barline_candidate_count": system_barline_count,
             "global_section_range_candidate_count": len(global_section_ranges),
@@ -408,6 +419,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "cross_staff_aligned_section_boundary_candidate_count": cross_staff_section_boundaries,
             "single_staff_only_section_boundary_candidate_count": single_staff_section_boundaries,
             "unmatched_section_boundary_candidate_count": unmatched_section_boundaries,
+            "ambiguous_section_boundary_candidate_count": ambiguous_section_boundaries,
             "partial_section_boundary_candidate_count": partial_section_boundaries,
             "inside_measure_section_boundary_candidate_count": inside_measure_section_boundaries,
             "before_measure_section_boundary_candidate_count": before_measure_section_boundaries,
