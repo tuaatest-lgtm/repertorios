@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 72%
-- **Avance estimado actual:** 73%
+- **Avance estimado anterior:** 73%
+- **Avance estimado actual:** 74%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 27%
+- **Trabajo restante estimado:** 26%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la continuidad de rangos de sección entre páginas, su exportación global y su conservación en el paquete de revisión. La prueba de continuidad es sintética; no equivale a validación musical real. Esta ejecución no equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
 
@@ -20,7 +20,7 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 |---|---:|---:|---|
 | Detección geométrica y símbolos | 58% | 59% | La ejecución real reveló demasiados candidatos a silencio; se añadieron filtros y el conteo bajó de 680 a 140 sin cambiar los demás detectores. |
 | Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
-| Paquete de revisión humana | 95% | 97% | El paquete conserva la secuencia global provisional de compases y las coordenadas de inicio/final de sección, incluidas posiciones parciales dentro de intervalos. |
+| Paquete de revisión humana | 97% | 98% | El resumen del paquete contabiliza explícitamente compases globales y rangos de sección pendientes, además de conservar sus coordenadas y referencias. |
 | Evidencia visual y overlays | 91% | 92% | Se inspeccionaron los overlays generados en las tres páginas reales y se documentaron las principales confusiones visuales. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 10% | Primera ejecución reproducible sobre tres páginas reales y revisión visual de salidas; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
@@ -58,10 +58,13 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - Límite explícito: el enlace global usa el orden de páginas y el orden de marcas detectadas; no reconstruye todavía los compases globales ni sus límites exactos. La asociación letra-marca sigue basada en anchos geométricos candidatos. Los rótulos deben estar en la capa de texto PDF; no hay OCR.
 - Se añadieron pruebas de continuidad entre páginas, páginas intermedias sin marcas, ordenación independiente del orden de entrada y rangos abiertos. CI exacta de la rama: ejecución [45937522902](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45937522902), commit `617870de9fe35193b36ef8ee59ee729e76457521`, resultado exitoso: **338 pruebas aprobadas**.
 
-\n- Se añadió `build_global_measure_sequence`: ordena intervalos geométricos por página, sistema y posición horizontal; agrupa intervalos de pentagramas distintos cuando sus centros se alinean dentro de una tolerancia proporcional a su anchura. Exporta ordinal global provisional, soporte de pentagramas y mapa de referencias local→global.
+\n- Se endureció la conciliación de intervalos globales: un mismo pentagrama ya no puede aportar dos intervalos al mismo clúster de compás candidato. Esto evita fusionar intervalos locales próximos del mismo pentagrama por tolerancias geométricas; una prueba sintética verifica que dos pentagramas paralelos formen dos compases globales distintos con soporte de ambos.
+- El paquete de revisión ahora resume por separado la cantidad total y pendiente de compases globales candidatos y rangos globales de sección. El contador general de cabezas/otros candidatos mantiene su significado anterior. Se añadió una prueba que distingue rangos pendientes de rangos ya aceptados.
+- Se añadió `build_global_measure_sequence`: ordena intervalos geométricos por página, sistema y posición horizontal; agrupa intervalos de pentagramas distintos cuando sus centros se alinean dentro de una tolerancia proporcional a su anchura. Exporta ordinal global provisional, soporte de pentagramas y mapa de referencias local→global.
 - La CLI incorpora `global_measure_sequence` en `analysis.json` y adjunta a cada ancla de sección su ordinal global candidato. Las referencias locales siguen disponibles para rastrear el origen.
 - La secuencia no fuerza intervalos sin barras detectadas y separa sistemas geométricos; no reconoce aún anacrusas, compases parciales, barras omitidas ni compases métricos reales. Los ordinales son coordenadas de revisión, no números de compás definitivos.
 - Pruebas sintéticas verifican conciliación de pentagramas alineados, separación de sistemas, orden de páginas fuera de secuencia y exclusión de intervalos sin sistema. CI de la rama: ejecución [45938579297](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45938579297), commit `52ce0812bb6c737063c3400d7800f7e055c0ae7f`, **342 pruebas aprobadas**.
+- CI de robustez de agrupación por pentagrama: ejecución [45939428989](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939428989), commit `9bfbb1d916e2c309b1a0b2af07fbafaad2c2a84a`, **345 pruebas aprobadas**. CI de resumen de revisión humana: ejecución [45939505336](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939505336), commit `3e53dfbedecb0e44f8b6d49bd51791a3f7065351`, **346 pruebas aprobadas**. La primera ejecución intermedia del cambio de resumen detectó una expectativa de prueba desactualizada; se corrigió en el commit de prueba posterior y la suite completa pasó.
 \n\n- Se añadió `resolve_section_range_boundaries`: para cada inicio y final de sección selecciona la mejor ancla disponible, vincula el intervalo con el ordinal global provisional y conserva la fracción horizontal. Distingue posición dentro del compás candidato, antes/después y coincidencia con sus extremos; no confunde una marca textual con una barra musical.
 - La CLI incorpora estas coordenadas en `global_section_range_candidates`. El paquete de revisión humana ahora conserva también `global_measure_sequence`, para que el revisor pueda consultar el mapa global y las referencias locales originales.
 - Las pruebas verifican posiciones parciales, extremos exactos, límites sin ancla y conservación de la secuencia en el paquete de revisión. CI de la rama: ejecución [45939141059](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939141059), commit `e32775b625c34525bbfdf5466d9f26d1b7827fcd`, **344 pruebas aprobadas**.
