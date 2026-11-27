@@ -184,6 +184,16 @@ def main() -> int:
         for item in global_measure_sequence["staff_measure_map"]
     }
     for page_data in analyses:
+        for span in page_data.get("measure_span_candidates", []):
+            measure_reference = global_measure_map.get((
+                page_data["page_number"], span["staff_index"], span["measure_index"],
+            ), {})
+            span["global_measure_candidate"] = measure_reference.get("global_measure_candidate")
+            span["alignment_status"] = measure_reference.get("alignment_status", "unknown")
+            span["staff_support"] = measure_reference.get("staff_support", 0)
+            span["possible_global_measure_candidates"] = measure_reference.get(
+                "possible_global_measure_candidates", []
+            )
         for anchor in page_data.get("section_measure_anchor_candidates", []):
             measure_reference = global_measure_map.get((
                 page_data["page_number"], anchor["staff_index"],
