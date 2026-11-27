@@ -680,3 +680,31 @@ def test_section_boundary_preserves_partial_and_adjacent_measure_positions(
     assert boundary["partial_measure_boundary"] is partial
     assert boundary["global_measure_candidate"] == 7
     assert boundary["review_status"] == "pending"
+
+
+
+def test_global_measure_sequence_keeps_missing_bar_spans_ambiguous():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    result = build_global_measure_sequence([{
+        "page_number": 1,
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0, 1]}],
+        "measure_span_candidates": [
+            {"staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 200,
+             "width_px": 200, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 1, "x_start": 0, "x_end": 100,
+             "width_px": 100, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 2, "x_start": 100, "x_end": 200,
+             "width_px": 100, "confidence": 0.8},
+        ],
+    }])
+    long_staff_reference = next(
+        item for item in result["staff_measure_map"]
+        if item["staff_index"] == 0
+    )
+    assert long_staff_reference["global_measure_candidate"] is None
+    assert long_staff_reference["alignment_status"] == (
+        "ambiguous_spans_multiple_measure_candidates"
+    )
+    assert len(long_staff_reference["possible_global_measure_candidates"]) == 2
+    assert result["ambiguous_staff_interval_count"] == 1
