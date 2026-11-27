@@ -1,4 +1,5 @@
 import fitz
+import pytest
 
 from palermo_omr.imaging import StaffCandidate
 from palermo_omr.measure_layout import MeasureSpanCandidate
