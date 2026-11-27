@@ -638,6 +638,26 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                     clusters.append([span])
                 else:
                     match.append(span)
+            # Detectar intervalos locales que abarcan más de un compás candidato
+            # respaldado por otro pentagrama (p. ej. una barra omitida). No se
+            # fuerza ese intervalo largo a un único ordinal global.
+            ambiguous_spans = {}
+            for span in candidates:
+                other_staff_clusters = []
+                for cluster_index, cluster in enumerate(clusters):
+                    if any(v["staff_index"] == span["staff_index"] for v in cluster):
+                        continue
+                    center = float(median([
+                        (v["x_start"] + v["x_end"]) / 2 for v in cluster
+                    ]))
+                    if float(span["x_start"]) < center < float(span["x_end"]):
+                        other_staff_clusters.append((cluster_index, center))
+                distinct_centers = sorted({round(center, 2) for _, center in other_staff_clusters})
+                if len(distinct_centers) >= 2:
+                    ambiguous_spans[(span["staff_index"], span["measure_index"])] = [
+                        cluster_index for cluster_index, _ in other_staff_clusters
+                    ]
+
             for local_index, cluster in enumerate(clusters, start=1):
                 global_index += 1
                 centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
@@ -676,6 +696,13 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                 sequence.append(record)
                 for span in cluster:
                     staff_measure_map[(page_number, span["staff_index"], span["measure_index"])] = global_index
+
+            for span in candidates:
+                local_key = (span["staff_index"], span["measure_index"])
+                if local_key not in ambiguous_spans:
+                    continue
+                key = (page_number, span["staff_index"], span["measure_index"])
+                staff_measure_map[key] = None
     cross_staff_count = sum(
         item["alignment_status"] == "cross_staff_alignment_candidate"
         for item in sequence
