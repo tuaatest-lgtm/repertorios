@@ -434,3 +434,35 @@ def test_global_section_marker_dispositions_are_written_to_page_candidates():
     assert pages[0]["section_marker_candidates"][2]["global_boundary_status"] == (
         "eligible_candidate"
     )
+
+
+
+def test_link_section_ranges_rejects_duplicate_page_numbers():
+    from palermo_omr.section_structure import link_section_ranges_across_pages
+
+    page = {
+        "page_number": 1,
+        "section_marker_candidates": [],
+        "section_identifier_candidates": [],
+    }
+    try:
+        link_section_ranges_across_pages([page, dict(page)])
+    except ValueError as error:
+        assert "duplicado" in str(error)
+    else:
+        raise AssertionError("Expected duplicate page numbers to be rejected")
+
+
+def test_link_section_ranges_rejects_boolean_page_number():
+    from palermo_omr.section_structure import link_section_ranges_across_pages
+
+    try:
+        link_section_ranges_across_pages([{
+            "page_number": True,
+            "section_marker_candidates": [],
+            "section_identifier_candidates": [],
+        }])
+    except ValueError as error:
+        assert "entero positivo" in str(error)
+    else:
+        raise AssertionError("Expected boolean page number to be rejected")
