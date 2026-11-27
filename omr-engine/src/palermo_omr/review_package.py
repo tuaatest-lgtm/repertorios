@@ -220,6 +220,12 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         "source_pdf": analysis.get("source_pdf"),
         "analysis_version": analysis.get("version"),
         "global_section_range_candidates": analysis.get("global_section_range_candidates", []),
+        "global_measure_sequence": analysis.get("global_measure_sequence", {
+            "global_measure_candidates": [],
+            "global_measure_candidate_count": 0,
+            "staff_measure_map": [],
+            "warning": "No se proporcionó una secuencia global de intervalos candidatos.",
+        }),
         "review_policy": (
             "Todos los elementos son candidatos visuales. No representan eventos, "
             "alturas, voces ni duraciones confirmadas. La revisión humana debe "
