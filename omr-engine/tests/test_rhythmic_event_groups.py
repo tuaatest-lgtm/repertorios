@@ -221,3 +221,24 @@ def test_dot_review_cannot_reference_unconfirmed_event():
     groups = build_rhythmic_event_group_candidates(_staffs(), *values, staff_voice_ids={0: "soprano"})
     with pytest.raises(ValueError, match="confirmados"):
         build_reviewed_voice_events(groups, voice_id="soprano", measure_index=0, confirmed_event_ids={groups[0].event_id}, event_dot_counts={groups[1].event_id: 1})
+
+
+def test_hollow_notehead_keeps_half_or_whole_duration_in_event_group():
+    heads, rhythms, interpretations = _inputs([100], durations=["half"])
+    heads[0] = NoteheadCandidate(
+        bbox=heads[0].bbox, center_x=heads[0].center_x, center_y=heads[0].center_y,
+        staff_index=0, diatonic_step_from_bottom=0, fill_ratio=.1,
+        notehead_shape_score=.9, confidence=.9,
+    )
+    rhythms[0] = RhythmCandidate(
+        heads[0].bbox, 0, "hollow", .9, "up", 30, 0, "half", .8, (),
+    )
+    interpretations[0] = RhythmicInterpretationCandidate(
+        0, 0, "half", 0, (), .7, "local_candidate_only", (),
+    )
+    result = build_rhythmic_event_group_candidates(
+        _staffs(), heads, rhythms, interpretations,
+    )
+    assert len(result) == 1
+    assert result[0].duration_candidate == "half"
+    assert result[0].duration_quarters_candidate == Fraction(2)

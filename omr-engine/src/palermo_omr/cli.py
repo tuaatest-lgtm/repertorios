@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import json
 from pathlib import Path
 
@@ -196,11 +197,26 @@ def main() -> int:
         )
         beam_groups = detect_beam_group_candidates(binary, analysis.staves, noteheads, rhythms)
         rhythmic_interpretations = interpret_rhythm_from_beam_groups(rhythms, beam_groups)
-        # Integrar candidatos en posibles ataques/acordes y capas de voz.
-        # Esta etapa conserva incertidumbre: no convierte x en tiempo ni
+        # Las cabezas huecas (blancas/redondas) aportan eventos candidatos
+        # independientes. No se les aplican haces de las cabezas rellenas.
+        hollow_rhythmic_interpretations = interpret_rhythm_from_beam_groups(
+            hollow_rhythms, []
+        )
+        hollow_rhythmic_interpretations = [
+            replace(item, notehead_index=item.notehead_index + len(noteheads))
+            for item in hollow_rhythmic_interpretations
+        ]
+        all_rhythm_heads = noteheads + hollow_noteheads
+        all_rhythm_candidates = rhythms + hollow_rhythms
+        all_rhythm_interpretations = (
+            rhythmic_interpretations + hollow_rhythmic_interpretations
+        )
+        # Integrar cabezas rellenas y huecas en posibles ataques/acordes.
+        # La etapa conserva incertidumbre: no convierte x en tiempo ni
         # asigna voces por dirección de plica.
         rhythmic_event_groups = build_rhythmic_event_group_candidates(
-            analysis.staves, noteheads, rhythms, rhythmic_interpretations
+            analysis.staves, all_rhythm_heads, all_rhythm_candidates,
+            all_rhythm_interpretations,
         )
         rhythmic_groups_by_page[page_number] = rhythmic_event_groups
         voice_layer_candidates = detect_staff_voice_layer_candidates(
@@ -214,6 +230,8 @@ def main() -> int:
         page_data["beam_group_candidate_count"] = len(beam_groups)
         page_data["rhythmic_interpretation_candidates"] = [item.to_dict() for item in rhythmic_interpretations]
         page_data["rhythmic_interpretation_candidate_count"] = len(rhythmic_interpretations)
+        page_data["hollow_rhythmic_interpretation_candidates"] = [item.to_dict() for item in hollow_rhythmic_interpretations]
+        page_data["hollow_rhythmic_interpretation_candidate_count"] = len(hollow_rhythmic_interpretations)
         page_data["rhythmic_event_group_candidates"] = [
             item.to_dict() for item in rhythmic_event_groups
         ]
@@ -414,7 +432,7 @@ def main() -> int:
     total_rhythms = sum(page["rhythm_candidate_count"] for page in analyses)
     total_hollow_rhythms = sum(page["hollow_rhythm_candidate_count"] for page in analyses)
     total_beam_groups = sum(page["beam_group_candidate_count"] for page in analyses)
-    total_rhythm_interpretations = sum(page["rhythmic_interpretation_candidate_count"] for page in analyses)
+    total_rhythm_interpretations = sum(page["rhythmic_interpretation_candidate_count"] + page["hollow_rhythmic_interpretation_candidate_count"] for page in analyses)
     total_event_groups = sum(page["rhythmic_event_group_candidate_count"] for page in analyses)
     total_voice_layers = sum(page["staff_voice_layer_candidate_count"] for page in analyses)
     total_dots = sum(len(page["augmentation_dot_candidates"]) for page in analyses)
