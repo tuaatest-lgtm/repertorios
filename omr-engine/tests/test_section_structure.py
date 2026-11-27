@@ -387,3 +387,50 @@ def test_unanchored_top_margin_label_is_not_global_section_boundary():
         ],
     }])
     assert [item["section_name"] for item in ranges] == ["INTRO"]
+
+
+
+def test_global_section_marker_dispositions_are_written_to_page_candidates():
+    from palermo_omr.section_structure import link_section_ranges_across_pages
+
+    header = {
+        "normalized_text": "CORO", "text": "Coro",
+        "center_x_px": 1275, "center_y_px": 70,
+        "page_width_px": 2550, "page_height_px": 3300,
+    }
+    unanchored = {
+        "normalized_text": "CORO", "text": "Coro",
+        "center_x_px": 160, "center_y_px": 150,
+        "page_width_px": 2550, "page_height_px": 3300,
+    }
+    anchored = {
+        "normalized_text": "INTRO", "text": "Intro",
+        "center_x_px": 500, "center_y_px": 500,
+        "page_width_px": 2550, "page_height_px": 3300,
+    }
+    pages = [
+        {"page_number": 1,
+         "section_marker_candidates": [dict(header), dict(unanchored), anchored],
+         "section_identifier_candidates": [],
+         "section_measure_anchor_candidates": [
+             {"marker_index": 2, "staff_index": 0, "measure_index_on_staff": 1}
+         ]},
+        {"page_number": 2,
+         "section_marker_candidates": [dict(header)],
+         "section_identifier_candidates": [],
+         "section_measure_anchor_candidates": []},
+    ]
+
+    link_section_ranges_across_pages(pages)
+    assert pages[0]["section_marker_candidates"][0]["global_boundary_status"] == (
+        "excluded_repeated_page_header_candidate"
+    )
+    assert pages[1]["section_marker_candidates"][0]["global_boundary_status"] == (
+        "excluded_repeated_page_header_candidate"
+    )
+    assert pages[0]["section_marker_candidates"][1]["global_boundary_status"] == (
+        "excluded_unanchored_top_margin_candidate"
+    )
+    assert pages[0]["section_marker_candidates"][2]["global_boundary_status"] == (
+        "eligible_candidate"
+    )
