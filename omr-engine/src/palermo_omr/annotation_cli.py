@@ -14,6 +14,7 @@ from fractions import Fraction
 from .dataset_evaluation import evaluate_annotation_dataset
 from .event_evaluation import ScoreEvent
 from .review_package import prepare_review_package
+from .section_review import apply_section_range_decisions
 
 
 def _load_dataset(path: Path) -> AnnotationDataset:
@@ -234,6 +235,37 @@ def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
         ],
     }
 
+def review_section_package(
+    package_path: str | Path,
+    decisions_path: str | Path,
+    output_path: str | Path,
+    *,
+    human_review_confirmed: bool,
+    allow_open_ended: bool = False,
+) -> dict:
+    """Aplica decisiones humanas explícitas a un paquete de rangos de sección."""
+    try:
+        package = json.loads(Path(package_path).read_text(encoding="utf-8"))
+        decisions = json.loads(Path(decisions_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"No se pudo leer el paquete o las decisiones: {exc}") from exc
+    updated = apply_section_range_decisions(
+        package,
+        decisions,
+        human_review_confirmed=human_review_confirmed,
+        allow_open_ended=allow_open_ended,
+    )
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(updated, ensure_ascii=False, indent=2) + "\\n",
+        encoding="utf-8",
+    )
+    temporary.replace(destination)
+    return updated
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="palermo-omr-dataset",
@@ -278,6 +310,16 @@ def build_parser() -> argparse.ArgumentParser:
     import_parser.add_argument("manifest")
     import_parser.add_argument("--score-id", required=True)
     import_parser.add_argument("--events", required=True)
+
+    section_review_parser = subparsers.add_parser(
+        "review-sections",
+        help="Aplica decisiones humanas explícitas a rangos de sección candidatos",
+    )
+    section_review_parser.add_argument("package")
+    section_review_parser.add_argument("--decisions", required=True)
+    section_review_parser.add_argument("--output", required=True)
+    section_review_parser.add_argument("--confirm-human-review", action="store_true")
+    section_review_parser.add_argument("--allow-open-ended", action="store_true")
 
     review_parser = subparsers.add_parser(
         "review", help="Aprueba una partitura tras revisión humana explícita"
@@ -336,6 +378,19 @@ def main(argv: list[str] | None = None) -> int:
             score = next(item for item in dataset.scores if item.score_id == args.score_id)
             print(f"Eventos importados: {len(score.events)}")
             print("Estado: draft (requiere revisión humana)")
+        elif args.command == "review-sections":
+            package = review_section_package(
+                args.package,
+                args.decisions,
+                args.output,
+                human_review_confirmed=args.confirm_human_review,
+                allow_open_ended=args.allow_open_ended,
+            )
+            summary = package.get("summary", {})
+            print("Paquete de secciones actualizado: {}".format(args.output))
+            print("Pendientes: {}".format(summary.get("pending_global_section_range_candidate_count", 0)))
+            print("Aceptados: {}".format(summary.get("accepted_global_section_range_candidate_count", 0)))
+            print("Rechazados: {}".format(summary.get("rejected_global_section_range_candidate_count", 0)))
         elif args.command == "review":
             dataset = confirm_score_review(
                 args.manifest, args.score_id,
