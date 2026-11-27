@@ -300,6 +300,7 @@ def group_system_barlines(
     x_tolerance_spacing: float = 0.8,
     min_staff_support: int = 2,
     max_interstaff_gap_spacing: float = 5.5,
+    system_candidates: list[StaffSystemCandidate] | None = None,
 ) -> list[SystemBarlineCandidate]:
     """Agrupa barras alineadas, sin mezclar sistemas separados verticalmente."""
     if x_tolerance_spacing <= 0:
@@ -311,7 +312,7 @@ def group_system_barlines(
     if not candidates or not staves:
         return []
 
-    systems = detect_staff_systems(
+    systems = system_candidates if system_candidates is not None else detect_staff_systems(
         staves, max_interstaff_gap_spacing=max_interstaff_gap_spacing
     )
     staff_to_system = {
