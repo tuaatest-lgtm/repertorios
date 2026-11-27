@@ -7,12 +7,12 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 73%
-- **Avance estimado actual:** 74%
+- **Avance estimado anterior:** 74%
+- **Avance estimado actual:** 75%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 26%
+- **Trabajo restante estimado:** 25%
 
-El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la continuidad de rangos de sección entre páginas, su exportación global y su conservación en el paquete de revisión. La prueba de continuidad es sintética; no equivale a validación musical real. Esta ejecución no equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
+El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la ejecución completa y repetible del motor y del paquete de revisión sobre una partitura real de tres páginas, con clasificación trazable de marcas y rangos globales. No equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
 
 ## Evolución por aspecto
 
@@ -23,7 +23,7 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Paquete de revisión humana | 98% | 99% | El resumen también cuenta marcas de sección elegibles, excluidas y aún no clasificadas, sin cambiar su estado pendiente de revisión. |
 | Evidencia visual y overlays | 91% | 92% | Se inspeccionaron los overlays generados en las tres páginas reales y se documentaron las principales confusiones visuales. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
-| Validación integral con partituras | 0% | 10% | Primera ejecución reproducible sobre tres páginas reales y revisión visual de salidas; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
+| Validación integral con partituras | 10% | 12% | Se repitió la ejecución completa y se generó el paquete de revisión sobre el PDF real, verificando marcadores, rangos globales y recuentos; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
 | Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
 | Estructura de secciones musicales | 65% | 66% | El enlace entre páginas rechaza números de página duplicados o booleanos para impedir ordenamientos ambiguos de marcas y rangos. |
 
@@ -76,6 +76,7 @@ CI de robustez de agrupación por pentagrama: ejecución [45939428989](https://g
 - La prueba de integración del paquete de revisión confirma que `global_boundary_status` y `global_boundary_reason` de cada rótulo se conservan en `candidate_data`, con el estado de revisión todavía pendiente. Así el revisor puede distinguir una marca descartada como límite global de una marca elegible sin perder la evidencia original.
 - CI de conservación de clasificación en el paquete de revisión: ejecución [45941015115](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45941015115), commit `0a2afbcf7676e17ee090dd682fac9c59e1a03d6a`, **363 pruebas aprobadas**.
 - Las marcas locales ahora registran `global_boundary_status` y `global_boundary_reason`: `eligible_candidate`, `excluded_repeated_page_header_candidate` o `excluded_unanchored_top_margin_candidate`. De esta forma, los rótulos excluidos no desaparecen de la evidencia; el paquete de revisión puede mostrar por qué no cortaron rangos globales.
+- Se generó también el paquete de revisión humana a partir de la ejecución real actualizada. Su resumen registra 3 páginas, 569 candidatos de cabeza, 1.587 otros candidatos, 373 intervalos globales, 3 rangos globales y 6 marcas locales (3 elegibles, 3 excluidas, 0 sin clasificar). Los 2.156 candidatos totales permanecen pendientes; los conteos son carga de revisión, no aciertos.
 - La comprobación sobre el PDF real con esta clasificación confirmó 6 marcas locales, 3 elegibles y 3 excluidas (una del margen superior de la primera página y dos encabezados repetidos en páginas posteriores), con 3 rangos globales. Las tres marcas elegibles permanecen como hipótesis, no como secciones musicalmente confirmadas.
 - CI de trazabilidad de clasificación de marcas: ejecución [45940900901](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45940900901), commit `271e337dc6c95b7eaf707a122eafef4f6d7606f7`, **362 pruebas aprobadas**.
 - El análisis real de `Clamaré a Dios - Coro` mostró que la palabra `Coro` repetida en la franja superior de las páginas 2 y 3 se estaba interpretando como nuevas secciones, y que un rótulo superior sin ancla podía abrir un rango falso. Se añadieron dimensiones de página a las marcas y una regla conservadora: encabezados repetidos en la misma posición superior y rótulos del margen superior sin ancla se conservan como candidatos locales, pero no dividen los rangos globales.
