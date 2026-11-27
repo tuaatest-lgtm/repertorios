@@ -690,6 +690,10 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
              "alignment_status": next(
                  (item["alignment_status"] for item in sequence
                   if item["global_measure_candidate"] == v), "unknown"
+             ),
+             "staff_support": next(
+                 (item["staff_support"] for item in sequence
+                  if item["global_measure_candidate"] == v), 1
              )}
             for k, v in sorted(staff_measure_map.items())
         ],
