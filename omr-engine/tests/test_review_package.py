@@ -67,6 +67,7 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "pending_global_measure_candidate_count": 1,
         "cross_staff_aligned_measure_candidate_count": 0,
         "single_staff_only_measure_candidate_count": 1,
+        "ambiguous_staff_interval_count": 0,
         "global_measure_sequence_scope": "unknown",
         "system_barline_candidate_count": 1,
         "global_section_range_candidate_count": 0,
@@ -78,6 +79,7 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "cross_staff_aligned_section_boundary_candidate_count": 0,
         "single_staff_only_section_boundary_candidate_count": 0,
         "unmatched_section_boundary_candidate_count": 0,
+        "ambiguous_section_boundary_candidate_count": 0,
         "partial_section_boundary_candidate_count": 0,
         "inside_measure_section_boundary_candidate_count": 0,
         "before_measure_section_boundary_candidate_count": 0,
@@ -396,3 +398,19 @@ def test_review_package_rejects_malformed_staff_review_evidence(field, value, me
     data["pages"][0][field] = value
     with pytest.raises(ValueError, match=message):
         build_review_package(data, score_id="score-invalid-staff-evidence")
+
+
+
+def test_review_summary_reports_ambiguous_missing_bar_intervals():
+    data = sample_analysis()
+    data["global_measure_sequence"]["ambiguous_staff_interval_count"] = 2
+    data["global_section_range_candidates"] = [{
+        "section_range_id": "section-ambiguous",
+        "start": {"page_number": 1, "musical_boundary_candidate": {
+            "global_alignment_status": "ambiguous_spans_multiple_measure_candidates",
+        }},
+        "end": None,
+    }]
+    package = build_review_package(data, score_id="score-ambiguous-spans")
+    assert package["summary"]["ambiguous_staff_interval_count"] == 2
+    assert package["summary"]["ambiguous_section_boundary_candidate_count"] == 1
