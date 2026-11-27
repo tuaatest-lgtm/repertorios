@@ -108,7 +108,9 @@ def main() -> int:
             barlines, analysis.staves, system_candidates=staff_systems
         )
         measure_spans = infer_measure_spans(barlines)
-        grouping_marks = detect_staff_grouping_mark_candidates(binary, analysis.staves)
+        grouping_marks = detect_staff_grouping_mark_candidates(
+            binary, analysis.staves, system_candidates=staff_systems
+        )
         section_data = detect_section_candidates(
             args.pdf, page_number, analysis.staves, measure_spans, dpi=args.dpi
         )
