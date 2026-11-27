@@ -7,12 +7,12 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 64%
-- **Avance estimado actual:** 65%
+- **Avance estimado anterior:** 65%
+- **Avance estimado actual:** 66%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 35%
+- **Trabajo restante estimado:** 34%
 
-El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce que las etiquetas musicales disponibles en la capa de texto PDF y las marcas de agrupación recorren la CLI, se unifican como evidencia por página y llegan al paquete de revisión humana con referencias verificadas a pentagramas. No reconoce precisión musical nueva sobre partituras reales ni OCR de páginas escaneadas.
+El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce que las etiquetas PDF extraídas ahora quedan localizadas visualmente en el overlay con conversión de coordenadas PDF a píxeles dependiente del DPI y pruebas automatizadas. No reconoce precisión musical nueva sobre partituras reales ni OCR de páginas escaneadas.
 
 ## Evolución por aspecto
 
@@ -21,7 +21,7 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Detección geométrica y símbolos | 56% | 57% | La CLI extrae también etiquetas impresas desde la capa de texto PDF, además de las marcas de agrupación. |
 | Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
 | Paquete de revisión humana | 93% | 95% | El paquete incorpora etiquetas impresas y evidencias combinadas de identidad, enlazadas con los pentagramas. |
-| Evidencia visual y overlays | 88% | 88% | Sin cambio: se conservan overlays candidatos, pero no se añadió una nueva familia visual en este corte. |
+| Evidencia visual y overlays | 88% | 91% | El overlay delimita etiquetas impresas PDF con escala dependiente del DPI y rótulo explícito `LABEL?`. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 0% | Sin cambio: el motor todavía no se ha ejecutado y evaluado de extremo a extremo sobre el PDF coral de referencia en un entorno reproducible. |
 | Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
@@ -32,6 +32,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 
 - La CLI principal ejecuta `detect_staff_grouping_mark_candidates` para cada página y guarda `staff_grouping_mark_candidates` y su contador.
 - El overlay geométrico representa las marcas candidatas como `BRACE?`, `BRACKET?` o `GROUP?`; no las presenta como relaciones musicales confirmadas.
+- El overlay también delimita las etiquetas de texto PDF con `LABEL?`, convirtiendo `bbox_pdf` a píxeles mediante el DPI de renderizado. Se añadieron pruebas para DPI 72 y 144.
 - El paquete de revisión humana incluye la familia `staff_grouping_mark`, mantiene cada candidato pendiente y valida los índices de pentagrama asociados.
 - `staff_grouping_adapter` convierte marcas curvas, corchetes y trazos verticales en evidencias de identidad ligadas a cada pentagrama. La evidencia mantiene `source=visual_candidate`; no crea partes, voces ni asignaciones.
 - `identity_evidence.build_page_identity_evidence` combina la evidencia de etiquetas impresas y marcas de agrupación por página. La CLI incorpora etiquetas extraíbles desde el texto PDF y guarda candidatos y evidencias en `analysis.json`.
@@ -39,7 +40,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - Se añadieron pruebas para la integración en overlay y paquete de revisión, incluidos índices inexistentes y duplicados.
 - CI del recorrido CLI/overlay/revisión: ejecución [45903752937](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903752937), commit `45eee72cef309f49cc376594f57ef679afabf7c8`, resultado exitoso: **312 pruebas aprobadas**.
 - CI del adaptador de evidencia: ejecución [45903872219](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903872219), commit `afb236bd3c109c766e6853c72d34d50303954826`, resultado exitoso: **317 pruebas aprobadas**.
-- CI de evidencia combinada y paquete de revisión: ejecución [45933249039](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933249039), commit `0079fb041dcc65c3da2f7b601e8607418911bcf9`, resultado exitoso: **322 pruebas aprobadas** en ese corte. La integración de CLI quedó aprobada también en [45933208974](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933208974). Tras ampliar la validación de estados de etiqueta y corregir la expresión de una prueba, la rama completa volvió a pasar: ejecución [45933376574](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933376574), commit `27b349b96820452600d17db77757270aa70b10bb`, **325 pruebas aprobadas**.
+- CI de evidencia combinada y paquete de revisión: ejecución [45933249039](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933249039), commit `0079fb041dcc65c3da2f7b601e8607418911bcf9`, resultado exitoso: **322 pruebas aprobadas** en ese corte. La integración de CLI quedó aprobada también en [45933208974](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933208974). Tras ampliar la validación de estados de etiqueta y corregir la expresión de una prueba, la rama completa volvió a pasar: ejecución [45933376574](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933376574), commit `27b349b96820452600d17db77757270aa70b10bb`, **325 pruebas aprobadas**. La nueva visualización de etiquetas pasó también en ejecución [45933685409](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933685409), commit `333484f815051bdb8aea7011c490b5abc6069271`, con **327 pruebas aprobadas**.
 
 ## Límites que siguen abiertos
 
