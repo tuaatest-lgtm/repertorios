@@ -29,3 +29,29 @@ Esta comprobación detecta contradicciones en los datos temporales ya asignados;
 ## Puntillos confirmados en la conversión a eventos
 
 La conversión de grupos de notas revisados a eventos temporales acepta `event_dot_counts`, un mapa explícito de `event_id` a cantidad de puntillos (0–4). La duración se calcula con fracciones exactas: un puntillo aplica 3/2, dos 7/4, tres 15/8 y cuatro 31/16. Los candidatos geométricos de puntillo no se aplican automáticamente: la cantidad debe ser confirmada por revisión. El mismo mecanismo funciona cuando dos voces independientes comparten un pentagrama.
+
+
+## Puntillos visuales revisados
+
+La detección entrega una lista ordenada de `DotCandidate`. Para que un
+puntillo visual afecte la duración, el manifiesto debe enlazar explícitamente
+el índice del candidato con el evento confirmado:
+
+```json
+{
+  "confirmed_event_ids": ["note-17"],
+  "event_voice_ids": {"note-17": "soprano"},
+  "event_dot_candidate_indices": {"note-17": [2]}
+}
+```
+
+La llamada a `build_reviewed_page_timelines` debe recibir la misma lista de
+candidatos mediante `dot_candidates`. El índice se resuelve contra esa lista,
+y el candidato solo se acepta si su cabeza asociada pertenece al grupo de
+cabezas del evento confirmado. Un candidato no puede reutilizarse en otro
+evento. La cantidad de candidatos enlazados determina el número de puntillos
+y la aritmética exacta de duración.
+
+El conteo manual `event_dot_counts` sigue disponible como revisión explícita
+alternativa, pero no se puede mezclar con enlaces visuales para el mismo
+evento. La detección por sí sola nunca cambia el timeline.
