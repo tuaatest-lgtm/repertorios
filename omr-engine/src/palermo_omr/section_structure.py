@@ -543,6 +543,7 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
     sequence, staff_measure_map = [], {}
     global_index = 0
     seen_pages = set()
+    ambiguous_staff_spans = {}
     for page in ordered_pages:
         page_number = page.get("page_number")
         if not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
@@ -604,7 +605,6 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
             system_index = staff_to_system.get(staff_index)
             if system_index is not None:
                 by_system.setdefault(system_index, []).append(span)
-        ambiguous_staff_spans = {}
         for system_index in sorted(by_system):
             candidates = sorted(
                 by_system[system_index],
@@ -662,7 +662,6 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                 else:
                     match.append(span)
 
-            system_global_start = global_index
             system_records = []
             for local_index, cluster in enumerate(clusters, start=1):
                 global_index += 1
