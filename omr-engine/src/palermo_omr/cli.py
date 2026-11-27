@@ -55,6 +55,7 @@ def main() -> int:
             raise OSError(f"No se pudo escribir {image_path}")
 
         page_data = analysis.to_dict()
+        page_data["render_dpi"] = args.dpi
         noteheads = detect_notehead_candidates(binary, analysis.staves)
         hollow_noteheads = detect_hollow_notehead_candidates(binary, analysis.staves)
         overlay = draw_notehead_overlay(page, noteheads)
