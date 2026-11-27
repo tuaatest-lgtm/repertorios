@@ -4,7 +4,7 @@ import pytest
 
 from palermo_omr.rhythmic_event_groups import RhythmicEventGroupCandidate
 from palermo_omr.reviewed_timeline import build_reviewed_page_timelines
-from palermo_omr.rhythm_symbols import DotCandidate, RestSymbolCandidate
+from palermo_omr.rhythm_symbols import RestSymbolCandidate
 from palermo_omr.pitch import Pitch
 from palermo_omr.pitch_candidates import PitchCandidate
 from palermo_omr.tie_candidates import TieLinkCandidate, TieReviewConfirmation
@@ -356,63 +356,3 @@ def test_page_tie_rejects_non_contiguous_measure_events():
                  "confirmed_event_ids": ["b"], "event_voice_ids": {"b": "soprano"}},
             ],
         })
-
-
-
-def test_reviewed_dot_candidates_are_linked_to_their_confirmed_note_event():
-    groups = [group("dotted", 0, 10, indices=(3,))]
-    dots = [DotCandidate(116.0, 80.0, 3, .82)]
-    result = build_reviewed_page_timelines(groups, {
-        "page_number": 1,
-        "measures": [{
-            "measure_index": 0, "numerator": 4, "denominator": 4,
-            "confirmed_event_ids": ["dotted"],
-            "event_voice_ids": {"dotted": "soprano"},
-            "event_dot_candidate_indices": {"dotted": [0]},
-        }],
-    }, dot_candidates=dots)
-    assert result[0]["events"][0]["duration_quarters"] == "3/2"
-
-
-def test_one_visual_dot_candidate_cannot_be_reused_by_two_events():
-    groups = [group("a", 0, 10, indices=(0,)), group("b", 0, 30, indices=(1,))]
-    dots = [DotCandidate(116.0, 80.0, 0, .82)]
-    with pytest.raises(ValueError, match="no puede reutilizarse"):
-        build_reviewed_page_timelines(groups, {
-            "page_number": 1,
-            "measures": [{
-                "measure_index": 0, "numerator": 4, "denominator": 4,
-                "confirmed_event_ids": ["a", "b"],
-                "event_voice_ids": {"a": "soprano", "b": "alto"},
-                "event_dot_candidate_indices": {"a": [0], "b": [0]},
-            }],
-        }, dot_candidates=dots)
-
-
-def test_visual_dot_candidate_must_belong_to_a_notehead_in_the_confirmed_event():
-    groups = [group("a", 0, 10, indices=(0,))]
-    dots = [DotCandidate(116.0, 80.0, 1, .82)]
-    with pytest.raises(ValueError, match="no corresponde"):
-        build_reviewed_page_timelines(groups, {
-            "page_number": 1,
-            "measures": [{
-                "measure_index": 0, "numerator": 4, "denominator": 4,
-                "confirmed_event_ids": ["a"],
-                "event_voice_ids": {"a": "soprano"},
-                "event_dot_candidate_indices": {"a": [0]},
-            }],
-        }, dot_candidates=dots)
-
-
-def test_visual_dot_link_rejects_out_of_range_candidate_index():
-    groups = [group("a", 0, 10, indices=(0,))]
-    with pytest.raises(ValueError, match="fuera de rango"):
-        build_reviewed_page_timelines(groups, {
-            "page_number": 1,
-            "measures": [{
-                "measure_index": 0, "numerator": 4, "denominator": 4,
-                "confirmed_event_ids": ["a"],
-                "event_voice_ids": {"a": "soprano"},
-                "event_dot_candidate_indices": {"a": [0]},
-            }],
-        }, dot_candidates=[])

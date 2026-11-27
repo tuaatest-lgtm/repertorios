@@ -105,11 +105,16 @@ def build_reviewed_page_timelines(
         for event_id, indices in raw_dot_links.items():
             if not isinstance(indices, list):
                 raise ValueError("Cada enlace de puntillos debe ser una lista de índices")
-            if len(indices) > 4 or len(indices) != len(set(indices)):
-                raise ValueError("Cada evento debe enlazar entre cero y cuatro candidatos distintos")
+            if len(indices) > 4 or any(
+                not isinstance(index, int) or isinstance(index, bool)
+                for index in indices
+            ):
+                raise ValueError("Cada evento debe enlazar entre cero y cuatro índices enteros")
+            if len(indices) != len(set(indices)):
+                raise ValueError("Un evento no puede repetir el mismo candidato de puntillo")
             group = next(item for item in groups if item.event_id == event_id)
             for candidate_index in indices:
-                if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or not 0 <= candidate_index < len(dot_candidates):
+                if not 0 <= candidate_index < len(dot_candidates):
                     raise ValueError("Índice de candidato de puntillo fuera de rango")
                 if candidate_index in used_dot_candidate_indices:
                     raise ValueError("Un candidato de puntillo no puede reutilizarse en dos eventos")
