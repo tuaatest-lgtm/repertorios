@@ -118,3 +118,26 @@ def test_does_not_match_satb_letters_inside_other_words(tmp_path):
     staff = [StaffCandidate([100, 110, 120, 130, 140], 10.0, 1.0)]
 
     assert extract_printed_label_candidates(pdf_path, 1, staff, dpi=72) == []
+
+
+def test_ignores_bracketed_section_marker_and_harmonic_b_chord(tmp_path):
+    pdf_path = tmp_path / "ambiguous-b.pdf"
+    make_pdf(pdf_path, [(20, 120, "[B]"), (100, 300, "B")])
+    staves = [
+        StaffCandidate([100, 110, 120, 130, 140], 10.0, 1.0),
+        StaffCandidate([280, 290, 300, 310, 320], 10.0, 1.0),
+    ]
+
+    assert extract_printed_label_candidates(pdf_path, 1, staves, dpi=72) == []
+
+
+def test_accepts_literal_satb_abbreviation_in_left_margin(tmp_path):
+    pdf_path = tmp_path / "left-margin-b.pdf"
+    make_pdf(pdf_path, [(20, 120, "B")])
+    staff = [StaffCandidate([100, 110, 120, 130, 140], 10.0, 1.0)]
+
+    results = extract_printed_label_candidates(pdf_path, 1, staff, dpi=72)
+
+    assert len(results) == 1
+    assert results[0].normalized_text == "B"
+    assert results[0].label_kind == "vocal"
