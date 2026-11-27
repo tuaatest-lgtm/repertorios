@@ -96,7 +96,7 @@ def test_section_range_boundaries_retain_partial_measure_positions():
     assert start["partial_measure_boundary"] is True
     assert start["position_ratio_in_interval"] == 0.35
     assert end["global_measure_candidate"] == 12
-    assert end["position_kind"] == "inside_measure_candidate"
+    assert end["position_kind"] == "at_measure_end_candidate"
     assert end["partial_measure_boundary"] is False
     assert start["review_status"] == "pending"
 
