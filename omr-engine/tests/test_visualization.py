@@ -167,3 +167,30 @@ def test_geometry_overlay_distinguishes_excluded_headers_from_section_labels():
     })
     assert tuple(overlay[10, 10]) == (120, 120, 150)
     assert tuple(overlay[10, 50]) == (180, 60, 220)
+
+
+
+def test_geometry_overlay_prefers_cross_staff_anchor_for_system_label():
+    image = np.full((320, 420, 3), 255, dtype=np.uint8)
+    page_data = {
+        "render_dpi": 72,
+        "staves": [
+            {"lines_y": [100, 110, 120, 130, 140]},
+            {"lines_y": [250, 260, 270, 280, 290]},
+        ],
+        "staff_system_candidates": [
+            {"system_index": 0, "staff_indices": [0, 1], "y_top": 100, "y_bottom": 290}
+        ],
+        "section_measure_anchor_candidates": [
+            {"marker_index": 0, "system_index": 0, "staff_index": 0,
+             "interval_x_start": 80, "interval_x_end": 180,
+             "position_ratio_in_interval": 0.5,
+             "global_alignment_status": "single_staff_only_unmatched", "staff_support": 1},
+            {"marker_index": 0, "system_index": 0, "staff_index": 1,
+             "interval_x_start": 80, "interval_x_end": 180,
+             "position_ratio_in_interval": 0.5,
+             "global_alignment_status": "cross_staff_alignment_candidate", "staff_support": 2},
+        ],
+    }
+    overlay = draw_geometry_overlay(image, page_data)
+    assert tuple(overlay[100, 130]) == (20, 150, 30)
