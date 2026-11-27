@@ -414,3 +414,50 @@ def test_review_summary_reports_ambiguous_missing_bar_intervals():
     package = build_review_package(data, score_id="score-ambiguous-spans")
     assert package["summary"]["ambiguous_staff_interval_count"] == 2
     assert package["summary"]["ambiguous_section_boundary_candidate_count"] == 1
+
+
+def test_review_package_links_rhythmic_attack_groups_and_voice_layers_to_noteheads():
+    data = sample_analysis()
+    data["pages"][0]["notehead_candidates"].append({
+        "bbox": [20, 30, 12, 7], "center_x": 26.0,
+        "center_y": 33.0, "staff_index": 0,
+        "diatonic_step_from_bottom": 3, "confidence": 0.78,
+    })
+    data["pages"][0]["rhythmic_event_group_candidates"] = [{
+        "event_id": "staff-1-event-1", "staff_index": 0,
+        "notehead_indices": [0, 1], "status": "proposed_chord",
+        "duration_candidate": "quarter", "duration_quarters_candidate": "1",
+        "voice_id_candidate": None,
+    }]
+    data["pages"][0]["staff_voice_layer_candidates"] = [{
+        "layer_id": "staff-1-layer-proposal-1", "staff_index": 0,
+        "upward_notehead_indices": [0], "downward_notehead_indices": [1],
+        "status": "proposed_independent_layers",
+    }]
+
+    package = build_review_package(data, score_id="score-event-review")
+    other = package["pages"][0]["other_candidates"]
+    event = next(item for item in other if item["family"] == "rhythmic_event_group")
+    layer = next(item for item in other if item["family"] == "staff_voice_layer")
+
+    assert event["related_candidate_ids"] == [
+        "p1-filled_notehead-1", "p1-filled_notehead-2", "p1-staff-1"
+    ]
+    assert layer["related_candidate_ids"] == [
+        "p1-filled_notehead-1", "p1-filled_notehead-2", "p1-staff-1"
+    ]
+    assert event["review_status"] == layer["review_status"] == "pending"
+    assert event["decision"] is layer["decision"] is None
+
+
+def test_review_package_rejects_event_group_linking_other_staff_noteheads():
+    data = sample_analysis()
+    data["pages"][0]["rhythmic_event_group_candidates"] = [{
+        "event_id": "invalid-event", "staff_index": 0,
+        "notehead_indices": [0], "status": "single_note_candidate",
+    }]
+    # La única cabeza rellena pertenece al pentagrama 0; cambiar la referencia
+    # del grupo a otro pentagrama debe rechazarse.
+    data["pages"][0]["rhythmic_event_group_candidates"][0]["staff_index"] = 1
+    with pytest.raises(ValueError, match="pentagramas distintos"):
+        build_review_package(data, score_id="score-invalid-event-review")
