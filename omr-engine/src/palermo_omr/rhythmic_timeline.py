@@ -208,3 +208,24 @@ def analyze_measure_timeline(
         maximum_known_end_quarters=maximum_end,
         status=status,
     )
+
+
+def analyze_ordered_measure_voices(
+    sequences,
+    numerator: int,
+    denominator: int,
+    *,
+    measure_index: int,
+) -> MeasureTimelineAnalysis:
+    """Reconstruye y valida una línea temporal desde secuencias independientes.
+
+    Cada secuencia representa una voz ya revisada en orden musical. Los inicios
+    se derivan sumando duraciones dentro de cada voz; después se combinan para
+    detectar ataques simultáneos y solapamientos sin sincronizar por píxeles.
+    """
+    from .voice_sequence_timing import derive_measure_voice_sequences
+
+    events = derive_measure_voice_sequences(sequences)
+    return analyze_measure_timeline(
+        events, numerator, denominator, measure_index=measure_index
+    )
