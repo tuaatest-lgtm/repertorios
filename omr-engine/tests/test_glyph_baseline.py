@@ -18,6 +18,7 @@ def test_nearest_centroid_trains_only_on_train_scores_and_predicts_validation(tm
             {"score_id": "s1", "candidate_id": "b", "label": "sharp", "feature_vector": [0.2, 0.0]},
             {"score_id": "s2", "candidate_id": "c", "label": "flat", "feature_vector": [10.0, 10.0]},
             {"score_id": "s2", "candidate_id": "d", "label": "flat", "feature_vector": [9.8, 10.0]},
+            {"score_id": "s3", "candidate_id": "e", "label": "sharp", "feature_vector": [0.1, 0.0]},
         ],
     }
     split = {
@@ -32,10 +33,6 @@ def test_nearest_centroid_trains_only_on_train_scores_and_predicts_validation(tm
             {"score_id": "s3", "candidate_id": "e", "label": "sharp"},
         ],
     }
-    features["records"].append(
-        {"score_id": "s3", "candidate_id": "e", "label": "sharp", "feature_vector": [0.1, 0.0]}
-    )
-    # Rebalance to ensure standardization and centroids are computed on training only.
     fp = write(tmp_path / "features.json", features)
     sp = write(tmp_path / "split.json", split)
     result = predict_glyphs_nearest_centroid(fp, sp)
@@ -70,5 +67,14 @@ def test_rejects_invalid_feature_values(tmp_path):
     features = {"feature_schema": FEATURE_SCHEMA, "records": [
         {"score_id": "s1", "candidate_id": "a", "label": "sharp", "feature_vector": [float("nan")]},
     ]}
+    split = {
+        "split_method": "deterministic_group_by_score",
+        "train_score_ids": ["s1"], "validation_score_ids": ["s2"],
+        "train": [{"score_id": "s1", "candidate_id": "a", "label": "sharp"}],
+        "validation": [{"score_id": "s2", "candidate_id": "b", "label": "sharp"}],
+    }
     with pytest.raises(ValueError, match="no finito"):
-        predict_glyphs_nearest_centroid(write(tmp_path / "features.json", features), tmp_path / "missing.json")
+        predict_glyphs_nearest_centroid(
+            write(tmp_path / "features.json", features),
+            write(tmp_path / "split.json", split),
+        )
