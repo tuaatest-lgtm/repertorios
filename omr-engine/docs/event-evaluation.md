@@ -28,7 +28,7 @@ El informe separa:
 
 - precisión, recall y F1 de detección de eventos;
 - exactitud de tipo de evento;
-- exactitud de conjunto completo de alturas (incluidos acordes);
+- exactitud de conjunto completo de alturas (incluidos acordes), calculada solo sobre eventos cuya referencia es una nota; los silencios no tienen altura y no inflan esta métrica;
 - exactitud de duración;
 - exactitud de asignación de voz;
 - error medio absoluto del inicio.
