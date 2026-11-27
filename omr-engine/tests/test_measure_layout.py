@@ -216,3 +216,21 @@ def test_group_system_barlines_uses_supplied_connector_systems():
     assert len(result) == 1
     assert result[0].staff_indices == [0, 1]
     assert result[0].support_count == 2
+
+
+
+def test_detect_staff_systems_from_connectors_ignores_page_edge_border():
+    from palermo_omr.measure_layout import detect_staff_systems_from_connectors
+
+    binary = np.full((240, 320), 255, dtype=np.uint8)
+    staves = [
+        StaffCandidate([40, 50, 60, 70, 80], 10, 1.0),
+        StaffCandidate([150, 160, 170, 180, 190], 10, 1.0),
+    ]
+    for staff in staves:
+        for y in staff.lines_y:
+            cv2.line(binary, (40, y), (300, y), 0, 1)
+    cv2.line(binary, (0, 35), (0, 195), 0, 2)
+
+    systems = detect_staff_systems_from_connectors(staves, binary)
+    assert [item.staff_indices for item in systems] == [[0], [1]]
