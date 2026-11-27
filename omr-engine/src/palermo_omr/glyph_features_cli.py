@@ -1,4 +1,4 @@
-"""Exporta descriptores de glifos etiquetados para experimentación reproducible."""
+"""Exporta descriptores de glifos etiquetados o pendientes de revisión."""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +15,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("manifests", nargs="+", help="Manifiestos de glifos")
     parser.add_argument("--crop-root", required=True, help="Raíz que contiene las rutas crop_file")
     parser.add_argument("--output", required=True, help="JSON de descriptores")
+    parser.add_argument(
+        "--include-pending", action="store_true",
+        help="Incluye recortes pendientes sin etiqueta para inferencia; nunca los usa como entrenamiento",
+    )
     args = parser.parse_args(argv)
     try:
         records = []
@@ -23,7 +27,8 @@ def main(argv: list[str] | None = None) -> int:
             manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
             validate_glyph_manifest_data(manifest)
             for glyph in manifest["glyphs"]:
-                if glyph["label_status"] != "labeled_by_human":
+                labeled = glyph["label_status"] == "labeled_by_human"
+                if not labeled and not args.include_pending:
                     continue
                 key = (manifest["score_id"], glyph["candidate_id"])
                 if key in seen:
@@ -36,12 +41,13 @@ def main(argv: list[str] | None = None) -> int:
                     "candidate_id": glyph["candidate_id"],
                     "page_number": glyph["page_number"],
                     "staff_index": glyph["staff_index"],
-                    "label": glyph["label"],
+                    "label": glyph["label"] if labeled else None,
+                    "label_status": glyph["label_status"],
                     "crop_file": glyph["crop_file"],
                     **descriptor,
                 })
         if not records:
-            raise ValueError("No hay glifos etiquetados para extraer descriptores")
+            raise ValueError("No hay recortes elegibles para extraer descriptores")
         output = {
             "schema_version": "1.0",
             "feature_schema": FEATURE_SCHEMA,
