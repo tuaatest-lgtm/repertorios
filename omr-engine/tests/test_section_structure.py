@@ -708,3 +708,40 @@ def test_global_measure_sequence_keeps_missing_bar_spans_ambiguous():
     )
     assert len(long_staff_reference["possible_global_measure_candidates"]) == 2
     assert result["ambiguous_staff_interval_count"] == 1
+
+
+
+def test_section_boundary_preserves_possible_measures_for_ambiguous_missing_bar_span():
+    from palermo_omr.section_structure import resolve_section_range_boundaries
+
+    result = resolve_section_range_boundaries(
+        [{
+            "section_range_id": "section-missing-bar",
+            "start": {
+                "page_number": 1,
+                "measure_anchors": [{
+                    "staff_index": 0,
+                    "measure_index_on_staff": 1,
+                    "position_ratio_in_interval": 0.5,
+                    "confidence": 0.6,
+                    "vertical_distance_px": 0,
+                }],
+            },
+            "end": None,
+        }],
+        {"staff_measure_map": [{
+            "page_number": 1,
+            "staff_index": 0,
+            "measure_index_on_staff": 1,
+            "global_measure_candidate": None,
+            "alignment_status": "ambiguous_spans_multiple_measure_candidates",
+            "staff_support": 0,
+            "possible_global_measure_candidates": [4, 5],
+        }]},
+    )
+    boundary = result[0]["start"]["musical_boundary_candidate"]
+    assert boundary["global_measure_candidate"] is None
+    assert boundary["global_alignment_status"] == (
+        "ambiguous_spans_multiple_measure_candidates"
+    )
+    assert boundary["possible_global_measure_candidates"] == [4, 5]
