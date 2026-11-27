@@ -130,3 +130,30 @@ def test_global_section_ranges_ignore_input_page_order():
     assert ranges[0]["end"]["page_number"] == 2
     assert ranges[1]["section_name"] == "FINAL"
 
+def test_anchors_section_marker_to_local_measure_interval():
+    from palermo_omr.section_structure import anchor_section_markers_to_measure_spans
+
+    anchors = anchor_section_markers_to_measure_spans(
+        [{"center_x_px": 100, "center_y_px": 120}],
+        [StaffCandidate([100, 110, 120, 130, 140], 10, 1)],
+        [_span()],
+    )
+    assert len(anchors) == 1
+    assert anchors[0]["marker_index"] == 0
+    assert anchors[0]["staff_index"] == 0
+    assert anchors[0]["measure_index_on_staff"] == 1
+    assert anchors[0]["position_ratio_in_interval"] == 0.5
+    assert anchors[0]["relation"] == "inside_interval"
+    assert anchors[0]["review_status"] == "pending"
+
+
+def test_anchor_rejects_marker_far_from_measure_intervals():
+    from palermo_omr.section_structure import anchor_section_markers_to_measure_spans
+
+    anchors = anchor_section_markers_to_measure_spans(
+        [{"center_x_px": 500, "center_y_px": 120}],
+        [StaffCandidate([100, 110, 120, 130, 140], 10, 1)],
+        [_span()],
+    )
+    assert anchors == []
+
