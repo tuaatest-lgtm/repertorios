@@ -321,8 +321,11 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     for page in source_pages:
         if not isinstance(page, dict):
             raise ValueError("Cada página debe ser un objeto")
+        page_staves = page.get("staves", [])
         systems = page.get("staff_system_candidates", [])
         system_barlines = page.get("system_barline_candidates", [])
+        if not isinstance(page_staves, list):
+            raise ValueError("staves debe ser una lista")
         grouping_marks = page.get("staff_grouping_mark_candidates", [])
         identity_evidence = page.get("staff_identity_evidence", [])
         if not isinstance(systems, list):
@@ -348,6 +351,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
                 for index in indices
             ):
                 raise ValueError("staff_indices debe contener índices enteros no negativos")
+            if any(index >= len(page_staves) for index in indices):
+                raise ValueError("staff_indices referencia un pentagrama inexistente")
             system_candidates.append(system)
         system_barline_count += len(system_barlines)
         grouping_mark_count += len(grouping_marks)
