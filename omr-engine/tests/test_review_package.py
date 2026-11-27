@@ -374,3 +374,20 @@ def test_review_summary_counts_partial_and_adjacent_section_boundaries():
     assert summary["inside_measure_section_boundary_candidate_count"] == 1
     assert summary["before_measure_section_boundary_candidate_count"] == 0
     assert summary["after_measure_section_boundary_candidate_count"] == 1
+
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("staff_system_candidates", "bad", "staff_system_candidates"),
+        ("system_barline_candidates", "bad", "system_barline_candidates"),
+        ("staff_grouping_mark_candidates", ["bad"], "marca de agrupación"),
+        ("staff_identity_evidence", ["bad"], "evidencia de identidad"),
+    ],
+)
+def test_review_package_rejects_malformed_staff_review_evidence(field, value, message):
+    data = sample_analysis()
+    data["pages"][0][field] = value
+    with pytest.raises(ValueError, match=message):
+        build_review_package(data, score_id="score-invalid-staff-evidence")
