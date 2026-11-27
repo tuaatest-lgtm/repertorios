@@ -41,6 +41,8 @@ def sample_analysis():
             "staff_system_candidates": [{"staff_indices": [0, 1]}],
             "measure_span_candidates": [{"staff_index": 0, "measure_index": 0}],
             "staff_grouping_mark_candidates": [{"kind": "curly_brace_candidate", "staff_indices": [0, 1]}],
+            "printed_label_candidates": [{"text": "Soprano", "association_status": "associated_candidate", "staff_index": 0}],
+            "staff_identity_evidence": [{"evidence_id": "label-1", "staff_id": "p1-staff-1", "kind": "printed_voice_label", "source": "visual_candidate"}],
             "notehead_overlay": "page-001-noteheads-overlay.png",
             "hollow_notehead_overlay": "page-001-hollow-noteheads-overlay.png",
             "geometry_overlay": "page-001-geometry-overlay.png",
@@ -52,7 +54,7 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     package = build_review_package(sample_analysis(), score_id="score-01")
     assert package["summary"] == {
         "page_count": 1, "notehead_candidate_count": 2,
-        "other_candidate_count": 11, "pending_count": 13,
+        "other_candidate_count": 13, "pending_count": 15,
     }
     filled, hollow = package["pages"][0]["notehead_candidates"]
     assert filled["rhythm_hypothesis"]["base_duration"] == "quarter"
@@ -113,7 +115,7 @@ def test_prepare_review_cli_runs_end_to_end_and_keeps_candidates_pending(tmp_pat
     assert "requieren revisión humana" in captured.out
     package = json.loads(output.read_text(encoding="utf-8"))
     assert package["score_id"] == "score-cli"
-    assert package["summary"]["pending_count"] == 13
+    assert package["summary"]["pending_count"] == 15
     assert all(
         candidate["review_status"] == "pending" and candidate["decision"] is None
         for page in package["pages"]
@@ -135,6 +137,7 @@ def test_review_package_includes_relationship_and_measure_geometry_candidates():
     assert {
         "beam_group", "barline_group", "system_barline",
         "staff_system", "measure_span", "staff_grouping_mark",
+        "printed_label", "staff_identity_evidence",
     } <= families
     assert all(
         item["review_status"] == "pending" and item["decision"] is None
@@ -170,6 +173,9 @@ def test_review_package_includes_relationship_and_measure_geometry_candidates():
         ("rest_shape_candidates", {"staff_index": True}),
         ("staff_grouping_mark_candidates", {"staff_indices": [0, 3]}),
         ("staff_grouping_mark_candidates", {"staff_indices": [0, 0]}),
+        ("printed_label_candidates", {"association_status": "associated_candidate", "staff_index": 9}),
+        ("printed_label_candidates", {"association_status": "unknown"}),
+        ("staff_identity_evidence", {"staff_id": "missing-staff"}),
     ],
 )
 def test_review_package_rejects_broken_candidate_references(family_key, candidate):
