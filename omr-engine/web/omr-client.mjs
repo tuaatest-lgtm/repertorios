@@ -61,8 +61,10 @@ export class PalermoOMRClient {
       if (status.status === "completed") return this.getResult(jobId, { signal });
       if (status.status === "failed") throw new PalermoOMRError(status.error?.message || "El análisis OMR falló", 422, status.error || status);
       await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, delay);
-        signal?.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Operación cancelada", "AbortError")); }, { once: true });
+        const cleanup = () => signal?.removeEventListener("abort", onAbort);
+        const timer = setTimeout(() => { cleanup(); resolve(); }, delay);
+        const onAbort = () => { clearTimeout(timer); cleanup(); reject(new DOMException("Operación cancelada", "AbortError")); };
+        signal?.addEventListener("abort", onAbort, { once: true });
       });
       delay = Math.min(Math.ceil(delay * 1.5), this.maxPollIntervalMs);
     }

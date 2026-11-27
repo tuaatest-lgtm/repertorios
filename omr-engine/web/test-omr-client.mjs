@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PalermoOMRClient, PalermoOMRError } from "./omr-client.js";
+import { PalermoOMRClient, PalermoOMRError } from "./omr-client.mjs";
 
 test("rechaza archivos que no sean PDF antes de llamar a la API", async () => {
   let called = false;
