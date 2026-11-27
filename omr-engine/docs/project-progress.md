@@ -7,25 +7,24 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 63%
-- **Avance estimado actual:** 64%
+- **Avance estimado anterior:** 64%
+- **Avance estimado actual:** 65%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 36%
+- **Trabajo restante estimado:** 35%
 
-El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce que las marcas de agrupación de pentagramas ya recorren la CLI, el overlay y el paquete de revisión humana, con pruebas automatizadas aprobadas. No reconoce precisión musical nueva sobre partituras reales.
+El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce que las etiquetas musicales disponibles en la capa de texto PDF y las marcas de agrupación recorren la CLI, se unifican como evidencia por página y llegan al paquete de revisión humana con referencias verificadas a pentagramas. No reconoce precisión musical nueva sobre partituras reales ni OCR de páginas escaneadas.
 
 ## Evolución por aspecto
 
 | Aspecto | Anterior | Actual | Evidencia del cambio |
 |---|---:|---:|---|
-| Detección geométrica y símbolos | 56% | 56% | Las marcas de agrupación ya se ejecutan desde la CLI y quedan en el análisis por página. |
+| Detección geométrica y símbolos | 56% | 57% | La CLI extrae también etiquetas impresas desde la capa de texto PDF, además de las marcas de agrupación. |
 | Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
-| Paquete de revisión humana | 92% | 93% | El paquete incorpora marcas de agrupación pendientes y valida sus referencias a pentagramas. |
-| Evidencia visual y overlays | 88% | 88% | El overlay ahora representa llaves, corchetes y marcas verticales con etiquetas explícitas de candidato. |
+| Paquete de revisión humana | 93% | 95% | El paquete incorpora etiquetas impresas y evidencias combinadas de identidad, enlazadas con los pentagramas. |
+| Evidencia visual y overlays | 88% | 88% | Sin cambio: se conservan overlays candidatos, pero no se añadió una nueva familia visual en este corte. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 0% | Sin cambio: el motor todavía no se ha ejecutado y evaluado de extremo a extremo sobre el PDF coral de referencia en un entorno reproducible. |
-
-| Modelo de identidad de pentagramas | 58% | 59% | La marca detectada puede convertirse en evidencia visual por cada pentagrama, sin proponer una asignación automática. |
+| Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -35,9 +34,12 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - El overlay geométrico representa las marcas candidatas como `BRACE?`, `BRACKET?` o `GROUP?`; no las presenta como relaciones musicales confirmadas.
 - El paquete de revisión humana incluye la familia `staff_grouping_mark`, mantiene cada candidato pendiente y valida los índices de pentagrama asociados.
 - `staff_grouping_adapter` convierte marcas curvas, corchetes y trazos verticales en evidencias de identidad ligadas a cada pentagrama. La evidencia mantiene `source=visual_candidate`; no crea partes, voces ni asignaciones.
+- `identity_evidence.build_page_identity_evidence` combina la evidencia de etiquetas impresas y marcas de agrupación por página. La CLI incorpora etiquetas extraíbles desde el texto PDF y guarda candidatos y evidencias en `analysis.json`.
+- El paquete de revisión conserva las etiquetas y evidencias de identidad, valida sus referencias a pentagramas y las mantiene pendientes.
 - Se añadieron pruebas para la integración en overlay y paquete de revisión, incluidos índices inexistentes y duplicados.
 - CI del recorrido CLI/overlay/revisión: ejecución [45903752937](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903752937), commit `45eee72cef309f49cc376594f57ef679afabf7c8`, resultado exitoso: **312 pruebas aprobadas**.
-- CI del adaptador de evidencia y documentación actual: ejecución [45903872219](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903872219), commit `afb236bd3c109c766e6853c72d34d50303954826`, resultado exitoso: **317 pruebas aprobadas**.
+- CI del adaptador de evidencia: ejecución [45903872219](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903872219), commit `afb236bd3c109c766e6853c72d34d50303954826`, resultado exitoso: **317 pruebas aprobadas**.
+- CI de evidencia combinada y paquete de revisión: ejecución [45933249039](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933249039), commit `0079fb041dcc65c3da2f7b601e8607418911bcf9`, resultado exitoso: **322 pruebas aprobadas**. La integración de CLI quedó aprobada también en [45933208974](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933208974).
 
 ## Límites que siguen abiertos
 
