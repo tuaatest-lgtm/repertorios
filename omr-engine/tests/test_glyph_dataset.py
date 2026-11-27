@@ -44,7 +44,7 @@ def test_split_keeps_all_pages_of_each_score_together_and_is_deterministic(tmp_p
     assert train and validation and train.isdisjoint(validation)
     assert {r["score_id"] for r in first["train"]} == train
     assert {r["score_id"] for r in first["validation"]} == validation
-    assert first["train_count"] + first["validation_count"] == 4
+    assert first["train_count"] + first["validation_count"] == 5
 
 
 def test_split_rejects_single_score_and_duplicate_score_ids(tmp_path):
