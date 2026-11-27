@@ -6,6 +6,7 @@ de cada evento, asignación explícita de voz y compás/métrica suministrados.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any
 
 from .rhythmic_event_groups import (
@@ -88,6 +89,21 @@ def build_reviewed_page_timelines(
             confirmed_event_ids=set(confirmed),
             event_dot_counts=dot_counts,
         )
+        order_map = measure.get("event_order_indices")
+        if order_map is not None:
+            if not isinstance(order_map, Mapping) or set(order_map) != set(confirmed):
+                raise ValueError(
+                    "event_order_indices debe asignar exactamente un orden a cada nota confirmada"
+                )
+            normalized_order = {}
+            for event_id, order_index in order_map.items():
+                if not isinstance(order_index, int) or isinstance(order_index, bool) or order_index < 0:
+                    raise ValueError("Cada event_order_index debe ser un entero no negativo")
+                normalized_order[event_id] = order_index
+            events = tuple(
+                replace(event, order_index=normalized_order[event.event_id])
+                for event in events
+            )
         # Los silencios también ocupan tiempo dentro de una voz. Se integran
         # solo si la revisión aporta candidato, tipo, voz, orden y duración.
         raw_rest_assignments = measure.get("rest_assignments", [])

@@ -142,9 +142,10 @@ def test_reviewed_rest_is_placed_in_the_same_polyphonic_timeline():
             "measure_index": 0, "numerator": 4, "denominator": 4,
             "confirmed_event_ids": ["n1", "n2"],
             "event_voice_ids": {"n1": "soprano", "n2": "soprano"},
+            "event_order_indices": {"n1": 0, "n2": 2},
             "rest_assignments": [{
                 "candidate_index": 0, "event_id": "r1", "voice_id": "soprano",
-                "measure_index": 0, "order_index": 2, "duration_quarters": "1",
+                "measure_index": 0, "order_index": 1, "duration_quarters": "1",
                 "confirmed_rest_type": "quarter", "reviewer_confirmed": True,
             }],
         }],
@@ -152,7 +153,7 @@ def test_reviewed_rest_is_placed_in_the_same_polyphonic_timeline():
     timeline = result[0]
     assert [(event["event_id"], event["event_type"], event["onset_quarters"])
             for event in timeline["events"]] == [
-        ("n1", "note", "0"), ("n2", "note", "1"), ("r1", "rest", "2"),
+        ("n1", "note", "0"), ("r1", "rest", "1"), ("n2", "note", "2"),
     ]
 
 
@@ -178,3 +179,33 @@ def test_reviewed_rest_cannot_be_reused_in_two_measures():
     with pytest.raises(ValueError, match="reutilizarse"):
         build_reviewed_page_timelines(groups, {"page_number": 1, "measures": measures},
                                       rest_candidates=[rest])
+
+
+
+def test_event_order_indices_allow_reviewed_rest_between_notes():
+    groups = [group("n1", 0, 10, indices=(0,)), group("n2", 0, 30, indices=(1,))]
+    result = build_reviewed_page_timelines(groups, {
+        "page_number": 1,
+        "measures": [{
+            "measure_index": 0, "numerator": 4, "denominator": 4,
+            "confirmed_event_ids": ["n1", "n2"],
+            "event_voice_ids": {"n1": "soprano", "n2": "soprano"},
+            "event_order_indices": {"n1": 0, "n2": 2},
+        }],
+    })
+    assert [(event["event_id"], event["onset_quarters"])
+            for event in result[0]["events"]] == [("n1", "0"), ("n2", "1")]
+
+
+def test_event_order_indices_must_cover_each_confirmed_note_exactly_once():
+    groups = [group("n1", 0, 10, indices=(0,)), group("n2", 0, 30, indices=(1,))]
+    with pytest.raises(ValueError, match="exactamente un orden"):
+        build_reviewed_page_timelines(groups, {
+            "page_number": 1,
+            "measures": [{
+                "measure_index": 0, "numerator": 4, "denominator": 4,
+                "confirmed_event_ids": ["n1", "n2"],
+                "event_voice_ids": {"n1": "soprano", "n2": "soprano"},
+                "event_order_indices": {"n1": 0},
+            }],
+        })
