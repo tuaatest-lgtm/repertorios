@@ -142,3 +142,15 @@ def test_section_review_requires_summary_object():
             [{"section_range_id": "section-1", "decision": "rejected"}],
             human_review_confirmed=True,
         )
+
+
+
+def test_section_review_rejects_unknown_existing_review_status():
+    package = sample_package()
+    package["global_section_range_candidates"][0]["review_status"] = "maybe"
+    with pytest.raises(ValueError, match="estado de revisión inválido"):
+        apply_section_range_decisions(
+            package,
+            [{"section_range_id": "section-1", "decision": "rejected"}],
+            human_review_confirmed=True,
+        )
