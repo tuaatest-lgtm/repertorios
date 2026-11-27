@@ -24,11 +24,11 @@ def group(event_id, staff, center_x, duration="quarter", status="single_note_can
 
 def test_builds_polyrhythmic_timeline_from_explicit_voice_review():
     groups = [
-        group("s1", 0, 10),
-        group("s2", 0, 30),
-        group("a1", 1, 10),
-        group("a2", 1, 20),
-        group("a3", 1, 30),
+        group("s1", 0, 10, indices=(0,)),
+        group("s2", 0, 30, indices=(1,)),
+        group("a1", 1, 10, indices=(0,)),
+        group("a2", 1, 20, indices=(1,)),
+        group("a3", 1, 30, indices=(2,)),
     ]
     result = build_reviewed_page_timelines(groups, {
         "page_number": 1,
