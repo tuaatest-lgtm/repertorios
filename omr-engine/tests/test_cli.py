@@ -42,3 +42,39 @@ def test_cli_exports_printed_labels_and_identity_evidence_for_review(tmp_path, m
     other = package["pages"][0]["other_candidates"]
     assert any(item["family"] == "printed_label" for item in other)
     assert any(item["family"] == "staff_identity_evidence" for item in other)
+
+
+
+def test_cli_exports_dictionary_section_anchors(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "synthetic-section-score.pdf"
+    document = fitz.open()
+    page = document.new_page(width=612, height=792)
+    page.insert_text((100, 250), "Coro", fontsize=12)
+    for y in (250, 255, 260, 265, 270):
+        page.draw_line((100, y), (550, y), color=(0, 0, 0), width=0.7)
+    document.save(pdf_path)
+    document.close()
+
+    monkeypatch.setattr(
+        "palermo_omr.cli.anchor_section_markers_to_measure_spans",
+        lambda *args: [{
+            "marker_index": 0,
+            "staff_index": 0,
+            "measure_index_on_staff": 1,
+            "position_ratio_in_interval": 0.5,
+            "review_status": "pending",
+            "warning": "synthetic anchor",
+        }],
+    )
+    output_dir = tmp_path / "section-output"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["palermo-omr", str(pdf_path), "--output", str(output_dir), "--dpi", "72"],
+    )
+
+    assert main() == 0
+    analysis = json.loads((output_dir / "analysis.json").read_text(encoding="utf-8"))
+    page_data = analysis["pages"][0]
+    assert page_data["section_measure_anchor_candidate_count"] == 1
+    assert page_data["section_measure_anchor_candidates"][0]["position_ratio_in_interval"] == 0.5
