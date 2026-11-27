@@ -272,6 +272,7 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
                 "center_y_px": marker.get("center_y_px"),
                 "page_width_px": marker.get("page_width_px"),
                 "page_height_px": marker.get("page_height_px"),
+                "source_marker": marker,
             })
 
     # Un rótulo repetido en la misma coordenada de la franja superior
@@ -315,7 +316,22 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
             and isinstance(y, (int, float)) and y / height <= 0.08
             and not marker.get("measure_anchors")
         )
-        if key not in repeated_header_keys and not top_unanchored:
+        source_marker = marker["source_marker"]
+        if key in repeated_header_keys:
+            source_marker["global_boundary_status"] = "excluded_repeated_page_header_candidate"
+            source_marker["global_boundary_reason"] = (
+                "Rótulo repetido en la misma posición superior de varias páginas; "
+                "se conserva como candidato local, pero no divide rangos globales."
+            )
+        elif top_unanchored:
+            source_marker["global_boundary_status"] = "excluded_unanchored_top_margin_candidate"
+            source_marker["global_boundary_reason"] = (
+                "Rótulo en el margen superior sin ancla geométrica a un intervalo; "
+                "se conserva para revisión local, pero no divide rangos globales."
+            )
+        else:
+            source_marker["global_boundary_status"] = "eligible_candidate"
+            source_marker["global_boundary_reason"] = None
             filtered_markers.append(marker)
 
     ranges = []
