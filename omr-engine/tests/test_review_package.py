@@ -68,6 +68,8 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "cross_staff_aligned_measure_candidate_count": 0,
         "single_staff_only_measure_candidate_count": 1,
         "global_measure_sequence_scope": "unknown",
+        "system_barline_candidate_count": 1,
+        "global_measure_sequence_scope": "unknown",
         "system_barline_candidate_count": 0,
         "global_section_range_candidate_count": 0,
         "pending_global_section_range_candidate_count": 0,
