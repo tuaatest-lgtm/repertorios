@@ -312,31 +312,51 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     if not isinstance(measure_sequence_scope, str) or not measure_sequence_scope:
         raise ValueError("sequence_scope debe ser texto no vacío")
     source_pages = analysis.get("pages", [])
-    system_barline_count = sum(
-        len(page.get("system_barline_candidates", []))
-        for page in source_pages if isinstance(page, dict)
-        and isinstance(page.get("system_barline_candidates", []), list)
-    )
-    system_candidates = [
-        system for page in source_pages if isinstance(page, dict)
-        for system in page.get("staff_system_candidates", [])
-        if isinstance(system, dict)
-    ]
+    if not isinstance(source_pages, list):
+        raise ValueError("pages debe ser una lista")
+    system_candidates = []
+    system_barline_count = 0
+    grouping_mark_count = 0
+    identity_evidence_count = 0
+    for page in source_pages:
+        if not isinstance(page, dict):
+            raise ValueError("Cada página debe ser un objeto")
+        systems = page.get("staff_system_candidates", [])
+        system_barlines = page.get("system_barline_candidates", [])
+        grouping_marks = page.get("staff_grouping_mark_candidates", [])
+        identity_evidence = page.get("staff_identity_evidence", [])
+        if not isinstance(systems, list):
+            raise ValueError("staff_system_candidates debe ser una lista")
+        if not isinstance(system_barlines, list):
+            raise ValueError("system_barline_candidates debe ser una lista")
+        if not isinstance(grouping_marks, list):
+            raise ValueError("staff_grouping_mark_candidates debe ser una lista")
+        if not isinstance(identity_evidence, list):
+            raise ValueError("staff_identity_evidence debe ser una lista")
+        if any(not isinstance(item, dict) for item in systems):
+            raise ValueError("Cada sistema candidato debe ser un objeto")
+        if any(not isinstance(item, dict) for item in system_barlines):
+            raise ValueError("Cada compás compartido candidato debe ser un objeto")
+        if any(not isinstance(item, dict) for item in grouping_marks):
+            raise ValueError("Cada marca de agrupación debe ser un objeto")
+        if any(not isinstance(item, dict) for item in identity_evidence):
+            raise ValueError("Cada evidencia de identidad debe ser un objeto")
+        for system in systems:
+            indices = system.get("staff_indices", [])
+            if not isinstance(indices, list) or any(
+                not isinstance(index, int) or isinstance(index, bool) or index < 0
+                for index in indices
+            ):
+                raise ValueError("staff_indices debe contener índices enteros no negativos")
+            system_candidates.append(system)
+        system_barline_count += len(system_barlines)
+        grouping_mark_count += len(grouping_marks)
+        identity_evidence_count += len(identity_evidence)
     multi_staff_system_count = sum(
         len(system.get("staff_indices", [])) >= 2
         for system in system_candidates
     )
     single_staff_system_count = len(system_candidates) - multi_staff_system_count
-    grouping_mark_count = sum(
-        len(page.get("staff_grouping_mark_candidates", []))
-        for page in source_pages if isinstance(page, dict)
-        and isinstance(page.get("staff_grouping_mark_candidates", []), list)
-    )
-    identity_evidence_count = sum(
-        len(page.get("staff_identity_evidence", []))
-        for page in source_pages if isinstance(page, dict)
-        and isinstance(page.get("staff_identity_evidence", []), list)
-    )
     eligible_section_markers = sum(
         status == "eligible_candidate" for status in section_marker_statuses
     )
