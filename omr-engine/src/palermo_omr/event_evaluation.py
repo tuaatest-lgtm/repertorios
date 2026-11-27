@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from fractions import Fraction
+from heapq import heappop, heappush
 from math import isfinite
 
 
@@ -218,31 +219,36 @@ def evaluate_score_events(
     for reference_index in range(reference_count):
         add_edge(reference_offset + reference_index, sink, 1, Fraction(0))
 
+    # Los potenciales mantienen costos reducidos no negativos y permiten
+    # usar Dijkstra en cada aumento, evitando Bellman-Ford sobre todo el grafo.
+    potentials = [Fraction(0)] * len(graph)
     while True:
         distances: list[Fraction | None] = [None] * len(graph)
         previous_edges: list[tuple[int, int] | None] = [None] * len(graph)
         distances[source] = Fraction(0)
+        queue: list[tuple[Fraction, int]] = [(Fraction(0), source)]
 
-        # Bellman-Ford admite los costos negativos de las aristas residuales.
-        for _ in range(len(graph) - 1):
-            changed = False
-            for start, edges in enumerate(graph):
-                if distances[start] is None:
+        while queue:
+            distance, start = heappop(queue)
+            if distances[start] != distance:
+                continue
+            for edge_index, edge in enumerate(graph[start]):
+                end, _, capacity, cost = edge
+                if capacity <= 0:
                     continue
-                for edge_index, edge in enumerate(edges):
-                    end, _, capacity, cost = edge
-                    if capacity <= 0:
-                        continue
-                    candidate = distances[start] + cost
-                    if distances[end] is None or candidate < distances[end]:
-                        distances[end] = candidate
-                        previous_edges[end] = (start, edge_index)
-                        changed = True
-            if not changed:
-                break
+                reduced_cost = cost + potentials[start] - potentials[end]
+                candidate = distance + reduced_cost
+                if distances[end] is None or candidate < distances[end]:
+                    distances[end] = candidate
+                    previous_edges[end] = (start, edge_index)
+                    heappush(queue, (candidate, end))
 
         if previous_edges[sink] is None:
             break
+
+        for node, distance in enumerate(distances):
+            if distance is not None:
+                potentials[node] += distance
 
         node = sink
         while node != source:
