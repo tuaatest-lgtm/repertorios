@@ -65,6 +65,8 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "other_candidate_count": 13, "pending_count": 15,
         "global_measure_candidate_count": 1,
         "pending_global_measure_candidate_count": 1,
+        "cross_staff_aligned_measure_candidate_count": 0,
+        "single_staff_only_measure_candidate_count": 1,
         "global_section_range_candidate_count": 0,
         "pending_global_section_range_candidate_count": 0,
         "section_marker_candidate_count": 0,
@@ -271,3 +273,13 @@ def test_review_summary_counts_eligible_excluded_and_unclassified_section_marker
     assert summary["eligible_global_section_marker_candidate_count"] == 1
     assert summary["excluded_global_section_marker_candidate_count"] == 1
     assert summary["unclassified_global_section_marker_candidate_count"] == 1
+
+
+
+def test_review_summary_reports_cross_staff_and_single_staff_measure_counts():
+    data = sample_analysis()
+    data["global_measure_sequence"]["cross_staff_aligned_candidate_count"] = 1
+    data["global_measure_sequence"]["single_staff_only_candidate_count"] = 0
+    package = build_review_package(data, score_id="score-alignment-counts")
+    assert package["summary"]["cross_staff_aligned_measure_candidate_count"] == 1
+    assert package["summary"]["single_staff_only_measure_candidate_count"] == 0
