@@ -38,6 +38,7 @@ class MeasureTimelineAnalysis:
     unknown_onset_event_ids: tuple[str, ...]
     unknown_duration_event_ids: tuple[str, ...]
     out_of_measure_event_ids: tuple[str, ...]
+    overlapping_event_ids: tuple[str, ...]
     maximum_known_end_quarters: Fraction
     status: str
 
@@ -70,6 +71,7 @@ class MeasureTimelineAnalysis:
             "unknown_onset_event_ids": list(self.unknown_onset_event_ids),
             "unknown_duration_event_ids": list(self.unknown_duration_event_ids),
             "out_of_measure_event_ids": list(self.out_of_measure_event_ids),
+            "overlapping_event_ids": list(self.overlapping_event_ids),
             "maximum_known_end_quarters": str(self.maximum_known_end_quarters),
             "status": self.status,
         }
@@ -112,6 +114,8 @@ def analyze_measure_timeline(
     unknown_onsets: list[str] = []
     unknown_durations: list[str] = []
     overflow: list[str] = []
+    overlapping: set[str] = set()
+    placed_by_voice: dict[str, list[tuple[Fraction, Fraction, str]]] = {}
     grouped: dict[Fraction, list[str]] = {}
     maximum_end = Fraction(0, 1)
 
@@ -160,6 +164,18 @@ def analyze_measure_timeline(
             maximum_end = max(maximum_end, end)
             if end > expected and event.event_id not in overflow:
                 overflow.append(event.event_id)
+            placed_by_voice.setdefault(event.voice_id, []).append((onset, end, event.event_id))
+
+    # Distintos inicios que se solapan dentro de una misma voz son una
+    # contradicción temporal; ataques simultáneos se conservan como acordes.
+    for voice_events in placed_by_voice.values():
+        voice_events.sort(key=lambda item: (item[0], item[1], item[2]))
+        for index, (onset, end, event_id) in enumerate(voice_events):
+            for next_onset, next_end, next_id in voice_events[index + 1:]:
+                if next_onset >= end:
+                    break
+                if next_onset > onset and next_onset < end:
+                    overlapping.update((event_id, next_id))
 
     onset_groups = tuple(
         OnsetGroup(onset, tuple(sorted(event_ids)))
@@ -175,6 +191,7 @@ def analyze_measure_timeline(
     ))
     status = (
         "overfull" if overflow
+        else "overlapping_events" if overlapping
         else "incomplete_data" if unknown_onsets or unknown_durations
         else "placed_events_only"
     )
@@ -187,6 +204,7 @@ def analyze_measure_timeline(
         unknown_onset_event_ids=tuple(unknown_onsets),
         unknown_duration_event_ids=tuple(unknown_durations),
         out_of_measure_event_ids=tuple(overflow),
+        overlapping_event_ids=tuple(sorted(overlapping)),
         maximum_known_end_quarters=maximum_end,
         status=status,
     )

@@ -120,3 +120,38 @@ def test_rejects_non_numeric_time_values(bad_value):
             [TimedRhythmicEvent("bad", "alto", 0, bad_value, 1)],
             4, 4, measure_index=0,
         )
+
+
+def test_flags_overlapping_events_inside_the_same_voice_but_not_simultaneous_chord_attacks():
+    events = [
+        TimedRhythmicEvent("held", "soprano", 0, 0, 2),
+        TimedRhythmicEvent("chord-tone", "alto", 0, 0, 1),
+        TimedRhythmicEvent("next", "soprano", 0, 1, 1),
+    ]
+    result = analyze_measure_timeline(events, 4, 4, measure_index=0)
+
+    assert result.overlapping_event_ids == ("held", "next")
+    assert result.status == "overlapping_events"
+    assert result.onset_groups[0].event_ids == ("chord-tone", "held")
+
+
+def test_allows_independent_simultaneous_attacks_and_overlapping_durations_across_voices():
+    events = [
+        TimedRhythmicEvent("s-long", "soprano", 0, 0, 3),
+        TimedRhythmicEvent("a-short", "alto", 0, 0, 1),
+        TimedRhythmicEvent("a-next", "alto", 0, 1, 1),
+    ]
+    result = analyze_measure_timeline(events, 4, 4, measure_index=0)
+
+    assert result.overlapping_event_ids == ()
+    assert result.status == "placed_events_only"
+
+
+def test_serializes_overlapping_event_diagnostics():
+    events = [
+        TimedRhythmicEvent("first", "tenor", 0, 0, 2),
+        TimedRhythmicEvent("second", "tenor", 0, 1, 1),
+    ]
+    data = analyze_measure_timeline(events, 4, 4, measure_index=0).to_dict()
+    assert data["overlapping_event_ids"] == ["first", "second"]
+    assert data["status"] == "overlapping_events"

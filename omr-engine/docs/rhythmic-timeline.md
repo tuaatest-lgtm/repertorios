@@ -18,3 +18,9 @@ Esta capa no detecta notas, voces, compases, barras, ligaduras ni inicios tempor
 El estado `placed_events_only` significa que los eventos suministrados tienen posiciones y duraciones conocidas y caben en la extensión métrica; no demuestra que la partitura esté completa ni que no falten eventos. La capa no se conecta al CLI ni al motor Sonoro.
 
 Las notas ligadas deben consolidarse antes de crear eventos de ataque, para no contar una continuación como un nuevo ataque.
+
+## Detección de solapamientos incompatibles
+
+La línea temporal informa `overlapping_event_ids` cuando dos eventos con duración e inicio conocidos pertenecen a la misma voz, comienzan en instantes distintos y el segundo ataque ocurre antes de que termine el primero. Los ataques simultáneos no se marcan: pueden representar notas de un acorde. Tampoco se marcan solapamientos entre voces distintas, porque la polifonía exige que sus duraciones sean independientes.
+
+Esta comprobación detecta contradicciones en los datos temporales ya asignados; no decide automáticamente qué nota, duración o voz está equivocada. Los eventos con inicio o duración desconocidos quedan fuera de esta comprobación.
