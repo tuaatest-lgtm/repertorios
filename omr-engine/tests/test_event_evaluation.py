@@ -86,6 +86,24 @@ def test_chord_pitch_sets_are_compared_as_complete_tuples():
     assert partial.pitch_accuracy == 0.0
 
 
+
+def test_rest_events_do_not_inflate_note_pitch_accuracy():
+    result = evaluate_score_events(
+        [
+            event("ref-note", 0, kind="note", pitches=(60,)),
+            event("ref-rest", 1, kind="rest", pitches=()),
+        ],
+        [
+            event("pred-note", 0, kind="note", pitches=(62,)),
+            event("pred-rest", 1, kind="rest", pitches=()),
+        ],
+    )
+    assert result.true_positive == 2
+    # La altura incorrecta de la nota vale 0/1; el silencio no suma un acierto.
+    assert result.pitch_correct == 0
+    assert result.pitch_accuracy == 0.0
+
+
 def test_different_page_staff_or_measure_does_not_match():
     reference = [event("ref", 0)]
     for prediction in (
