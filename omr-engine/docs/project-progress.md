@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 74%
-- **Avance estimado actual:** 75%
+- **Avance estimado anterior:** 75%
+- **Avance estimado actual:** 76%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 25%
+- **Trabajo restante estimado:** 24%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. La ejecución real ahora agrupa sistemas mediante conectores verticales y logra alineación geométrica transversal parcial: 67 de 306 grupos de intervalos tienen soporte de dos pentagramas; 239 siguen sin pareja. Los ordinales y las posiciones siguen siendo candidatos, no números de compás musical confirmados. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
 
@@ -23,9 +23,9 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Paquete de revisión humana | 98% | 99% | El resumen también cuenta marcas de sección elegibles, excluidas y aún no clasificadas, sin cambiar su estado pendiente de revisión. |
 | Evidencia visual y overlays | 91% | 92% | Se inspeccionaron los overlays generados en las tres páginas reales y se documentaron las principales confusiones visuales. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
-| Validación integral con partituras | 12% | 13% | La ejecución real ahora reconoce conectores verticales de sistemas, agrupa pentagramas por pares y exporta alineaciones transversales parciales; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
+| Validación integral con partituras | 13% | 14% | La ejecución real también ancla las marcas de sección a todos los pentagramas del sistema y prioriza referencias con soporte transversal cuando existen; aún no hay anotación de referencia. |
 | Modelo de identidad de pentagramas | 61% | 62% | La detección de conectores de sistema genera 30 marcas de agrupación candidatas y 60 evidencias asociadas para revisión, sin asignar instrumentos ni voces. |
-| Estructura de secciones musicales | 64% | 66% | Los conectores verticales agrupan los pentagramas que pertenecen al mismo sistema; 67 de 306 intervalos globales son candidatos alineados entre dos pentagramas, mientras 239 siguen sin pareja. |
+| Estructura de secciones musicales | 66% | 67% | Las marcas se anclan a cada pentagrama del sistema y la resolución prioriza la referencia con soporte transversal; en el PDF real 1 de 5 extremos tiene soporte de dos pentagramas y 4 siguen siendo locales. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -77,6 +77,9 @@ CI de robustez de agrupación por pentagrama: ejecución [45939428989](https://g
 - Auditoría de alineación en la partitura real: los 373 intervalos detectados se ordenaron documentalmente, pero todos tienen `staff_support=1`; el resultado declara `sequence_scope=document_ordered_single_staff_intervals` y cero candidatos con alineación entre varios pentagramas. Los límites de sección conservan su referencia local y su fracción dentro del intervalo, pero `global_alignment_status=single_staff_only_unmatched`. Esto corrige explícitamente cualquier interpretación previa de esos ordinales como compases globales.
 - La implementación ahora distingue `cross_staff_alignment_candidate` de `single_staff_only_unmatched`, reduce la confianza de los intervalos sin soporte transversal y propaga ese estado hasta cada extremo de sección. Pruebas sintéticas verifican ambos casos.
 - CI de clasificación explícita de alineación transversal: ejecución [45941833646](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45941833646), commit `9620c340e81f0e08238eff75dda3095e60fb50a7`, **369 pruebas aprobadas**.
+- `anchor_section_markers_to_measure_spans` ahora conserva una ancla por cada pentagrama del sistema más cercano. `resolve_section_range_boundaries` prioriza una ancla con evidencia transversal cuando existe, sin descartar las demás referencias locales. En la ejecución real de `Clamaré a Dios - Coro`, el inicio de `INTRO` queda asociado a un intervalo con soporte de dos pentagramas; los otros cuatro extremos de los tres rangos siguen apoyados en un solo pentagrama.
+- El paquete de revisión cuenta ahora también la evidencia de los extremos: 5 límites musicales candidatos, 1 con soporte de dos pentagramas y 4 de un solo pentagrama. Los 3 rangos globales siguen pendientes de revisión humana.
+- CI de anclaje por sistema y selección de límites con soporte transversal: ejecución [45942991575](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45942991575), commit `752dfc8aea5db6b0a545f755007528b0d68b7a6b`, **377 pruebas aprobadas**. CI de resumen de soporte en límites de sección: ejecución [45943086403](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45943086403), commit `97ee6cbedefc5b99f8d5e43329bfea11f78e3f1b`, **378 pruebas aprobadas**.
 - La asociación de letras aisladas próximas a una sección se volvió más conservadora: baja la confianza a 0,30 e indica explícitamente que puede tratarse de cifrado armónico o texto editorial. El rango global conserva la letra solo como `unconfirmed_candidate`, nunca como identificador confirmado. Una prueba usa una `B` cercana al rótulo `Intro` para asegurar que la advertencia y la baja confianza se mantengan.
 - CI de ambigüedad de letras próximas a secciones: ejecución [45941352519](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45941352519), commit `5691a0cc6839960f2723526ff7551a51891a3b70`, **367 pruebas aprobadas**.
 - El resumen del paquete de revisión ahora incluye el total de marcas de sección y separa cuántas son elegibles para límites globales, cuántas se excluyeron por reglas conservadoras y cuántas siguen sin clasificar. Esto permite medir la cobertura de clasificación sin tratar ninguna marca como confirmada.
