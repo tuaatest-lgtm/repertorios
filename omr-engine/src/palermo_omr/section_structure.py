@@ -224,3 +224,78 @@ def detect_section_candidates(
             "section_identifier_candidates": identifiers,
             "section_range_candidates": ranges,
         }
+
+def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
+    """Enlaza marcas de sección en orden de página para proponer rangos globales.
+
+    Las páginas sin marcas no interrumpen una sección. El siguiente rótulo
+    encontrado cierra el rango anterior, aunque esté en otra página. El último
+    rango permanece abierto hasta el final de la partitura y requiere revisión.
+    """
+    ordered_pages = sorted(pages, key=lambda item: item.get("page_number", 0))
+    markers = []
+    for page in ordered_pages:
+        page_number = page.get("page_number")
+        if not isinstance(page_number, int) or page_number < 1:
+            raise ValueError("Cada página requiere page_number positivo")
+        page_markers = page.get("section_marker_candidates", [])
+        identifiers = page.get("section_identifier_candidates", [])
+        if not isinstance(page_markers, list) or not isinstance(identifiers, list):
+            raise ValueError("Las marcas e identificadores de sección deben ser listas")
+        for index, marker in enumerate(page_markers):
+            if not isinstance(marker, dict):
+                raise ValueError("Cada marca de sección debe ser un objeto")
+            linked = [
+                item for item in identifiers
+                if isinstance(item, dict) and item.get("related_marker_index") == index
+            ]
+            identifier = linked[0].get("identifier") if len(linked) == 1 else None
+            markers.append({
+                "page_number": page_number,
+                "marker_index": index,
+                "section_name": marker.get("normalized_text"),
+                "text": marker.get("text"),
+                "bbox_pdf": marker.get("bbox_pdf"),
+                "identifier": identifier,
+                "center_x_px": marker.get("center_x_px"),
+                "center_y_px": marker.get("center_y_px"),
+            })
+
+    ranges = []
+    for index, marker in enumerate(markers):
+        following = markers[index + 1] if index + 1 < len(markers) else None
+        ranges.append({
+            "section_range_id": f"section-{index + 1}",
+            "section_name": marker["section_name"],
+            "identifier": marker["identifier"],
+            "start": {
+                "page_number": marker["page_number"],
+                "marker_index": marker["marker_index"],
+                "bbox_pdf": marker["bbox_pdf"],
+            },
+            "end": ({
+                "page_number": following["page_number"],
+                "marker_index": following["marker_index"],
+                "bbox_pdf": following["bbox_pdf"],
+                "boundary_type": "next_section_marker",
+            } if following else None),
+            "extent": (
+                "cross_page_candidate"
+                if following and following["page_number"] != marker["page_number"]
+                else "between_markers_candidate" if following
+                else "open_ended_score_candidate"
+            ),
+            "page_span": (
+                following["page_number"] - marker["page_number"] + 1
+                if following else None
+            ),
+            "confidence": 0.4 if following else 0.25,
+            "review_status": "pending",
+            "warning": (
+                "Rango global provisional delimitado por marcas textuales sucesivas. "
+                "La posición exacta del primer y último compás, los compases parciales "
+                "y la continuidad musical entre páginas requieren validación humana. "
+                "El fin de página nunca se interpreta como fin de sección."
+            ),
+        })
+    return ranges
