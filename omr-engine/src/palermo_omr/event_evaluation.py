@@ -182,22 +182,84 @@ def evaluate_score_events(
         options.sort(key=lambda item: (item[0], item[1]))
         eligible.append(options)
 
-    reference_to_prediction: dict[int, tuple[int, Fraction]] = {}
+    # Flujo de costo mínimo: cada unidad de flujo representa una pareja
+    # predicción-referencia. Se aumenta hasta que no existan más caminos, lo
+    # que maximiza cardinalidad; cada camino más barato conserva el menor
+    # error temporal total entre los emparejamientos de esa cardinalidad.
+    prediction_count = len(predicted)
+    reference_count = len(reference)
+    source = 0
+    prediction_offset = 1
+    reference_offset = prediction_offset + prediction_count
+    sink = reference_offset + reference_count
+    graph: list[list[list]] = [[] for _ in range(sink + 1)]
 
-    def assign(prediction_index: int, visited: set[int]) -> bool:
+    def add_edge(start: int, end: int, capacity: int, cost: Fraction) -> int:
+        forward_index = len(graph[start])
+        reverse_index = len(graph[end])
+        graph[start].append([end, reverse_index, capacity, cost])
+        graph[end].append([start, forward_index, 0, -cost])
+        return forward_index
+
+    assignment_edges: list[tuple[int, int, int, Fraction]] = []
+    for prediction_index in range(prediction_count):
+        prediction_node = prediction_offset + prediction_index
+        add_edge(source, prediction_node, 1, Fraction(0))
         for error, reference_index in eligible[prediction_index]:
-            if reference_index in visited:
-                continue
-            visited.add(reference_index)
-            previous = reference_to_prediction.get(reference_index)
-            if previous is None or assign(previous[0], visited):
-                reference_to_prediction[reference_index] = (prediction_index, error)
-                return True
-        return False
+            edge_index = add_edge(
+                prediction_node,
+                reference_offset + reference_index,
+                1,
+                error,
+            )
+            assignment_edges.append(
+                (prediction_index, reference_index, edge_index, error)
+            )
+    for reference_index in range(reference_count):
+        add_edge(reference_offset + reference_index, sink, 1, Fraction(0))
 
-    order = sorted(range(len(predicted)), key=lambda i: (len(eligible[i]), i))
-    for prediction_index in order:
-        assign(prediction_index, set())
+    while True:
+        distances: list[Fraction | None] = [None] * len(graph)
+        previous_edges: list[tuple[int, int] | None] = [None] * len(graph)
+        distances[source] = Fraction(0)
+
+        # Bellman-Ford admite los costos negativos de las aristas residuales.
+        for _ in range(len(graph) - 1):
+            changed = False
+            for start, edges in enumerate(graph):
+                if distances[start] is None:
+                    continue
+                for edge_index, edge in enumerate(edges):
+                    end, _, capacity, cost = edge
+                    if capacity <= 0:
+                        continue
+                    candidate = distances[start] + cost
+                    if distances[end] is None or candidate < distances[end]:
+                        distances[end] = candidate
+                        previous_edges[end] = (start, edge_index)
+                        changed = True
+            if not changed:
+                break
+
+        if previous_edges[sink] is None:
+            break
+
+        node = sink
+        while node != source:
+            previous = previous_edges[node]
+            if previous is None:
+                raise RuntimeError("Camino residual incompleto en evaluación")
+            start, edge_index = previous
+            edge = graph[start][edge_index]
+            edge[2] -= 1
+            graph[node][edge[1]][2] += 1
+            node = start
+
+    reference_to_prediction: dict[int, tuple[int, Fraction]] = {}
+    for prediction_index, reference_index, edge_index, error in assignment_edges:
+        prediction_node = prediction_offset + prediction_index
+        if graph[prediction_node][edge_index][2] == 0:
+            reference_to_prediction[reference_index] = (prediction_index, error)
 
     matches = tuple(sorted(
         (

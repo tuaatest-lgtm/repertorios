@@ -123,6 +123,23 @@ def test_unknown_prediction_onset_remains_unmatched_not_guessed():
     assert result.unmatched_reference_indices == (0,)
 
 
+def test_matching_minimizes_total_onset_error_after_maximizing_cardinality():
+    references = [event("r0", 0), event("r1", Fraction(3, 100))]
+    predictions = [event("p0", 0), event("p1", Fraction(1, 100))]
+    result = evaluate_score_events(
+        references,
+        predictions,
+        onset_tolerance_quarters=Fraction(3, 100),
+    )
+    assert result.true_positive == 2
+    # La asignación óptima es p0->r0 y p1->r1 (error total 0.02),
+    # no p0->r1 y p1->r0 (error total 0.04).
+    assert [(m.predicted_index, m.reference_index) for m in result.matches] == [
+        (0, 0), (1, 1)
+    ]
+    assert result.mean_onset_error_quarters == pytest.approx(0.01)
+
+
 def test_maximum_cardinality_matching_avoids_greedy_pair_loss():
     references = [event("r0", 0), event("r1", Fraction(1, 4))]
     predictions = [
