@@ -21,8 +21,8 @@ def test_pitch_from_staff_step_rejects_invalid_key_signature_values(alteration):
 
 
 def test_pitch_from_staff_step_applies_valid_key_signature_and_explicit_natural():
-    assert pitch_from_staff_step(3, "treble", {"F": 1}).midi == 72
-    assert pitch_from_staff_step(3, "treble", {"F": 1}, "natural").midi == 71
+    assert pitch_from_staff_step(1, "treble", {"F": 1}).midi == 66
+    assert pitch_from_staff_step(1, "treble", {"F": 1}, "natural").midi == 65
 
 
 def test_accidental_state_is_scoped_to_letter_and_octave_and_can_reset():
