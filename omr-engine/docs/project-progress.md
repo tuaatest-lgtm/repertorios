@@ -81,6 +81,21 @@ La mayor incertidumbre del calendario no es escribir más módulos: es disponer 
 - El paquete de revisión ahora expone el número de intervalos ambiguos y los límites de sección que heredan esa ambigüedad; si una ancla depende de un intervalo que abarca varios compases candidatos, conserva las alternativas y no asigna un ordinal único. La validación de esa conducta también pasó en la suite de 416 pruebas.
 - Este avance mejora el manejo conservador de un caso sintético; no se incrementa el 36% global porque aún no se ha validado la mejora en un corpus musical real.
 
+## Integración del flujo de ataques y capas de voz
+
+- La CLI ahora conecta la detección de cabezas, el análisis rítmico y la interpretación de barras con `build_rhythmic_event_group_candidates`. El resultado se exporta por página como `rhythmic_event_group_candidates`, con estado, duración candidata, referencias a cabezas y advertencias.
+- La CLI también ejecuta `detect_staff_voice_layer_candidates` y exporta `staff_voice_layer_candidates`. Esto hace visible la coexistencia local de plicas opuestas dentro de un pentagrama.
+- La integración conserva las restricciones musicales: no convierte coordenada horizontal en tiempo, no asigna automáticamente soprano/alto ni mano derecha/izquierda, no confirma acordes y no crea eventos temporales definitivos. Si una duración no está resuelta, no asigna duración en cuartos.
+- La prueba de integración de CLI verifica que los candidatos se exportan y que las voces siguen sin asignación automática. CI de la rama: [45948459476](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45948459476), **417 pruebas aprobadas**.
+- **Avance global funcional permanece en 36%**: se integró infraestructura de candidatos al flujo principal, pero no hay todavía una mejora de exactitud musical medida ni un corpus anotado que justifique subir el indicador.
+
+### Acceso al corpus externo de pruebas
+
+- Se recibió el enlace compartido de Google Drive indicado por el usuario.
+- La conexión Google Drive disponible en este entorno aparece deshabilitada por administración y no permite listar ni descargar la carpeta. El intento de abrir el enlace público tampoco entregó su contenido.
+- No se afirma haber inspeccionado ni procesado los PDF de esa carpeta. Para validar partituras reales se requiere que el conector esté habilitado o que los PDF se adjunten directamente a la conversación.
+- La falta de acceso al corpus bloquea la validación musical externa, no el trabajo de desarrollo independiente.
+
 ## Trabajo verificado en este corte
 
 - La CLI principal ejecuta `detect_staff_grouping_mark_candidates` para cada página y guarda `staff_grouping_mark_candidates` y su contador.
