@@ -203,8 +203,8 @@ def test_review_package_rejects_broken_candidate_references(family_key, candidat
 def test_review_summary_counts_global_section_and_measure_candidates():
     data = sample_analysis()
     data["global_section_range_candidates"] = [
-        {"section_range_id": "section-1", "review_status": "pending"},
-        {"section_range_id": "section-2", "review_status": "accepted"},
+        {"section_range_id": "section-1", "start": {"page_number": 1}, "end": None, "review_status": "pending"},
+        {"section_range_id": "section-2", "start": {"page_number": 1}, "end": None, "review_status": "accepted"},
     ]
     package = build_review_package(data, score_id="score-section-summary")
     assert package["summary"]["global_measure_candidate_count"] == 1
