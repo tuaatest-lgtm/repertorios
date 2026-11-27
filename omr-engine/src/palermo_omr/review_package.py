@@ -343,7 +343,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             raise ValueError("Cada evidencia de identidad debe ser un objeto")
         for system in systems:
             indices = system.get("staff_indices", [])
-            if not isinstance(indices, list) or any(
+            if not isinstance(indices, list) or not indices or any(
                 not isinstance(index, int) or isinstance(index, bool) or index < 0
                 for index in indices
             ):
