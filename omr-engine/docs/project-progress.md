@@ -5,36 +5,69 @@
 **Objetivo medido:** motor OMR propio que convierta partituras en eventos musicales polifónicos estructurados y verificables.  
 **Fuera del alcance:** integración con Sonoro, publicación, despliegue o cambios al reproductor; requieren autorización independiente.
 
-## Indicador general
+## Indicador general — línea base corregida
 
-- **Avance estimado anterior:** 80%
-- **Avance estimado actual:** 81%
-- **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 19%
+- **Avance funcional estimado frente al objetivo principal: 36%**
+- **Trabajo restante estimado: 64%**
+- **Estimación anterior publicada: 81%**
+- **Corrección de medición: -45 puntos porcentuales** (no representa una regresión del código).
 
-El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. La ejecución real ahora agrupa sistemas mediante conectores verticales y logra alineación geométrica transversal parcial: 61 de 312 grupos de intervalos cumplen ahora una tolerancia simultánea de centro y límites en dos pentagramas; 251 siguen siendo intervalos de un solo pentagrama. Los ordinales y las posiciones siguen siendo candidatos, no números de compás musical confirmados. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
+La auditoría detectó un desajuste en la forma de medir el avance: el 81% anterior ponderaba demasiado la infraestructura de ingeniería ya escrita (módulos, validadores, overlays, paquetes de revisión y pruebas sintéticas) y trataba esa infraestructura como si equivaliera a capacidad OMR musical terminada. No equivale. El objetivo principal sigue siendo el mismo: convertir partituras reales en una representación musical correcta, polifónica, con voces/partes identificadas y eventos con alturas, ataques y duraciones independientes, verificable contra anotación humana.
 
-## Evolución por aspecto
+Por eso se establece una línea base funcional más estricta. Un módulo o una prueba sintética solo demuestra que existe una pieza de software; no demuestra que el motor lea correctamente una partitura real. El 36% mide madurez de hitos funcionales y evidencia disponible, no porcentaje de código ni precisión de transcripción. **La precisión musical real continúa sin medirse**, porque todavía no existe un corpus representativo de partituras anotadas y revisadas.
 
-| Aspecto | Anterior | Actual | Evidencia del cambio |
+### Revisión del objetivo y desviación
+
+- **Desviación de alcance:** no se encontró una desviación sustancial del objetivo; el trabajo continúa siendo un motor OMR propio, sin Audiveris ni servicios externos, y la integración con Sonoro sigue fuera de alcance hasta autorización.
+- **Desviación de enfoque:** sí hubo una desviación de priorización. Se invirtió demasiado esfuerzo en robustecer la estructura documental, la revisión y la evidencia geométrica antes de demostrar la lectura musical completa. Esas capacidades son necesarias, pero auxiliares al objetivo final.
+- **Desviación de estimación:** el indicador anterior sobrestimaba el cumplimiento funcional en aproximadamente **45 puntos porcentuales**. Se conserva el trabajo realizado; se corrige la escala con la que se interpreta.
+- **Ajuste aplicado:** desde este corte, el avance global solo aumenta cuando se demuestra una capacidad funcional relevante en el flujo OMR y, progresivamente, en partituras reales contrastadas con referencia humana.
+
+### Avance por fases rebaselinado
+
+| Fase | Peso en el objetivo | Cumplimiento estimado | Estado real |
 |---|---:|---:|---|
-| Detección geométrica y símbolos | 58% | 59% | La ejecución real reveló demasiados candidatos a silencio; se añadieron filtros y el conteo bajó de 680 a 140 sin cambiar los demás detectores. |
-| Modelo rítmico y polifónico | 75% | 75% | Sin cambio: el modelo temporal existe, pero aún falta validarlo desde partituras reales completas. |
-| Paquete de revisión humana | 98% | 99% | El resumen también cuenta marcas de sección elegibles, excluidas y aún no clasificadas, sin cambiar su estado pendiente de revisión. |
-| Evidencia visual y overlays | 93% | 94% | El overlay distingue visualmente encabezados excluidos de rótulos de sección elegibles y se redibuja después de la clasificación global entre páginas. |
-| Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
-| Validación integral con partituras | 18% | 19% | En la partitura real los cinco extremos de sección se representan como posiciones interiores parciales; cuatro tienen soporte transversal y uno conserva solo referencia local. |
-| Modelo de identidad de pentagramas | 61% | 62% | La detección de conectores de sistema genera 30 marcas de agrupación candidatas y 60 evidencias asociadas para revisión, sin asignar instrumentos ni voces. |
-| Estructura de secciones musicales | 71% | 72% | La partitura real produce cinco extremos parciales dentro de intervalos candidatos, conservando sus fracciones y su evidencia de alineación. |
+| 1. Entrada PDF, imagen y preprocesamiento | 10% | 75% | Renderizado y detección geométrica base disponibles; falta robustez frente a escaneos y ediciones variadas. |
+| 2. Pentagramas, sistemas y estructura de compases | 20% | 50% | Detecta candidatos y conciliación geométrica parcial; barras omitidas, anacrusas, compases parciales y continuidad musical aún no resueltos. |
+| 3. Reconocimiento de símbolos musicales | 20% | 30% | Hay detectores de cabezas, plicas, vigas, silencios y otros candidatos; no hay clasificación integral fiable ni métricas reales por símbolo. |
+| 4. Interpretación musical: claves, alturas, armadura, alteraciones y ritmo | 20% | 20% | Hay conversiones y reglas parciales, pero la identificación visual de claves/armaduras/indicaciones y su aplicación completa no está cerrada. |
+| 5. Partes, voces y polifonía con tiempos/duraciones independientes | 15% | 25% | Existe un modelo temporal capaz de conservar eventos simultáneos ya reconocidos; todavía no se alimenta de una transcripción visual completa y fiable ni distingue todos los casos piano/manos frente a coro SATB. |
+| 6. Corpus humano, evaluación y validación musical real | 10% | 10% | Hay infraestructura para anotar y medir, pero no un corpus representativo terminado ni resultados de precisión/recuperación. |
+| 7. Secciones musicales y límites parciales | 5% | 70% | Hay detección textual, enlaces entre páginas, anclas y límites parciales candidatos; falta confirmar su relación con compases musicales reales. |
 
-Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
+El cálculo ponderado da aproximadamente **36%**. Las fases no significan que el motor tenga 36% de exactitud: no existe todavía una medición de exactitud. El trabajo de revisión, overlays, validación de datos y pruebas es una base útil que habilita las fases, pero no sustituye los resultados musicales.
 
-- La clasificación de marcas de sección entre páginas ahora se refleja en la imagen final: los encabezados repetidos en la franja superior y las marcas superiores sin ancla se dibujan como `HEADER?`, mientras que las marcas elegibles permanecen como `SECTION?`. La CLI vuelve a generar los overlays después de construir los rangos globales, por lo que la visualización ya no queda desfasada respecto a la clasificación documental.
-- Se añadieron pruebas para comprobar el tratamiento visual de marcas excluidas frente a elegibles y una prueba de integración de CLI que confirma que los overlays se redibujan después de la clasificación entre páginas.
-- CI de integración CLI y redibujado posterior a clasificación: ejecución [45944192845](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944192845), commit `faf5bb8bcdf54952fc236a946bfff1842f84a444`, **383 pruebas aprobadas**. La actualización documental quedó validada en [45944294908](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944294908), también con **383 pruebas aprobadas**. CI de clasificación y representación visual: ejecución [45944188513](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944188513), **382 pruebas aprobadas**.
+### Hitos ya cumplidos y límites pendientes
 
-- La resolución de extremos de sección conserva posiciones relativas fuera del intervalo de referencia cuando la marca queda antes o después de él, y diferencia `before_measure_candidate`, `inside_measure_candidate` y `after_measure_candidate`. Cuando la marca cae dentro del intervalo, se conserva `partial_measure_boundary=true`; no se fuerza a coincidir con una barra. Se añadieron tres pruebas parametrizadas para posiciones -0.5, 0.35 y 1.5. Todo sigue marcado `pending` para revisión humana.
-- CI de posiciones parciales y adyacentes de límites de sección: ejecución [45944389262](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944389262), commit `febdbb28f26f50a123c038bf5519b5be4839fe11`, **386 pruebas aprobadas**.
+**Cumplido como infraestructura verificable**
+- Motor propio en Python, con preprocesamiento de PDF e imagen y módulos especializados.
+- Detección geométrica inicial de pentagramas, cabezas, plicas, vigas, silencios, barras y arcos.
+- Conversión de posiciones diatónicas a MIDI cuando la clave ya es conocida; estado de alteraciones accidentales por compás.
+- Modelo de eventos temporales polifónicos que conserva ataques simultáneos y duraciones distintas cuando esos datos ya existen.
+- Estructura preliminar de partes/voces, continuidad, eventos y evaluación.
+- Paquetes de revisión, overlays, exportación de candidatos y decisiones humanas explícitas.
+- Detección provisional de secciones, enlaces entre páginas y límites dentro de intervalos.
+- Suite amplia de pruebas automatizadas. Las pruebas de software demuestran contratos y regresiones, no precisión musical.
+
+**No cumplido como resultado funcional del objetivo**
+- Lectura visual fiable de claves, armaduras, compás, alteraciones y todos los símbolos relevantes.
+- Reconstrucción musical consistente de compases a través de pentagramas, sistemas y páginas, incluidos compases parciales y barras ausentes.
+- Asignación fiable de pentagramas a instrumento/parte y de eventos a voces; distinguir piano (dos manos) de coro SATB.
+- Transcripción real de una partitura completa con alturas, inicios y duraciones correctos y polifonía comprobada.
+- Corpus humano representativo y medición de precisión, recuperación, F1 y exactitud de altura/duración/voz.
+- Regresión musical sobre varias partituras reales y criterios objetivos de aceptación.
+
+### Estimación de tiempo restante
+
+Estimación de planificación, no compromiso ni fecha garantizada, suponiendo trabajo concentrado y disponibilidad de partituras para revisión humana:
+
+| Resultado | Tiempo restante estimado | Qué significaría |
+|---|---:|---|
+| MVP acotado y revisable | 6–10 semanas | Flujo de una familia de partituras definida, revisión humana integrada y transcripción de calidad medible en un corpus pequeño. No sería un OMR universal ni totalmente autónomo. |
+| Motor robusto para varias partituras/ediciones | 3–6 meses | Más diversidad de partituras, corpus anotado, métricas repetibles, correcciones iterativas y polifonía validada. |
+| Integración con Sonoro | Por estimar aparte | Solo después de autorización expresa y de superar los criterios funcionales del motor. |
+
+La mayor incertidumbre del calendario no es escribir más módulos: es disponer de anotaciones humanas de referencia, resolver la interpretación musical completa y medir errores reales. Si el objetivo exige precisión alta en partituras muy variadas, el horizonte puede superar los seis meses.
 
 ## Trabajo verificado en este corte
 
