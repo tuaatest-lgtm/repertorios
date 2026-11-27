@@ -7,12 +7,12 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 74%
-- **Avance estimado actual:** 75%
-- **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 25%
+- **Avance estimado anterior:** 75%
+- **Avance estimado actual:** 74%
+- **Variación:** -1 punto porcentual (ajuste por evidencia)
+- **Trabajo restante estimado:** 26%
 
-El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la ejecución completa y repetible del motor y del paquete de revisión sobre una partitura real de tres páginas, con clasificación trazable de marcas y rangos globales. No equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
+El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El ajuste de este corte corrige una sobreestimación: la ejecución real confirmó el flujo de análisis y revisión, pero también mostró que los intervalos de esa partitura no están conciliados entre varios pentagramas. Los ordinales actuales son de orden documental por pentagrama, no números de compás globales. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
 
 ## Evolución por aspecto
 
@@ -25,7 +25,7 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 10% | 12% | Se repitió la ejecución completa y se generó el paquete de revisión sobre el PDF real, verificando marcadores, rangos globales y recuentos; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
 | Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
-| Estructura de secciones musicales | 66% | 67% | Las letras cercanas a rótulos quedan marcadas como ambiguas (posible cifrado armónico o texto editorial), con confianza reducida y estado no confirmado. |
+| Estructura de secciones musicales | 67% | 64% | Se confirmó que la secuencia real tiene 373 intervalos de un solo pentagrama y cero alineaciones multi-pentagrama; los rangos y anclas locales siguen disponibles, pero la numeración global real queda pendiente. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -69,7 +69,10 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - Se añadieron validaciones de integridad para la secuencia global: no acepta números de página duplicados, identificadores de sistema repetidos ni un mismo pentagrama asignado simultáneamente a dos sistemas. Las pruebas verifican que esos datos ambiguos se rechacen en vez de generar ordinales globales engañosos.
 CI de endurecimiento de anclas y límites: ejecución [45940100932](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45940100932), commit `ec3dcad29125e854f2bb9f29bea12e9b243d54c3`, **354 pruebas aprobadas**. Una primera prueba usó una distancia vertical dentro del umbral definido; se corrigió el dato de prueba para representar un rótulo realmente lejano y la ejecución completa pasó.
 CI de robustez de agrupación por pentagrama: ejecución [45939428989](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939428989), commit `9bfbb1d916e2c309b1a0b2af07fbafaad2c2a84a`, **345 pruebas aprobadas**. CI de resumen de revisión humana: ejecución [45939505336](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939505336), commit `3e53dfbedecb0e44f8b6d49bd51791a3f7065351`, **346 pruebas aprobadas**. CI de integridad de páginas/sistemas: ejecución [45939606630](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939606630), commit `93041688d942adb78491924d7f6d6e218fbaeabd`, **348 pruebas aprobadas**. La validación estructural del paquete global y sus fixtures quedó aprobada en [45939770977](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45939770977), commit `cc9edf7145209fe63e813366582bc8043b0fd499`, **351 pruebas aprobadas**. Dos ejecuciones intermedias detectaron que una prueba de resumen no incluía los extremos obligatorios del rango; el fixture se corrigió y la suite completa pasó. La primera ejecución intermedia del cambio de resumen detectó una expectativa de prueba desactualizada; se corrigió en el commit de prueba posterior y la suite completa pasó.
-\n\n- La asociación de letras aisladas próximas a una sección se volvió más conservadora: baja la confianza a 0,30 e indica explícitamente que puede tratarse de cifrado armónico o texto editorial. El rango global conserva la letra solo como `unconfirmed_candidate`, nunca como identificador confirmado. Una prueba usa una `B` cercana al rótulo `Intro` para asegurar que la advertencia y la baja confianza se mantengan.
+\n\n- Auditoría de alineación en la partitura real: los 373 intervalos detectados se ordenaron documentalmente, pero todos tienen `staff_support=1`; el resultado declara `sequence_scope=document_ordered_single_staff_intervals` y cero candidatos con alineación entre varios pentagramas. Los límites de sección conservan su referencia local y su fracción dentro del intervalo, pero `global_alignment_status=single_staff_only_unmatched`. Esto corrige explícitamente cualquier interpretación previa de esos ordinales como compases globales.
+- La implementación ahora distingue `cross_staff_alignment_candidate` de `single_staff_only_unmatched`, reduce la confianza de los intervalos sin soporte transversal y propaga ese estado hasta cada extremo de sección. Pruebas sintéticas verifican ambos casos.
+- CI de clasificación explícita de alineación transversal: ejecución [45941833646](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45941833646), commit `9620c340e81f0e08238eff75dda3095e60fb50a7`, **369 pruebas aprobadas**.
+- La asociación de letras aisladas próximas a una sección se volvió más conservadora: baja la confianza a 0,30 e indica explícitamente que puede tratarse de cifrado armónico o texto editorial. El rango global conserva la letra solo como `unconfirmed_candidate`, nunca como identificador confirmado. Una prueba usa una `B` cercana al rótulo `Intro` para asegurar que la advertencia y la baja confianza se mantengan.
 - CI de ambigüedad de letras próximas a secciones: ejecución [45941352519](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45941352519), commit `5691a0cc6839960f2723526ff7551a51891a3b70`, **367 pruebas aprobadas**.
 - El resumen del paquete de revisión ahora incluye el total de marcas de sección y separa cuántas son elegibles para límites globales, cuántas se excluyeron por reglas conservadoras y cuántas siguen sin clasificar. Esto permite medir la cobertura de clasificación sin tratar ninguna marca como confirmada.
 - CI del resumen de clasificación de marcas en revisión: ejecución [45941161708](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45941161708), commit `9d95d3eec219a1c4b9f97fc212ce9df9fb03a493`, **366 pruebas aprobadas**.
