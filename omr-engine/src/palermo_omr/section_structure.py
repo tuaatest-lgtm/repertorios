@@ -604,18 +604,41 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
             system_index = staff_to_system.get(staff_index)
             if system_index is not None:
                 by_system.setdefault(system_index, []).append(span)
+        ambiguous_staff_spans = {}
         for system_index in sorted(by_system):
-            candidates = sorted(by_system[system_index],
-                key=lambda v: (v["x_start"] + v["x_end"]) / 2)
-            clusters = []
+            candidates = sorted(
+                by_system[system_index],
+                key=lambda v: (v["x_start"] + v["x_end"]) / 2,
+            )
+
+            # Una barra omitida puede dejar un intervalo de un pentagrama que
+            # cubre dos o más intervalos consecutivos de otro. Ese intervalo
+            # largo no debe convertirse en un tercer compás global falso.
+            ambiguous_local = {}
             for span in candidates:
+                other_spans = [
+                    other for other in candidates
+                    if other["staff_index"] != span["staff_index"]
+                    and span["x_start"] < (other["x_start"] + other["x_end"]) / 2 < span["x_end"]
+                ]
+                other_centers = sorted({
+                    round((other["x_start"] + other["x_end"]) / 2, 2)
+                    for other in other_spans
+                })
+                if len(other_centers) >= 2:
+                    widths = [other["width_px"] for other in other_spans]
+                    if span["width_px"] >= 1.4 * float(median(widths)):
+                        ambiguous_local[(span["staff_index"], span["measure_index"])] = span
+
+            eligible = [
+                span for span in candidates
+                if (span["staff_index"], span["measure_index"]) not in ambiguous_local
+            ]
+            clusters = []
+            for span in eligible:
                 center, width = (span["x_start"] + span["x_end"]) / 2, span["width_px"]
                 match = None
                 for cluster in reversed(clusters):
-                    # Un pentagrama no puede aportar dos intervalos al mismo
-                    # compás global candidato. Esta restricción evita que dos
-                    # intervalos locales cercanos del mismo staff se fusionen
-                    # por una tolerancia geométrica amplia.
                     if any(v.get("staff_index") == span.get("staff_index") for v in cluster):
                         continue
                     centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
@@ -638,26 +661,9 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                     clusters.append([span])
                 else:
                     match.append(span)
-            # Detectar intervalos locales que abarcan más de un compás candidato
-            # respaldado por otro pentagrama (p. ej. una barra omitida). No se
-            # fuerza ese intervalo largo a un único ordinal global.
-            ambiguous_spans = {}
-            for span in candidates:
-                other_staff_clusters = []
-                for cluster_index, cluster in enumerate(clusters):
-                    if any(v["staff_index"] == span["staff_index"] for v in cluster):
-                        continue
-                    center = float(median([
-                        (v["x_start"] + v["x_end"]) / 2 for v in cluster
-                    ]))
-                    if float(span["x_start"]) < center < float(span["x_end"]):
-                        other_staff_clusters.append((cluster_index, center))
-                distinct_centers = sorted({round(center, 2) for _, center in other_staff_clusters})
-                if len(distinct_centers) >= 2:
-                    ambiguous_spans[(span["staff_index"], span["measure_index"])] = [
-                        cluster_index for cluster_index, _ in other_staff_clusters
-                    ]
 
+            system_global_start = global_index
+            system_records = []
             for local_index, cluster in enumerate(clusters, start=1):
                 global_index += 1
                 centers = [(v["x_start"] + v["x_end"]) / 2 for v in cluster]
@@ -694,15 +700,22 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                     ),
                 }
                 sequence.append(record)
+                system_records.append(record)
                 for span in cluster:
                     staff_measure_map[(page_number, span["staff_index"], span["measure_index"])] = global_index
 
-            for span in candidates:
-                local_key = (span["staff_index"], span["measure_index"])
-                if local_key not in ambiguous_spans:
-                    continue
+            for local_key, span in ambiguous_local.items():
                 key = (page_number, span["staff_index"], span["measure_index"])
-                staff_measure_map[key] = None
+                possible = [
+                    record["global_measure_candidate"]
+                    for record in system_records
+                    if span["x_start"] < record["center_x_median"] < span["x_end"]
+                    and any(
+                        ref["staff_index"] != span["staff_index"]
+                        for ref in record["staff_measure_refs"]
+                    )
+                ]
+                ambiguous_staff_spans[key] = possible
     cross_staff_count = sum(
         item["alignment_status"] == "cross_staff_alignment_candidate"
         for item in sequence
@@ -719,19 +732,29 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
         "cross_staff_aligned_candidate_count": cross_staff_count,
         "single_staff_only_candidate_count": single_staff_count,
         "sequence_scope": sequence_scope,
-        "staff_measure_map": [
-            {"page_number": k[0], "staff_index": k[1],
-             "measure_index_on_staff": k[2], "global_measure_candidate": v,
-             "alignment_status": next(
-                 (item["alignment_status"] for item in sequence
-                  if item["global_measure_candidate"] == v), "unknown"
-             ),
-             "staff_support": next(
-                 (item["staff_support"] for item in sequence
-                  if item["global_measure_candidate"] == v), 1
-             )}
-            for k, v in sorted(staff_measure_map.items())
-        ],
+        "staff_measure_map": (
+            [
+                {"page_number": k[0], "staff_index": k[1],
+                 "measure_index_on_staff": k[2], "global_measure_candidate": v,
+                 "alignment_status": next(
+                     (item["alignment_status"] for item in sequence
+                      if item["global_measure_candidate"] == v), "unknown"
+                 ),
+                 "staff_support": next(
+                     (item["staff_support"] for item in sequence
+                      if item["global_measure_candidate"] == v), 1
+                 )}
+                for k, v in sorted(staff_measure_map.items())
+            ] + [
+                {"page_number": k[0], "staff_index": k[1],
+                 "measure_index_on_staff": k[2], "global_measure_candidate": None,
+                 "alignment_status": "ambiguous_spans_multiple_measure_candidates",
+                 "staff_support": 0,
+                 "possible_global_measure_candidates": possible,
+                 "review_status": "pending"}
+                for k, possible in sorted(ambiguous_staff_spans.items())
+            ]
+        ),
         "warning": (
             "La secuencia conserva el orden documental de los intervalos. Solo los "
             "candidatos con soporte de varios pentagramas tienen evidencia de alineación "
