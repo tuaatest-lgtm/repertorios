@@ -109,3 +109,64 @@ def test_section_boundary_without_measure_anchor_remains_unresolved():
         {"staff_measure_map": []},
     )
     assert result[0]["start"]["musical_boundary_candidate"] is None
+
+
+def test_missing_barline_span_is_ambiguous_not_a_third_global_measure():
+    pages = [{
+        "page_number": 1,
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0, 1]}],
+        "measure_span_candidates": [
+            {"staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 100,
+             "width_px": 100, "confidence": 0.8},
+            {"staff_index": 0, "measure_index": 2, "x_start": 100, "x_end": 200,
+             "width_px": 100, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 1, "x_start": 0, "x_end": 200,
+             "width_px": 200, "confidence": 0.7},
+        ],
+    }]
+
+    result = build_global_measure_sequence(pages)
+
+    assert result["global_measure_candidate_count"] == 2
+    assert [item["global_measure_candidate"] for item in result["global_measure_candidates"]] == [1, 2]
+    ambiguous = next(
+        item for item in result["staff_measure_map"]
+        if item["staff_index"] == 1
+    )
+    assert ambiguous["global_measure_candidate"] is None
+    assert ambiguous["alignment_status"] == "ambiguous_spans_multiple_measure_candidates"
+    assert ambiguous["possible_global_measure_candidates"] == [1, 2]
+
+
+def test_ambiguous_missing_bar_span_does_not_reset_global_order_on_next_page():
+    pages = [
+        {
+            "page_number": 1,
+            "staff_system_candidates": [{"system_index": 0, "staff_indices": [0, 1]}],
+            "measure_span_candidates": [
+                {"staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 100,
+                 "width_px": 100, "confidence": 0.8},
+                {"staff_index": 0, "measure_index": 2, "x_start": 100, "x_end": 200,
+                 "width_px": 100, "confidence": 0.8},
+                {"staff_index": 1, "measure_index": 1, "x_start": 0, "x_end": 200,
+                 "width_px": 200, "confidence": 0.7},
+            ],
+        },
+        {
+            "page_number": 2,
+            "staff_system_candidates": [{"system_index": 0, "staff_indices": [0]}],
+            "measure_span_candidates": [
+                {"staff_index": 0, "measure_index": 1, "x_start": 10, "x_end": 110,
+                 "width_px": 100, "confidence": 0.8},
+            ],
+        },
+    ]
+
+    result = build_global_measure_sequence(pages)
+
+    assert [item["global_measure_candidate"] for item in result["global_measure_candidates"]] == [1, 2, 3]
+    ambiguous = next(
+        item for item in result["staff_measure_map"]
+        if item["page_number"] == 1 and item["staff_index"] == 1
+    )
+    assert ambiguous["global_measure_candidate"] is None
