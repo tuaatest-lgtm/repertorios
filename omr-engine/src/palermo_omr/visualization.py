@@ -113,6 +113,33 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
             if isinstance(item, dict):
                 bbox_rect(item, color, tag)
 
+    # Etiquetas PDF: bbox_pdf está expresado en puntos PDF; se convierte a
+    # píxeles usando el DPI del render. LABEL? indica que el texto reconocido
+    # y su proximidad no confirman a qué pentagrama pertenece.
+    render_dpi = page_data.get("render_dpi", 300)
+    if isinstance(render_dpi, (int, float)) and not isinstance(render_dpi, bool) and render_dpi > 0:
+        label_scale = float(render_dpi) / 72.0
+        for item in page_data.get("printed_label_candidates", []):
+            if not isinstance(item, dict):
+                continue
+            box = item.get("bbox_pdf")
+            if not isinstance(box, (list, tuple)) or len(box) != 4:
+                continue
+            try:
+                x0, y0, x1, y1 = (int(round(float(value) * label_scale)) for value in box)
+            except (TypeError, ValueError):
+                continue
+            if x1 <= x0 or y1 <= y0:
+                continue
+            left, top = max(0, x0), max(0, y0)
+            right, bottom = min(width - 1, x1), min(height - 1, y1)
+            if left > right or top > bottom:
+                continue
+            color = (180, 80, 30)
+            cv2.rectangle(overlay, (left, top), (right, bottom), color, 2)
+            text = str(item.get("text", "label")).replace("\\n", " ").strip()
+            label(f"LABEL? {text[:24]}", left, top - 3, color)
+
     # Puntillos: se muestra el punto y su relación geométrica candidata.
     for item in page_data.get("augmentation_dot_candidates", []):
         if not isinstance(item, dict):
