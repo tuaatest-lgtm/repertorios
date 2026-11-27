@@ -32,3 +32,13 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Run unit tests
         run: python -m pytest -q
+      - name: Package source snapshot for reproducible validation
+        if: github.ref == 'refs/heads/feature/omr-propio-palermo'
+        run: tar -czf ../palermo-omr-source.tar.gz src pyproject.toml
+      - name: Upload source snapshot
+        if: github.ref == 'refs/heads/feature/omr-propio-palermo'
+        uses: actions/upload-artifact@v4
+        with:
+          name: palermo-omr-source-${{ github.sha }}
+          path: palermo-omr-source.tar.gz
+          retention-days: 2
