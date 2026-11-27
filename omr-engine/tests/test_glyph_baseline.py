@@ -39,7 +39,7 @@ def test_nearest_centroid_trains_only_on_train_scores_and_predicts_validation(tm
     assert result["training_score_ids"] == ["s1", "s2"]
     assert result["validation_score_ids"] == ["s3"]
     assert result["predictions"][0]["label"] == "sharp"
-    assert result["predictions"][0]["reference_label_for_offline_evaluation"] == "sharp"
+    assert "reference_label_for_offline_evaluation" not in result["predictions"][0]
     out = tmp_path / "predictions.json"
     write_glyph_predictions(result, out)
     assert json.loads(out.read_text())["classifier"] == "standardized_nearest_centroid_experimental"
@@ -74,6 +74,27 @@ def test_rejects_invalid_feature_values(tmp_path):
         "validation": [{"score_id": "s2", "candidate_id": "b", "label": "sharp"}],
     }
     with pytest.raises(ValueError, match="no finito"):
+        predict_glyphs_nearest_centroid(
+            write(tmp_path / "features.json", features),
+            write(tmp_path / "split.json", split),
+        )
+
+
+def test_rejects_duplicate_rows_in_split(tmp_path):
+    features = {"feature_schema": FEATURE_SCHEMA, "records": [
+        {"score_id": "s1", "candidate_id": "a", "label": "sharp", "feature_vector": [1.0]},
+        {"score_id": "s2", "candidate_id": "b", "label": "flat", "feature_vector": [2.0]},
+    ]}
+    split = {
+        "split_method": "deterministic_group_by_score",
+        "train_score_ids": ["s1"], "validation_score_ids": ["s2"],
+        "train": [
+            {"score_id": "s1", "candidate_id": "a", "label": "sharp"},
+            {"score_id": "s1", "candidate_id": "a", "label": "sharp"},
+        ],
+        "validation": [{"score_id": "s2", "candidate_id": "b", "label": "flat"}],
+    }
+    with pytest.raises(ValueError, match="duplicado"):
         predict_glyphs_nearest_centroid(
             write(tmp_path / "features.json", features),
             write(tmp_path / "split.json", split),

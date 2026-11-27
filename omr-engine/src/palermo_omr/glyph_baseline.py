@@ -27,6 +27,8 @@ def _feature_index(features: dict) -> dict:
     index = {}
     dimension = None
     for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("Cada registro de características debe ser un objeto")
         key = (record.get("score_id"), record.get("candidate_id"))
         if not all(isinstance(part, str) and part for part in key):
             raise ValueError("Cada registro requiere score_id y candidate_id")
@@ -63,8 +65,14 @@ def predict_glyphs_nearest_centroid(features_path: str | Path, split_path: str |
 
     def get_vectors(rows, expected_scores):
         result = []
+        seen = set()
         for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("Cada registro del split debe ser un objeto")
             key = (row.get("score_id"), row.get("candidate_id"))
+            if key in seen:
+                raise ValueError(f"Glifo duplicado en split: {key}")
+            seen.add(key)
             if key[0] not in expected_scores:
                 raise ValueError(f"Registro fuera de su partición: {key}")
             if key not in index:
@@ -103,7 +111,7 @@ def predict_glyphs_nearest_centroid(features_path: str | Path, split_path: str |
         for label, vectors in sorted(by_class.items())
     }
     predictions = []
-    for key, true_label, vector in validation_rows:
+    for key, _, vector in validation_rows:
         normalized = normalize(vector)
         distances = {
             label: math.sqrt(sum((normalized[i] - centroid[i]) ** 2 for i in range(dimension)))
@@ -115,7 +123,6 @@ def predict_glyphs_nearest_centroid(features_path: str | Path, split_path: str |
             "candidate_id": key[1],
             "label": predicted_label,
             "nearest_centroid_distance": round(distances[predicted_label], 8),
-            "reference_label_for_offline_evaluation": true_label,
         })
     return {
         "schema_version": "1.0",
