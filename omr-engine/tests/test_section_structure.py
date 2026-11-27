@@ -363,3 +363,27 @@ def test_repeated_top_page_headers_do_not_split_global_sections():
     assert [item["section_name"] for item in ranges] == ["ESTROFA", "PUENTE"]
     assert ranges[0]["end"]["page_number"] == 2
     assert ranges[1]["extent"] == "open_ended_score_candidate"
+
+
+
+def test_unanchored_top_margin_label_is_not_global_section_boundary():
+    from palermo_omr.section_structure import link_section_ranges_across_pages
+
+    ranges = link_section_ranges_across_pages([{
+        "page_number": 1,
+        "section_marker_candidates": [
+            {"normalized_text": "CORO", "text": "Coro",
+             "center_x_px": 160, "center_y_px": 150,
+             "page_width_px": 2550, "page_height_px": 3300},
+            {"normalized_text": "INTRO", "text": "Intro",
+             "center_x_px": 500, "center_y_px": 500,
+             "page_width_px": 2550, "page_height_px": 3300},
+        ],
+        "section_identifier_candidates": [],
+        "section_measure_anchor_candidates": [
+            {"marker_index": 1, "staff_index": 0,
+             "measure_index_on_staff": 1,
+             "position_ratio_in_interval": 0.5},
+        ],
+    }])
+    assert [item["section_name"] for item in ranges] == ["INTRO"]
