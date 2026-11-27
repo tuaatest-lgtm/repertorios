@@ -156,9 +156,11 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
         left, top = max(0, x0), max(0, y0)
         right, bottom = min(width - 1, x1), min(height - 1, y1)
         if left <= right and top <= bottom:
-            color = (180, 60, 220)
+            excluded_status = str(item.get("global_boundary_status", "")).startswith("excluded_")
+            color = (120, 120, 150) if excluded_status else (180, 60, 220)
+            tag = "HEADER?" if excluded_status else "SECTION?"
             cv2.rectangle(overlay, (left, top), (right, bottom), color, 2)
-            label(f"SECTION? {str(item.get('text', ''))[:18]}", left, top - 4, color)
+            label(f"{tag} {str(item.get('text', ''))[:18]}", left, top - 4, color)
 
     systems_by_index = {
         item.get("system_index"): item
