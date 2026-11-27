@@ -226,9 +226,24 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     if not isinstance(global_measure_sequence, dict):
         raise ValueError("global_measure_sequence debe ser un objeto")
     global_measure_candidates = global_measure_sequence.get("global_measure_candidates", [])
+    cross_staff_aligned_count = global_measure_sequence.get(
+        "cross_staff_aligned_candidate_count", 0
+    )
+    single_staff_only_count = global_measure_sequence.get(
+        "single_staff_only_candidate_count", len(global_measure_candidates)
+    )
     staff_measure_map = global_measure_sequence.get("staff_measure_map", [])
     if not isinstance(global_measure_candidates, list):
         raise ValueError("global_measure_candidates debe ser una lista")
+    if (not isinstance(cross_staff_aligned_count, int)
+            or isinstance(cross_staff_aligned_count, bool)
+            or cross_staff_aligned_count < 0
+            or not isinstance(single_staff_only_count, int)
+            or isinstance(single_staff_only_count, bool)
+            or single_staff_only_count < 0):
+        raise ValueError("Los conteos de alineación de compases deben ser enteros no negativos")
+    if cross_staff_aligned_count + single_staff_only_count > len(global_measure_candidates):
+        raise ValueError("Los conteos de alineación superan los compases candidatos")
     if not isinstance(staff_measure_map, list):
         raise ValueError("staff_measure_map debe ser una lista")
     if any(not isinstance(item, dict) for item in global_measure_candidates):
@@ -284,6 +299,8 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "pending_count": total_noteheads + total_other,
             "global_measure_candidate_count": len(global_measure_candidates),
             "pending_global_measure_candidate_count": pending_measure_candidates,
+            "cross_staff_aligned_measure_candidate_count": cross_staff_aligned_count,
+            "single_staff_only_measure_candidate_count": single_staff_only_count,
             "global_section_range_candidate_count": len(global_section_ranges),
             "pending_global_section_range_candidate_count": pending_section_ranges,
             "section_marker_candidate_count": len(section_marker_reviews),
