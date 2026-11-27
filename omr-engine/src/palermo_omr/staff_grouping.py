@@ -128,6 +128,7 @@ def detect_staff_grouping_mark_candidates(
     max_width_spacing: float = 1.2,
     max_interstaff_gap_spacing: float = 7.0,
     max_brace_gap_spacing: float = 8.0,
+    system_candidates=None,
 ) -> list[StaffGroupingMarkCandidate]:
     """Propone corchetes rectos, llaves curvas y trazos verticales candidatos.
 
@@ -164,7 +165,7 @@ def detect_staff_grouping_mark_candidates(
     left_width = max(1, int(page_width * left_margin_ratio))
     results: list[StaffGroupingMarkCandidate] = []
 
-    systems = detect_staff_systems(
+    systems = system_candidates if system_candidates is not None else detect_staff_systems(
         staves, max_interstaff_gap_spacing=max_interstaff_gap_spacing
     )
     for system in systems:
