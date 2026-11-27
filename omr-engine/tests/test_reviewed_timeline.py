@@ -7,6 +7,7 @@ from palermo_omr.reviewed_timeline import build_reviewed_page_timelines
 from palermo_omr.rhythm_symbols import RestSymbolCandidate
 from palermo_omr.pitch import Pitch
 from palermo_omr.pitch_candidates import PitchCandidate
+from palermo_omr.tie_candidates import TieLinkCandidate
 
 
 def group(event_id, staff, center_x, duration="quarter", status="single_note_candidate", indices=(0,)):
@@ -255,3 +256,51 @@ def test_unresolved_pitch_cannot_be_confirmed_as_a_musical_note():
                 "confirmed_pitch_candidate_indices": {"note-c": [0]},
             }],
         }, pitch_candidates=pitches)
+
+
+def test_confirmed_tie_chain_becomes_one_attack_with_combined_duration():
+    groups = [
+        group("a", 0, 10, duration="quarter", indices=(0,)),
+        group("b", 0, 30, duration="half", indices=(1,)),
+        group("c", 0, 50, duration="quarter", indices=(2,)),
+    ]
+    candidates = [
+        TieLinkCandidate("arc-a-b", "a", "b", "proposed_tie", True, True, .9, ()),
+        TieLinkCandidate("arc-b-c", "b", "c", "proposed_tie", True, True, .9, ()),
+    ]
+    result = build_reviewed_page_timelines(groups, {
+        "page_number": 1,
+        "measures": [{
+            "measure_index": 0, "numerator": 4, "denominator": 4,
+            "confirmed_event_ids": ["a", "b", "c"],
+            "event_voice_ids": {"a": "soprano", "b": "soprano", "c": "soprano"},
+            "tie_candidates": [item.to_dict() for item in candidates],
+            "tie_confirmations": [
+                {"candidate_index": 0, "reviewer_confirmed": True,
+                 "arc_is_tie_confirmed": True, "same_notated_pitch_confirmed": True},
+                {"candidate_index": 1, "reviewer_confirmed": True,
+                 "arc_is_tie_confirmed": True, "same_notated_pitch_confirmed": True},
+            ],
+        }],
+    })[0]
+    assert [(event["event_id"], event["onset_quarters"], event["duration_quarters"])
+            for event in result["events"]] == [("a", "0", "4")]
+    assert result["events"][0]["tied_event_ids"] == ["a", "b", "c"]
+    assert result["onset_groups"] == [{"onset_quarters": "0", "event_ids": ["a"]}]
+    assert result["tie_review_status"] == "human_confirmed_ties_applied"
+
+
+def test_tie_candidate_cannot_reference_an_event_outside_its_measure():
+    groups = [group("a", 0, 10, duration="half", indices=(0,))]
+    tie = TieLinkCandidate("arc", "a", "b", "proposed_tie", True, True, .9, ())
+    with pytest.raises(ValueError, match="mismo compás"):
+        build_reviewed_page_timelines(groups, {
+            "page_number": 1,
+            "measures": [{
+                "measure_index": 0, "numerator": 4, "denominator": 4,
+                "confirmed_event_ids": ["a"], "event_voice_ids": {"a": "soprano"},
+                "tie_candidates": [tie.to_dict()],
+                "tie_confirmations": [{"candidate_index": 0, "reviewer_confirmed": True,
+                    "arc_is_tie_confirmed": True, "same_notated_pitch_confirmed": True}],
+            }],
+        })

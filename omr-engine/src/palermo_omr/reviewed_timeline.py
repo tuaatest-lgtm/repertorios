@@ -16,6 +16,8 @@ from .rhythmic_event_groups import (
 from .rhythmic_timeline import analyze_ordered_measure_voices
 from .rest_events import RestReviewAssignment, build_reviewed_rest_events
 from .rhythm_symbols import RestSymbolCandidate
+from .tie_candidates import TieLinkCandidate, TieReviewConfirmation
+from .reviewed_tie_chains import apply_reviewed_tie_chains_to_timeline
 
 
 def build_reviewed_page_timelines(
@@ -189,6 +191,26 @@ def build_reviewed_page_timelines(
             for event in timeline_data["events"]:
                 if event["event_id"] in event_pitch_data:
                     event["confirmed_pitches"] = event_pitch_data[event["event_id"]]
+        raw_tie_candidates = measure.get("tie_candidates", [])
+        raw_tie_confirmations = measure.get("tie_confirmations", [])
+        if not isinstance(raw_tie_candidates, list) or not isinstance(raw_tie_confirmations, list):
+            raise ValueError("tie_candidates y tie_confirmations deben ser listas")
+        try:
+            tie_candidates = [
+                TieLinkCandidate(
+                    **{**item, "warnings": tuple(item.get("warnings", ()))}
+                )
+                for item in raw_tie_candidates
+            ]
+            tie_confirmations = [
+                TieReviewConfirmation(**item) for item in raw_tie_confirmations
+            ]
+        except (TypeError, AttributeError) as exc:
+            raise ValueError("La revisión de ligaduras contiene campos inválidos") from exc
+        if tie_candidates or tie_confirmations:
+            timeline_data = apply_reviewed_tie_chains_to_timeline(
+                timeline_data, tie_candidates, tie_confirmations
+            )
         results.append({
             "page_number": page_number,
             "time_signature": {"numerator": numerator, "denominator": denominator},
