@@ -75,3 +75,58 @@ def test_rejects_invalid_page_and_distance(tmp_path):
         except ValueError:
             continue
         raise AssertionError("Expected ValueError")
+
+def test_links_sections_across_pages_without_closing_at_page_break():
+    from palermo_omr.section_structure import link_section_ranges_across_pages
+
+    pages = [
+        {
+            "page_number": 1,
+            "section_marker_candidates": [
+                {"normalized_text": "CORO", "text": "Coro", "bbox_pdf": [10, 20, 40, 30],
+                 "center_x_px": 25, "center_y_px": 25}
+            ],
+            "section_identifier_candidates": [
+                {"related_marker_index": 0, "identifier": "A"}
+            ],
+        },
+        {"page_number": 2, "section_marker_candidates": [],
+         "section_identifier_candidates": []},
+        {
+            "page_number": 3,
+            "section_marker_candidates": [
+                {"normalized_text": "PUENTE", "text": "Puente", "bbox_pdf": [10, 20, 50, 30],
+                 "center_x_px": 30, "center_y_px": 25}
+            ],
+            "section_identifier_candidates": [],
+        },
+    ]
+
+    ranges = link_section_ranges_across_pages(pages)
+    assert len(ranges) == 2
+    assert ranges[0]["section_name"] == "CORO"
+    assert ranges[0]["identifier"] == "A"
+    assert ranges[0]["start"]["page_number"] == 1
+    assert ranges[0]["end"]["page_number"] == 3
+    assert ranges[0]["extent"] == "cross_page_candidate"
+    assert ranges[0]["page_span"] == 3
+    assert ranges[1]["extent"] == "open_ended_score_candidate"
+    assert ranges[1]["end"] is None
+
+
+def test_global_section_ranges_ignore_input_page_order():
+    from palermo_omr.section_structure import link_section_ranges_across_pages
+
+    pages = [
+        {"page_number": 2, "section_marker_candidates": [
+            {"normalized_text": "FINAL", "text": "Final", "bbox_pdf": [0, 0, 10, 10]}
+        ], "section_identifier_candidates": []},
+        {"page_number": 1, "section_marker_candidates": [
+            {"normalized_text": "ESTROFA", "text": "Estrofa", "bbox_pdf": [0, 0, 10, 10]}
+        ], "section_identifier_candidates": []},
+    ]
+    ranges = link_section_ranges_across_pages(pages)
+    assert ranges[0]["section_name"] == "ESTROFA"
+    assert ranges[0]["end"]["page_number"] == 2
+    assert ranges[1]["section_name"] == "FINAL"
+
