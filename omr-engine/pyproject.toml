@@ -19,6 +19,7 @@ dev = ["pytest>=8,<9"]
 [project.scripts]
 palermo-omr = "palermo_omr.cli:main"
 palermo-omr-dataset = "palermo_omr.annotation_cli:main"
+palermo-omr-glyphs = "palermo_omr.glyph_annotation_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
