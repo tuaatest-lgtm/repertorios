@@ -564,3 +564,38 @@ def test_section_marker_anchors_to_each_staff_in_nearest_system():
     assert [item["staff_index"] for item in anchors] == [0, 1]
     assert all(item["system_index"] == 0 for item in anchors)
     assert all(item["anchor_scope"] == "system_candidate" for item in anchors)
+
+
+
+def test_section_boundary_prefers_cross_staff_aligned_anchor():
+    from palermo_omr.section_structure import resolve_section_range_boundaries
+
+    resolved = resolve_section_range_boundaries(
+        [{
+            "section_range_id": "section-cross-staff",
+            "start": {
+                "page_number": 1,
+                "measure_anchors": [
+                    {"staff_index": 0, "measure_index_on_staff": 1,
+                     "position_ratio_in_interval": 0.4, "confidence": 0.6,
+                     "vertical_distance_px": 0},
+                    {"staff_index": 1, "measure_index_on_staff": 1,
+                     "position_ratio_in_interval": 0.5, "confidence": 0.5,
+                     "vertical_distance_px": 180},
+                ],
+            },
+            "end": None,
+        }],
+        {"staff_measure_map": [
+            {"page_number": 1, "staff_index": 0, "measure_index_on_staff": 1,
+             "global_measure_candidate": 1, "alignment_status": "single_staff_only_unmatched",
+             "staff_support": 1},
+            {"page_number": 1, "staff_index": 1, "measure_index_on_staff": 1,
+             "global_measure_candidate": 2, "alignment_status": "cross_staff_alignment_candidate",
+             "staff_support": 2},
+        ]},
+    )
+    boundary = resolved[0]["start"]["musical_boundary_candidate"]
+    assert boundary["staff_index"] == 1
+    assert boundary["global_alignment_status"] == "cross_staff_alignment_candidate"
+    assert boundary["staff_support"] == 2
