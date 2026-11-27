@@ -25,6 +25,7 @@ from .section_structure import (
     anchor_section_markers_to_measure_spans,
     detect_section_candidates,
     link_section_ranges_across_pages,
+    build_global_measure_sequence,
 )
 from .identity_evidence import build_page_identity_evidence
 from .score_structure import ScoreStaff, ScoreStructure
@@ -169,8 +170,35 @@ def main() -> int:
         page_data["geometry_overlay"] = geometry_overlay_path.name
         analyses.append(page_data)
 
+    global_measure_sequence = build_global_measure_sequence(analyses)
+    global_measure_map = {
+        (item["page_number"], item["staff_index"], item["measure_index_on_staff"]):
+        item["global_measure_candidate"]
+        for item in global_measure_sequence["staff_measure_map"]
+    }
+    for page_data in analyses:
+        for anchor in page_data.get("section_measure_anchor_candidates", []):
+            anchor["global_measure_candidate"] = global_measure_map.get((
+                page_data["page_number"], anchor["staff_index"],
+                anchor["measure_index_on_staff"],
+            ))
+            anchor["warning"] += (
+                " El ordinal global asociado también es provisional y depende "
+                "de la conciliación geométrica de pentagramas."
+            )
     global_section_ranges = link_section_ranges_across_pages(analyses)
+    for section_range in global_section_ranges:
+        for boundary_name in ("start", "end"):
+            boundary = section_range.get(boundary_name)
+            if not boundary:
+                continue
+            for anchor in boundary.get("measure_anchors", []):
+                anchor["global_measure_candidate"] = global_measure_map.get((
+                    boundary["page_number"], anchor["staff_index"],
+                    anchor["measure_index_on_staff"],
+                ))
     report = {
+        "global_measure_sequence": global_measure_sequence,
         "engine": "Palermo OMR",
         "global_section_range_candidates": global_section_ranges,
         "global_section_range_candidate_count": len(global_section_ranges),
@@ -233,6 +261,7 @@ def main() -> int:
     print(f"Identificadores de sección candidatos: {total_section_identifiers}")
     print(f"Rangos de sección candidatos por página: {total_section_ranges}")
     print(f"Rangos globales de sección candidatos: {total_global_section_ranges}")
+    print(f"Intervalos globales de compás candidatos: {global_measure_sequence['global_measure_candidate_count']}")
     print(f"Evidencias de identidad pendientes de revisión: {total_identity_evidence}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
     return 0
