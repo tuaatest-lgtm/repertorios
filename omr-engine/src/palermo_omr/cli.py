@@ -21,6 +21,7 @@ from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
 from .printed_labels import extract_printed_label_candidates
+from .section_structure import detect_section_candidates
 from .identity_evidence import build_page_identity_evidence
 from .score_structure import ScoreStaff, ScoreStructure
 from .measure_layout import (
@@ -99,9 +100,22 @@ def main() -> int:
         system_barlines = group_system_barlines(barlines, analysis.staves)
         measure_spans = infer_measure_spans(barlines)
         grouping_marks = detect_staff_grouping_mark_candidates(binary, analysis.staves)
+        section_data = detect_section_candidates(
+            args.pdf, page_number, analysis.staves, measure_spans, dpi=args.dpi
+        )
+        section_identifiers = section_data["section_identifier_candidates"]
+        section_identifier_boxes = {
+            tuple(item.bbox_pdf) for item in section_identifiers
+        }
         printed_labels = extract_printed_label_candidates(
             args.pdf, page_number, analysis.staves, dpi=args.dpi
         )
+        # Una letra ya vinculada a una marca de sección no debe duplicarse
+        # como abreviatura SATB en la misma página.
+        printed_labels = [
+            item for item in printed_labels
+            if tuple(item.bbox_pdf) not in section_identifier_boxes
+        ]
         score_structure = ScoreStructure(
             page_number=page_number,
             staves=tuple(
@@ -134,6 +148,9 @@ def main() -> int:
         page_data["staff_grouping_mark_candidate_count"] = len(grouping_marks)
         page_data["printed_label_candidates"] = [item.to_dict() for item in printed_labels]
         page_data["printed_label_candidate_count"] = len(printed_labels)
+        for key, values in section_data.items():
+            page_data[key] = [item.to_dict() for item in values]
+            page_data[key.replace("_candidates", "_candidate_count")] = len(values)
         page_data["staff_identity_evidence"] = [item.__dict__ for item in identity_evidence]
         page_data["staff_identity_evidence_count"] = len(identity_evidence)
         geometry_overlay = draw_geometry_overlay(page, page_data)
@@ -179,6 +196,9 @@ def main() -> int:
     total_spans = sum(page["measure_span_candidate_count"] for page in analyses)
     total_grouping_marks = sum(page["staff_grouping_mark_candidate_count"] for page in analyses)
     total_printed_labels = sum(page["printed_label_candidate_count"] for page in analyses)
+    total_section_markers = sum(page["section_marker_candidate_count"] for page in analyses)
+    total_section_identifiers = sum(page["section_identifier_candidate_count"] for page in analyses)
+    total_section_ranges = sum(page["section_range_candidate_count"] for page in analyses)
     total_identity_evidence = sum(page["staff_identity_evidence_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
@@ -196,6 +216,9 @@ def main() -> int:
     print(f"Intervalos entre barras candidatas: {total_spans}")
     print(f"Marcas de agrupación de pentagramas candidatas: {total_grouping_marks}")
     print(f"Etiquetas musicales impresas candidatas: {total_printed_labels}")
+    print(f"Marcas de sección candidatas: {total_section_markers}")
+    print(f"Identificadores de sección candidatos: {total_section_identifiers}")
+    print(f"Rangos de sección candidatos: {total_section_ranges}")
     print(f"Evidencias de identidad pendientes de revisión: {total_identity_evidence}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
     return 0
