@@ -1,4 +1,7 @@
-from palermo_omr.key_signature_candidates import (\n    apply_accepted_key_signature_candidates,\n    build_key_signature_candidates,\n)
+from palermo_omr.key_signature_candidates import (
+    apply_accepted_key_signature_candidates,
+    build_key_signature_candidates,
+)
 
 
 def glyph(label, x, y, candidate_id):
