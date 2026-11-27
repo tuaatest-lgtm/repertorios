@@ -434,10 +434,35 @@ def build_global_measure_sequence(pages: list[dict]) -> dict:
                 if staff_index in staff_to_system:
                     raise ValueError("Un pentagrama no puede pertenecer a dos sistemas")
                 staff_to_system[staff_index] = system_index
+        from math import isfinite
+
         by_system = {}
+        seen_local_spans = set()
         for span in spans:
-            system_index = staff_to_system.get(span.get("staff_index"))
-            if system_index is not None and span.get("width_px", 0) > 0:
+            if not isinstance(span, dict):
+                raise ValueError("Cada intervalo de compás debe ser un objeto")
+            staff_index = span.get("staff_index")
+            measure_index = span.get("measure_index")
+            x_start, x_end, width = (
+                span.get("x_start"), span.get("x_end"), span.get("width_px")
+            )
+            if (not isinstance(staff_index, int) or isinstance(staff_index, bool)
+                    or staff_index < 0):
+                raise ValueError("Cada intervalo requiere staff_index no negativo")
+            if (not isinstance(measure_index, int) or isinstance(measure_index, bool)
+                    or measure_index < 1):
+                raise ValueError("Cada intervalo requiere measure_index positivo")
+            if any(not isinstance(value, (int, float)) or isinstance(value, bool)
+                   or not isfinite(float(value)) for value in (x_start, x_end, width)):
+                raise ValueError("Las coordenadas y anchura del intervalo deben ser finitas")
+            if x_end <= x_start or width <= 0:
+                raise ValueError("El intervalo debe tener anchura positiva y límites ordenados")
+            local_key = (staff_index, measure_index)
+            if local_key in seen_local_spans:
+                raise ValueError("Intervalo local duplicado para el mismo pentagrama y compás")
+            seen_local_spans.add(local_key)
+            system_index = staff_to_system.get(staff_index)
+            if system_index is not None:
                 by_system.setdefault(system_index, []).append(span)
         for system_index in sorted(by_system):
             candidates = sorted(by_system[system_index],
