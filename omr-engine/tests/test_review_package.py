@@ -211,3 +211,22 @@ def test_review_summary_counts_global_section_and_measure_candidates():
     assert package["summary"]["pending_global_measure_candidate_count"] == 1
     assert package["summary"]["global_section_range_candidate_count"] == 2
     assert package["summary"]["pending_global_section_range_candidate_count"] == 1
+
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("global_section_range_candidates", ["bad-range"], "rango global"),
+        ("global_measure_candidates", ["bad-measure"], "compás global"),
+        ("staff_measure_map", ["bad-map"], "referencia local/global"),
+    ],
+)
+def test_review_package_rejects_malformed_global_candidates(field, value, message):
+    data = sample_analysis()
+    if field == "global_section_range_candidates":
+        data[field] = value
+    else:
+        data["global_measure_sequence"][field] = value
+    with pytest.raises(ValueError, match=message):
+        build_review_package(data, score_id="score-invalid-global")
