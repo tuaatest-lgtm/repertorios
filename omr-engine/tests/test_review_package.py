@@ -69,6 +69,10 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "single_staff_only_measure_candidate_count": 1,
         "global_section_range_candidate_count": 0,
         "pending_global_section_range_candidate_count": 0,
+        "section_boundary_candidate_count": 0,
+        "cross_staff_aligned_section_boundary_candidate_count": 0,
+        "single_staff_only_section_boundary_candidate_count": 0,
+        "unmatched_section_boundary_candidate_count": 0,
         "section_marker_candidate_count": 0,
         "eligible_global_section_marker_candidate_count": 0,
         "excluded_global_section_marker_candidate_count": 0,
@@ -283,3 +287,25 @@ def test_review_summary_reports_cross_staff_and_single_staff_measure_counts():
     package = build_review_package(data, score_id="score-alignment-counts")
     assert package["summary"]["cross_staff_aligned_measure_candidate_count"] == 1
     assert package["summary"]["single_staff_only_measure_candidate_count"] == 0
+
+
+
+def test_review_summary_reports_section_boundary_alignment_support():
+    data = sample_analysis()
+    data["global_section_range_candidates"] = [
+        {"section_range_id": "section-1",
+         "start": {"page_number": 1, "musical_boundary_candidate": {
+             "global_alignment_status": "cross_staff_alignment_candidate"}},
+         "end": {"page_number": 1, "musical_boundary_candidate": {
+             "global_alignment_status": "single_staff_only_unmatched"}}},
+        {"section_range_id": "section-2",
+         "start": {"page_number": 2, "musical_boundary_candidate": {
+             "global_alignment_status": "single_staff_only_unmatched"}},
+         "end": None},
+    ]
+    package = build_review_package(data, score_id="score-section-boundary-support")
+    summary = package["summary"]
+    assert summary["section_boundary_candidate_count"] == 3
+    assert summary["cross_staff_aligned_section_boundary_candidate_count"] == 1
+    assert summary["single_staff_only_section_boundary_candidate_count"] == 2
+    assert summary["unmatched_section_boundary_candidate_count"] == 0
