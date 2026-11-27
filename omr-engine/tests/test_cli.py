@@ -57,7 +57,7 @@ def test_cli_exports_dictionary_section_anchors(tmp_path, monkeypatch):
 
     monkeypatch.setattr(
         "palermo_omr.cli.anchor_section_markers_to_measure_spans",
-        lambda *args: [{
+        lambda *args, **kwargs: [{
             "marker_index": 0,
             "staff_index": 0,
             "measure_index_on_staff": 1,
