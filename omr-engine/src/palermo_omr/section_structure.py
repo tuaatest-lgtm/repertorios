@@ -238,10 +238,15 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
     """
     ordered_pages = sorted(pages, key=lambda item: item.get("page_number", 0))
     markers = []
+    seen_page_numbers = set()
     for page in ordered_pages:
         page_number = page.get("page_number")
-        if not isinstance(page_number, int) or page_number < 1:
-            raise ValueError("Cada página requiere page_number positivo")
+        if (not isinstance(page_number, int) or isinstance(page_number, bool)
+                or page_number < 1):
+            raise ValueError("Cada página requiere page_number entero positivo")
+        if page_number in seen_page_numbers:
+            raise ValueError("page_number duplicado al enlazar secciones")
+        seen_page_numbers.add(page_number)
         page_markers = page.get("section_marker_candidates", [])
         identifiers = page.get("section_identifier_candidates", [])
         anchors = page.get("section_measure_anchor_candidates", [])
