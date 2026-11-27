@@ -362,6 +362,11 @@ def anchor_section_markers_to_measure_spans(
                 item[1],
             )
         )
+        # Evita anclar rótulos de encabezado/pie de página a un pentagrama
+        # solo porque sea el más cercano disponible. La tolerancia vertical
+        # se expresa en espacios del pentagrama para escalar con el tamaño.
+        if vertical_distance > staves[staff_index].spacing_px * 12:
+            continue
         if distance > max_distance_measures:
             continue
         ratio = (x - span.x_start) / max(span.width_px, 1.0)
@@ -512,15 +517,27 @@ def resolve_section_range_boundaries(
     del intervalo. La posición del rótulo es solo un proxy del límite musical:
     toda resolución queda pendiente de revisión humana.
     """
+    if not isinstance(global_measure_sequence, dict):
+        raise ValueError("global_measure_sequence debe ser un objeto")
+    raw_map = global_measure_sequence.get("staff_measure_map", [])
+    if not isinstance(raw_map, list):
+        raise ValueError("staff_measure_map debe ser una lista")
     measure_map = {}
-    for item in global_measure_sequence.get("staff_measure_map", []):
+    for item in raw_map:
+        if not isinstance(item, dict):
+            raise ValueError("Cada referencia de compás debe ser un objeto")
         key = (item.get("page_number"), item.get("staff_index"),
                item.get("measure_index_on_staff"))
         measure_map[key] = item.get("global_measure_candidate")
 
+    from copy import deepcopy
+    from math import isfinite
+
     resolved = []
     for source in section_ranges:
-        section = dict(source)
+        if not isinstance(source, dict):
+            raise ValueError("Cada rango de sección debe ser un objeto")
+        section = deepcopy(source)
         for boundary_name in ("start", "end"):
             boundary = section.get(boundary_name)
             if not isinstance(boundary, dict):
@@ -530,6 +547,7 @@ def resolve_section_range_boundaries(
                 anchor for anchor in anchors
                 if isinstance(anchor, dict)
                 and isinstance(anchor.get("position_ratio_in_interval"), (int, float))
+                and isfinite(float(anchor["position_ratio_in_interval"]))
             ]
             if not valid:
                 boundary["musical_boundary_candidate"] = None
