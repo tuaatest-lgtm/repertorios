@@ -57,3 +57,55 @@ def test_global_measure_sequence_skips_spans_without_system_membership():
     }])
     assert result["global_measure_candidates"] == []
     assert result["staff_measure_map"] == []
+
+
+def test_section_range_boundaries_retain_partial_measure_positions():
+    from palermo_omr.section_structure import resolve_section_range_boundaries
+
+    ranges = [{
+        "section_range_id": "section-1",
+        "start": {
+            "page_number": 1,
+            "measure_anchors": [{
+                "staff_index": 0, "measure_index_on_staff": 2,
+                "position_ratio_in_interval": 0.35,
+                "confidence": 0.5, "vertical_distance_px": 3,
+            }],
+        },
+        "end": {
+            "page_number": 2,
+            "measure_anchors": [{
+                "staff_index": 1, "measure_index_on_staff": 1,
+                "position_ratio_in_interval": 1.0,
+                "confidence": 0.6, "vertical_distance_px": 2,
+            }],
+        },
+    }]
+    sequence = {"staff_measure_map": [
+        {"page_number": 1, "staff_index": 0, "measure_index_on_staff": 2,
+         "global_measure_candidate": 7},
+        {"page_number": 2, "staff_index": 1, "measure_index_on_staff": 1,
+         "global_measure_candidate": 12},
+    ]}
+
+    result = resolve_section_range_boundaries(ranges, sequence)
+    start = result[0]["start"]["musical_boundary_candidate"]
+    end = result[0]["end"]["musical_boundary_candidate"]
+    assert start["global_measure_candidate"] == 7
+    assert start["position_kind"] == "inside_measure_candidate"
+    assert start["partial_measure_boundary"] is True
+    assert start["position_ratio_in_interval"] == 0.35
+    assert end["global_measure_candidate"] == 12
+    assert end["position_kind"] == "inside_measure_candidate"
+    assert end["partial_measure_boundary"] is False
+    assert start["review_status"] == "pending"
+
+
+def test_section_boundary_without_measure_anchor_remains_unresolved():
+    from palermo_omr.section_structure import resolve_section_range_boundaries
+
+    result = resolve_section_range_boundaries(
+        [{"start": {"page_number": 1, "measure_anchors": []}, "end": None}],
+        {"staff_measure_map": []},
+    )
+    assert result[0]["start"]["musical_boundary_candidate"] is None
