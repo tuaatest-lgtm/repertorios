@@ -38,6 +38,8 @@ class SectionMarkerCandidate:
     bbox_pdf: tuple[float, float, float, float]
     center_x_px: float
     center_y_px: float
+    page_width_px: float
+    page_height_px: float
     confidence: float
     warning: str
 
@@ -135,6 +137,8 @@ def detect_section_candidates(
                 bbox_pdf=tuple(round(float(v), 3) for v in bbox),
                 center_x_px=round((bbox[0] + bbox[2]) * 0.5 * scale, 2),
                 center_y_px=round((bbox[1] + bbox[3]) * 0.5 * scale, 2),
+                page_width_px=round(page.rect.width * scale, 2),
+                page_height_px=round(page.rect.height * scale, 2),
                 confidence=0.65,
                 warning=(
                     "Rótulo textual candidato de sección; no confirma por sí solo "
@@ -268,9 +272,48 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
                 "center_y_px": marker.get("center_y_px"),
             })
 
+    # Un rótulo repetido en la misma coordenada de la franja superior
+    # de varias páginas se trata como encabezado editorial, no como una
+    # nueva sección en cada página. Se conserva en los candidatos locales.
+    header_groups = {}
+    for marker in markers:
+        width = marker.get("page_width_px")
+        height = marker.get("page_height_px")
+        x, y = marker.get("center_x_px"), marker.get("center_y_px")
+        if (not isinstance(width, (int, float)) or not isinstance(height, (int, float))
+                or width <= 0 or height <= 0
+                or not isinstance(x, (int, float)) or not isinstance(y, (int, float))):
+            continue
+        normalized_y = y / height
+        if normalized_y > 0.08:
+            continue
+        key = (
+            marker.get("section_name"),
+            round(x / width, 2),
+            round(normalized_y, 2),
+        )
+        header_groups.setdefault(key, set()).add(marker["page_number"])
+    repeated_header_keys = {
+        key for key, page_numbers in header_groups.items()
+        if len(page_numbers) >= 2
+    }
+    filtered_markers = []
+    for marker in markers:
+        width = marker.get("page_width_px")
+        height = marker.get("page_height_px")
+        x, y = marker.get("center_x_px"), marker.get("center_y_px")
+        key = None
+        if (isinstance(width, (int, float)) and isinstance(height, (int, float))
+                and width > 0 and height > 0
+                and isinstance(x, (int, float)) and isinstance(y, (int, float))
+                and y / height <= 0.08):
+            key = (marker.get("section_name"), round(x / width, 2), round(y / height, 2))
+        if key not in repeated_header_keys:
+            filtered_markers.append(marker)
+
     ranges = []
-    for index, marker in enumerate(markers):
-        following = markers[index + 1] if index + 1 < len(markers) else None
+    for index, marker in enumerate(filtered_markers):
+        following = filtered_markers[index + 1] if index + 1 < len(filtered_markers) else None
         ranges.append({
             "section_range_id": f"section-{index + 1}",
             "section_name": marker["section_name"],
