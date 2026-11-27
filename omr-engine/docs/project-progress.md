@@ -85,8 +85,9 @@ La mayor incertidumbre del calendario no es escribir más módulos: es disponer 
 
 - La CLI ahora conecta la detección de cabezas, el análisis rítmico y la interpretación de barras con `build_rhythmic_event_group_candidates`. El resultado se exporta por página como `rhythmic_event_group_candidates`, con estado, duración candidata, referencias a cabezas y advertencias.
 - La CLI también ejecuta `detect_staff_voice_layer_candidates` y exporta `staff_voice_layer_candidates`. Esto hace visible la coexistencia local de plicas opuestas dentro de un pentagrama.
+- El paquete de revisión humana incorpora ahora grupos de ataque/acorde y capas de voz, relacionados explícitamente con las cabezas y pentagramas de origen. Todos quedan pendientes; se rechazan relaciones que mezclan pentagramas. CI: 419 pruebas aprobadas.
 - La integración conserva las restricciones musicales: no convierte coordenada horizontal en tiempo, no asigna automáticamente soprano/alto ni mano derecha/izquierda, no confirma acordes y no crea eventos temporales definitivos. Si una duración no está resuelta, no asigna duración en cuartos.
-- La prueba de integración de CLI verifica que los candidatos se exportan y que las voces siguen sin asignación automática. CI de la rama: [45948459476](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45948459476), **417 pruebas aprobadas**.
+- La prueba de integración de CLI verifica que los candidatos se exportan y que las voces siguen sin asignación automática. CI de la rama: [45948571396](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45948571396), **419 pruebas aprobadas**.
 - **Avance global funcional permanece en 36%**: se integró infraestructura de candidatos al flujo principal, pero no hay todavía una mejora de exactitud musical medida ni un corpus anotado que justifique subir el indicador.
 
 ### Acceso al corpus externo de pruebas
