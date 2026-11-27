@@ -274,3 +274,141 @@ def apply_reviewed_tie_chains_to_page_timelines(
         timelines[0]["reviewed_tie_chains_across_measures"] = records
         timelines[0]["tie_review_status"] = "human_confirmed_ties_applied_across_measures"
     return timelines
+
+
+def apply_reviewed_tie_chains_across_pages(
+    pages: Sequence[tuple[int, list[dict]]],
+    candidates: Sequence[TieLinkCandidate],
+    confirmations: Sequence[TieReviewConfirmation],
+) -> Sequence[tuple[int, list[dict]]]:
+    """Aplica ligaduras humanas que cruzan páginas consecutivas.
+
+    Requiere que se entreguen todas las páginas implicadas, con sus compases
+    revisados completos, empezando en el índice 0 y sin saltos. Una ligadura
+    solo puede salir del último compás de una página y entrar al primero de la
+    página siguiente. Así no se inventa continuidad a través de páginas o
+    compases omitidos.
+    """
+    if not isinstance(pages, Sequence) or isinstance(pages, (str, bytes)) or not pages:
+        raise ValueError("pages debe contener páginas revisadas")
+    normalized_pages: list[tuple[int, list[dict]]] = []
+    page_offsets: dict[int, Fraction] = {}
+    event_locations: dict[str, tuple[dict, dict, int, Fraction]] = {}
+    cursor = Fraction(0)
+    previous_page_number = None
+
+    for page_number, timelines in pages:
+        if not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
+            raise ValueError("El número de página debe ser un entero positivo")
+        if previous_page_number is not None and page_number != previous_page_number + 1:
+            raise ValueError("Las páginas deben ser consecutivas y estar completas")
+        if not isinstance(timelines, list) or not timelines:
+            raise ValueError("Cada página debe contener compases revisados")
+        indices = [item.get("measure_index") for item in timelines]
+        if indices != list(range(len(indices))):
+            raise ValueError("Cada página debe incluir todos sus compases revisados desde el índice 0")
+        page_offsets[page_number] = cursor
+        local_offsets: dict[int, Fraction] = {}
+        local_cursor = Fraction(0)
+        for timeline in timelines:
+            index = timeline["measure_index"]
+            local_offsets[index] = local_cursor
+            local_cursor += Fraction(timeline["expected_quarters"])
+            for event in timeline.get("events", []):
+                event_id = event.get("event_id")
+                if not isinstance(event_id, str) or not event_id or event_id in event_locations:
+                    raise ValueError("Los IDs de evento deben ser únicos entre todas las páginas")
+                event_locations[event_id] = (event, timeline, page_number, local_offsets[index])
+        cursor += local_cursor
+        normalized_pages.append((page_number, timelines))
+        previous_page_number = page_number
+
+    for candidate in candidates:
+        if candidate.source_event_id not in event_locations or candidate.target_event_id not in event_locations:
+            raise ValueError("Una ligadura entre páginas referencia un evento inexistente")
+
+    chains = build_reviewed_tie_chains(
+        candidates,
+        confirmations,
+        {
+            event_id: Fraction(event["duration_quarters"])
+            for event_id, (event, _, _, _) in event_locations.items()
+            if event.get("duration_quarters") is not None
+        },
+    )
+    if not chains:
+        return normalized_pages
+
+    consumed_targets: set[str] = set()
+    records_by_page: dict[int, list[dict]] = {}
+    for chain in chains:
+        chain_locations = [event_locations[event_id] for event_id in chain.event_ids]
+        chain_events = [item[0] for item in chain_locations]
+        if not any(
+            left[2] != right[2]
+            for left, right in zip(chain_locations, chain_locations[1:])
+        ):
+            raise ValueError("Esta operación solo acepta cadenas que cruzan páginas")
+        for event in chain_events:
+            if event.get("event_type") != "note":
+                raise ValueError("Una ligadura solo puede unir eventos de nota")
+        for left, right in zip(chain_locations, chain_locations[1:]):
+            previous, previous_timeline, previous_page, previous_measure_offset = left
+            current, current_timeline, current_page, current_measure_offset = right
+            if previous.get("voice_id") != current.get("voice_id"):
+                raise ValueError("Una ligadura no puede cruzar voces")
+            if current_page not in {previous_page, previous_page + 1}:
+                raise ValueError("Una ligadura solo puede cruzar a la página consecutiva")
+            if previous.get("onset_quarters") is None or previous.get("duration_quarters") is None or current.get("onset_quarters") is None:
+                raise ValueError("La ligadura requiere inicios y duraciones conocidos")
+            if current_page != previous_page:
+                previous_page_timelines = next(items for number, items in normalized_pages if number == previous_page)
+                current_page_timelines = next(items for number, items in normalized_pages if number == current_page)
+                if previous_timeline is not previous_page_timelines[-1]:
+                    raise ValueError("La nota de salida debe estar en el último compás de la página")
+                if current_timeline is not current_page_timelines[0]:
+                    raise ValueError("La nota de entrada debe estar en el primer compás de la página")
+            previous_global_end = (
+                page_offsets[previous_page] + previous_measure_offset
+                + Fraction(previous["onset_quarters"]) + Fraction(previous["duration_quarters"])
+            )
+            current_global_onset = (
+                page_offsets[current_page] + current_measure_offset
+                + Fraction(current["onset_quarters"])
+            )
+            if previous_global_end != current_global_onset:
+                raise ValueError("Los eventos ligados no son temporalmente contiguos entre páginas")
+            previous_pitch = previous.get("confirmed_pitches")
+            current_pitch = current.get("confirmed_pitches")
+            if previous_pitch is not None and current_pitch is not None and previous_pitch != current_pitch:
+                raise ValueError("Las alturas revisadas de las notas ligadas no coinciden")
+
+        first = chain_locations[0][0]
+        last, last_timeline, last_page, last_measure_offset = chain_locations[-1]
+        first["duration_quarters"] = str(chain.combined_duration_quarters)
+        first["tied_event_ids"] = list(chain.event_ids)
+        first["tie_global_end_quarters"] = str(
+            page_offsets[last_page] + last_measure_offset
+            + Fraction(last["onset_quarters"]) + Fraction(last["duration_quarters"])
+        )
+        consumed_targets.update(chain.event_ids[1:])
+        records_by_page.setdefault(chain_locations[0][2], []).append(chain.to_dict())
+
+    for page_number, timelines in normalized_pages:
+        for timeline in timelines:
+            timeline["events"] = [
+                event for event in timeline.get("events", [])
+                if event["event_id"] not in consumed_targets
+            ]
+            grouped: dict[str, list[str]] = {}
+            for event in timeline["events"]:
+                if event.get("onset_quarters") is not None:
+                    grouped.setdefault(str(event["onset_quarters"]), []).append(event["event_id"])
+            timeline["onset_groups"] = [
+                {"onset_quarters": onset, "event_ids": sorted(ids)}
+                for onset, ids in sorted(grouped.items(), key=lambda item: Fraction(item[0]))
+            ]
+        if page_number in records_by_page:
+            timelines[0]["reviewed_tie_chains_across_pages"] = records_by_page[page_number]
+            timelines[0]["tie_review_status"] = "human_confirmed_ties_applied_across_pages"
+    return normalized_pages

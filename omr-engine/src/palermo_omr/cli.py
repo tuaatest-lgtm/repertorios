@@ -31,6 +31,8 @@ from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythmic_event_groups import build_rhythmic_event_group_candidates
 from .reviewed_timeline import build_reviewed_page_timelines
+from .reviewed_tie_chains import apply_reviewed_tie_chains_across_pages
+from .tie_candidates import TieLinkCandidate, TieReviewConfirmation
 from .staff_voice_layers import detect_staff_voice_layer_candidates
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
@@ -437,6 +439,30 @@ def main() -> int:
                 rest_candidates=rest_candidates_by_page[page_number],
                 pitch_candidates=pitch_candidates_by_page[page_number],
             )
+        raw_cross_page_ties = reviewed_manifest.get("cross_page_tie_candidates", [])
+        raw_cross_page_confirmations = reviewed_manifest.get("cross_page_tie_confirmations", [])
+        if not isinstance(raw_cross_page_ties, list) or not isinstance(raw_cross_page_confirmations, list):
+            raise ValueError("cross_page_tie_candidates y cross_page_tie_confirmations deben ser listas")
+        if raw_cross_page_ties or raw_cross_page_confirmations:
+            try:
+                cross_page_ties = [
+                    TieLinkCandidate(**{**item, "warnings": tuple(item.get("warnings", ()))})
+                    for item in raw_cross_page_ties
+                ]
+                cross_page_confirmations = [
+                    TieReviewConfirmation(**item) for item in raw_cross_page_confirmations
+                ]
+            except (TypeError, AttributeError) as exc:
+                raise ValueError("La revisión de ligaduras entre páginas contiene campos inválidos") from exc
+            reviewed_pages = [
+                (page["page_number"], page["reviewed_measure_timelines"])
+                for page in analyses if "reviewed_measure_timelines" in page
+            ]
+            applied_pages = apply_reviewed_tie_chains_across_pages(
+                reviewed_pages, cross_page_ties, cross_page_confirmations
+            )
+            for page_number, timelines in applied_pages:
+                analyses[page_number - 1]["reviewed_measure_timelines"] = timelines
         report_reviewed_count = sum(
             len(page.get("reviewed_measure_timelines", [])) for page in analyses
         )

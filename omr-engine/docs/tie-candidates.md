@@ -126,8 +126,44 @@ inicial conserva el ataque y recibe la duración combinada; los eventos de
 destino dejan de generar ataques y quedan registrados en
 `tied_event_ids`.
 
-**Límite actual:** el ámbito de página no cruza páginas. Las ligaduras entre
-páginas requieren una línea temporal de documento que valide explícitamente
-orden de páginas, compases, continuidad y saltos de sistema; no se deben
-resolver concatenando tiempos locales a ciegas. Ninguna de estas rutas detecta
-ni confirma ligaduras automáticamente, y no están conectadas a Sonoro.
+### 3. Ligaduras entre páginas consecutivas
+
+El manifiesto de documento puede incluir `cross_page_tie_candidates` y
+`cross_page_tie_confirmations` en el nivel superior, junto a `pages`. Los
+índices de confirmación apuntan a la lista global de candidatos:
+
+```json
+{
+  "cross_page_tie_candidates": [{
+    "arc_id": "arc-page-1-2",
+    "source_event_id": "last-note-page-1",
+    "target_event_id": "first-note-page-2",
+    "status": "proposed_tie",
+    "pitch_match": true,
+    "temporal_continuity": true,
+    "geometry_score": 0.9,
+    "warnings": []
+  }],
+  "cross_page_tie_confirmations": [{
+    "candidate_index": 0,
+    "reviewer_confirmed": true,
+    "arc_is_tie_confirmed": true,
+    "same_notated_pitch_confirmed": true
+  }]
+}
+```
+
+Para aplicar estas ligaduras, el manifiesto debe incluir las páginas
+consecutivas completas en orden, con todos sus compases revisados desde el
+índice 0 y sin huecos. La nota de origen debe estar en el último compás de la
+página y la nota de destino en el primero de la siguiente. El motor calcula
+offsets globales a partir de las métricas revisadas, exige continuidad exacta,
+misma voz y eventos de tipo nota. Si ambas alturas están confirmadas, también
+deben coincidir. La nota inicial conserva un solo ataque y recibe la duración
+combinada; la nota de destino se elimina de los ataques reproducibles y queda
+registrada en `tied_event_ids`.
+
+Si falta una página o un compás, el motor rechaza la operación en vez de
+suponer que el tiempo local continúa. Las propuestas siguen requiriendo
+confirmación humana; no se detectan ni confirman ligaduras automáticamente y
+esta salida no está conectada a Sonoro.

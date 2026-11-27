@@ -7,7 +7,7 @@ from palermo_omr.reviewed_timeline import build_reviewed_page_timelines
 from palermo_omr.rhythm_symbols import RestSymbolCandidate
 from palermo_omr.pitch import Pitch
 from palermo_omr.pitch_candidates import PitchCandidate
-from palermo_omr.tie_candidates import TieLinkCandidate
+from palermo_omr.tie_candidates import TieLinkCandidate, TieReviewConfirmation
 
 
 def group(event_id, staff, center_x, duration="quarter", status="single_note_candidate", indices=(0,)):
