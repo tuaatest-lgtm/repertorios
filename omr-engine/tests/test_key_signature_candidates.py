@@ -16,7 +16,7 @@ def test_builds_reviewable_sharp_signature_from_human_labels_and_staff_positions
     # Treble staff bottom E4; F5 is five diatonic steps above bottom line.
     manifest = {"glyphs": [
         glyph("sharp", 10, 35, "s1"),
-        glyph("sharp", 20, 20, "s2"),
+        glyph("sharp", 20, 16, "s2"),
     ]}
     result = build_key_signature_candidates(
         manifest, page_number=1, staff_clefs={0: "treble"},
@@ -29,7 +29,7 @@ def test_builds_reviewable_sharp_signature_from_human_labels_and_staff_positions
 
 def test_rejects_nonconventional_accidental_order():
     manifest = {"glyphs": [
-        glyph("sharp", 10, 20, "s1"),  # C
+        glyph("sharp", 10, 16, "s1"),  # C
         glyph("sharp", 20, 35, "s2"),  # F
     ]}
     result = build_key_signature_candidates(
