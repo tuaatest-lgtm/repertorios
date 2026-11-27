@@ -155,3 +155,33 @@ def test_serializes_overlapping_event_diagnostics():
     data = analyze_measure_timeline(events, 4, 4, measure_index=0).to_dict()
     assert data["overlapping_event_ids"] == ["first", "second"]
     assert data["status"] == "overlapping_events"
+
+
+
+def test_reports_underfilled_voices_independently_instead_of_using_global_maximum():
+    events = [
+        TimedRhythmicEvent("s1", "soprano", 0, 0, 2),
+        TimedRhythmicEvent("a1", "alto", 0, 0, 4),
+    ]
+    result = analyze_measure_timeline(events, 4, 4, measure_index=0)
+    assert result.maximum_known_end_quarters == Fraction(4)
+    assert result.underfilled_voice_ids == ("soprano",)
+    assert result.to_dict()["underfilled_voice_ids"] == ["soprano"]
+
+
+def test_does_not_claim_underfilled_when_voice_timing_is_unknown():
+    events = [
+        TimedRhythmicEvent("known", "tenor", 0, 0, 1),
+        TimedRhythmicEvent("unknown", "tenor", 0, None, 1),
+    ]
+    result = analyze_measure_timeline(events, 4, 4, measure_index=0)
+    assert result.underfilled_voice_ids == ()
+
+
+def test_does_not_flag_a_voice_that_fills_the_measure_exactly():
+    events = [
+        TimedRhythmicEvent("first", "bass", 0, 0, 2),
+        TimedRhythmicEvent("second", "bass", 0, 2, 2),
+    ]
+    result = analyze_measure_timeline(events, 4, 4, measure_index=0)
+    assert result.underfilled_voice_ids == ()

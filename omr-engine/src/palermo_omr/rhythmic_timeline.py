@@ -39,6 +39,7 @@ class MeasureTimelineAnalysis:
     unknown_duration_event_ids: tuple[str, ...]
     out_of_measure_event_ids: tuple[str, ...]
     overlapping_event_ids: tuple[str, ...]
+    underfilled_voice_ids: tuple[str, ...]
     maximum_known_end_quarters: Fraction
     status: str
 
@@ -72,6 +73,7 @@ class MeasureTimelineAnalysis:
             "unknown_duration_event_ids": list(self.unknown_duration_event_ids),
             "out_of_measure_event_ids": list(self.out_of_measure_event_ids),
             "overlapping_event_ids": list(self.overlapping_event_ids),
+            "underfilled_voice_ids": list(self.underfilled_voice_ids),
             "maximum_known_end_quarters": str(self.maximum_known_end_quarters),
             "status": self.status,
         }
@@ -116,6 +118,7 @@ def analyze_measure_timeline(
     overflow: list[str] = []
     overlapping: set[str] = set()
     placed_by_voice: dict[str, list[tuple[Fraction, Fraction, str]]] = {}
+    incomplete_fill_voices: set[str] = set()
     grouped: dict[Fraction, list[str]] = {}
     maximum_end = Fraction(0, 1)
 
@@ -151,6 +154,7 @@ def analyze_measure_timeline(
             raise ValueError("duration_quarters debe ser mayor que cero")
 
         if onset is None:
+            incomplete_fill_voices.add(event.voice_id)
             unknown_onsets.append(event.event_id)
         else:
             grouped.setdefault(onset, []).append(event.event_id)
@@ -158,6 +162,7 @@ def analyze_measure_timeline(
                 overflow.append(event.event_id)
 
         if duration is None:
+            incomplete_fill_voices.add(event.voice_id)
             unknown_durations.append(event.event_id)
         elif onset is not None:
             end = onset + duration
@@ -176,6 +181,15 @@ def analyze_measure_timeline(
                     break
                 if next_onset > onset and next_onset < end:
                     overlapping.update((event_id, next_id))
+
+    # La cobertura se evalúa por voz, no con el máximo global: una voz larga
+    # no debe ocultar silencios/eventos faltantes en otra. Solo se marca
+    # subllenado cuando todos los eventos de esa voz tienen tiempos conocidos.
+    underfilled_voices = tuple(sorted(
+        voice_id for voice_id, voice_events in placed_by_voice.items()
+        if voice_id not in incomplete_fill_voices
+        and max(end for _, end, _ in voice_events) < expected
+    ))
 
     onset_groups = tuple(
         OnsetGroup(onset, tuple(sorted(event_ids)))
@@ -205,6 +219,7 @@ def analyze_measure_timeline(
         unknown_duration_event_ids=tuple(unknown_durations),
         out_of_measure_event_ids=tuple(overflow),
         overlapping_event_ids=tuple(sorted(overlapping)),
+        underfilled_voice_ids=underfilled_voices,
         maximum_known_end_quarters=maximum_end,
         status=status,
     )
