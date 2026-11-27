@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palermomusic.example/schemas/omr-result-v1.json",
+  "title": "Palermo OMR result v1",
+  "type": "object",
+  "required": ["api_version", "job_id", "status", "source", "engine", "pages", "warnings"],
+  "properties": {
+    "api_version": { "const": "1" },
+    "job_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["queued", "processing", "completed", "failed"] },
+    "source": {
+      "type": "object",
+      "required": ["sha256", "page_count"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "page_count": { "type": "integer", "minimum": 1 },
+        "filename": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "engine": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": { "name": { "const": "Palermo OMR" }, "version": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "review": { "$ref": "#/$defs/reviewState" }
+  },
+  "$defs": {
+    "candidateState": { "enum": ["candidate", "human_confirmed", "rejected", "unresolved"] },
+    "page": {
+      "type": "object",
+      "required": ["page_number", "candidates"],
+      "properties": {
+        "page_number": { "type": "integer", "minimum": 1 },
+        "image": { "type": "string" },
+        "geometry_overlay": { "type": "string" },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } }
+      },
+      "additionalProperties": true
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["id", "kind", "state", "geometry"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "state": { "$ref": "#/$defs/candidateState" },
+        "geometry": { "type": "object" },
+        "interpretation": { "type": ["object", "null"] },
+        "review_revision": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "reviewState": {
+      "type": "object",
+      "required": ["revision", "base_result_sha256"],
+      "properties": {
+        "revision": { "type": "integer", "minimum": 0 },
+        "base_result_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}
