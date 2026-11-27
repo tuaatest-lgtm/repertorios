@@ -14,6 +14,7 @@ from .symbols import (
     detect_hollow_notehead_candidates,
     detect_notehead_candidates,
 )
+from .pitch_candidates import build_pitch_candidates
 from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
@@ -51,6 +52,14 @@ def main() -> int:
     parser.add_argument("pdf", help="Ruta al archivo PDF")
     parser.add_argument("--output", default="omr-output", help="Carpeta de salida")
     parser.add_argument("--dpi", type=int, default=300, help="Resolución de renderizado (72-600)")
+    parser.add_argument(
+        "--staff-clefs", default="{}",
+        help="JSON opcional: claves por índice de pentagrama, p. ej. '{\"0\":\"treble\",\"1\":\"bass\"}'. No se detectan visualmente.",
+    )
+    parser.add_argument(
+        "--key-signatures", default="{}",
+        help="JSON opcional: armaduras por índice de pentagrama, p. ej. '{\"0\":{\"F\":1,\"C\":1}}'",
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -81,6 +90,20 @@ def main() -> int:
         page_data["notehead_candidate_count"] = len(noteheads)
         page_data["hollow_notehead_candidates"] = [item.to_dict() for item in hollow_noteheads]
         page_data["hollow_notehead_candidate_count"] = len(hollow_noteheads)
+        pitch_candidates = build_pitch_candidates(
+            noteheads + hollow_noteheads,
+            staff_clefs=json.loads(args.staff_clefs),
+            key_signatures=json.loads(args.key_signatures),
+            source_kinds=(["filled"] * len(noteheads) + ["hollow"] * len(hollow_noteheads)),
+        )
+        page_data["pitch_candidates"] = [item.to_dict() for item in pitch_candidates]
+        page_data["pitch_candidate_count"] = len(pitch_candidates)
+        page_data["resolved_pitch_candidate_count"] = sum(
+            item.status == "resolved_from_supplied_clef" for item in pitch_candidates
+        )
+        page_data["unresolved_pitch_candidate_count"] = (
+            len(pitch_candidates) - page_data["resolved_pitch_candidate_count"]
+        )
         page_data["hollow_notehead_overlay"] = hollow_overlay_path.name
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
