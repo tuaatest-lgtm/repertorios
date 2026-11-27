@@ -533,3 +533,33 @@ def test_global_measure_sequence_marks_multi_staff_alignment_candidate():
     assert result["global_measure_candidates"][0]["alignment_status"] == (
         "cross_staff_alignment_candidate"
     )
+
+
+
+def test_section_marker_anchors_to_each_staff_in_nearest_system():
+    from palermo_omr.measure_layout import StaffSystemCandidate
+    from palermo_omr.section_structure import anchor_section_markers_to_measure_spans
+
+    staves = [
+        StaffCandidate([100, 110, 120, 130, 140], 10, 1),
+        StaffCandidate([250, 260, 270, 280, 290], 10, 1),
+        StaffCandidate([500, 510, 520, 530, 540], 10, 1),
+    ]
+    spans = [
+        MeasureSpanCandidate(0, 1, 50, 150, 100, True, True, 0.8, "test"),
+        MeasureSpanCandidate(1, 1, 50, 150, 100, True, True, 0.8, "test"),
+        MeasureSpanCandidate(2, 1, 50, 150, 100, True, True, 0.8, "test"),
+    ]
+    systems = [
+        StaffSystemCandidate(0, [0, 1], 100, 290, 0.82, "connector"),
+        StaffSystemCandidate(1, [2], 500, 540, 0.45, "single"),
+    ]
+    anchors = anchor_section_markers_to_measure_spans(
+        [{"center_x_px": 100, "center_y_px": 80}],
+        staves,
+        spans,
+        staff_system_candidates=systems,
+    )
+    assert [item["staff_index"] for item in anchors] == [0, 1]
+    assert all(item["system_index"] == 0 for item in anchors)
+    assert all(item["anchor_scope"] == "system_candidate" for item in anchors)
