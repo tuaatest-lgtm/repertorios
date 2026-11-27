@@ -17,7 +17,10 @@ from .rhythmic_timeline import analyze_ordered_measure_voices
 from .rest_events import RestReviewAssignment, build_reviewed_rest_events
 from .rhythm_symbols import RestSymbolCandidate
 from .tie_candidates import TieLinkCandidate, TieReviewConfirmation
-from .reviewed_tie_chains import (\n    apply_reviewed_tie_chains_to_timeline,\n    apply_reviewed_tie_chains_to_page_timelines,\n)
+from .reviewed_tie_chains import (
+    apply_reviewed_tie_chains_to_timeline,
+    apply_reviewed_tie_chains_to_page_timelines,
+)
 
 
 def build_reviewed_page_timelines(
