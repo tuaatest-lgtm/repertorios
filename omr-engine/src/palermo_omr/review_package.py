@@ -258,10 +258,17 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             raise ValueError("Cada rango global requiere un extremo inicial")
         if section_range.get("end") is not None and not isinstance(section_range.get("end"), dict):
             raise ValueError("El extremo final del rango debe ser un objeto o null")
-    pending_section_ranges = sum(
-        1 for item in global_section_ranges
-        if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
-    )
+    section_range_statuses = [
+        item.get("review_status", "pending")
+        for item in global_section_ranges if isinstance(item, dict)
+    ]
+    if any(status not in {"pending", "accepted", "rejected", "needs_revision"}
+           for status in section_range_statuses):
+        raise ValueError("review_status de rango de sección no válido")
+    pending_section_ranges = section_range_statuses.count("pending")
+    accepted_section_ranges = section_range_statuses.count("accepted")
+    rejected_section_ranges = section_range_statuses.count("rejected")
+    needs_revision_section_ranges = section_range_statuses.count("needs_revision")
     section_boundary_candidates = [
         boundary.get("musical_boundary_candidate")
         for item in global_section_ranges if isinstance(item, dict)
@@ -394,6 +401,9 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "system_barline_candidate_count": system_barline_count,
             "global_section_range_candidate_count": len(global_section_ranges),
             "pending_global_section_range_candidate_count": pending_section_ranges,
+            "accepted_global_section_range_candidate_count": accepted_section_ranges,
+            "rejected_global_section_range_candidate_count": rejected_section_ranges,
+            "needs_revision_global_section_range_candidate_count": needs_revision_section_ranges,
             "section_boundary_candidate_count": len(section_boundary_candidates),
             "cross_staff_aligned_section_boundary_candidate_count": cross_staff_section_boundaries,
             "single_staff_only_section_boundary_candidate_count": single_staff_section_boundaries,
