@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 78%
-- **Avance estimado actual:** 79%
+- **Avance estimado anterior:** 79%
+- **Avance estimado actual:** 80%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 21%
+- **Trabajo restante estimado:** 20%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. La ejecución real ahora agrupa sistemas mediante conectores verticales y logra alineación geométrica transversal parcial: 61 de 312 grupos de intervalos cumplen ahora una tolerancia simultánea de centro y límites en dos pentagramas; 251 siguen siendo intervalos de un solo pentagrama. Los ordinales y las posiciones siguen siendo candidatos, no números de compás musical confirmados. No hay aún evaluación contra anotación humana ni exactitud de transcripción medida.
 
@@ -23,15 +23,18 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Paquete de revisión humana | 98% | 99% | El resumen también cuenta marcas de sección elegibles, excluidas y aún no clasificadas, sin cambiar su estado pendiente de revisión. |
 | Evidencia visual y overlays | 93% | 94% | El overlay distingue visualmente encabezados excluidos de rótulos de sección elegibles y se redibuja después de la clasificación global entre páginas. |
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
-| Validación integral con partituras | 16% | 17% | La CLI ahora vuelve a generar los overlays después de clasificar encabezados repetidos entre páginas; pruebas sintéticas cubren el recorrido de clasificación a imagen. |
+| Validación integral con partituras | 17% | 18% | Pruebas de límites musicales verifican posiciones anteriores, interiores y posteriores al intervalo, preservando el ordinal provisional y la revisión pendiente. |
 | Modelo de identidad de pentagramas | 61% | 62% | La detección de conectores de sistema genera 30 marcas de agrupación candidatas y 60 evidencias asociadas para revisión, sin asignar instrumentos ni voces. |
-| Estructura de secciones musicales | 69% | 70% | Los encabezados superiores repetidos se excluyen de los rangos globales y se distinguen de las marcas elegibles en los overlays finales. |
+| Estructura de secciones musicales | 70% | 71% | Se prueban límites de sección dentro del compás candidato y hasta un intervalo adyacente antes/después, sin forzar el límite a una barra. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
 - La clasificación de marcas de sección entre páginas ahora se refleja en la imagen final: los encabezados repetidos en la franja superior y las marcas superiores sin ancla se dibujan como `HEADER?`, mientras que las marcas elegibles permanecen como `SECTION?`. La CLI vuelve a generar los overlays después de construir los rangos globales, por lo que la visualización ya no queda desfasada respecto a la clasificación documental.
 - Se añadieron pruebas para comprobar el tratamiento visual de marcas excluidas frente a elegibles y una prueba de integración de CLI que confirma que los overlays se redibujan después de la clasificación entre páginas.
 - CI de integración CLI y redibujado posterior a clasificación: ejecución [45944192845](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944192845), commit `faf5bb8bcdf54952fc236a946bfff1842f84a444`, **383 pruebas aprobadas**. La actualización documental quedó validada en [45944294908](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944294908), también con **383 pruebas aprobadas**. CI de clasificación y representación visual: ejecución [45944188513](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944188513), **382 pruebas aprobadas**.
+
+- La resolución de extremos de sección conserva posiciones relativas fuera del intervalo de referencia cuando la marca queda antes o después de él, y diferencia `before_measure_candidate`, `inside_measure_candidate` y `after_measure_candidate`. Cuando la marca cae dentro del intervalo, se conserva `partial_measure_boundary=true`; no se fuerza a coincidir con una barra. Se añadieron tres pruebas parametrizadas para posiciones -0.5, 0.35 y 1.5. Todo sigue marcado `pending` para revisión humana.
+- CI de posiciones parciales y adyacentes de límites de sección: ejecución [45944389262](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45944389262), commit `febdbb28f26f50a123c038bf5519b5be4839fe11`, **386 pruebas aprobadas**.
 
 ## Trabajo verificado en este corte
 
