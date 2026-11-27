@@ -207,3 +207,24 @@ def test_double_accidentals_persist_within_measure():
     )
     assert [item.pitch.alteration for item in result] == [2, 2, -2]
     assert [item.pitch.midi for item in result] == [67, 67, 63]
+
+
+@pytest.mark.parametrize("accidental", [["sharp"], {"kind": "sharp"}, 1])
+def test_rejects_non_string_explicit_accidental_values(accidental):
+    with pytest.raises(ValueError, match="Alteración no reconocida"):
+        build_pitch_candidates(
+            [head()],
+            explicit_accidentals=[accidental],
+            measure_ids=["m1"],
+        )
+
+
+@pytest.mark.parametrize("source_kind", [["filled"], {"kind": "filled"}])
+def test_rejects_non_string_source_kind_values(source_kind):
+    with pytest.raises(ValueError, match="Tipo de cabeza"):
+        build_pitch_candidates([head()], source_kinds=[source_kind])
+
+
+def test_rejects_non_string_or_unhashable_clef_values_cleanly():
+    with pytest.raises(ValueError, match="Clave no soportada"):
+        build_pitch_candidates([head()], staff_clefs={0: {"clef": "treble"}})

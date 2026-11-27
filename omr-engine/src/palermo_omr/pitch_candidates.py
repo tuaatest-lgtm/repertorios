@@ -122,13 +122,22 @@ def build_pitch_candidates(
         raise ValueError("explicit_accidentals debe tener un elemento por cada cabeza de nota")
     if explicit_accidentals is not None:
         allowed_accidentals = {
-            None, "natural", "sharp", "flat", "double_sharp", "double_flat"
+            "natural", "sharp", "flat", "double_sharp", "double_flat"
         }
         for index, accidental in enumerate(explicit_accidentals):
-            if accidental not in allowed_accidentals:
+            if accidental is not None and (
+                not isinstance(accidental, str) or accidental not in allowed_accidentals
+            ):
                 raise ValueError(
                     f"Alteración no reconocida para la cabeza {index}: {accidental!r}"
                 )
+    if source_kinds is not None:
+        for index, source_kind in enumerate(source_kinds):
+            if source_kind not in ("filled", "hollow"):
+                raise ValueError(f"Tipo de cabeza de nota no válido: {source_kind!r}")
+    for staff_index, clef in clefs.items():
+        if not isinstance(clef, str) or clef not in {"treble", "bass", "alto", "tenor"}:
+            raise ValueError(f"Clave no soportada en pentagrama {staff_index}: {clef!r}")
     if measure_ids is not None and len(measure_ids) != count:
         raise ValueError("measure_ids debe tener un elemento por cada cabeza de nota")
 
