@@ -467,3 +467,43 @@ def test_review_package_rejects_event_group_linking_other_staff_noteheads():
     data["pages"][0]["rhythmic_event_group_candidates"][0]["staff_index"] = 1
     with pytest.raises(ValueError, match="pentagramas distintos"):
         build_review_package(data, score_id="score-invalid-event-review")
+
+
+def test_review_package_links_combined_rhythmic_group_indices_to_hollow_noteheads():
+    data = sample_analysis()
+    data["pages"][0]["rhythmic_event_group_candidates"] = [{
+        "event_id": "staff-2-event-1",
+        "staff_index": 1,
+        # build_rhythmic_event_group_candidates recibe noteheads + hollow_noteheads.
+        "notehead_indices": [1],
+        "status": "single_note_candidate",
+    }]
+
+    package = build_review_package(data, score_id="score-combined-head-index")
+    event = next(
+        item for item in package["pages"][0]["other_candidates"]
+        if item["family"] == "rhythmic_event_group"
+    )
+    assert event["related_candidate_ids"] == [
+        "p1-hollow_notehead-1", "p1-staff-2"
+    ]
+
+
+def test_review_package_keeps_voice_layer_indices_in_filled_head_space():
+    data = sample_analysis()
+    data["pages"][0]["staff_voice_layer_candidates"] = [{
+        "layer_id": "staff-1-layer-proposal-1",
+        "staff_index": 0,
+        "upward_notehead_indices": [0],
+        "downward_notehead_indices": [],
+        "status": "proposed_independent_layers",
+    }]
+
+    package = build_review_package(data, score_id="score-filled-layer-index")
+    layer = next(
+        item for item in package["pages"][0]["other_candidates"]
+        if item["family"] == "staff_voice_layer"
+    )
+    assert layer["related_candidate_ids"] == [
+        "p1-filled_notehead-1", "p1-staff-1"
+    ]
