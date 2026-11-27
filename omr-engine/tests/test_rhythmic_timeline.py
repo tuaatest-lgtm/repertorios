@@ -112,3 +112,11 @@ def test_rejects_invalid_event_measure_index(event_measure):
     event = TimedRhythmicEvent("e1", "alto", event_measure, 0, 1)
     with pytest.raises(ValueError, match="measure_index"):
         analyze_measure_timeline([event], 4, 4, measure_index=0)
+
+@pytest.mark.parametrize("bad_value", [True, "1/2", "1", [], {}, object()])
+def test_rejects_non_numeric_time_values(bad_value):
+    with pytest.raises(ValueError, match="número válido"):
+        analyze_measure_timeline(
+            [TimedRhythmicEvent("bad", "alto", 0, bad_value, 1)],
+            4, 4, measure_index=0,
+        )
