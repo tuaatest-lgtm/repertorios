@@ -186,3 +186,39 @@ def test_global_measure_sequence_never_merges_two_intervals_from_same_staff():
     assert [item["staff_support"] for item in candidates] == [2, 2]
     assert [item["global_measure_candidate"] for item in candidates] == [1, 2]
     assert len(result["staff_measure_map"]) == 4
+
+
+
+def test_global_measure_sequence_rejects_duplicate_page_numbers():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    page = {
+        "page_number": 1,
+        "staff_system_candidates": [],
+        "measure_span_candidates": [],
+    }
+    try:
+        build_global_measure_sequence([page, dict(page)])
+    except ValueError as error:
+        assert "duplicado" in str(error)
+    else:
+        raise AssertionError("Expected duplicate page number to be rejected")
+
+
+def test_global_measure_sequence_rejects_staff_in_multiple_systems():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    pages = [{
+        "page_number": 1,
+        "staff_system_candidates": [
+            {"system_index": 0, "staff_indices": [0, 1]},
+            {"system_index": 1, "staff_indices": [1, 2]},
+        ],
+        "measure_span_candidates": [],
+    }]
+    try:
+        build_global_measure_sequence(pages)
+    except ValueError as error:
+        assert "dos sistemas" in str(error)
+    else:
+        raise AssertionError("Expected overlapping system membership to be rejected")
