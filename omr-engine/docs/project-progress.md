@@ -7,10 +7,10 @@
 
 ## Indicador general
 
-- **Avance estimado anterior:** 70%
-- **Avance estimado actual:** 71%
+- **Avance estimado anterior:** 71%
+- **Avance estimado actual:** 72%
 - **Variación:** +1 punto porcentual
-- **Trabajo restante estimado:** 29%
+- **Trabajo restante estimado:** 28%
 
 El indicador es una estimación de madurez del proyecto por hitos verificables. No representa porcentaje de código escrito ni precisión musical medida. El incremento de este corte reconoce la continuidad de rangos de sección entre páginas, su exportación global y su conservación en el paquete de revisión. La prueba de continuidad es sintética; no equivale a validación musical real. Esta ejecución no equivale a una evaluación contra anotación humana ni demuestra exactitud de transcripción.
 
@@ -25,7 +25,7 @@ El indicador es una estimación de madurez del proyecto por hitos verificables. 
 | Corpus anotado y métricas reales | 25% | 25% | Sin cambio: no hay aún un corpus representativo anotado y medido. |
 | Validación integral con partituras | 0% | 10% | Primera ejecución reproducible sobre tres páginas reales y revisión visual de salidas; aún no hay anotación de referencia ni métricas de precisión/recuperación. |
 | Modelo de identidad de pentagramas | 59% | 61% | Se unifican etiquetas impresas y marcas de agrupación en evidencia por página, sin crear asignaciones automáticas. |
-| Estructura de secciones musicales | 35% | 45% | Los rangos se enlazan entre páginas y cada marca se ancla al intervalo geométrico de compás más cercano; la numeración sigue siendo local y provisional. |
+| Estructura de secciones musicales | 45% | 55% | Se construye una secuencia global provisional de intervalos por página/sistema y se relacionan las anclas de sección con ordinales globales, conciliando pentagramas por alineación horizontal. |
 
 Los porcentajes por aspecto son estimaciones independientes y no se deben sumar ni promediar directamente para reconstruir el indicador general.
 
@@ -58,7 +58,11 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - Límite explícito: el enlace global usa el orden de páginas y el orden de marcas detectadas; no reconstruye todavía los compases globales ni sus límites exactos. La asociación letra-marca sigue basada en anchos geométricos candidatos. Los rótulos deben estar en la capa de texto PDF; no hay OCR.
 - Se añadieron pruebas de continuidad entre páginas, páginas intermedias sin marcas, ordenación independiente del orden de entrada y rangos abiertos. CI exacta de la rama: ejecución [45937522902](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45937522902), commit `617870de9fe35193b36ef8ee59ee729e76457521`, resultado exitoso: **338 pruebas aprobadas**.
 
-## Límites que siguen abiertos
+\n- Se añadió `build_global_measure_sequence`: ordena intervalos geométricos por página, sistema y posición horizontal; agrupa intervalos de pentagramas distintos cuando sus centros se alinean dentro de una tolerancia proporcional a su anchura. Exporta ordinal global provisional, soporte de pentagramas y mapa de referencias local→global.
+- La CLI incorpora `global_measure_sequence` en `analysis.json` y adjunta a cada ancla de sección su ordinal global candidato. Las referencias locales siguen disponibles para rastrear el origen.
+- La secuencia no fuerza intervalos sin barras detectadas y separa sistemas geométricos; no reconoce aún anacrusas, compases parciales, barras omitidas ni compases métricos reales. Los ordinales son coordenadas de revisión, no números de compás definitivos.
+- Pruebas sintéticas verifican conciliación de pentagramas alineados, separación de sistemas, orden de páginas fuera de secuencia y exclusión de intervalos sin sistema. CI de la rama: ejecución [45938579297](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45938579297), commit `52ce0812bb6c737063c3400d7800f7e055c0ae7f`, **342 pruebas aprobadas**.
+\n## Límites que siguen abiertos
 
 - Una llave detectada no demuestra por sí sola que dos pentagramas sean piano ni identifica las manos.
 - Un corchete o trazo vertical no confirma que los pentagramas pertenezcan a una parte instrumental o vocal.
@@ -70,7 +74,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 
 | Próximo hito | Aporte estimado al avance global | Condición para reconocerlo |
 |---|---:|---|
-| Reconstruir numeración global de compases y límites parciales | +1 a 2 pp | Conciliar índices locales entre pentagramas/sistemas y resolver límites de sección dentro de un compás con revisión humana. |
+| Validar ordinales globales contra compases musicales anotados y resolver límites parciales | +1 a 2 pp | Comparar la secuencia geométrica con referencias humanas; corregir anacrusas, barras omitidas y cambios de sistema. |
 | Ejecutar el motor sobre más partituras reales y revisar overlays | +1 a 2 pp | Ampliar el análisis a partituras de distinta edición y calidad; revisar los overlays y documentar fallos por familia. |
 | Crear anotaciones humanas de un conjunto representativo | +3 a 5 pp | Partituras, páginas, pentagramas, voces y eventos revisados; manifiestos validados. |
 | Medir precisión y recuperación por familia de símbolos y eventos | +3 a 5 pp | Informes calculados contra referencias humanas, no pruebas sintéticas. |
