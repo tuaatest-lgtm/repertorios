@@ -61,3 +61,50 @@ def test_cli_init_label_validate(tmp_path,monkeypatch):
     assert main()==0
     monkeypatch.setattr("sys.argv",["palermo-omr-glyphs","validate",str(manifest)])
     assert main()==0
+
+
+
+def test_model_suggestions_never_become_human_labels(tmp_path):
+    from palermo_omr.glyph_labeling import attach_model_suggestions, validate_glyph_manifest_data
+
+    manifest = {
+        "schema_version": "1.0",
+        "score_id": "score-a",
+        "label_vocabulary": sorted(GLYPH_LABELS),
+        "glyph_count": 1,
+        "labeled_count": 0,
+        "pending_count": 1,
+        "glyphs": [{
+            "candidate_id": "glyph-1",
+            "page_number": 1,
+            "staff_index": 0,
+            "candidate_bbox": [1, 2, 3, 4],
+            "crop_file": "page-001-glyph-1.png",
+            "label": None,
+            "label_status": "pending_human_review",
+            "annotator": None,
+            "labeled_at": None,
+        }],
+    }
+    manifest_path = tmp_path / "manifest.json"
+    predictions_path = tmp_path / "predictions.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    predictions_path.write_text(json.dumps({
+        "predictions": [{
+            "score_id": "score-a",
+            "candidate_id": "glyph-1",
+            "label": "treble_clef",
+            "candidate_label": "treble_clef",
+            "decision_status": "unverified_candidate_requires_review",
+            "nearest_centroid_distance": 0.25,
+        }]
+    }), encoding="utf-8")
+
+    result = attach_model_suggestions(manifest_path, predictions_path)
+    glyph = result["glyphs"][0]
+    assert glyph["model_suggestion"]["candidate_label"] == "treble_clef"
+    assert glyph["label"] is None
+    assert glyph["label_status"] == "pending_human_review"
+    assert glyph["annotator"] is None
+    assert result["labeled_count"] == 0
+    validate_glyph_manifest_data(result)

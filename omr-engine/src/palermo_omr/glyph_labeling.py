@@ -192,3 +192,51 @@ def label_glyph(
 def validate_glyph_manifest(path: str | Path) -> dict:
     manifest = _read_json(path)
     return validate_glyph_manifest_data(manifest)
+
+
+def attach_model_suggestions(
+    manifest_path: str | Path,
+    predictions_path: str | Path,
+) -> dict:
+    """Adjunta sugerencias del modelo sin convertirlas en etiquetas humanas."""
+    manifest = _read_json(manifest_path)
+    validate_glyph_manifest_data(manifest)
+    payload = _read_json(predictions_path)
+    predictions = payload.get("predictions")
+    if not isinstance(predictions, list):
+        raise ValueError("El archivo debe contener una lista 'predictions'")
+    by_id = {}
+    for item in predictions:
+        if not isinstance(item, dict):
+            raise ValueError("Cada sugerencia debe ser un objeto")
+        if item.get("score_id") != manifest["score_id"]:
+            raise ValueError("La sugerencia pertenece a otra partitura")
+        candidate_id = item.get("candidate_id")
+        candidate_label = item.get("candidate_label", item.get("label"))
+        if not isinstance(candidate_id, str) or not candidate_id:
+            raise ValueError("Cada sugerencia requiere candidate_id")
+        if candidate_id in by_id:
+            raise ValueError(f"Sugerencia duplicada: {candidate_id}")
+        if candidate_label not in GLYPH_LABELS:
+            raise ValueError(f"Clase sugerida no permitida: {candidate_label}")
+        if item.get("decision_status") != "unverified_candidate_requires_review":
+            raise ValueError(f"Sugerencia sin estado de revisión requerido: {candidate_id}")
+        distance = item.get("nearest_centroid_distance")
+        if isinstance(distance, bool) or not isinstance(distance, (int, float)) or distance < 0:
+            raise ValueError(f"Distancia inválida para {candidate_id}")
+        by_id[candidate_id] = {
+            "candidate_label": candidate_label,
+            "nearest_centroid_distance": float(distance),
+            "decision_status": "unverified_candidate_requires_review",
+        }
+    known = {glyph["candidate_id"] for glyph in manifest["glyphs"]}
+    unknown = set(by_id) - known
+    if unknown:
+        raise ValueError(f"Sugerencias para glifos inexistentes: {sorted(unknown)}")
+    for glyph in manifest["glyphs"]:
+        suggestion = by_id.get(glyph["candidate_id"])
+        if suggestion is not None:
+            glyph["model_suggestion"] = suggestion
+    validate_glyph_manifest_data(manifest)
+    _write_json(manifest_path, manifest)
+    return manifest

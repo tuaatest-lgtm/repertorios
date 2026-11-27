@@ -6,6 +6,7 @@ import sys
 
 from .glyph_labeling import (
     GLYPH_LABELS,
+    attach_model_suggestions,
     initialize_glyph_manifest,
     label_glyph,
     validate_glyph_manifest,
@@ -31,6 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     label.add_argument("--annotator", required=True)
     label.add_argument("--confirm-human-label", action="store_true")
 
+    suggest = commands.add_parser("suggest", help="Adjunta candidatos del modelo sin etiquetar")
+    suggest.add_argument("manifest")
+    suggest.add_argument("predictions")
+
     validate = commands.add_parser("validate", help="Valida el manifiesto y sus contadores")
     validate.add_argument("manifest")
     return parser
@@ -53,6 +58,10 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"Etiqueta humana registrada: {args.candidate_id} = {args.label}")
             print(f"Pendientes: {manifest['pending_count']}")
+        elif args.command == "suggest":
+            manifest = attach_model_suggestions(args.manifest, args.predictions)
+            suggested = sum("model_suggestion" in item for item in manifest["glyphs"])
+            print(f"Sugerencias adjuntadas: {suggested}; pendientes de confirmación humana")
         elif args.command == "validate":
             manifest = validate_glyph_manifest(args.manifest)
             print(
