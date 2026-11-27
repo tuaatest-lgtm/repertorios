@@ -67,6 +67,10 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
         "pending_global_measure_candidate_count": 1,
         "global_section_range_candidate_count": 0,
         "pending_global_section_range_candidate_count": 0,
+        "section_marker_candidate_count": 0,
+        "eligible_global_section_marker_candidate_count": 0,
+        "excluded_global_section_marker_candidate_count": 0,
+        "unclassified_global_section_marker_candidate_count": 0,
     }
     filled, hollow = package["pages"][0]["notehead_candidates"]
     assert filled["rhythm_hypothesis"]["base_duration"] == "quarter"
@@ -251,3 +255,19 @@ def test_review_package_preserves_global_section_marker_disposition():
     )
     assert marker["candidate_data"]["global_boundary_reason"] == "Repeated page header"
     assert marker["review_status"] == "pending"
+
+
+
+def test_review_summary_counts_eligible_excluded_and_unclassified_section_markers():
+    data = sample_analysis()
+    data["pages"][0]["section_marker_candidates"] = [
+        {"normalized_text": "INTRO", "global_boundary_status": "eligible_candidate"},
+        {"normalized_text": "CORO", "global_boundary_status": "excluded_repeated_page_header_candidate"},
+        {"normalized_text": "PUENTE"},
+    ]
+    package = build_review_package(data, score_id="score-marker-counts")
+    summary = package["summary"]
+    assert summary["section_marker_candidate_count"] == 3
+    assert summary["eligible_global_section_marker_candidate_count"] == 1
+    assert summary["excluded_global_section_marker_candidate_count"] == 1
+    assert summary["unclassified_global_section_marker_candidate_count"] == 1
