@@ -21,7 +21,7 @@ from .rhythm_interpretation import interpret_rhythm_from_beam_groups
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
 from .printed_labels import extract_printed_label_candidates
-from .section_structure import detect_section_candidates
+from .section_structure import detect_section_candidates, link_section_ranges_across_pages
 from .identity_evidence import build_page_identity_evidence
 from .score_structure import ScoreStaff, ScoreStructure
 from .measure_layout import (
@@ -160,8 +160,11 @@ def main() -> int:
         page_data["geometry_overlay"] = geometry_overlay_path.name
         analyses.append(page_data)
 
+    global_section_ranges = link_section_ranges_across_pages(analyses)
     report = {
         "engine": "Palermo OMR",
+        "global_section_range_candidates": global_section_ranges,
+        "global_section_range_candidate_count": len(global_section_ranges),
         "version": __version__,
         "status": "geometric_candidates_prototype",
         "warning": (
@@ -199,6 +202,7 @@ def main() -> int:
     total_section_markers = sum(page["section_marker_candidate_count"] for page in analyses)
     total_section_identifiers = sum(page["section_identifier_candidate_count"] for page in analyses)
     total_section_ranges = sum(page["section_range_candidate_count"] for page in analyses)
+    total_global_section_ranges = len(global_section_ranges)
     total_identity_evidence = sum(page["staff_identity_evidence_count"] for page in analyses)
     print(f"Análisis terminado: {report_path}")
     print(f"Pentagramas candidatos: {total_staves}")
@@ -218,7 +222,8 @@ def main() -> int:
     print(f"Etiquetas musicales impresas candidatas: {total_printed_labels}")
     print(f"Marcas de sección candidatas: {total_section_markers}")
     print(f"Identificadores de sección candidatos: {total_section_identifiers}")
-    print(f"Rangos de sección candidatos: {total_section_ranges}")
+    print(f"Rangos de sección candidatos por página: {total_section_ranges}")
+    print(f"Rangos globales de sección candidatos: {total_global_section_ranges}")
     print(f"Evidencias de identidad pendientes de revisión: {total_identity_evidence}")
     print("Aviso: ningún candidato equivale todavía a un evento musical confirmado.")
     return 0
