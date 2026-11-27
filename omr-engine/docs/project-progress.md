@@ -39,7 +39,7 @@ Los porcentajes por aspecto son estimaciones independientes y no se deben sumar 
 - Se añadieron pruebas para la integración en overlay y paquete de revisión, incluidos índices inexistentes y duplicados.
 - CI del recorrido CLI/overlay/revisión: ejecución [45903752937](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903752937), commit `45eee72cef309f49cc376594f57ef679afabf7c8`, resultado exitoso: **312 pruebas aprobadas**.
 - CI del adaptador de evidencia: ejecución [45903872219](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45903872219), commit `afb236bd3c109c766e6853c72d34d50303954826`, resultado exitoso: **317 pruebas aprobadas**.
-- CI de evidencia combinada y paquete de revisión: ejecución [45933249039](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933249039), commit `0079fb041dcc65c3da2f7b601e8607418911bcf9`, resultado exitoso: **322 pruebas aprobadas**. La integración de CLI quedó aprobada también en [45933208974](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933208974).
+- CI de evidencia combinada y paquete de revisión: ejecución [45933249039](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933249039), commit `0079fb041dcc65c3da2f7b601e8607418911bcf9`, resultado exitoso: **322 pruebas aprobadas** en ese corte. La integración de CLI quedó aprobada también en [45933208974](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933208974). Tras ampliar la validación de estados de etiqueta y corregir la expresión de una prueba, la rama completa volvió a pasar: ejecución [45933376574](https://github.com/tuaatest-lgtm/repertorios/actions/runs/45933376574), commit `27b349b96820452600d17db77757270aa70b10bb`, **325 pruebas aprobadas**.
 
 ## Límites que siguen abiertos
 
