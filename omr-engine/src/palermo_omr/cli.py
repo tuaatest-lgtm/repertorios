@@ -118,6 +118,7 @@ def main() -> int:
             [item.to_dict() for item in section_data["section_marker_candidates"]],
             analysis.staves,
             measure_spans,
+            staff_system_candidates=staff_systems,
         )
         section_identifiers = section_data["section_identifier_candidates"]
         section_identifier_boxes = {
