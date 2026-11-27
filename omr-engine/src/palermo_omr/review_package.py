@@ -123,6 +123,9 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             ("staff_grouping_mark", "staff_grouping_mark_candidates"),
             ("printed_label", "printed_label_candidates"),
             ("staff_identity_evidence", "staff_identity_evidence"),
+            ("section_marker", "section_marker_candidates"),
+            ("section_identifier", "section_identifier_candidates"),
+            ("section_range", "section_range_candidates"),
         )
         other_candidates = []
         for family, key in other_families:
