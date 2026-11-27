@@ -157,3 +157,39 @@ def test_rejects_invalid_barline_classification_parameters():
         except ValueError:
             continue
         raise AssertionError("Expected ValueError")
+
+
+
+def test_detect_staff_systems_from_connectors_groups_only_connected_pairs():
+    from palermo_omr.measure_layout import detect_staff_systems_from_connectors
+
+    binary = np.full((460, 320), 255, dtype=np.uint8)
+    staves = []
+    for top in (40, 150, 260, 370):
+        lines = [top + offset for offset in (0, 10, 20, 30, 40)]
+        staves.append(StaffCandidate(lines, 10, 1.0))
+        for y in lines:
+            cv2.line(binary, (40, y), (300, y), 0, 1)
+    # Los conectores separan dos sistemas: (0, 1) y (2, 3).
+    cv2.line(binary, (20, 35), (20, 195), 0, 2)
+    cv2.line(binary, (20, 255), (20, 415), 0, 2)
+
+    systems = detect_staff_systems_from_connectors(staves, binary)
+    assert [item.staff_indices for item in systems] == [[0, 1], [2, 3]]
+    assert all(item.confidence > 0.8 for item in systems)
+
+
+def test_detect_staff_systems_from_connectors_keeps_unconnected_staves_separate():
+    from palermo_omr.measure_layout import detect_staff_systems_from_connectors
+
+    binary = np.full((260, 320), 255, dtype=np.uint8)
+    staves = []
+    for top in (40, 170):
+        lines = [top + offset for offset in (0, 10, 20, 30, 40)]
+        staves.append(StaffCandidate(lines, 10, 1.0))
+        for y in lines:
+            cv2.line(binary, (40, y), (300, y), 0, 1)
+
+    systems = detect_staff_systems_from_connectors(staves, binary)
+    assert [item.staff_indices for item in systems] == [[0], [1]]
+    assert all(item.confidence == 0.45 for item in systems)
