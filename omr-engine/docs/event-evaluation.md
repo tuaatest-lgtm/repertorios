@@ -19,8 +19,8 @@ silencios usan `event_type="rest"` y `pitches_midi=()`.
 
 Los eventos se emparejan uno a uno cuando coinciden página, pentagrama y
 compás, y sus inicios están dentro de `onset_tolerance_quarters` (por defecto
-1/8 de negra). El emparejamiento maximiza el número de pares válidos y luego
-prefiere el menor error temporal.
+1/8 de negra). El emparejamiento maximiza el número de pares válidos y, entre
+las soluciones con esa cardinalidad, minimiza la suma de los errores temporales.
 
 El emparejamiento no usa tipo, alturas, duración ni voz. Así, esos errores se
 miden como errores de clasificación y no quedan ocultos como eventos ausentes.
