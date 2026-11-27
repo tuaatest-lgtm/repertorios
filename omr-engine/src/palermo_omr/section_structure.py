@@ -194,10 +194,11 @@ def detect_section_candidates(
                 bbox_pdf=tuple(round(float(v), 3) for v in bbox),
                 related_marker_index=marker_index,
                 horizontal_distance_measures=round(distance, 3),
-                confidence=0.55,
+                confidence=0.3,
                 warning=(
-                    "Letra aislada cercana a un rótulo de sección; posible identificador "
-                    "editorial, no debe clasificarse automáticamente como voz SATB."
+                    "Letra aislada cercana a un rótulo de sección. Puede ser identificador "
+                    "editorial, cifrado armónico o abreviatura; no se debe aceptar como "
+                    "identificador de sección ni clasificar como voz SATB sin revisión humana."
                 ),
             ))
 
@@ -346,6 +347,14 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
             "section_range_id": f"section-{index + 1}",
             "section_name": marker["section_name"],
             "identifier": marker["identifier"],
+            "identifier_status": (
+                "unconfirmed_candidate" if marker["identifier"] else "not_detected"
+            ),
+            "identifier_warning": (
+                "La letra asociada puede ser cifrado armónico o texto editorial; "
+                "no es un identificador confirmado."
+                if marker["identifier"] else None
+            ),
             "start": {
                 "page_number": marker["page_number"],
                 "marker_index": marker["marker_index"],
