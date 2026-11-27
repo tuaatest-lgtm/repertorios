@@ -157,3 +157,32 @@ def test_anchor_rejects_marker_far_from_measure_intervals():
     )
     assert anchors == []
 
+
+
+
+def test_global_measure_sequence_never_merges_two_intervals_from_same_staff():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    pages = [{
+        "page_number": 1,
+        "staff_system_candidates": [
+            {"system_index": 0, "staff_indices": [0, 1]}
+        ],
+        "measure_span_candidates": [
+            {"staff_index": 0, "measure_index": 1, "x_start": 40, "x_end": 60,
+             "width_px": 20, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 1, "x_start": 40, "x_end": 60,
+             "width_px": 20, "confidence": 0.8},
+            {"staff_index": 0, "measure_index": 2, "x_start": 43, "x_end": 63,
+             "width_px": 20, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 2, "x_start": 43, "x_end": 63,
+             "width_px": 20, "confidence": 0.8},
+        ],
+    }]
+
+    result = build_global_measure_sequence(pages)
+    candidates = result["global_measure_candidates"]
+    assert len(candidates) == 2
+    assert [item["staff_support"] for item in candidates] == [2, 2]
+    assert [item["global_measure_candidate"] for item in candidates] == [1, 2]
+    assert len(result["staff_measure_map"]) == 4
