@@ -65,7 +65,7 @@ def test_cli_init_label_validate(tmp_path,monkeypatch):
 
 
 def test_model_suggestions_never_become_human_labels(tmp_path):
-    from palermo_omr.glyph_labeling import attach_model_suggestions, validate_glyph_manifest_data
+    from palermo_omr.glyph_labeling import GLYPH_LABELS, attach_model_suggestions, validate_glyph_manifest_data
 
     manifest = {
         "schema_version": "1.0",
