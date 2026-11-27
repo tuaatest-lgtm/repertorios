@@ -226,8 +226,22 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
     if not isinstance(global_measure_sequence, dict):
         raise ValueError("global_measure_sequence debe ser un objeto")
     global_measure_candidates = global_measure_sequence.get("global_measure_candidates", [])
+    staff_measure_map = global_measure_sequence.get("staff_measure_map", [])
     if not isinstance(global_measure_candidates, list):
         raise ValueError("global_measure_candidates debe ser una lista")
+    if not isinstance(staff_measure_map, list):
+        raise ValueError("staff_measure_map debe ser una lista")
+    if any(not isinstance(item, dict) for item in global_measure_candidates):
+        raise ValueError("Cada compás global candidato debe ser un objeto")
+    if any(not isinstance(item, dict) for item in staff_measure_map):
+        raise ValueError("Cada referencia local/global debe ser un objeto")
+    if any(not isinstance(item, dict) for item in global_section_ranges):
+        raise ValueError("Cada rango global de sección debe ser un objeto")
+    for section_range in global_section_ranges:
+        if not isinstance(section_range.get("start"), dict):
+            raise ValueError("Cada rango global requiere un extremo inicial")
+        if section_range.get("end") is not None and not isinstance(section_range.get("end"), dict):
+            raise ValueError("El extremo final del rango debe ser un objeto o null")
     pending_section_ranges = sum(
         1 for item in global_section_ranges
         if isinstance(item, dict) and item.get("review_status", "pending") == "pending"
