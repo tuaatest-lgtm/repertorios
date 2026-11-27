@@ -222,3 +222,63 @@ def test_global_measure_sequence_rejects_staff_in_multiple_systems():
         assert "dos sistemas" in str(error)
     else:
         raise AssertionError("Expected overlapping system membership to be rejected")
+
+
+
+def test_anchor_rejects_section_marker_far_above_all_staves():
+    from palermo_omr.section_structure import anchor_section_markers_to_measure_spans
+
+    anchors = anchor_section_markers_to_measure_spans(
+        [{"center_x_px": 100, "center_y_px": 20}],
+        [StaffCandidate([100, 110, 120, 130, 140], 10, 1)],
+        [_span()],
+    )
+    assert anchors == []
+
+
+def test_resolve_section_boundaries_does_not_mutate_source_ranges():
+    from copy import deepcopy
+    from palermo_omr.section_structure import resolve_section_range_boundaries
+
+    source = [{
+        "section_range_id": "section-1",
+        "start": {
+            "page_number": 1,
+            "measure_anchors": [{
+                "staff_index": 0,
+                "measure_index_on_staff": 1,
+                "position_ratio_in_interval": 0.5,
+                "confidence": 0.6,
+                "vertical_distance_px": 0,
+            }],
+        },
+        "end": None,
+    }]
+    original = deepcopy(source)
+    resolved = resolve_section_range_boundaries(
+        source,
+        {"staff_measure_map": [{
+            "page_number": 1, "staff_index": 0,
+            "measure_index_on_staff": 1, "global_measure_candidate": 1,
+        }]},
+    )
+    assert source == original
+    assert resolved[0]["start"]["musical_boundary_candidate"]["global_measure_candidate"] == 1
+
+
+def test_resolve_section_boundaries_ignores_non_finite_anchor_ratios():
+    from palermo_omr.section_structure import resolve_section_range_boundaries
+
+    resolved = resolve_section_range_boundaries(
+        [{
+            "section_range_id": "section-1",
+            "start": {"page_number": 1, "measure_anchors": [{
+                "staff_index": 0, "measure_index_on_staff": 1,
+                "position_ratio_in_interval": float("nan"),
+                "confidence": 0.9,
+            }]},
+            "end": None,
+        }],
+        {"staff_measure_map": []},
+    )
+    assert resolved[0]["start"]["musical_boundary_candidate"] is None
