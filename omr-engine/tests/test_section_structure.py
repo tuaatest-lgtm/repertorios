@@ -282,3 +282,39 @@ def test_resolve_section_boundaries_ignores_non_finite_anchor_ratios():
         {"staff_measure_map": []},
     )
     assert resolved[0]["start"]["musical_boundary_candidate"] is None
+
+
+
+def test_global_measure_sequence_rejects_duplicate_local_measure_span():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    span = {
+        "staff_index": 0, "measure_index": 1, "x_start": 40, "x_end": 60,
+        "width_px": 20, "confidence": 0.8,
+    }
+    with pytest.raises(ValueError, match="duplicado"):
+        build_global_measure_sequence([{
+            "page_number": 1,
+            "staff_system_candidates": [{"system_index": 0, "staff_indices": [0]}],
+            "measure_span_candidates": [span, dict(span)],
+        }])
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("x_start", float("nan")), ("x_end", 39), ("width_px", 0)],
+)
+def test_global_measure_sequence_rejects_invalid_interval_geometry(field, value):
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    span = {
+        "staff_index": 0, "measure_index": 1, "x_start": 40, "x_end": 60,
+        "width_px": 20, "confidence": 0.8,
+    }
+    span[field] = value
+    with pytest.raises(ValueError):
+        build_global_measure_sequence([{
+            "page_number": 1,
+            "staff_system_candidates": [{"system_index": 0, "staff_indices": [0]}],
+            "measure_span_candidates": [span],
+        }])
