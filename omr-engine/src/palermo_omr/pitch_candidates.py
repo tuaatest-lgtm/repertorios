@@ -151,6 +151,26 @@ def build_pitch_candidates(
                 raise ValueError(f"measure_id no válido para la cabeza {index}")
     group_ids = _validate_group_ids(noteheads, measure_ids, simultaneous_group_ids)
 
+    # Un compás no puede reaparecer después de haber comenzado el siguiente
+    # dentro del mismo pentagrama: eso invertiría el estado de alteraciones.
+    if measure_ids is not None:
+        current_measure: dict[int, str | int] = {}
+        closed_measures: dict[int, set[str | int]] = {}
+        for index, (notehead, measure_id) in enumerate(zip(noteheads, measure_ids)):
+            if measure_id is None:
+                continue
+            staff_index = int(notehead.staff_index)
+            previous_measure = current_measure.get(staff_index)
+            if previous_measure != measure_id:
+                if measure_id in closed_measures.get(staff_index, set()):
+                    raise ValueError(
+                        "Los compases deben aparecer en orden continuo "
+                        f"dentro del pentagrama {staff_index} (cabeza {index})"
+                    )
+                if previous_measure is not None:
+                    closed_measures.setdefault(staff_index, set()).add(previous_measure)
+                current_measure[staff_index] = measure_id
+
     # El orden de lectura debe ser monótono dentro de cada pentagrama/compás.
     if measure_ids is not None:
         last_x: dict[tuple[int, str | int], float] = {}
