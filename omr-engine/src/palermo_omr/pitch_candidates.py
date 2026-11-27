@@ -74,7 +74,29 @@ def build_pitch_candidates(
         raise ValueError("measure_ids debe tener un elemento por cada cabeza de nota")
 
     # Estado independiente por pentagrama y compás. El llamador debe entregar
-    # las cabezas en orden de lectura musical dentro de cada compás.
+    # las cabezas en orden de lectura musical dentro de cada compás. Cuando las
+    # coordenadas están disponibles, rechazamos un orden horizontal imposible:
+    # de otro modo una alteración podría propagarse a una nota anterior.
+    if measure_ids is not None:
+        last_x: dict[tuple[int, str | int], float] = {}
+        for index, (notehead, measure_id) in enumerate(zip(noteheads, measure_ids)):
+            if measure_id is not None and (
+                not isinstance(measure_id, (str, int))
+                or isinstance(measure_id, bool)
+                or (isinstance(measure_id, str) and not measure_id.strip())
+            ):
+                raise ValueError(f"measure_id no válido para la cabeza {index}")
+            if measure_id is None or not hasattr(notehead, "center_x"):
+                continue
+            staff_index = int(notehead.staff_index)
+            x = float(notehead.center_x)
+            key = (staff_index, measure_id)
+            if key in last_x and x < last_x[key]:
+                raise ValueError(
+                    "Las cabezas deben estar ordenadas de izquierda a derecha "
+                    "dentro de cada pentagrama y compás"
+                )
+            last_x[key] = x
     accidental_states: dict[tuple[int, str | int], MeasureAccidentals] = {}
     results: list[PitchCandidate] = []
     for index, notehead in enumerate(noteheads):
@@ -87,8 +109,6 @@ def build_pitch_candidates(
         source_kind = source_kinds[index] if source_kinds is not None else "filled"
         explicit_accidental = explicit_accidentals[index] if explicit_accidentals is not None else None
         measure_id = measure_ids[index] if measure_ids is not None else None
-        if measure_id is not None and (not isinstance(measure_id, (str, int)) or isinstance(measure_id, bool) or (isinstance(measure_id, str) and not measure_id.strip())):
-            raise ValueError(f"measure_id no válido para la cabeza {index}")
         if source_kind not in {"filled", "hollow"}:
             raise ValueError(f"Tipo de cabeza de nota no válido: {source_kind!r}")
 

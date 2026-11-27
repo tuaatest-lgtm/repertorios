@@ -91,3 +91,18 @@ def test_requires_measure_ids_when_explicit_accidentals_are_provided():
         build_pitch_candidates(
             [head()], staff_clefs={0: "treble"}, explicit_accidentals=["sharp"]
         )
+
+
+
+def test_rejects_noteheads_out_of_reading_order_when_accidental_state_is_used():
+    heads = [
+        SimpleNamespace(staff_index=0, diatonic_step_from_bottom=1, center_x=40.0),
+        SimpleNamespace(staff_index=0, diatonic_step_from_bottom=1, center_x=20.0),
+    ]
+    with pytest.raises(ValueError, match="izquierda a derecha"):
+        build_pitch_candidates(
+            heads,
+            staff_clefs={0: "treble"},
+            explicit_accidentals=["natural", None],
+            measure_ids=["m1", "m1"],
+        )
