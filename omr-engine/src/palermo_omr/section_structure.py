@@ -310,7 +310,12 @@ def link_section_ranges_across_pages(pages: list[dict]) -> list[dict]:
                 and isinstance(x, (int, float)) and isinstance(y, (int, float))
                 and y / height <= 0.08):
             key = (marker.get("section_name"), round(x / width, 2), round(y / height, 2))
-        if key not in repeated_header_keys:
+        top_unanchored = (
+            isinstance(height, (int, float)) and height > 0
+            and isinstance(y, (int, float)) and y / height <= 0.08
+            and not marker.get("measure_anchors")
+        )
+        if key not in repeated_header_keys and not top_unanchored:
             filtered_markers.append(marker)
 
     ranges = []
