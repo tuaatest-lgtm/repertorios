@@ -18,6 +18,8 @@ from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
+from .rhythmic_event_groups import build_rhythmic_event_group_candidates
+from .staff_voice_layers import detect_staff_voice_layer_candidates
 from .rhythm_symbols import (detect_augmentation_dot_candidates, detect_rest_shape_candidates, detect_tie_slur_shape_candidates)
 from .staff_grouping import detect_staff_grouping_mark_candidates
 from .printed_labels import extract_printed_label_candidates
@@ -88,6 +90,15 @@ def main() -> int:
         )
         beam_groups = detect_beam_group_candidates(binary, analysis.staves, noteheads, rhythms)
         rhythmic_interpretations = interpret_rhythm_from_beam_groups(rhythms, beam_groups)
+        # Integrar candidatos en posibles ataques/acordes y capas de voz.
+        # Esta etapa conserva incertidumbre: no convierte x en tiempo ni
+        # asigna voces por dirección de plica.
+        rhythmic_event_groups = build_rhythmic_event_group_candidates(
+            analysis.staves, noteheads, rhythms, rhythmic_interpretations
+        )
+        voice_layer_candidates = detect_staff_voice_layer_candidates(
+            analysis.staves, noteheads, rhythms
+        )
         page_data["rhythm_candidates"] = [item.to_dict() for item in rhythms]
         page_data["rhythm_candidate_count"] = len(rhythms)
         page_data["hollow_rhythm_candidates"] = [item.to_dict() for item in hollow_rhythms]
@@ -96,6 +107,14 @@ def main() -> int:
         page_data["beam_group_candidate_count"] = len(beam_groups)
         page_data["rhythmic_interpretation_candidates"] = [item.to_dict() for item in rhythmic_interpretations]
         page_data["rhythmic_interpretation_candidate_count"] = len(rhythmic_interpretations)
+        page_data["rhythmic_event_group_candidates"] = [
+            item.to_dict() for item in rhythmic_event_groups
+        ]
+        page_data["rhythmic_event_group_candidate_count"] = len(rhythmic_event_groups)
+        page_data["staff_voice_layer_candidates"] = [
+            item.to_dict() for item in voice_layer_candidates
+        ]
+        page_data["staff_voice_layer_candidate_count"] = len(voice_layer_candidates)
         dots = detect_augmentation_dot_candidates(binary, analysis.staves, noteheads)
         rests = detect_rest_shape_candidates(
             binary, analysis.staves, noteheads + hollow_noteheads
@@ -256,6 +275,8 @@ def main() -> int:
     total_hollow_rhythms = sum(page["hollow_rhythm_candidate_count"] for page in analyses)
     total_beam_groups = sum(page["beam_group_candidate_count"] for page in analyses)
     total_rhythm_interpretations = sum(page["rhythmic_interpretation_candidate_count"] for page in analyses)
+    total_event_groups = sum(page["rhythmic_event_group_candidate_count"] for page in analyses)
+    total_voice_layers = sum(page["staff_voice_layer_candidate_count"] for page in analyses)
     total_dots = sum(len(page["augmentation_dot_candidates"]) for page in analyses)
     total_rests = sum(len(page["rest_shape_candidates"]) for page in analyses)
     total_typed_rest_shapes = sum(
@@ -280,6 +301,8 @@ def main() -> int:
     print(f"Análisis rítmicos de cabezas huecas (blancas/redondas candidatas): {total_hollow_rhythms}")
     print(f"Grupos de barras compartidas candidatos: {total_beam_groups}")
     print(f"Interpretaciones rítmicas candidatas: {total_rhythm_interpretations}")
+    print(f"Grupos de ataque/acorde candidatos: {total_event_groups}")
+    print(f"Capas de voz candidatas dentro de pentagramas: {total_voice_layers}")
     print(f"Puntillos candidatos: {total_dots}")
     print(f"Formas candidatas a silencio: {total_rests}")
     print(f"Formas con familia de silencio sugerida: {total_typed_rest_shapes}")
