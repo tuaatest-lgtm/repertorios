@@ -9,6 +9,14 @@ def sample_analysis():
     return {
         "version": "0.3.0",
         "source_pdf": "score.pdf",
+        "global_measure_sequence": {
+            "global_measure_candidates": [{"global_measure_candidate": 1, "page_number": 1}],
+            "global_measure_candidate_count": 1,
+            "staff_measure_map": [{"page_number": 1, "staff_index": 0,
+                                   "measure_index_on_staff": 1,
+                                   "global_measure_candidate": 1}],
+            "warning": "Provisional",
+        },
         "pages": [{
             "page_number": 1,
             "staves": [{}, {}],
@@ -66,6 +74,8 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     assert package["pages"][0]["overlays"]["filled_noteheads"].endswith(".png")
     assert package["pages"][0]["overlays"]["geometry"] == "page-001-geometry-overlay.png"
     assert "No representan eventos" in package["review_policy"]
+    assert package["global_measure_sequence"]["global_measure_candidate_count"] == 1
+    assert package["global_measure_sequence"]["global_measure_candidates"][0]["global_measure_candidate"] == 1
 
 
 def test_build_review_package_rejects_invalid_staff_reference_and_duplicate_page():
