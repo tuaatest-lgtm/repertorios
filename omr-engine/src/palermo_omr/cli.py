@@ -18,7 +18,7 @@ from .notation_preamble import (
     detect_notation_preamble_candidates,
     export_notation_preamble_crops,
 )
-from .pitch_candidates import build_pitch_candidates
+from .pitch_candidates import build_pitch_candidates\nfrom .glyph_labeling import build_staff_clef_map, validate_glyph_manifest
 from .visualization import draw_geometry_overlay, draw_notehead_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
@@ -61,6 +61,10 @@ def main() -> int:
         help="JSON opcional: claves por índice de pentagrama, p. ej. '{\"0\":\"treble\",\"1\":\"bass\"}'. No se detectan visualmente.",
     )
     parser.add_argument(
+        "--glyph-manifest", default=None,
+        help="Manifiesto de glifos con etiquetas humanas confirmadas; aporta claves por página/pentagrama.",
+    )
+    parser.add_argument(
         "--key-signatures", default="{}",
         help="JSON opcional: armaduras por índice de pentagrama, p. ej. '{\"0\":{\"F\":1,\"C\":1}}'",
     )
@@ -71,6 +75,9 @@ def main() -> int:
 
     pages = render_pdf(args.pdf, dpi=args.dpi)
     analyses = []
+    human_glyph_manifest = (
+        validate_glyph_manifest(args.glyph_manifest) if args.glyph_manifest else None
+    )
 
     for page_number, page in enumerate(pages, start=1):
         binary, analysis = analyze_page(page, page_number)
@@ -94,9 +101,22 @@ def main() -> int:
         page_data["notehead_candidate_count"] = len(noteheads)
         page_data["hollow_notehead_candidates"] = [item.to_dict() for item in hollow_noteheads]
         page_data["hollow_notehead_candidate_count"] = len(hollow_noteheads)
+        supplied_clefs = json.loads(args.staff_clefs)
+        if not isinstance(supplied_clefs, dict):
+            raise ValueError("--staff-clefs debe ser un objeto JSON")
+        human_clefs = (
+            build_staff_clef_map(human_glyph_manifest, page_number=page_number)
+            if human_glyph_manifest is not None else {}
+        )
+        for staff_index, clef in human_clefs.items():
+            if str(staff_index) in supplied_clefs and supplied_clefs[str(staff_index)] != clef:
+                raise ValueError(
+                    f"Conflicto entre --staff-clefs y etiqueta humana en pentagrama {staff_index}"
+                )
+            supplied_clefs[str(staff_index)] = clef
         pitch_candidates = build_pitch_candidates(
             noteheads + hollow_noteheads,
-            staff_clefs=json.loads(args.staff_clefs),
+            staff_clefs=supplied_clefs,
             key_signatures=json.loads(args.key_signatures),
             source_kinds=(["filled"] * len(noteheads) + ["hollow"] * len(hollow_noteheads)),
         )

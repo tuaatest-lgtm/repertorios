@@ -240,3 +240,32 @@ def attach_model_suggestions(
     validate_glyph_manifest_data(manifest)
     _write_json(manifest_path, manifest)
     return manifest
+
+
+
+def build_staff_clef_map(manifest: dict, *, page_number: int) -> dict[int, str]:
+    """Devuelve claves por pentagrama solo desde etiquetas humanas confirmadas."""
+    validate_glyph_manifest_data(manifest)
+    if not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
+        raise ValueError("page_number debe ser un entero positivo")
+    clef_labels = {
+        "treble_clef": "treble",
+        "bass_clef": "bass",
+        "alto_clef": "alto",
+        "tenor_clef": "tenor",
+    }
+    resolved: dict[int, str] = {}
+    for glyph in manifest["glyphs"]:
+        if glyph["page_number"] != page_number or glyph["label_status"] != "labeled_by_human":
+            continue
+        clef = clef_labels.get(glyph["label"])
+        if clef is None:
+            continue
+        staff_index = glyph["staff_index"]
+        previous = resolved.get(staff_index)
+        if previous is not None and previous != clef:
+            raise ValueError(
+                f"Claves humanas contradictorias en página {page_number}, pentagrama {staff_index}"
+            )
+        resolved[staff_index] = clef
+    return resolved

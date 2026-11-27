@@ -108,3 +108,48 @@ def test_model_suggestions_never_become_human_labels(tmp_path):
     assert glyph["annotator"] is None
     assert result["labeled_count"] == 0
     validate_glyph_manifest_data(result)
+
+
+
+def test_build_staff_clef_map_uses_only_human_confirmed_labels():
+    from palermo_omr.glyph_labeling import build_staff_clef_map
+
+    manifest = {
+        "schema_version": "1.0",
+        "score_id": "score-a",
+        "glyph_count": 3,
+        "labeled_count": 2,
+        "pending_count": 1,
+        "glyphs": [
+            {"candidate_id": "a", "page_number": 1, "staff_index": 0,
+             "crop_file": "a.png", "label": "treble_clef",
+             "label_status": "labeled_by_human", "annotator": "reviewer", "labeled_at": "2026-01-01T00:00:00Z"},
+            {"candidate_id": "b", "page_number": 1, "staff_index": 1,
+             "crop_file": "b.png", "label": "bass_clef",
+             "label_status": "labeled_by_human", "annotator": "reviewer", "labeled_at": "2026-01-01T00:00:00Z"},
+            {"candidate_id": "c", "page_number": 2, "staff_index": 0,
+             "crop_file": "c.png", "label": None,
+             "label_status": "pending_human_review", "annotator": None, "labeled_at": None},
+        ],
+    }
+    assert build_staff_clef_map(manifest, page_number=1) == {0: "treble", 1: "bass"}
+    assert build_staff_clef_map(manifest, page_number=2) == {}
+
+
+def test_build_staff_clef_map_rejects_conflicting_human_clefs():
+    from palermo_omr.glyph_labeling import build_staff_clef_map
+
+    manifest = {
+        "schema_version": "1.0", "score_id": "score-a",
+        "glyph_count": 2, "labeled_count": 2, "pending_count": 0,
+        "glyphs": [
+            {"candidate_id": "a", "page_number": 1, "staff_index": 0,
+             "crop_file": "a.png", "label": "treble_clef",
+             "label_status": "labeled_by_human", "annotator": "r", "labeled_at": "x"},
+            {"candidate_id": "b", "page_number": 1, "staff_index": 0,
+             "crop_file": "b.png", "label": "bass_clef",
+             "label_status": "labeled_by_human", "annotator": "r", "labeled_at": "x"},
+        ],
+    }
+    with pytest.raises(ValueError, match="contradictorias"):
+        build_staff_clef_map(manifest, page_number=1)
