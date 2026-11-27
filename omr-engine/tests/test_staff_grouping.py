@@ -141,3 +141,24 @@ def test_ignores_invalid_staff_candidates_without_five_lines():
     image = np.full((120, 300), 255, dtype=np.uint8)
 
     assert detect_staff_grouping_mark_candidates(image, invalid) == []
+
+
+
+def test_detect_grouping_marks_uses_supplied_system_candidates():
+    from palermo_omr.measure_layout import StaffSystemCandidate
+
+    image = np.full((240, 220), 255, dtype=np.uint8)
+    staves = [
+        StaffCandidate([40, 50, 60, 70, 80], 10, 1.0),
+        StaffCandidate([150, 160, 170, 180, 190], 10, 1.0),
+    ]
+    for staff in staves:
+        for y in staff.lines_y:
+            cv2.line(image, (40, y), (200, y), 0, 1)
+    cv2.line(image, (15, 35), (15, 195), 0, 2)
+    systems = [StaffSystemCandidate(0, [0, 1], 40, 190, 0.82, "connector")]
+
+    marks = detect_staff_grouping_mark_candidates(
+        image, staves, system_candidates=systems
+    )
+    assert any(mark.staff_indices == (0, 1) for mark in marks)
