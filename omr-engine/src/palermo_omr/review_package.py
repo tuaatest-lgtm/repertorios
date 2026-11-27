@@ -219,6 +219,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         "score_id": score_id,
         "source_pdf": analysis.get("source_pdf"),
         "analysis_version": analysis.get("version"),
+        "global_section_range_candidates": analysis.get("global_section_range_candidates", []),
         "review_policy": (
             "Todos los elementos son candidatos visuales. No representan eventos, "
             "alturas, voces ni duraciones confirmadas. La revisión humana debe "
