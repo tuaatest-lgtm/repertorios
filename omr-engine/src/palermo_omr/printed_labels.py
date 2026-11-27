@@ -135,6 +135,13 @@ def extract_printed_label_candidates(
         results: list[PrintedLabelCandidate] = []
 
         for text, normalized, bbox in _line_text_candidates(page):
+            # Las abreviaturas de una letra son especialmente ambiguas: B
+            # aparece con frecuencia como cifrado armónico y [B] como sección.
+            # Solo aceptar S/A/T/B escritos literalmente y en el margen
+            # izquierdo; no interpretar corchetes ni cifrados sobre las notas.
+            if normalized in {"S", "A", "T", "B"}:
+                if text.strip() != normalized or bbox[0] > page.rect.width * 0.12:
+                    continue
             label_kind, _ = _LABELS[normalized]
             center_y_px = ((bbox[1] + bbox[3]) / 2) * scale
             distances = sorted(
