@@ -599,3 +599,39 @@ def test_section_boundary_prefers_cross_staff_aligned_anchor():
     assert boundary["staff_index"] == 1
     assert boundary["global_alignment_status"] == "cross_staff_alignment_candidate"
     assert boundary["staff_support"] == 2
+
+
+
+def test_global_measure_alignment_rejects_nested_interval_with_same_center():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    result = build_global_measure_sequence([{
+        "page_number": 1,
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0, 1]}],
+        "measure_span_candidates": [
+            {"staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 100,
+             "width_px": 100, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 1, "x_start": 40, "x_end": 60,
+             "width_px": 20, "confidence": 0.8},
+        ],
+    }])
+    assert result["cross_staff_aligned_candidate_count"] == 0
+    assert result["single_staff_only_candidate_count"] == 2
+    assert all(item["staff_support"] == 1 for item in result["global_measure_candidates"])
+
+
+def test_global_measure_alignment_accepts_close_centers_and_boundaries():
+    from palermo_omr.section_structure import build_global_measure_sequence
+
+    result = build_global_measure_sequence([{
+        "page_number": 1,
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0, 1]}],
+        "measure_span_candidates": [
+            {"staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 100,
+             "width_px": 100, "confidence": 0.8},
+            {"staff_index": 1, "measure_index": 1, "x_start": 10, "x_end": 110,
+             "width_px": 100, "confidence": 0.8},
+        ],
+    }])
+    assert result["cross_staff_aligned_candidate_count"] == 1
+    assert result["global_measure_candidates"][0]["staff_support"] == 2
