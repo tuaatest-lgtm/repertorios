@@ -34,6 +34,7 @@ from .measure_layout import (
     classify_barline_groups,
     detect_barline_candidates,
     detect_staff_systems,
+    detect_staff_systems_from_connectors,
     group_system_barlines,
     infer_measure_spans,
 )
@@ -102,8 +103,10 @@ def main() -> int:
         tie_slurs = detect_tie_slur_shape_candidates(binary, analysis.staves)
         barlines = detect_barline_candidates(binary, analysis.staves)
         barline_groups = classify_barline_groups(barlines, analysis.staves)
-        staff_systems = detect_staff_systems(analysis.staves)
-        system_barlines = group_system_barlines(barlines, analysis.staves)
+        staff_systems = detect_staff_systems_from_connectors(analysis.staves, binary)
+        system_barlines = group_system_barlines(
+            barlines, analysis.staves, system_candidates=staff_systems
+        )
         measure_spans = infer_measure_spans(barlines)
         grouping_marks = detect_staff_grouping_mark_candidates(binary, analysis.staves)
         section_data = detect_section_candidates(
