@@ -4,11 +4,11 @@ El módulo `palermo_omr.rhythm` propone hipótesis geométricas sobre el relleno
 
 El módulo `palermo_omr.rhythm_symbols` añade:
 - candidatos de puntillos de aumento próximos a cabezas de nota;
-- regiones compactas que podrían corresponder a símbolos de silencio.
+- regiones compactas que podrían corresponder a símbolos de silencio; el detector excluye componentes fuera del interior del pentagrama, formas demasiado estrechas y regiones que se superponen con cabezas de nota detectadas.
 
 ## Límites actuales
 
-Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede confundirse con ruido o texto; un candidato de silencio puede ser una articulación, letra, fragmento de símbolo o artefacto. Las barras cercanas pueden pertenecer a otra nota o ser trazos de la página. La agrupación compartida ahora exige además que cada barra candidata cruce una de las posiciones geométricas esperadas de la plica; esto reduce asociaciones por mera proximidad. La asociación también comprueba continuidad de tinta entre la plica y la barra, tolerando como máximo un píxel aislado sin tinta; un hueco mayor se rechaza. Esta comprobación es rasterizada y no demuestra por sí sola la conexión musical ni resuelve todas las formas de vigas parciales.
+Nada de lo anterior equivale a una lectura musical confirmada. Un puntillo puede confundirse con ruido o texto; incluso con los filtros geométricos, un candidato de silencio puede ser una articulación, letra, fragmento de símbolo o artefacto. La exclusión de cabezas detectadas reduce duplicados, pero puede omitir un silencio mal segmentado que se solape con una cabeza falsa. Las barras cercanas pueden pertenecer a otra nota o ser trazos de la página. La agrupación compartida ahora exige además que cada barra candidata cruce una de las posiciones geométricas esperadas de la plica; esto reduce asociaciones por mera proximidad. La asociación también comprueba continuidad de tinta entre la plica y la barra, tolerando como máximo un píxel aislado sin tinta; un hueco mayor se rechaza. Esta comprobación es rasterizada y no demuestra por sí sola la conexión musical ni resuelve todas las formas de vigas parciales.
 
 Todavía no se reconocen de forma fiable:
 - tipo y duración exacta de cada silencio;
