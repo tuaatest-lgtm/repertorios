@@ -130,6 +130,112 @@ def detect_staff_systems(
     return systems
 
 
+def detect_staff_systems_from_connectors(
+    staves: list[StaffCandidate],
+    binary: np.ndarray,
+    *,
+    left_margin_ratio: float = 0.06,
+    min_vertical_coverage: float = 0.68,
+    max_connector_width_spacing: float = 1.2,
+) -> list[StaffSystemCandidate]:
+    """Agrupa pentagramas cuando un trazo vertical continuo conecta ambos.
+
+    Es una evidencia más fuerte que la separación vertical sola. Si no se
+    encuentra un conector claro, los pentagramas permanecen como sistemas
+    individuales candidatos en vez de forzar una pareja.
+    """
+    if binary is None or binary.ndim != 2 or binary.size == 0:
+        raise ValueError("Se requiere una imagen binaria monocroma no vacía")
+    if not 0 < left_margin_ratio <= 1:
+        raise ValueError("left_margin_ratio debe estar entre 0 y 1")
+    if not 0 < min_vertical_coverage <= 1:
+        raise ValueError("min_vertical_coverage debe estar entre 0 y 1")
+    if max_connector_width_spacing <= 0:
+        raise ValueError("max_connector_width_spacing debe ser positivo")
+
+    valid = sorted(
+        (
+            (index, staff) for index, staff in enumerate(staves)
+            if len(staff.lines_y) == 5 and staff.spacing_px > 1
+        ),
+        key=lambda pair: pair[1].lines_y[0],
+    )
+    if not valid:
+        return []
+
+    ink = cv2.bitwise_not(binary)
+    page_height, page_width = binary.shape
+    left_width = max(1, int(round(page_width * left_margin_ratio)))
+    linked_pairs = set()
+
+    for (first_index, first), (second_index, second) in zip(valid, valid[1:]):
+        top = int(first.lines_y[0])
+        bottom = int(second.lines_y[-1])
+        span = bottom - top + 1
+        if span <= 0:
+            continue
+        spacing = float(np.median([first.spacing_px, second.spacing_px]))
+        margin = max(1, int(round(spacing * 0.7)))
+        y_start = max(0, top - margin)
+        y_end = min(page_height, bottom + margin + 1)
+        roi = ink[y_start:y_end, :left_width]
+        kernel_height = max(8, int(round(span * min_vertical_coverage)))
+        vertical = cv2.morphologyEx(
+            roi,
+            cv2.MORPH_OPEN,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (1, kernel_height)),
+        )
+        count, _, stats, _ = cv2.connectedComponentsWithStats(vertical, 8)
+        connected = False
+        for label in range(1, count):
+            x, y, width, height, _ = (int(value) for value in stats[label])
+            if width > spacing * max_connector_width_spacing:
+                continue
+            component_top = y_start + y
+            component_bottom = component_top + height - 1
+            coverage = height / max(span, 1)
+            if coverage < min_vertical_coverage:
+                continue
+            if component_top > top + spacing or component_bottom < bottom - spacing:
+                continue
+            connected = True
+            break
+        if connected:
+            linked_pairs.add((first_index, second_index))
+
+    groups = []
+    for index, _ in valid:
+        if not groups:
+            groups.append([index])
+            continue
+        previous = groups[-1][-1]
+        if (previous, index) in linked_pairs:
+            groups[-1].append(index)
+        else:
+            groups.append([index])
+
+    systems = []
+    for system_index, indices in enumerate(groups):
+        members = [staff for index, staff in valid if index in indices]
+        y_top = float(min(staff.lines_y[0] for staff in members))
+        y_bottom = float(max(staff.lines_y[-1] for staff in members))
+        systems.append(StaffSystemCandidate(
+            system_index=system_index,
+            staff_indices=indices,
+            y_top=round(y_top, 2),
+            y_bottom=round(y_bottom, 2),
+            confidence=0.82 if len(indices) > 1 else 0.45,
+            warning=(
+                "Pentagramas agrupados por un conector vertical continuo observado; "
+                "la relación del sistema sigue pendiente de revisión."
+                if len(indices) > 1 else
+                "No se detectó conector vertical hacia otro pentagrama; se conserva "
+                "como sistema individual provisional, no como agrupación confirmada."
+            ),
+        ))
+    return systems
+
+
 def detect_barline_candidates(
     binary: np.ndarray,
     staves: list[StaffCandidate],
