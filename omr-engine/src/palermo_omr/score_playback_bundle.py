@@ -7,6 +7,7 @@ from typing import Any
 from .playback_projection import build_playback_projection
 from .polyphonic_command_stream import build_polyphonic_command_stream
 from .score_document import ScoreDocument
+from .page_analysis_visual_adapter import build_score_structure_from_page_analysis
 from .visual_anchor_map import build_visual_anchor_map_from_score_structure
 
 
@@ -98,3 +99,97 @@ def build_score_playback_bundle(
             "de audio y geometría explícita. No confirma reconocimiento musical."
         ),
     }
+
+
+def build_score_playback_bundle_from_page_analyses(
+    timelines: Sequence[Mapping[str, Any]],
+    event_candidates: Sequence[Any],
+    page_analyses: Sequence[Mapping[str, Any]],
+    *,
+    event_page_numbers: Mapping[str, int],
+    event_notehead_indices: Mapping[str, Sequence[int]],
+    event_geometry_by_id: Mapping[str, Any] | None = None,
+    tempo_bpm: int | float,
+    padding_px: float = 2.0,
+) -> dict[str, Any]:
+    """Construye el bundle desde los JSON de análisis multipágina originales.
+
+    Los índices de cabezas son locales a la página indicada por evento_page_numbers.
+    La relación se valida contra IDs de cabezas ya asociados en event_candidates;
+    cualquier desacuerdo se conserva como geometría no resuelta.
+    """
+    if not isinstance(page_analyses, (list, tuple)) or not page_analyses:
+        raise ValueError("page_analyses debe contener al menos una página")
+    structures = [build_score_structure_from_page_analysis(page) for page in page_analyses]
+    structures.sort(key=lambda page: page.page_number)
+    document = ScoreDocument(pages=tuple(structures))
+    document.validate()
+    pages_by_number = {page["page_number"]: page for page in page_analyses}
+    if len(pages_by_number) != len(page_analyses):
+        raise ValueError("page_analyses no puede repetir page_number")
+
+    geometry: dict[str, Any] = {}
+    overrides: dict[str, dict[str, str]] = {}
+    seen_head_ids: set[str] = set()
+    for candidate in event_candidates:
+        payload = candidate.to_dict() if hasattr(candidate, "to_dict") else candidate
+        if not isinstance(payload, Mapping):
+            raise ValueError("Cada evento candidato debe ser serializable")
+        event_id = payload.get("event_id")
+        page_number = event_page_numbers.get(event_id)
+        if page_number not in pages_by_number:
+            continue
+        page = pages_by_number[page_number]
+        heads = page.get("notehead_candidates", [])
+        indices = event_notehead_indices.get(event_id, ())
+        head_ids = payload.get("notehead_candidate_ids", ())
+        if not isinstance(indices, (list, tuple)) or not isinstance(head_ids, (list, tuple)):
+            overrides[event_id] = {"event_id": event_id, "reason": "invalid_notehead_index_mapping"}
+            continue
+        if len(indices) != len(head_ids):
+            if indices or head_ids:
+                overrides[event_id] = {"event_id": event_id, "reason": "notehead_index_mapping_mismatch"}
+            continue
+        selected = []
+        invalid = False
+        for index, head_id in zip(indices, head_ids):
+            if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(heads):
+                overrides[event_id] = {"event_id": event_id, "reason": "notehead_index_out_of_range"}
+                invalid = True
+                break
+            if not isinstance(head_id, str) or not head_id:
+                overrides[event_id] = {"event_id": event_id, "reason": "invalid_notehead_id"}
+                invalid = True
+                break
+            if head_id in seen_head_ids:
+                raise ValueError("Una cabeza geométrica no puede pertenecer a dos eventos")
+            seen_head_ids.add(head_id)
+            selected.append((index, head_id, heads[index]))
+        if invalid:
+            continue
+        staff_indices = {item[2].get("staff_index") for item in selected}
+        if len(staff_indices) > 1 or (selected and payload.get("staff_index") not in staff_indices):
+            overrides[event_id] = {"event_id": event_id, "reason": "cross_staff_or_mismatched_noteheads"}
+            continue
+        for _, head_id, head in selected:
+            geometry[head_id] = {"bbox": head.get("bbox")}
+
+    result = build_score_playback_bundle(
+        timelines, event_candidates, document,
+        event_page_numbers=event_page_numbers,
+        notehead_geometry_by_id=geometry,
+        event_geometry_by_id=event_geometry_by_id,
+        tempo_bpm=tempo_bpm,
+        padding_px=padding_px,
+    )
+    unresolved = {item["event_id"]: item for item in result["visual_anchor_map"]["unresolved"]}
+    unresolved.update(overrides)
+    result["visual_anchor_map"]["unresolved"] = sorted(
+        unresolved.values(), key=lambda item: item["event_id"]
+    )
+    anchored = {item["event_id"] for item in result["visual_anchor_map"]["anchors"]}
+    playable = {item["event_id"] for item in result["playback_projection"]["events"]}
+    result["coverage"]["anchored_events"] = len(anchored)
+    result["coverage"]["playable_without_visual_anchor"] = sorted(playable - anchored)
+    result["coverage"]["visual_without_playback_event"] = sorted(anchored - playable)
+    return result
