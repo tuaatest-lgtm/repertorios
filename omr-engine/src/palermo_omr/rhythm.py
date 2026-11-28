@@ -59,22 +59,18 @@ def _stem(
     head: NoteheadCandidate,
     spacing: float,
 ) -> tuple[str, int, int | None]:
-    """Localiza la plica desde los bordes reales de la cabeza.
+    """Localiza la plica alrededor del núcleo estimado de la cabeza.
 
-    La versión anterior muestreaba solo centro_x ± 0.72 * spacing. En cabezas
-    cuyo bbox o núcleo ovalado está desplazado unos píxeles, esa posición cae
-    dentro/fuera de la plica y provoca pérdida o inversión de dirección.
-    Ahora se inspeccionan bandas estrechas junto a ambos bordes del bbox y se
-    conserva la coordenada x real para validar después su unión con las barras.
+    El bbox del detector puede incluir partes de plicas o barras conectadas.
+    Por eso no se usa su borde como anclaje: la búsqueda se limita a bandas
+    normalizadas respecto del centro de la cabeza y del espaciado del pentagrama.
     """
     if spacing <= 1:
         return "none", 0, None
     ink = _ink(binary)
     height, width = ink.shape
-    x0, y0, box_width, box_height = head.bbox
-    x1 = x0 + box_width - 1
-    y1 = y0 + box_height - 1
-    edge_band = max(2, int(round(min(spacing * 0.40, box_width * 0.32))))
+    cx = int(round(head.center_x))
+    cy = int(round(head.center_y))
     vertical = cv2.morphologyEx(
         ink,
         cv2.MORPH_OPEN,
@@ -83,12 +79,23 @@ def _stem(
         ),
     )
 
-    candidates: list[tuple[int, str, int]] = []
-    edge_ranges = (
-        range(max(0, x0 - 2), min(width, x0 + edge_band + 1)),
-        range(max(0, x1 - edge_band + 1), min(width, x1 + 3)),
+    # Una plica suele unirse cerca de uno de los extremos de la cabeza.
+    # Las bandas cubren variaciones de ancho sin seguir cajas infladas por haces.
+    anchor_offset = spacing * 0.45
+    anchor_tolerance = max(1, int(round(spacing * 0.25)))
+    anchor_ranges = (
+        range(
+            max(0, int(round(cx - anchor_offset - anchor_tolerance))),
+            min(width, int(round(cx - anchor_offset + anchor_tolerance)) + 1),
+        ),
+        range(
+            max(0, int(round(cx + anchor_offset - anchor_tolerance))),
+            min(width, int(round(cx + anchor_offset + anchor_tolerance)) + 1),
+        ),
     )
-    for edge_xs in edge_ranges:
+    candidates: list[tuple[int, str, int]] = []
+    crossing_tolerance = max(1, int(round(spacing * 0.22)))
+    for edge_xs in anchor_ranges:
         for x in edge_xs:
             col = vertical[:, max(0, x - 1):min(width, x + 2)].max(axis=1)
             ys = np.flatnonzero(col)
@@ -96,26 +103,21 @@ def _stem(
                 continue
             runs = np.split(ys, np.where(np.diff(ys) > 1)[0] + 1)
             for run in runs:
-                # La plica debe atravesar la zona central de la cabeza; así
-                # evitamos aceptar una barra o plica vecina que solo pasa cerca.
-                if run[-1] < y0 + box_height * 0.25:
+                # Solo cuenta una línea que atraviesa el núcleo de la cabeza.
+                if run[0] > cy + crossing_tolerance or run[-1] < cy - crossing_tolerance:
                     continue
-                if run[0] > y0 + box_height * 0.75:
+                up_length = max(0, cy - int(run[0]))
+                down_length = max(0, int(run[-1]) - cy)
+                if max(up_length, down_length) < int(spacing * 1.35):
                     continue
-                up_length = max(0, y0 - int(run[0]))
-                down_length = max(0, int(run[-1]) - y1)
-                if up_length >= down_length:
-                    direction, length = "up", up_length
-                else:
-                    direction, length = "down", down_length
-                if length >= int(spacing * 1.35):
-                    candidates.append((int(x), direction, int(length)))
+                if abs(up_length - down_length) < int(spacing * 0.35):
+                    continue
+                direction = "up" if up_length > down_length else "down"
+                length = max(up_length, down_length)
+                candidates.append((int(x), direction, int(length)))
 
     if not candidates:
         return "none", 0, None
-    # Evita que una detección marginal en el borde opuesto venza a una plica
-    # claramente conectada. Si ambas direcciones tienen extensiones similares,
-    # no inventa una dirección.
     candidates.sort(key=lambda item: item[2], reverse=True)
     best = candidates[0]
     competing = next(
