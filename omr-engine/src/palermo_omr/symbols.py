@@ -438,3 +438,26 @@ def detect_hollow_notehead_candidates(
         key=lambda item: (item.staff_index, item.center_x, item.center_y)
     )
     return results
+
+
+
+def filter_notehead_candidates_by_confidence(
+    candidates: list[NoteheadCandidate],
+    minimum_confidence: float = 0.0,
+) -> list[NoteheadCandidate]:
+    """Filtra candidatos de cabezas rellenas por confianza heurística, sin confirmarlos."""
+    if not isinstance(candidates, list) or any(
+        not isinstance(item, NoteheadCandidate) for item in candidates
+    ):
+        raise ValueError("candidates debe ser una lista de NoteheadCandidate")
+    if (
+        isinstance(minimum_confidence, bool)
+        or not isinstance(minimum_confidence, (int, float))
+        or not np.isfinite(minimum_confidence)
+        or not 0.0 <= minimum_confidence <= 1.0
+    ):
+        raise ValueError("minimum_confidence debe estar entre 0 y 1")
+    return [
+        item for item in candidates
+        if item.confidence >= float(minimum_confidence)
+    ]

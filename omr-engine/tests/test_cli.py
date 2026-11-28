@@ -29,6 +29,7 @@ def test_cli_exports_printed_labels_and_identity_evidence_for_review(tmp_path, m
     analysis = json.loads((output_dir / "analysis.json").read_text(encoding="utf-8"))
     page_data = analysis["pages"][0]
     assert page_data["printed_label_candidate_count"] == 1
+    assert (output_dir / page_data["rhythm_overlay"]).is_file()
     assert page_data["rhythmic_event_group_candidate_count"] == len(
         page_data["rhythmic_event_group_candidates"]
     )
@@ -237,3 +238,55 @@ def test_cli_rejects_unconfirmed_pitch_review_manifest(tmp_path, monkeypatch):
     import pytest
     with pytest.raises(ValueError, match="confirmada"):
         main()
+
+
+
+def test_cli_supports_opt_in_filled_notehead_confidence_filter(tmp_path, monkeypatch):
+    from palermo_omr.symbols import NoteheadCandidate
+
+    pdf_path = tmp_path / "confidence-filter-score.pdf"
+    document = fitz.open()
+    page = document.new_page(width=612, height=792)
+    for y in (250, 255, 260, 265, 270):
+        page.draw_line((100, y), (550, y), color=(0, 0, 0), width=0.7)
+    document.save(pdf_path)
+    document.close()
+
+    candidates = [
+        NoteheadCandidate((195, 255, 10, 5), 200, 260, 0, 1, .8, .9, .9),
+        NoteheadCandidate((295, 255, 10, 5), 300, 260, 0, 1, .7, .8, .6),
+    ]
+    monkeypatch.setattr("palermo_omr.cli.detect_notehead_candidates", lambda *args: candidates)
+    monkeypatch.setattr("palermo_omr.cli.detect_hollow_notehead_candidates", lambda *args: [])
+    output_dir = tmp_path / "confidence-output"
+    monkeypatch.setattr(
+        sys, "argv",
+        ["palermo-omr", str(pdf_path), "--output", str(output_dir), "--dpi", "72",
+         "--min-notehead-confidence", "0.7"],
+    )
+    assert main() == 0
+    analysis = json.loads((output_dir / "analysis.json").read_text(encoding="utf-8"))
+    page_data = analysis["pages"][0]
+    assert page_data["notehead_confidence_filter"] == .7
+    assert page_data["notehead_candidate_count_before_filter"] == 2
+    assert page_data["notehead_candidates_filtered_out_count"] == 1
+    assert page_data["notehead_candidates_filtered_out"][0]["confidence"] == .6
+    assert page_data["notehead_candidate_count"] == 1
+    assert page_data["notehead_candidates"][0]["confidence"] == .9
+
+
+def test_notehead_confidence_filter_is_opt_in_and_validated():
+    import pytest
+    from palermo_omr.symbols import (
+        NoteheadCandidate,
+        filter_notehead_candidates_by_confidence,
+    )
+
+    candidates = [
+        NoteheadCandidate((0, 0, 10, 5), 5, 2, 0, 0, .8, .9, .9),
+        NoteheadCandidate((20, 0, 10, 5), 25, 2, 0, 0, .7, .8, .6),
+    ]
+    assert filter_notehead_candidates_by_confidence(candidates) == candidates
+    assert filter_notehead_candidates_by_confidence(candidates, .7) == [candidates[0]]
+    with pytest.raises(ValueError, match="entre 0 y 1"):
+        filter_notehead_candidates_by_confidence(candidates, 1.2)

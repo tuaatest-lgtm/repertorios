@@ -14,6 +14,7 @@ from .imaging import analyze_page, render_pdf
 from .symbols import (
     detect_hollow_notehead_candidates,
     detect_notehead_candidates,
+    filter_notehead_candidates_by_confidence,
 )
 from .notation_preamble import (
     detect_notation_preamble_candidates,
@@ -25,7 +26,7 @@ from .key_signature_candidates import (
     apply_accepted_key_signature_candidates,
 )
 from .glyph_labeling import build_staff_clef_map, validate_glyph_manifest
-from .visualization import draw_geometry_overlay, draw_notehead_overlay
+from .visualization import draw_geometry_overlay, draw_notehead_overlay, draw_rhythm_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
@@ -65,6 +66,7 @@ def main() -> int:
     parser.add_argument("pdf", help="Ruta al archivo PDF")
     parser.add_argument("--output", default="omr-output", help="Carpeta de salida")
     parser.add_argument("--dpi", type=int, default=300, help="Resolución de renderizado (72-600)")
+    parser.add_argument("--min-notehead-confidence", type=float, default=0.0, help="Filtro opcional de confianza para cabezas rellenas (0-1); 0 conserva todos los candidatos")
     parser.add_argument(
         "--staff-clefs", default="{}",
         help="JSON opcional: claves por índice de pentagrama, p. ej. '{\"0\":\"treble\",\"1\":\"bass\"}'. No se detectan visualmente.",
@@ -123,7 +125,14 @@ def main() -> int:
 
         page_data = analysis.to_dict()
         page_data["render_dpi"] = args.dpi
-        noteheads = detect_notehead_candidates(binary, analysis.staves)
+        raw_noteheads = detect_notehead_candidates(binary, analysis.staves)
+        noteheads = filter_notehead_candidates_by_confidence(
+            raw_noteheads, args.min_notehead_confidence
+        )
+        filtered_out_noteheads = [
+            item for item in raw_noteheads
+            if item.confidence < args.min_notehead_confidence
+        ]
         hollow_noteheads = detect_hollow_notehead_candidates(binary, analysis.staves)
         overlay = draw_notehead_overlay(page, noteheads)
         hollow_overlay = draw_notehead_overlay(page, hollow_noteheads)
@@ -133,6 +142,12 @@ def main() -> int:
         overlay_path = output_dir / f"page-{page_number:03d}-noteheads-overlay.png"
         if not cv2.imwrite(str(overlay_path), overlay):
             raise OSError(f"No se pudo escribir {overlay_path}")
+        page_data["notehead_confidence_filter"] = args.min_notehead_confidence
+        page_data["notehead_candidate_count_before_filter"] = len(raw_noteheads)
+        page_data["notehead_candidates_filtered_out"] = [
+            item.to_dict() for item in filtered_out_noteheads
+        ]
+        page_data["notehead_candidates_filtered_out_count"] = len(filtered_out_noteheads)
         page_data["notehead_candidates"] = [item.to_dict() for item in noteheads]
         page_data["notehead_candidate_count"] = len(noteheads)
         page_data["hollow_notehead_candidates"] = [item.to_dict() for item in hollow_noteheads]
@@ -281,6 +296,11 @@ def main() -> int:
         page_data["hollow_notehead_overlay"] = hollow_overlay_path.name
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
+        rhythm_overlay = draw_rhythm_overlay(page, noteheads, rhythms)
+        rhythm_overlay_path = output_dir / f"page-{page_number:03d}-rhythm-overlay.png"
+        if not cv2.imwrite(str(rhythm_overlay_path), rhythm_overlay):
+            raise OSError(f"No se pudo escribir {rhythm_overlay_path}")
+        page_data["rhythm_overlay"] = rhythm_overlay_path.name
         # Las cabezas huecas se analizan aparte: la presencia de plica propone
         # blanca; su ausencia propone redonda. No se mezclan con cabezas rellenas.
         hollow_rhythms = analyze_rhythm_candidates(
