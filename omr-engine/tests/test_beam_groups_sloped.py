@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import pytest
 
-from palermo_omr.beam_geometry import detect_local_beam_candidates
+from palermo_omr.beam_geometry import _find_stem_anchor, detect_local_beam_candidates
 from palermo_omr.beam_groups import detect_beam_group_candidates
 from palermo_omr.imaging import StaffCandidate
 from palermo_omr.rhythm import RhythmCandidate
@@ -130,3 +130,13 @@ def test_chord_noteheads_sharing_one_stem_are_kept_in_same_beam_candidate():
     candidates = detect_local_beam_candidates(image, staves, heads, rhythms)
     assert len(candidates) == 1
     assert set(candidates[0].notehead_indices) == {0, 1, 2}
+
+
+
+def test_stem_anchor_scan_is_clamped_at_bottom_page_edge():
+    vertical_ink = np.zeros((170, 60), dtype=np.uint8)
+    vertical_ink[167:170, 25] = 1
+    head = NoteheadCandidate(
+        (20, 160, 10, 10), 25.0, 165.0, 0, 0, .8, .9, .9
+    )
+    assert _find_stem_anchor(vertical_ink, head, 2.0, "down") == (25, 169, 3)
