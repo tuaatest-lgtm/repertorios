@@ -194,6 +194,9 @@ def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
         for item in items:
             if not isinstance(item, dict) or set(item) not in (required, allowed):
                 raise ValueError("Predicción con campos ausentes o desconocidos")
+            candidate_ids = item.get("source_candidate_ids", [])
+            if not isinstance(candidate_ids, list):
+                raise ValueError("source_candidate_ids debe ser una lista")
             onset = item["onset_quarters"]
             duration = item["duration_quarters"]
             parsed.append(ScoreEvent(
@@ -206,7 +209,7 @@ def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
                 pitches_midi=tuple(item["pitches_midi"]) if item["pitches_midi"] is not None else None,
                 duration_quarters=Fraction(str(duration)) if duration is not None else None,
                 voice_id=item["voice_id"],
-                source_candidate_ids=tuple(item.get("source_candidate_ids", [])),
+                source_candidate_ids=tuple(candidate_ids),
             ))
         predictions[score_id] = tuple(parsed)
     result = evaluate_annotation_dataset(dataset, predictions, split=split)
