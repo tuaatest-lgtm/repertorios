@@ -196,7 +196,7 @@ def detect_local_beam_candidates(
                             continue
                         y2_float = y1 + slope * (stem_x2 - stem_x1)
                         y2 = int(round(y2_float))
-                        distance2 = (second.center_y - y2) * vertical_sign
+                        distance2 = (y2 - second.center_y) * vertical_sign
                         if not spacing * 1.15 <= distance2 <= spacing * 4.8:
                             continue
                         support, density = _sample_line(
