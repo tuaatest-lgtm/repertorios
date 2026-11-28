@@ -28,9 +28,24 @@ def extract_beam_segments(
         raise ValueError("Los parámetros angulares no son válidos")
 
     ink = (binary < 128).astype(np.uint8) * 255
+
+    # Aísla primero los trazos verticales largos (principalmente plicas) y
+    # los resta antes de Hough. Si una plica está unida a una barra, Hough
+    # puede ajustar una diagonal espuria sobre el componente combinado.
+    # La apertura vertical conserva trazos cuya longitud escala con el
+    # interlineado; el pequeño corte en la barra se puentea con maxLineGap.
+    stem_length = max(9, int(round(spacing * 2.5)))
+    vertical_kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT, (1, stem_length)
+    )
+    vertical_strokes = cv2.morphologyEx(
+        ink, cv2.MORPH_OPEN, vertical_kernel
+    )
+    beam_ink = cv2.subtract(ink, vertical_strokes)
+
     min_length = max(7, int(round(spacing * min_length_spacing * 0.75)))
     lines = cv2.HoughLinesP(
-        ink,
+        beam_ink,
         rho=1,
         theta=np.pi / 180.0,
         threshold=max(5, int(round(min_length * 0.45))),
