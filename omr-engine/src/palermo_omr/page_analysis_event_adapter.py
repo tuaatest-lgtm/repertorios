@@ -11,6 +11,7 @@ from .imaging import StaffCandidate
 from .rhythm import RhythmCandidate
 from .rhythm_interpretation import RhythmicInterpretationCandidate
 from .rhythmic_event_groups import build_rhythmic_event_group_candidates
+from .page_pitch_adapter import build_pitch_candidates_from_page_analysis
 from .symbols import NoteheadCandidate
 
 
@@ -118,5 +119,46 @@ def build_event_candidates_from_page_analysis(
         "warning": (
             "Los grupos rítmicos y eventos fusionados siguen siendo candidatos. "
             "Plicas, haces, alturas y ataques no se consideran confirmados."
+        ),
+    }
+
+
+def build_page_score_candidates(
+    page_analysis: Mapping[str, Any],
+    staff_contexts: Mapping[int | str, Mapping[str, Any]],
+    notehead_candidate_ids: Sequence[str],
+    *,
+    measure_ids: Sequence[str | int | None] | None = None,
+    simultaneous_group_ids: Sequence[str | int] | None = None,
+    explicit_accidentals: Sequence[str | None] | None = None,
+    notehead_ids: Sequence[str] | None = None,
+    accidental_attachment_map: Mapping[str, Any] | None = None,
+    accepted_accidental_ids: Sequence[str] = (),
+    max_chord_spread_spacing: float = 1.10,
+) -> dict[str, Any]:
+    """Une contexto de altura y grupos rítmicos en eventos candidatos de página."""
+    pitch_result = build_pitch_candidates_from_page_analysis(
+        page_analysis, staff_contexts,
+        measure_ids=measure_ids,
+        simultaneous_group_ids=simultaneous_group_ids,
+        explicit_accidentals=explicit_accidentals,
+        notehead_ids=notehead_ids,
+        accidental_attachment_map=accidental_attachment_map,
+        accepted_accidental_ids=accepted_accidental_ids,
+    )
+    event_result = build_event_candidates_from_page_analysis(
+        page_analysis, pitch_result["pitch_candidates"], notehead_candidate_ids,
+        max_chord_spread_spacing=max_chord_spread_spacing,
+    )
+    return {
+        "status": "unconfirmed_page_score_candidates",
+        "page_number": page_analysis["page_number"],
+        "pitch_candidates": pitch_result["pitch_candidates"],
+        "rhythmic_event_groups": event_result["rhythmic_event_groups"],
+        "event_candidates": event_result["event_candidates"],
+        "unresolved_staff_contexts": pitch_result["unresolved_staff_contexts"],
+        "warning": (
+            "Salida integrada de candidatos geométricos, ritmo y altura. "
+            "No confirma claves, armaduras, cabezas, figuras, voces ni notas."
         ),
     }
