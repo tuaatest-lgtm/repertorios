@@ -2,7 +2,9 @@ import json
 
 import pytest
 
-from palermo_omr.page_analysis_audit import audit_page_analysis, build_rhythm_review_queue
+from palermo_omr.page_analysis_audit import (
+    audit_page_analysis, build_rhythm_review_queue, build_symbol_review_queue,
+)
 from palermo_omr.page_analysis_audit_cli import main
 
 
@@ -58,6 +60,8 @@ def test_audit_counts_geometry_and_candidate_distributions_without_claiming_accu
     assert len(report["limitations"]) >= 4
     assert report["rhythm_review_queue_count"] == 1
     assert report["rhythm_review_queue"][0]["candidate_id"] == "p1-filled_notehead-2"
+    assert report["symbol_review_queue_count"] == 3
+    assert {item["family"] for item in report["symbol_review_queue"]} == {"rest_shape", "tie_slur_shape"}
     assert "missing_stem_direction" in report["rhythm_review_queue"][0]["review_reasons"]
 
 
@@ -134,3 +138,31 @@ def test_rhythm_review_queue_allows_pages_without_rhythm_data_and_rejects_misali
     page["rhythm_candidates"] = [{}]
     with pytest.raises(ValueError, match="alineados"):
         build_rhythm_review_queue({"pages": [page]})
+
+
+
+def test_symbol_review_queue_prioritizes_partial_beams_and_low_confidence_shapes():
+    page = _page()
+    page["rest_shape_candidates"][0]["confidence"] = .3
+    page["rest_shape_candidates"][0]["rest_type_candidate"] = "vertical_rest_shape_candidate"
+    page["tie_slur_shape_candidates"][0]["confidence"] = .36
+    page["beam_group_candidates"][0]["connection_type_candidate"] = "partial"
+    page["beam_group_candidates"][0]["confidence"] = .42
+    queue = build_symbol_review_queue({"pages": [page]})
+    assert len(queue) == 4
+    assert queue[0]["family"] == "beam_group"
+    assert queue[0]["candidate_id"] == "p1-beam_group-1"
+    assert queue[0]["priority"] == 1
+    assert {item["family"] for item in queue} == {"rest_shape", "tie_slur_shape", "beam_group"}
+
+
+def test_symbol_review_queue_skips_high_confidence_classified_shapes():
+    page = _page()
+    page["rest_shape_candidates"] = [{
+        "rest_type_candidate": "quarter_rest", "confidence": .9,
+    }]
+    page["tie_slur_shape_candidates"] = [{"confidence": .9}]
+    page["beam_group_candidates"] = [{
+        "connection_type_candidate": "shared", "confidence": .9,
+    }]
+    assert build_symbol_review_queue({"pages": [page]}) == []
