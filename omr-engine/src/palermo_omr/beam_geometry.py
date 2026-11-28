@@ -129,6 +129,15 @@ def extract_beam_segments(
         # realmente inclinada; el grosor de un trazo horizontal no es pendiente.
         if angle < 1.5 or angle > max_angle_degrees:
             continue
+        # Un componente puede unir una barra horizontal con dos plicas.
+        # Su bbox parece alargado, pero ajustar una sola recta a toda la
+        # estructura produce una falsa barra oblicua. Rechazamos componentes
+        # con demasiada tinta fuera de la recta dominante.
+        residuals = np.abs(
+            (points[:, 0] - x0) * vy - (points[:, 1] - y0) * vx
+        )
+        if float(np.percentile(residuals, 90)) > max(2.0, spacing * 0.28):
+            continue
         projections = (points[:, 0] - x0) * vx + (points[:, 1] - y0) * vy
         p0, p1 = float(projections.min()), float(projections.max())
         xa = int(round(x0 + p0 * vx))
