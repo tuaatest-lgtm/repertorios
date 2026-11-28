@@ -71,7 +71,7 @@ test("pause congela la línea temporal y resume reenciende notas sostenidas", as
   assert.equal(sink.notes.size, 0);
   context.currentTime = 5;
   await player.resume();
-  assert.equal(player.current_seconds, undefined);
+  assert.equal(player.snapshot().current_seconds, 0.4);
   assert.equal(sink.notes.size, 2);
   context.currentTime = 5.6;
   player.tick();
