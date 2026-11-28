@@ -217,3 +217,38 @@ def test_musicxml_cli_exports_timeline_json(tmp_path, capsys):
     assert main([str(source), str(output), "--title", "Reviewed score"]) == 0
     assert output.read_bytes().startswith(b"<?xml")
     assert "MusicXML exportado" in capsys.readouterr().out
+
+
+
+def test_exports_explicit_confirmed_voice_clefs_and_octave_transposition():
+    measure = timeline([
+        note("s", "soprano", 0, 4, [pitch("C", 5)]),
+        note("b", "bass", 0, 4, [pitch("C", 3)]),
+    ])
+    root = parse(render_reviewed_timelines_musicxml(
+        [measure],
+        voice_clefs={
+            "soprano": {"sign": "G", "line": 2},
+            "bass": {"sign": "F", "line": 4, "octave_change": -1},
+        },
+    ))
+    parts = root.findall("part")
+    clefs = {
+        part.findtext("measure/attributes/clef/sign"): part.find("measure/attributes/clef")
+        for part in parts
+    }
+    assert clefs["G"].findtext("line") == "2"
+    assert clefs["F"].findtext("line") == "4"
+    assert clefs["F"].findtext("clef-octave-change") == "-1"
+
+
+def test_rejects_unconfirmed_or_invalid_voice_clef_context():
+    measure = timeline([note("s", "soprano", 0, 4, [pitch("C", 5)])])
+    with pytest.raises(ValueError, match="voz inexistente"):
+        render_reviewed_timelines_musicxml(
+            [measure], voice_clefs={"alto": {"sign": "G", "line": 2}},
+        )
+    with pytest.raises(ValueError, match="línea de clave"):
+        render_reviewed_timelines_musicxml(
+            [measure], voice_clefs={"soprano": {"sign": "G", "line": 8}},
+        )
