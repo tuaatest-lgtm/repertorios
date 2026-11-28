@@ -106,3 +106,16 @@ propuestas, la figura base, el número de haces candidato y la confianza
 heurística. Los casos sin plica o sin duración quedan señalados como pendientes.
 El overlay es una ayuda de revisión: no convierte ninguna hipótesis en una
 figura confirmada.
+
+
+## Cola priorizada de revisión rítmica
+
+El JSON de auditoría incluye `rhythm_review_queue`. Cada elemento conserva
+el ID de candidato compatible con el paquete de anotación (`pN-filled_notehead-K`),
+página, pentagrama, caja, confianza, hipótesis de plica/figura/haces y razones
+concretas de revisión. Los candidatos sin plica o sin duración se priorizan;
+los empates se ordenan por menor confianza y posición de origen.
+
+La cola facilita revisar primero los casos que bloquean la interpretación
+rítmica. No asigna duración ni dirección automáticamente y no modifica el
+`analysis.json` original.
