@@ -87,6 +87,14 @@ def _find_stem_anchor(
     x_max = min(vertical_ink.shape[1] - 1, int(x + width) + 3)
     y_start = center_y + sign * int(round(spacing * 0.25))
     y_stop = center_y + sign * int(round(spacing * 4.8))
+    # Limitar el recorrido a la imagen: los extremos de plica pueden quedar
+    # parcialmente recortados en el borde de una página o de un recorte.
+    image_height = vertical_ink.shape[0]
+    y_start = min(image_height - 1, max(0, y_start))
+    if sign < 0:
+        y_stop = min(image_height - 1, max(-1, y_stop))
+    else:
+        y_stop = min(image_height, max(0, y_stop))
 
     best: tuple[float, int, int, int] | None = None
     for stem_x in range(x_min, x_max + 1):
