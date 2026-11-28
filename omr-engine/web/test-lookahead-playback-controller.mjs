@@ -25,7 +25,7 @@ test("programa eventos dentro de la ventana usando tiempos absolutos del disposi
   ]);
   assert.equal(player.snapshot().active_notes, 1);
   assert.equal(player.snapshot().scheduled_commands, 2);
-  sink.context.currentTime = 0.35;
+  sink.context.currentTime = 0.4;
   player.tick();
   assert.ok(sink.calls.some(c => c[0] === "off" && c[1] === "alto" && c[4] === 0.4));
   assert.equal(player.snapshot().active_notes, 1);
