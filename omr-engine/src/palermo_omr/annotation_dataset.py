@@ -49,8 +49,8 @@ class AnnotatedScore:
             or not _SHA256_RE.fullmatch(self.source_review_package_sha256)
         ):
             raise ValueError("source_review_package_sha256 debe ser SHA-256 hexadecimal o null")
-        if any(event.source_candidate_ids for event in self.events) and self.source_review_package_sha256 is None:
-            raise ValueError("La evidencia source_candidate_ids requiere SHA-256 del paquete de revisión")
+        # Legacy manifests may contain candidate IDs without a package digest.
+        # New imports enforce the digest in import_score_events; do not reject old data.
 
         # Reutiliza la validación estricta de las referencias del evaluador.
         evaluate_score_events(self.events, ())
