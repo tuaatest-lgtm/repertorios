@@ -121,9 +121,12 @@ def import_score_events(
         "onset_quarters", "event_type", "pitches_midi",
         "duration_quarters", "voice_id",
     }
+    allowed = required | {"source_candidate_ids"}
     for raw in raw_events:
-        if not isinstance(raw, dict) or set(raw) != required:
-            raise ValueError("Cada evento debe contener exactamente los campos de ScoreEvent")
+        if not isinstance(raw, dict) or set(raw) not in (required, allowed):
+            raise ValueError("Cada evento debe contener los campos de ScoreEvent y evidencia opcional")
+        if "source_candidate_ids" in raw and not isinstance(raw["source_candidate_ids"], list):
+            raise ValueError("source_candidate_ids debe ser una lista")
         parsed.append(raw)
     manifest_data = dataset.to_dict()
     for raw_score in manifest_data["scores"]:
@@ -183,13 +186,17 @@ def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
         "onset_quarters", "event_type", "pitches_midi",
         "duration_quarters", "voice_id",
     }
+    allowed = required | {"source_candidate_ids"}
     for score_id, items in raw.items():
         if not isinstance(score_id, str) or not isinstance(items, list):
             raise ValueError("Cada score_id debe contener una lista de eventos")
         parsed = []
         for item in items:
-            if not isinstance(item, dict) or set(item) != required:
+            if not isinstance(item, dict) or set(item) not in (required, allowed):
                 raise ValueError("Predicción con campos ausentes o desconocidos")
+            candidate_ids = item.get("source_candidate_ids", [])
+            if not isinstance(candidate_ids, list):
+                raise ValueError("source_candidate_ids debe ser una lista")
             onset = item["onset_quarters"]
             duration = item["duration_quarters"]
             parsed.append(ScoreEvent(
@@ -202,6 +209,7 @@ def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
                 pitches_midi=tuple(item["pitches_midi"]) if item["pitches_midi"] is not None else None,
                 duration_quarters=Fraction(str(duration)) if duration is not None else None,
                 voice_id=item["voice_id"],
+                source_candidate_ids=tuple(candidate_ids),
             ))
         predictions[score_id] = tuple(parsed)
     result = evaluate_annotation_dataset(dataset, predictions, split=split)

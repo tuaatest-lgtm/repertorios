@@ -25,6 +25,12 @@ las notas simultáneas de un acorde forman un evento con varias alturas MIDI.
 Las voces que sostienen notas mientras otras cambian conservan eventos y
 duraciones independientes. Los silencios son eventos explícitos.
 
+Cada evento puede incluir `source_candidate_ids`, una lista con los IDs exactos
+que lo sustentan en el paquete `prepare-review` (por ejemplo, la cabeza visual
+y su pentagrama). Así se conserva la trazabilidad entre la anotación musical
+y la evidencia de imagen. La lista puede estar vacía cuando la anotación se
+realiza directamente sobre el PDF sin un candidato OMR asociado.
+
 El formato actual registra alturas MIDI y tiempos en negras. La asignación
 de pentagrama, compás y voz debe verificarse contra la partitura. No completar
 por intuición los datos que no se puedan leer: primero se resuelve la anotación

@@ -24,6 +24,8 @@ class ScoreEvent:
     pitches_midi: tuple[int, ...] | None
     duration_quarters: Fraction | int | float | None
     voice_id: str | None
+    # IDs del paquete visual que sustentan la anotación humana; no afectan métricas.
+    source_candidate_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -96,6 +98,12 @@ def _validate_events(
             raise ValueError("staff_index debe ser entero no negativo")
         if not isinstance(event.measure_index, int) or isinstance(event.measure_index, bool) or event.measure_index < 0:
             raise ValueError("measure_index debe ser entero no negativo")
+        if not isinstance(event.source_candidate_ids, tuple):
+            raise ValueError("source_candidate_ids debe ser una tupla")
+        if any(not isinstance(item, str) or not item.strip() for item in event.source_candidate_ids):
+            raise ValueError("Cada source_candidate_id debe ser texto no vacío")
+        if len(set(event.source_candidate_ids)) != len(event.source_candidate_ids):
+            raise ValueError("source_candidate_ids no puede contener duplicados")
         if event.event_type not in {"note", "rest", "unknown"}:
             raise ValueError("event_type debe ser note, rest o unknown")
         if reference and event.event_type == "unknown":
