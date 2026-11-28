@@ -12,3 +12,12 @@ no se inventa: se asigna después mediante el flujo de contexto revisado.
 
 El adaptador requiere un ID de procedencia por cada cabeza; no intenta
 reconstruir IDs a partir de coordenadas ni ordenar candidatos de forma implícita.
+
+
+## Ensamblado de altura + ritmo
+
+`build_page_score_candidates` combina `build_pitch_candidates_from_page_analysis`
+con el adaptador rítmico anterior. Recibe contexto de clave/armadura revisado,
+IDs de procedencia y, si procede, alteraciones aceptadas. Devuelve los
+candidatos de altura, grupos rítmicos y eventos fusionados de la página en un
+solo objeto. La voz se resuelve después mediante `apply_reviewed_voice_assignments`.
