@@ -223,6 +223,8 @@ def detect_beam_group_candidates(
                     expected_direction = "up" if vertical_distance < 0 else "down"
                     if rhythm.stem_direction == expected_direction:
                         valid_beam_points[stem_x] = local_beam_y
+                if head.center_x == 145.0:
+                    print("BEAM_DEBUG", beam_bbox, expected_stem_xs, local_beam_points, valid_beam_points)
                 intersects_expected_stem = bool(valid_beam_points)
                 if not intersects_expected_stem:
                     continue
