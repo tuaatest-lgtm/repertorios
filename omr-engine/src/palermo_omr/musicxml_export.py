@@ -36,7 +36,7 @@ def _notation(duration: Fraction) -> tuple[str, int, tuple[int, int] | None]:
             dotted = base * (2 - Fraction(1, 2**dots)) if dots else base
             if duration == dotted:
                 return note_type, dots, None
-    for note_type, base in _NOTE_TYPES:
+    for note_type, base in reversed(_NOTE_TYPES):
         if duration < base:
             ratio = duration / base
             if ratio.numerator <= 16 and ratio.denominator <= 16:
@@ -215,7 +215,7 @@ def render_reviewed_timelines_musicxml(
             raise ValueError("global_measure_numbers debe mapear todos los compases exactamente")
         measure_numbers = [global_measure_numbers[key] for key in measure_keys]
         if any(not isinstance(number, int) or isinstance(number, bool) or number < 1 for number in measure_numbers):
-            raise ValueError("Los números globales de compás deben ser positivos")
+            raise ValueError("global_measure_numbers debe contener números de compás positivos")
         if len(set(measure_numbers)) != len(measure_numbers):
             raise ValueError("Los números globales de compás deben ser únicos")
     else:
