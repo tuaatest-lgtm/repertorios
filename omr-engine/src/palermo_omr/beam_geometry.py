@@ -127,6 +127,86 @@ def _find_stem_anchor(
     return best[1], best[2], best[3]
 
 
+def _fit_beam_centerline(
+    ink: np.ndarray,
+    x1: int,
+    tip_y1: int,
+    x2: int,
+    tip_y2: int,
+    spacing: float,
+) -> tuple[float, float, float, float, float] | None:
+    """Ajusta la línea central de la barra dentro de la banda entre dos plicas.
+
+    Los extremos de las plicas solo acotan la búsqueda: no se asume que el
+    extremo raster de cada plica coincida exactamente con el centro de la barra.
+    El ajuste sigue el centro de los trazos gruesos y rechaza líneas finas del
+    pentagrama.
+    """
+    dx = x2 - x1
+    if dx < 5:
+        return None
+    tolerance = max(4, int(round(spacing * 0.65)))
+    min_thickness = max(3, int(round(spacing * 0.22)))
+    sample_x: list[int] = []
+    sample_y: list[float] = []
+
+    for x in range(x1 + 2, x2 - 1):
+        ratio = (x - x1) / dx
+        predicted_y = tip_y1 + (tip_y2 - tip_y1) * ratio
+        top = max(0, int(math.floor(predicted_y - tolerance)))
+        bottom = min(
+            ink.shape[0],
+            int(math.ceil(predicted_y + tolerance)) + 1,
+        )
+        column = ink[top:bottom, x]
+        runs: list[list[int]] = []
+        run: list[int] = []
+        for offset, present in enumerate(column):
+            if present:
+                run.append(offset)
+            elif run:
+                runs.append(run)
+                run = []
+        if run:
+            runs.append(run)
+
+        options: list[tuple[float, float]] = []
+        for stroke in runs:
+            thickness = len(stroke)
+            if thickness < min_thickness:
+                continue
+            center_y = top + (stroke[0] + stroke[-1]) / 2.0
+            distance = abs(center_y - predicted_y)
+            if distance > tolerance:
+                continue
+            options.append((thickness - distance * 0.35, center_y))
+        if options:
+            _score, center_y = max(options, key=lambda item: item[0])
+            sample_x.append(x)
+            sample_y.append(center_y)
+
+    if len(sample_x) < dx * 0.72:
+        return None
+    slope, intercept = np.polyfit(
+        np.asarray(sample_x, dtype=np.float64),
+        np.asarray(sample_y, dtype=np.float64),
+        1,
+    )
+    fitted_y = slope * np.asarray(sample_x) + intercept
+    residual = float(np.median(np.abs(np.asarray(sample_y) - fitted_y)))
+    if residual > 2.0:
+        return None
+
+    y1 = float(slope * x1 + intercept)
+    y2 = float(slope * x2 + intercept)
+    support, density = _sample_line(
+        ink, x1, y1, x2, y2, half_width=2
+    )
+    if support < 0.82 or density < 0.80:
+        return None
+    return float(slope), y1, y2, support, density
+
+
 def _parallel_beam_count(
     ink: np.ndarray,
     start: tuple[int, int],
@@ -253,14 +333,13 @@ def detect_local_beam_candidates(
                 if dx <= 0 or not spacing * min_pair_spacing <= dx <= spacing * max_pair_spacing:
                     continue
 
-                slope = (tip_y2 - tip_y1) / dx
-                if abs(slope) < 0.08 or abs(slope) > max_slope:
-                    continue
-
-                support, density = _sample_line(
-                    ink, stem_x1, tip_y1, stem_x2, tip_y2, half_width=1
+                fitted = _fit_beam_centerline(
+                    ink, stem_x1, tip_y1, stem_x2, tip_y2, spacing
                 )
-                if support < 0.82 or density < 0.68:
+                if fitted is None:
+                    continue
+                slope, beam_y1, beam_y2, support, _density = fitted
+                if abs(slope) < 0.04 or abs(slope) > max_slope:
                     continue
 
                 second_indices = heads_by_stem[second_key]
@@ -268,10 +347,11 @@ def detect_local_beam_candidates(
                     first_indices + second_indices,
                     key=lambda index: (noteheads[index].center_x, noteheads[index].center_y),
                 ))
-                start, end = (stem_x1, tip_y1), (stem_x2, tip_y2)
+                start = (stem_x1, int(round(beam_y1)))
+                end = (stem_x2, int(round(beam_y2)))
                 beam_count = _parallel_beam_count(ink, start, end, spacing)
                 left, right = min(stem_x1, stem_x2), max(stem_x1, stem_x2)
-                top, bottom = min(tip_y1, tip_y2), max(tip_y1, tip_y2)
+                top, bottom = sorted((start[1], end[1]))
                 results.append(LocalBeamCandidate(
                     notehead_indices=linked_heads,
                     start=start,
