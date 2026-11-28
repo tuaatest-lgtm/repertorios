@@ -86,3 +86,15 @@ def test_evaluates_geometry_coverage_without_claiming_music_accuracy():
     assert result["unresolved_noteheads"] == 0
     assert result["coverage_ratio"] == 1.0
     assert "no precisión" in result["warning"]
+
+
+def test_exact_barline_boundary_remains_ambiguous_instead_of_forcing_measure():
+    page = page_analysis()
+    page["notehead_candidates"].append(
+        {"bbox": [95, 60, 10, 6], "staff_index": 0}
+    )
+    result = build_visual_anchor_map_from_page_analysis(page, {"boundary": [4]})
+    assert result["anchors"] == []
+    assert result["unresolved"] == [
+        {"event_id": "boundary", "reason": "ambiguous_measure_region"},
+    ]
