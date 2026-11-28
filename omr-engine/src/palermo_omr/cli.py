@@ -26,7 +26,7 @@ from .key_signature_candidates import (
     apply_accepted_key_signature_candidates,
 )
 from .glyph_labeling import build_staff_clef_map, validate_glyph_manifest
-from .visualization import draw_geometry_overlay, draw_notehead_overlay
+from .visualization import draw_geometry_overlay, draw_notehead_overlay, draw_rhythm_overlay
 from .rhythm import analyze_rhythm_candidates
 from .beam_groups import detect_beam_group_candidates
 from .rhythm_interpretation import interpret_rhythm_from_beam_groups
@@ -287,6 +287,11 @@ def main() -> int:
         page_data["hollow_notehead_overlay"] = hollow_overlay_path.name
         page_data["notehead_overlay"] = overlay_path.name
         rhythms = analyze_rhythm_candidates(binary, analysis.staves, noteheads)
+        rhythm_overlay = draw_rhythm_overlay(page, noteheads, rhythms)
+        rhythm_overlay_path = output_dir / f"page-{page_number:03d}-rhythm-overlay.png"
+        if not cv2.imwrite(str(rhythm_overlay_path), rhythm_overlay):
+            raise OSError(f"No se pudo escribir {rhythm_overlay_path}")
+        page_data["rhythm_overlay"] = rhythm_overlay_path.name
         # Las cabezas huecas se analizan aparte: la presencia de plica propone
         # blanca; su ausencia propone redonda. No se mezclan con cabezas rellenas.
         hollow_rhythms = analyze_rhythm_candidates(
