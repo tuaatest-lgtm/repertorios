@@ -52,6 +52,12 @@ def build_candidate_measure_timelines(
         raise ValueError("El orden referencia eventos inexistentes")
     if set(event_measure_indices) - set(by_id):
         raise ValueError("El compás referencia eventos inexistentes")
+    for event_id, measure_index in event_measure_indices.items():
+        if not isinstance(measure_index, int) or isinstance(measure_index, bool) or measure_index < 0:
+            raise ValueError(f"{event_id}: el índice de compás debe ser entero no negativo")
+    for event_id, order_index in event_order_indices.items():
+        if not isinstance(order_index, int) or isinstance(order_index, bool) or order_index < 0:
+            raise ValueError(f"{event_id}: el orden debe ser entero no negativo")
 
     used_orders: set[tuple[int, str, int]] = set()
     by_measure_voice: dict[int, dict[str, list[OrderedVoiceEvent]]] = defaultdict(lambda: defaultdict(list))
@@ -77,7 +83,7 @@ def build_candidate_measure_timelines(
         used_orders.add(key)
         duration = event.duration_quarters_candidate
         if duration is not None:
-            duration = Fraction(duration)
+            duration = duration if isinstance(duration, Fraction) else Fraction(str(duration))
             if duration <= 0:
                 raise ValueError("Las duraciones candidatas deben ser positivas")
         by_measure_voice[measure_index][voice_id].append(OrderedVoiceEvent(
