@@ -19,6 +19,7 @@ def build_candidate_measure_timelines(
     events: Sequence[ScoreEventCandidate],
     measure_specs: Mapping[int, tuple[int, int]],
     event_order_indices: Mapping[str, int],
+    event_measure_indices: Mapping[str, int],
 ) -> list[dict[str, Any]]:
     """Genera una línea temporal por compás desde candidatos fusionados.
 
@@ -49,6 +50,8 @@ def build_candidate_measure_timelines(
         by_id[event.event_id] = event
     if set(event_order_indices) - set(by_id):
         raise ValueError("El orden referencia eventos inexistentes")
+    if set(event_measure_indices) - set(by_id):
+        raise ValueError("El compás referencia eventos inexistentes")
 
     used_orders: set[tuple[int, str, int]] = set()
     by_measure_voice: dict[int, dict[str, list[OrderedVoiceEvent]]] = defaultdict(lambda: defaultdict(list))
@@ -56,7 +59,7 @@ def build_candidate_measure_timelines(
 
     for event in events:
         # La asignación de compás debe ser explícita; no se deduce del pentagrama.
-        measure_index = getattr(event, "measure_index_candidate", None)
+        measure_index = event_measure_indices.get(event.event_id)
         if measure_index is None or measure_index not in normalized_specs:
             unresolved[-1].append({"event_id": event.event_id, "reason": "missing_or_unknown_measure"})
             continue
