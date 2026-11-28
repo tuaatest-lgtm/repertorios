@@ -55,7 +55,7 @@ def _key_signature(value):
         raise ValueError("key_signature debe ser (fifths, mode)")
     if not isinstance(fifths, int) or isinstance(fifths, bool) or not -7 <= fifths <= 7:
         raise ValueError("fifths debe estar entre -7 y 7")
-    if mode not in {"major", "minor", 0, 1}:
+    if isinstance(mode, bool) or mode not in {"major", "minor", 0, 1}:
         raise ValueError("mode debe ser major o minor")
     return fifths, "minor" if mode in {"minor", 1} else "major"
 
@@ -158,7 +158,10 @@ def render_reviewed_timelines_musicxml(
             raise ValueError("page_number debe ser positivo")
         if not isinstance(measure_index, int) or isinstance(measure_index, bool) or measure_index < 0:
             raise ValueError("measure_index debe ser no negativo")
-        meter = _time_signature(timeline.get("time_signature"))
+        meter_value = timeline.get("time_signature")
+        if meter_value is None:
+            meter_value = (timeline.get("numerator"), timeline.get("denominator"))
+        meter = _time_signature(meter_value)
         events = timeline.get("events")
         if not isinstance(events, (list, tuple)) or not events:
             raise ValueError("Cada compás debe contener eventos")
