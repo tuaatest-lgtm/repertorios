@@ -52,7 +52,9 @@ def extract_beam_segments(
             continue
         slope = (y2 - y1) / dx
         angle = abs(math.degrees(math.atan(slope)))
-        if angle > max_angle_degrees:
+        # Este módulo complementa el detector horizontal por filas: excluir
+        # trazos casi horizontales evita duplicarlos como segmentos oblicuos.
+        if angle < 1.5 or angle > max_angle_degrees:
             continue
         if dx < min_length:
             continue
@@ -123,7 +125,9 @@ def extract_beam_segments(
         if abs(vx) < 1e-6:
             continue
         angle = abs(math.degrees(math.atan2(vy, vx)))
-        if angle > max_angle_degrees:
+        # El fallback por componentes también debe aportar solo geometría
+        # realmente inclinada; el grosor de un trazo horizontal no es pendiente.
+        if angle < 1.5 or angle > max_angle_degrees:
             continue
         projections = (points[:, 0] - x0) * vx + (points[:, 1] - y0) * vy
         p0, p1 = float(projections.min()), float(projections.max())
