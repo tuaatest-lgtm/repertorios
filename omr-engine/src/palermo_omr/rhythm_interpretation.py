@@ -41,8 +41,9 @@ def interpret_rhythm_from_beam_groups(
     """Produce una duración candidata por cabeza, usando evidencia de grupos.
 
     Las barras compartidas tienen prioridad sobre el recuento local por cabeza.
-    Si una cabeza aparece en grupos con cantidades incompatibles, el resultado
-    queda ambiguo. Las notas sin grupo conservan solo la hipótesis local previa.
+    Si una cabeza participa en segmentos con niveles de barra distintos, se
+    conserva el máximo nivel local observado. Las notas sin grupo conservan
+    solo la hipótesis local previa.
     """
     memberships: dict[int, list[tuple[int, BeamGroupCandidate]]] = {}
     for group_index, group in enumerate(beam_groups):
