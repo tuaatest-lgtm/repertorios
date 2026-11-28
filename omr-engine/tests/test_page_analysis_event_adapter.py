@@ -1,6 +1,9 @@
 import pytest
 
-from palermo_omr.page_analysis_event_adapter import build_event_candidates_from_page_analysis
+from palermo_omr.page_analysis_event_adapter import (
+    build_event_candidates_from_page_analysis,
+    build_page_score_candidates,
+)
 
 
 def _page():
@@ -72,3 +75,18 @@ def test_rejects_unaligned_or_duplicate_page_notehead_ids():
         build_event_candidates_from_page_analysis(_page(), pitches, ["only-one"])
     with pytest.raises(ValueError, match="únicos"):
         build_event_candidates_from_page_analysis(_page(), pitches, ["same", "same"])
+
+
+def test_unified_page_score_candidates_combines_pitch_and_rhythm_without_guessing_voice():
+    result = build_page_score_candidates(
+        _page(),
+        {0: {"clef": "treble", "clef_status": "human_confirmed",
+             "key_signature": {"F": 1}, "key_signature_status": "human_confirmed"}},
+        ["p2-head-0", "p2-head-1"],
+        measure_ids=["m1", "m1"],
+    )
+    assert [item["pitch"]["midi"] for item in result["pitch_candidates"]] == [66, 67]
+    assert len(result["rhythmic_event_groups"]) == 2
+    assert len(result["event_candidates"]) == 2
+    assert all(item["voice_id_candidate"] is None for item in result["event_candidates"])
+    assert all(item["status"] == "incomplete_candidate" for item in result["event_candidates"])
