@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 import cv2
 import numpy as np
 
+from .beam_geometry import extract_beam_segments
 from .imaging import StaffCandidate
 from .rhythm import RhythmCandidate
 from .symbols import NoteheadCandidate
@@ -61,6 +62,25 @@ def _stem_reaches_beam(
             longest_gap = max(longest_gap, current_gap)
     return coverage >= 0.84 and longest_gap <= 1
 
+
+
+def _beam_y_at_x(
+    ink: np.ndarray,
+    bbox: tuple[int, int, int, int],
+    stem_x: int,
+) -> float | None:
+    """Estima la altura local del trazo en la coordenada de una plica."""
+    x, y, width, height = bbox
+    if stem_x < x - 2 or stem_x > x + width + 1:
+        return None
+    x0 = max(0, stem_x - 1)
+    x1 = min(ink.shape[1], stem_x + 2)
+    y0 = max(0, y - 1)
+    y1 = min(ink.shape[0], y + height + 1)
+    rows = np.flatnonzero(ink[y0:y1, x0:x1].any(axis=1))
+    if rows.size == 0:
+        return None
+    return float(y0 + (int(rows[0]) + int(rows[-1])) / 2.0)
 
 def detect_beam_group_candidates(
     binary: np.ndarray,
@@ -142,11 +162,35 @@ def detect_beam_group_candidates(
             if height <= max(2, int(round(spacing * 0.55))):
                 segments.append((left, upper, width, height))
 
+        # Añade segmentos multiángulo detectados en la región del pentagrama.
+        # Se conservan los segmentos horizontales previos como vía de respaldo.
+        staff_crop = binary[top:bottom + 1]
+        sloped_segments: set[tuple[int, int, int, int]] = set()
+        for sx, sy, sw, sh in extract_beam_segments(
+            staff_crop,
+            spacing=spacing,
+            min_length_spacing=min_beam_width_spacing,
+        ):
+            # Los trazos casi horizontales ya se obtienen por filas. Añadirlos
+            # otra vez desde Hough duplica grupos y altera el número de barras.
+            if sh <= max(2, int(round(spacing * 0.15))):
+                continue
+            candidate = (sx, sy + top, sw, sh)
+            sloped_segments.add(candidate)
+            if min_width <= sw <= max_width and not any(
+                abs(candidate[0] - existing[0]) <= 2
+                and abs(candidate[1] - existing[1]) <= 2
+                and abs(candidate[2] - existing[2]) <= 3
+                for existing in segments
+            ):
+                segments.append(candidate)
+
         # La clave es el conjunto exacto de cabezas asociado a cada trazo.
         segments_by_heads: dict[tuple[int, ...], list[tuple[int, int, int, int]]] = {}
         for x, y, w, h in segments:
             if not (min_width <= w <= max_width):
                 continue
+            beam_bbox = (x, y, w, h)
             beam_y = y + h / 2.0
 
             matched: list[int] = []
@@ -159,40 +203,31 @@ def detect_beam_group_candidates(
                     <= x + w + spacing * max_head_gap_spacing
                 ):
                     continue
-                vertical_distance = beam_y - head.center_y
-                if abs(vertical_distance) < spacing * 0.8 or abs(vertical_distance) > spacing * 4.5:
-                    continue
-                expected_direction = "up" if vertical_distance < 0 else "down"
-                if rhythm.stem_direction != expected_direction:
-                    continue
-
-                # Una barra debe cruzar la zona donde se espera la plica de
-                # esta cabeza. La mera proximidad horizontal puede asociar una
-                # barra de otro pentagrama/voz o un trazo editorial cercano.
+                # La inclinación se evalúa a la altura local de cada plica,
+                # no en el centro del bbox, que puede quedar lejos del trazo.
                 stem_offset = max(1, int(round(spacing * 0.72)))
                 stem_tolerance = max(2, int(round(spacing * 0.20)))
                 expected_stem_xs = (
                     int(round(head.center_x - stem_offset)),
                     int(round(head.center_x + stem_offset)),
                 )
-                intersects_expected_stem = any(
-                    x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
-                    for stem_x in expected_stem_xs
-                )
-                if not intersects_expected_stem:
-                    continue
+                connected_stem_x = None
+                for stem_x in expected_stem_xs:
+                    if not (x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance):
+                        continue
+                    local_beam_y = _beam_y_at_x(ink, beam_bbox, stem_x)
+                    if local_beam_y is None:
+                        continue
+                    vertical_distance = local_beam_y - head.center_y
+                    if abs(vertical_distance) < spacing * 0.8 or abs(vertical_distance) > spacing * 4.5:
+                        continue
+                    expected_direction = "up" if vertical_distance < 0 else "down"
+                    if rhythm.stem_direction != expected_direction:
+                        continue
+                    if _stem_reaches_beam(ink, head, local_beam_y, stem_x):
+                        connected_stem_x = stem_x
+                        break
 
-                # Además de cruzar la posición esperada, la plica debe llegar
-                # físicamente hasta la barra en la imagen binaria. Esto evita
-                # asociar segmentos cercanos separados por un hueco visible.
-                connected_stem_x = next(
-                    (
-                        stem_x for stem_x in expected_stem_xs
-                        if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
-                        and _stem_reaches_beam(ink, head, beam_y, stem_x)
-                    ),
-                    None,
-                )
                 if connected_stem_x is None:
                     continue
 
@@ -202,6 +237,11 @@ def detect_beam_group_candidates(
             # Una barra corta puede ser un haz parcial unido a una sola plica.
             # Se conserva como candidato separado, nunca como grupo compartido.
             if len(matched_tuple) >= 1:
+                # Un segmento Hough oblicuo aislado no basta para declarar una
+                # bandera parcial: exigimos que conecte dos cabezas. Los haces
+                # parciales horizontales siguen viniendo del detector por filas.
+                if (x, y, w, h) in sloped_segments and len(matched_tuple) < 2:
+                    continue
                 segments_by_heads.setdefault(matched_tuple, []).append((x, y, w, h))
 
         for matched, segments in segments_by_heads.items():

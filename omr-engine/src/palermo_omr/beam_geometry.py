@@ -1,0 +1,137 @@
+"""Geometría de barras: extracción multiángulo para trazos inclinados."""
+from __future__ import annotations
+
+import math
+
+import cv2
+import numpy as np
+
+
+def extract_beam_segments(
+    binary: np.ndarray,
+    *,
+    spacing: float,
+    min_length_spacing: float = 1.0,
+    max_angle_degrees: int = 18,
+    angle_step_degrees: int = 3,
+) -> list[tuple[int, int, int, int]]:
+    """Extrae segmentos lineales candidatos y une fragmentos colineales.
+
+    Entrada: imagen binaria con fondo blanco y tinta negra. Devuelve bbox
+    (x, y, width, height). Son segmentos geométricos, no grupos rítmicos.
+    """
+    if binary is None or binary.ndim != 2 or binary.size == 0:
+        raise ValueError("Se requiere una imagen binaria monocroma no vacía")
+    if spacing <= 1 or min_length_spacing <= 0:
+        raise ValueError("El espaciamiento y la longitud mínima deben ser positivos")
+    if max_angle_degrees < 0 or angle_step_degrees <= 0:
+        raise ValueError("Los parámetros angulares no son válidos")
+
+    ink = (binary < 128).astype(np.uint8) * 255
+
+    # Aísla primero los trazos verticales largos (principalmente plicas) y
+    # los resta antes de Hough. Si una plica está unida a una barra, Hough
+    # puede ajustar una diagonal espuria sobre el componente combinado.
+    # La apertura vertical conserva trazos cuya longitud escala con el
+    # interlineado; el pequeño corte en la barra se puentea con maxLineGap.
+    stem_length = max(9, int(round(spacing * 2.5)))
+    vertical_kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT, (1, stem_length)
+    )
+    vertical_strokes = cv2.morphologyEx(
+        ink, cv2.MORPH_OPEN, vertical_kernel
+    )
+    beam_ink = cv2.subtract(ink, vertical_strokes)
+
+    min_length = max(7, int(round(spacing * min_length_spacing * 0.75)))
+    lines = cv2.HoughLinesP(
+        beam_ink,
+        rho=1,
+        theta=np.pi / 180.0,
+        threshold=max(5, int(round(min_length * 0.45))),
+        minLineLength=min_length,
+        maxLineGap=max(3, int(round(spacing * 1.20))),
+    )
+    if lines is None:
+        return []
+
+    # Hough puede devolver varios fragmentos de una misma barra. Normalizamos
+    # la orientación (x creciente) antes de comparar pendiente e intercepto.
+    raw: list[tuple[float, float, int, int]] = []
+    for line in lines[:, 0, :]:
+        x1, y1, x2, y2 = (int(value) for value in line)
+        if x2 < x1:
+            x1, x2, y1, y2 = x2, x1, y2, y1
+        dx = x2 - x1
+        if dx <= 0:
+            continue
+        slope = (y2 - y1) / dx
+        angle = abs(math.degrees(math.atan(slope)))
+        # Este módulo complementa el detector horizontal por filas: excluir
+        # trazos casi horizontales evita duplicarlos como segmentos oblicuos.
+        if angle < 4.0 or angle > max_angle_degrees:
+            continue
+        if dx < min_length:
+            continue
+        intercept = y1 - slope * x1
+        raw.append((slope, intercept, x1, x2))
+
+    # Fusiona detecciones de la misma recta cuando sus proyecciones se solapan
+    # o están separadas por un hueco pequeño. Así no se cuentan fragmentos
+    # Hough de una sola barra como barras rítmicas diferentes.
+    raw.sort(key=lambda item: (item[0], item[1], item[2]))
+    merged: list[list[float]] = []
+    angle_tolerance = math.tan(math.radians(max(4, angle_step_degrees * 2.5)))
+    perpendicular_tolerance = max(2.5, spacing * 0.65)
+    max_gap = max(3.0, spacing * 1.20)
+
+    for slope, intercept, x0, x1 in raw:
+        match = None
+        for candidate in reversed(merged):
+            if abs(slope - candidate[0]) > angle_tolerance:
+                if slope - candidate[0] > angle_tolerance:
+                    break
+                continue
+            if x0 > candidate[3] + max_gap or x1 < candidate[2] - max_gap:
+                continue
+            overlap_left = max(float(x0), candidate[2])
+            overlap_right = min(float(x1), candidate[3])
+            if overlap_left <= overlap_right:
+                probe_x = (overlap_left + overlap_right) / 2.0
+            else:
+                probe_x = (
+                    min(float(x0), candidate[2])
+                    + max(float(x1), candidate[3])
+                ) / 2.0
+            current_y = slope * probe_x + intercept
+            candidate_y = candidate[0] * probe_x + candidate[1]
+            if abs(current_y - candidate_y) > perpendicular_tolerance:
+                continue
+            match = candidate
+            break
+        if match is None:
+            merged.append([slope, intercept, float(x0), float(x1)])
+        else:
+            # Promedia ligeramente para amortiguar la cuantización de Hough.
+            match[0] = (match[0] + slope) / 2.0
+            match[1] = (match[1] + intercept) / 2.0
+            match[2] = min(match[2], float(x0))
+            match[3] = max(match[3], float(x1))
+
+    segments: set[tuple[int, int, int, int]] = set()
+    for slope, intercept, x0, x1 in merged:
+        left, right = int(round(x0)), int(round(x1))
+        y_left = slope * left + intercept
+        y_right = slope * right + intercept
+        upper = int(math.floor(min(y_left, y_right))) - 2
+        lower = int(math.ceil(max(y_left, y_right))) + 2
+        width = right - left + 1
+        height = max(1, lower - upper + 1)
+        if width >= min_length and width / max(height, 1) >= 1.5:
+            segments.add((left, upper, width, height))
+
+    # No se usa fallback por componentes conectados: una barra horizontal
+    # unida a plicas puede formar un único componente y fitLine la confunde
+    # con una barra oblicua. Hough conserva los segmentos inclinados aislados.
+
+    return sorted(segments, key=lambda item: (item[0], item[1]))
