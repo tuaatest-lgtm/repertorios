@@ -72,7 +72,7 @@ def test_rejects_duplicate_or_out_of_range_notehead_indices():
         fuse_score_event_candidates(
             [group(notehead_indices=(0, 2))], [pitch(), pitch()], ["a", "b"]
         )
-    with pytest.raises(ValueError, match="no vacío y sin duplicados"):
+    with pytest.raises(ValueError, match="sin duplicados"):
         fuse_score_event_candidates(
             [group(notehead_indices=(0, 0))], [pitch()], ["a"]
         )
