@@ -51,3 +51,23 @@ instrumentos GM externos.
 El exportador no cambia el estado de revisión de los eventos. Si la proyección
 contiene candidatos no confirmados, el MIDI resultante también es provisional.
 No se afirma que las notas exportadas sean una transcripción correcta del PDF.
+
+
+## Uso desde terminal
+
+Después de instalar el paquete editable o instalarlo desde el proyecto:
+
+```bash
+palermo-omr-midi reviewed-score-bundle.json salida.mid \
+  --tempo-bpm 96 \
+  --time-signature 4/4 \
+  --key-signature 5:major \
+  --tempo-change 12:88 \
+  --event-velocity event-17:104
+```
+
+La entrada puede ser un objeto `unconfirmed_score_playback_bundle` o un
+`unconfirmed_synth_command_stream`. El comando crea el directorio de salida
+si hace falta y escribe el archivo de forma atómica. Opciones repetibles como
+`--tempo-change`, `--event-velocity`, `--voice-program`,
+`--voice-channel` y `--voice-pan` permiten describir cambios por evento o voz.
