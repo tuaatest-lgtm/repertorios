@@ -78,7 +78,8 @@ def build_focused_review_package(
         related = item.get("related_candidate_ids", [])
         if not isinstance(related, list):
             raise ValueError("related_candidate_ids debe ser una lista")
-        if selected_staff_ids.intersection(related) or notehead_ids.intersection(related):
+        selected_scope_ids = selected_staff_ids | notehead_ids
+        if related and set(related).issubset(selected_scope_ids):
             selected_other.append(item)
 
     all_selected_ids = (
