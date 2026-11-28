@@ -157,3 +157,29 @@ def test_rejects_invalid_measure_numbers_and_key_signature():
         render_reviewed_timelines_musicxml([measure], global_measure_numbers={"1:0": 0})
     with pytest.raises(ValueError, match="fifths"):
         render_reviewed_timelines_musicxml([measure], key_signature=(8, "major"))
+
+
+def test_rejects_voice_without_explicit_note_or_rest_in_a_measure():
+    first = timeline([note("alto", "alto", 0, 4, [pitch("C", 4)])])
+    second = timeline(
+        [note("soprano", "soprano", 0, 4, [pitch("G", 5)])],
+        page_number=2, measure_index=0,
+    )
+    with pytest.raises(ValueError, match="evento o silencio explícito"):
+        render_reviewed_timelines_musicxml([first, second])
+
+
+def test_rejects_non_boolean_tie_flags_and_ties_on_rests():
+    invalid_flag = timeline([
+        note("n", "alto", 0, 4, [pitch("C", 4)], tie_start="yes")
+    ])
+    with pytest.raises(ValueError, match="tie_start debe ser booleano"):
+        render_reviewed_timelines_musicxml([invalid_flag])
+
+    tied_rest = timeline([{
+        "event_id": "r", "voice_id": "alto", "onset_quarters": "0",
+        "duration_quarters": "4", "event_type": "rest",
+        "confirmed_pitches": [], "tie_start": True,
+    }])
+    with pytest.raises(ValueError, match="silencio no puede"):
+        render_reviewed_timelines_musicxml([tied_rest])
