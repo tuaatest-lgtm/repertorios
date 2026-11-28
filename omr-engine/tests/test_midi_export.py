@@ -2,7 +2,7 @@ import struct
 
 import pytest
 
-from palermo_omr.midi_export import render_polyphonic_midi
+from palermo_omr.midi_export import render_polyphonic_midi, render_score_playback_bundle_midi
 
 
 def stream(commands):
@@ -183,3 +183,46 @@ def test_rejects_reserved_or_duplicate_voice_channels_and_bad_options():
         render_polyphonic_midi(stream(commands), tempo_bpm=0)
     with pytest.raises(ValueError, match="velocity"):
         render_polyphonic_midi(stream(commands), velocity=0)
+
+
+
+def test_conductor_track_contains_reviewed_meter_and_key_signature():
+    data = render_polyphonic_midi(
+        stream([]), time_signature=(4, 4), key_signature=(5, 0)
+    )
+    _, _, _, tracks = chunks(data)
+    conductor = parse_track(tracks[0])
+    meter = next(e for e in conductor if e[1] == "meta" and e[2] == 0x58)
+    key = next(e for e in conductor if e[1] == "meta" and e[2] == 0x59)
+    assert meter[3] == bytes((4, 2, 24, 8))
+    assert key[3] == bytes((5, 0))
+
+
+def test_score_bundle_midi_wrapper_exports_its_polyphonic_command_stream():
+    bundle = {
+        "status": "unconfirmed_score_playback_bundle",
+        "command_stream": stream([
+            cmd("note_on", "s", "soprano", 72, 0),
+            cmd("note_off", "s", "soprano", 72, 1),
+        ]),
+    }
+    data = render_score_playback_bundle_midi(
+        bundle, tempo_bpm=120, time_signature=(4, 4), key_signature=(5, 0)
+    )
+    fmt, count, ppq, tracks = chunks(data)
+    assert (fmt, count, ppq) == (1, 2, 480)
+    assert any(e[1] == "meta" and e[2] == 0x58 for e in parse_track(tracks[0]))
+    assert any(e[1] == "meta" and e[2] == 0x59 for e in parse_track(tracks[0]))
+    assert any(e[1] == 0x90 and e[3] == 72 for e in parse_track(tracks[1]))
+
+
+@pytest.mark.parametrize("meter", [(4, 3), (0, 4), (4, 256), (True, 4)])
+def test_rejects_invalid_midi_time_signature(meter):
+    with pytest.raises(ValueError, match="time_signature"):
+        render_polyphonic_midi(stream([]), time_signature=meter)
+
+
+@pytest.mark.parametrize("key", [(8, 0), (-8, 1), (5, 2), (5, True)])
+def test_rejects_invalid_midi_key_signature(key):
+    with pytest.raises(ValueError, match="key_signature"):
+        render_polyphonic_midi(stream([]), key_signature=key)
