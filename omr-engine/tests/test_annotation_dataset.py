@@ -126,7 +126,9 @@ def test_visual_candidate_evidence_round_trips_without_affecting_music_fields():
         item.events[0],
         source_candidate_ids=("p1-filled_notehead-2", "p1-staff-1"),
     )
-    dataset = AnnotationDataset("0.1", (replace(item, events=(event,)),))
+    dataset = AnnotationDataset("0.1", (replace(
+        item, events=(event,), source_review_package_sha256="c" * 64
+    ),))
     restored = AnnotationDataset.from_dict(dataset.to_dict())
     assert restored.scores[0].events[0].source_candidate_ids == (
         "p1-filled_notehead-2", "p1-staff-1"
@@ -142,5 +144,34 @@ def test_rejects_duplicate_visual_candidate_evidence_ids():
         item.events[0],
         source_candidate_ids=("p1-filled_notehead-1", "p1-filled_notehead-1"),
     )
+    item = replace(item, source_review_package_sha256="c" * 64)
     with pytest.raises(ValueError, match="no puede contener duplicados"):
         replace(item, events=(event,)).validate()
+
+
+def test_legacy_visual_evidence_without_review_package_hash_remains_loadable():
+    from dataclasses import replace
+
+    item = score()
+    event = replace(item.events[0], source_candidate_ids=("p1-notehead-1",))
+    legacy = AnnotationDataset("0.1", (replace(item, events=(event,)),))
+    restored = AnnotationDataset.from_dict(legacy.to_dict())
+    assert restored.scores[0].events[0].source_candidate_ids == ("p1-notehead-1",)
+    assert restored.scores[0].source_review_package_sha256 is None
+
+
+def test_review_package_hash_round_trips_and_validates():
+    from dataclasses import replace
+
+    item = score()
+    event = replace(item.events[0], source_candidate_ids=("p1-notehead-1",))
+    item = replace(item, events=(event,), source_review_package_sha256="d" * 64)
+    restored = AnnotationDataset.from_dict(AnnotationDataset("0.1", (item,)).to_dict())
+    assert restored.scores[0].source_review_package_sha256 == "d" * 64
+
+
+def test_legacy_manifest_without_review_package_hash_remains_loadable():
+    data = AnnotationDataset("0.1", (score(),)).to_dict()
+    data["scores"][0].pop("source_review_package_sha256", None)
+    restored = AnnotationDataset.from_dict(data)
+    assert restored.scores[0].source_review_package_sha256 is None

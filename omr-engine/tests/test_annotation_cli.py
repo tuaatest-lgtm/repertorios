@@ -302,7 +302,38 @@ def test_import_events_preserves_visual_candidate_evidence(tmp_path):
         "source_candidate_ids": ["p1-filled_notehead-3", "p1-staff-1"],
     }]), encoding="utf-8")
 
-    imported = import_score_events(manifest, "score-evidence", events_file)
+    review_package = tmp_path / "review-package.json"
+    review_package.write_text('{"package_version":"1"}', encoding="utf-8")
+    imported = import_score_events(
+        manifest, "score-evidence", events_file,
+        review_package_path=review_package,
+    )
     event = imported.scores[0].events[0]
     assert event.source_candidate_ids == ("p1-filled_notehead-3", "p1-staff-1")
+    import hashlib
+    assert imported.scores[0].source_review_package_sha256 == hashlib.sha256(
+        review_package.read_bytes()
+    ).hexdigest()
     assert imported.scores[0].review_status == "draft"
+
+
+def test_import_events_requires_review_package_for_visual_evidence(tmp_path):
+    from palermo_omr.annotation_cli import import_score_events
+
+    manifest = tmp_path / "manifest.json"
+    events_file = tmp_path / "events.json"
+    dataset = AnnotationDataset("0.1", (AnnotatedScore(
+        score_id="score-evidence", source_sha256="e" * 64, page_count=1,
+        split="validation", annotation_version="1.0", review_status="draft",
+        events=(),
+    ),))
+    manifest.write_text(json.dumps(dataset.to_dict()), encoding="utf-8")
+    events_file.write_text(json.dumps([{
+        "event_id": "e1", "page_number": 1, "staff_index": 0,
+        "measure_index": 0, "onset_quarters": "0",
+        "event_type": "note", "pitches_midi": [60],
+        "duration_quarters": "1", "voice_id": "soprano",
+        "source_candidate_ids": ["p1-notehead-1"],
+    }]), encoding="utf-8")
+    with pytest.raises(ValueError, match="Debe proporcionar --review-package"):
+        import_score_events(manifest, "score-evidence", events_file)

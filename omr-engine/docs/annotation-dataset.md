@@ -16,13 +16,19 @@ infraestructura de datos: **no detecta notas ni genera ground truth**.
 - `events`: eventos `ScoreEvent` completos, con página, pentagrama, compás,
   inicio y duración en negras, tipo, alturas MIDI y voz. Pueden incluir
   `source_candidate_ids`, lista de IDs del paquete visual que sustentan el evento.
+- `source_review_package_sha256`: SHA-256 del archivo JSON exacto de `prepare-review`;
+  es obligatorio si algún evento conserva `source_candidate_ids`.
 
 Los acordes se anotan como una tupla de alturas MIDI en un mismo evento. Los
 silencios llevan `event_type="rest"` y `pitches_midi=[]`. Cada voz mantiene un
 identificador explícito. Los tiempos se serializan como fracciones exactas
 (por ejemplo `"1/3"`) para no introducir redondeos. La evidencia visual se conserva
 como IDs, por ejemplo `p1-filled_notehead-3` y `p1-staff-1`; estos vínculos no
-confirman por sí mismos la nota ni sustituyen la revisión humana.
+confirman por sí mismos la nota ni sustituyen la revisión humana. Cuando se usan,
+las nuevas importaciones exigen la huella SHA-256 del paquete completo para impedir que IDs
+similares de otra revisión se interpreten como la misma evidencia. Los manifiestos
+heredados sin esa huella siguen siendo legibles; su evidencia queda identificada
+como histórica/no vinculada y no debe confundirse con una referencia verificada.
 
 ## Reglas de validación
 
