@@ -19,6 +19,7 @@ Motor OMR independiente para Palermo Music. Esta iteración implementa entrada P
 - **Flujo operativo de anotación**: `palermo-omr-dataset` registra PDFs, calcula SHA-256 y número de páginas, valida manifiestos y exige confirmación humana explícita para aprobar anotaciones. Ver `docs/annotation-workflow.md`.
 - **Evaluación ejecutable desde CLI**: `palermo-omr-dataset evaluate` carga predicciones por partitura, aplica una partición revisada y escribe métricas agregadas y por documento. La CLI no inventa predicciones ni sustituye la revisión visual.
 - **Paquete de revisión visual**: `palermo-omr-dataset prepare-review` transforma `analysis.json` en una lista de candidatos por página, enlaza hipótesis rítmicas y overlays, y mantiene todas las decisiones pendientes hasta revisión humana. Ver `docs/review-package.md`.
+- **Revisión acotada por fragmento**: `palermo-omr-focus-review` extrae una página y pentagramas seleccionados de un paquete existente, conserva IDs y evidencia, y excluye relaciones que cruzan fuera del fragmento. El resultado permanece en borrador y nunca crea eventos ni ground truth. Ver `docs/focused-review.md`.
 
 
 - **Seguimiento del proyecto**: `docs/project-progress.md` mantiene el porcentaje ponderado de avance, trabajo restante, alcance y criterios para actualizarlo.
