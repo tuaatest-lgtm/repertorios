@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 from pathlib import Path
 import sys
@@ -18,6 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("analysis", type=Path, help="Archivo JSON de análisis multipágina")
     parser.add_argument("output", type=Path, help="Archivo JSON de auditoría")
     parser.add_argument("--low-confidence", type=float, default=0.60)
+    parser.add_argument("--queue-csv", type=Path, help="Exporta la cola rítmica priorizada a CSV")
     return parser
 
 
@@ -33,6 +35,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         temporary = args.output.with_suffix(args.output.suffix + ".tmp")
         temporary.write_bytes(encoded)
         temporary.replace(args.output)
+        if args.queue_csv is not None:
+            args.queue_csv.parent.mkdir(parents=True, exist_ok=True)
+            queue_temporary = args.queue_csv.with_suffix(args.queue_csv.suffix + ".tmp")
+            fields = [
+                "candidate_id", "page_number", "candidate_index", "staff_index",
+                "center_x", "center_y", "confidence", "stem_direction",
+                "base_duration", "beam_count", "interpretation_status",
+                "review_reasons", "priority",
+            ]
+            with queue_temporary.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fields)
+                writer.writeheader()
+                for item in report["rhythm_review_queue"]:
+                    row = {key: item.get(key) for key in fields}
+                    row["review_reasons"] = ";".join(item["review_reasons"])
+                    writer.writerow(row)
+            queue_temporary.replace(args.queue_csv)
     except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
         print(f"palermo-omr-audit: {exc}", file=sys.stderr)
         return 2
@@ -42,7 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         f"Auditoría exportada: {args.output}; "
         f"{totals['filled_notehead_candidates']} cabezas; "
-        f"ubicación única en compás: {percentage}"
+        f"ubicación única en compás: {percentage}; "
+        f"pendientes rítmicos: {report['rhythm_review_queue_count']}"
     )
     return 0
 
