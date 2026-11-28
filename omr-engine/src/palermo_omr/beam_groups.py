@@ -139,7 +139,11 @@ def detect_beam_group_candidates(
             lower = max(item[1] + item[3] for item in stroke)
             width = right - left
             height = lower - upper
-            if height <= max(2, int(round(spacing * 0.55))):
+            # Los haces pueden tener pendiente: una altura de bbox de hasta
+            # 0.95 espacios permite inclinaciones locales moderadas sin usar
+            # la pendiente como valor rítmico. La duración sigue dependiendo
+            # del número de trazos conectados a las plicas.
+            if height <= max(2, int(round(spacing * 0.95))):
                 segments.append((left, upper, width, height))
 
         # La clave es el conjunto exacto de cabezas asociado a cada trazo.
