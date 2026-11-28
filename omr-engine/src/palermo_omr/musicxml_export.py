@@ -272,19 +272,29 @@ def render_reviewed_timelines_musicxml(
             by_onset = defaultdict(list)
             for event in voice_events:
                 by_onset[event["onset"]].append(event)
+            cursor = Fraction(0)
             for onset, simultaneous in sorted(by_onset.items()):
+                if onset < cursor:
+                    raise ValueError("Los eventos de una voz no pueden solaparse en MusicXML")
+                if onset > cursor:
+                    forward = ET.SubElement(measure, "forward")
+                    _text(forward, "duration", int((onset - cursor) * divisions))
+                    _text(forward, "voice", 1)
+                    cursor = onset
                 durations = {event["duration"] for event in simultaneous}
                 kinds = {event["kind"] for event in simultaneous}
                 if len(durations) != 1 or len(kinds) != 1:
                     raise ValueError("Eventos simultáneos de una voz deben compartir duración y tipo")
                 if len(simultaneous) > 1 and kinds != {"note"}:
                     raise ValueError("No se permiten silencios simultáneos en una misma voz")
+                chord_first = True
                 for event in simultaneous:
                     note_specs = event["pitches"] if event["kind"] == "note" else [None]
-                    for pitch_index, pitch in enumerate(note_specs):
+                    for pitch in note_specs:
                         note = ET.SubElement(measure, "note")
-                        if pitch_index > 0 or (pitch_index == 0 and simultaneous.index(event) > 0):
+                        if not chord_first:
                             ET.SubElement(note, "chord")
+                        chord_first = False
                         if pitch is None:
                             ET.SubElement(note, "rest")
                         else:
@@ -312,5 +322,6 @@ def render_reviewed_timelines_musicxml(
                             for tie_type in event["ties"]:
                                 ET.SubElement(notations, "tied", {"type": tie_type})
                         _text(note, "staff", 1)
+                cursor += next(iter(durations))
 
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
