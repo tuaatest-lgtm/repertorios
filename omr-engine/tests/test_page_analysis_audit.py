@@ -108,7 +108,7 @@ def test_rhythm_review_queue_prioritizes_missing_stems_then_low_confidence():
     page["rhythmic_interpretation_candidates"][2]["status"] = "unclassified"
     queue = build_rhythm_review_queue({"pages": [page]})
     assert [item["candidate_id"] for item in queue] == [
-        "p1-filled_notehead-2", "p1-filled_notehead-3",
+        "p1-filled_notehead-3", "p1-filled_notehead-2",
     ]
     assert queue[0]["priority"] == 1
     assert queue[1]["priority"] == 1
