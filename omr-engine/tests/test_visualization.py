@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 from palermo_omr.symbols import NoteheadCandidate
-from palermo_omr.visualization import draw_geometry_overlay, draw_notehead_overlay
+from palermo_omr.rhythm import RhythmCandidate
+from palermo_omr.visualization import draw_geometry_overlay, draw_notehead_overlay, draw_rhythm_overlay
 
 
 def _candidate(confidence=0.8, bbox=(10, 20, 12, 8)):
@@ -213,3 +214,33 @@ def test_geometry_overlay_marks_ambiguous_measure_spans_in_red():
         }],
     })
     assert tuple(overlay[70, 40]) == (0, 0, 255)
+
+
+
+def test_draw_rhythm_overlay_marks_stems_and_unknown_hypotheses_without_mutation():
+    image = np.full((100, 140, 3), 255, dtype=np.uint8)
+    original = image.copy()
+    heads = [
+        _candidate(bbox=(10, 40, 12, 8)),
+        _candidate(bbox=(50, 40, 12, 8)),
+        _candidate(bbox=(90, 40, 12, 8)),
+    ]
+    rhythms = [
+        RhythmCandidate((10, 40, 12, 8), 1, "filled", .9, "up", 24, 1, "eighth", .85, ()),
+        RhythmCandidate((50, 40, 12, 8), 1, "filled", .9, "down", 20, 0, "quarter", .82, ()),
+        RhythmCandidate((90, 40, 12, 8), 1, "filled", .4, "none", 0, 0, "unknown", .3, ()),
+    ]
+
+    overlay = draw_rhythm_overlay(image, heads, rhythms)
+
+    assert overlay.shape == image.shape
+    assert not np.array_equal(overlay, original)
+    assert np.array_equal(image, original)
+
+
+def test_rhythm_overlay_rejects_unaligned_or_invalid_candidates():
+    image = np.full((40, 60, 3), 255, dtype=np.uint8)
+    with pytest.raises(ValueError, match="alineadas"):
+        draw_rhythm_overlay(image, [_candidate()], [])
+    with pytest.raises(ValueError, match="RhythmCandidate"):
+        draw_rhythm_overlay(image, [_candidate()], [{}])
