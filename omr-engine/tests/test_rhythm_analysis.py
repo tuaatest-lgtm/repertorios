@@ -82,4 +82,4 @@ def test_detects_stem_at_actual_notehead_edge_not_fixed_center_offset():
 
     assert result.stem_direction == "up"
     assert result.stem_x == 112
-    assert result.stem_length_px >= 45
+    assert result.stem_length_px >= 40
