@@ -44,6 +44,8 @@ jobs:
         run: node --test web/test-lookahead-playback-controller.mjs
       - name: Test score visual cursor
         run: node --test web/test-score-visual-cursor.mjs
+      - name: Test score viewport transform
+        run: node --test web/test-score-viewport-transform.mjs
       - name: Test audio-driven score playback session
         run: node --test web/test-score-playback-session.mjs
       - name: Package source snapshot for reproducible validation
