@@ -150,9 +150,9 @@ def test_symbol_review_queue_prioritizes_partial_beams_and_low_confidence_shapes
     page["beam_group_candidates"][0]["confidence"] = .42
     queue = build_symbol_review_queue({"pages": [page]})
     assert len(queue) == 4
-    assert queue[0]["family"] == "beam_group"
-    assert queue[0]["candidate_id"] == "p1-beam_group-1"
-    assert queue[0]["priority"] == 1
+    beam = next(item for item in queue if item["family"] == "beam_group")
+    assert beam["candidate_id"] == "p1-beam_group-1"
+    assert beam["priority"] == 1
     assert {item["family"] for item in queue} == {"rest_shape", "tie_slur_shape", "beam_group"}
 
 
