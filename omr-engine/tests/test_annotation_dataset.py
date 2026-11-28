@@ -116,3 +116,31 @@ def test_rejects_unknown_or_extra_manifest_fields():
     data["untracked"] = True
     with pytest.raises(ValueError, match="requiere dataset_version"):
         AnnotationDataset.from_dict(data)
+
+
+def test_visual_candidate_evidence_round_trips_without_affecting_music_fields():
+    from dataclasses import replace
+
+    item = score()
+    event = replace(
+        item.events[0],
+        source_candidate_ids=("p1-filled_notehead-2", "p1-staff-1"),
+    )
+    dataset = AnnotationDataset("0.1", (replace(item, events=(event,)),))
+    restored = AnnotationDataset.from_dict(dataset.to_dict())
+    assert restored.scores[0].events[0].source_candidate_ids == (
+        "p1-filled_notehead-2", "p1-staff-1"
+    )
+    assert restored.scores[0].events[0].pitches_midi == (60, 64, 67)
+
+
+def test_rejects_duplicate_visual_candidate_evidence_ids():
+    from dataclasses import replace
+
+    item = score()
+    event = replace(
+        item.events[0],
+        source_candidate_ids=("p1-filled_notehead-1", "p1-filled_notehead-1"),
+    )
+    with pytest.raises(ValueError, match="no puede contener duplicados"):
+        replace(item, events=(event,)).validate()
