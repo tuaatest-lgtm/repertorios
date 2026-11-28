@@ -267,3 +267,25 @@ def test_raw_page_bundle_uses_explicit_global_measure_map_for_page_transition():
     assert scheduled["p1"]["start_seconds"] == 0
     assert scheduled["p2"]["start_seconds"] == 2
     assert result["document_timeline"]["unresolved_measures"] == []
+
+
+def test_rejects_cross_page_timeline_without_explicit_global_measure_map():
+    page = {
+        "page_number": 1,
+        "staves": [{"lines_y": [40, 50, 60, 70, 80], "spacing_px": 10, "confidence": 0.9}],
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0], "y_top": 40,
+            "y_bottom": 80, "confidence": 0.65, "warning": "candidate"}],
+        "measure_span_candidates": [{"staff_index": 0, "measure_index": 1, "x_start": 0,
+            "x_end": 100, "width_px": 100, "left_boundary_observed": True,
+            "right_boundary_observed": True, "confidence": 0.8, "warning": "candidate"}],
+        "notehead_candidates": [{"bbox": [20, 50, 10, 6], "staff_index": 0}],
+    }
+    timelines = [
+        {"page_number": 1, "measure_index": 0, "expected_quarters": "4", "events": []},
+        {"page_number": 2, "measure_index": 0, "expected_quarters": "4", "events": []},
+    ]
+    with pytest.raises(ValueError, match="multipágina requiere"):
+        build_score_playback_bundle_from_page_analyses(
+            timelines, [], [page], event_page_numbers={}, event_notehead_indices={},
+            tempo_bpm=120,
+        )
