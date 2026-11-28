@@ -28,6 +28,7 @@ palermo-omr-glyph-train = "palermo_omr.glyph_train_cli:main"
 palermo-omr-glyph-predict = "palermo_omr.glyph_predict_cli:main"
 palermo-omr-pdf-glyph-evaluate = "palermo_omr.pdf_glyph_validation_cli:main"
 palermo-omr-midi = "palermo_omr.midi_export_cli:main"
+palermo-omr-musicxml = "palermo_omr.musicxml_export_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
