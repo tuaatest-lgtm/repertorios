@@ -52,13 +52,20 @@ def _metrics(predicted_count:int,reference_count:int,matches:int)->dict[str,Any]
     f1=2*precision*recall/(precision+recall) if precision is not None and recall is not None and precision+recall else None
     return {"predicted_count":predicted_count,"reference_count":reference_count,"true_positive":matches,"false_positive":fp,"false_negative":fn,"precision":precision,"recall":recall,"f1":f1}
 
-def evaluate_pdf_glyph_noteheads(pdf_path:str|Path,analysis:Mapping[str,Any]|str|Path,*,tolerance_points:float=3.0,font_name:str="RepriseStd",glyph_char:str="œ")->dict[str,Any]:
+def evaluate_pdf_glyph_noteheads(pdf_path:str|Path,analysis:Mapping[str,Any]|str|Path,*,tolerance_points:float=3.0,font_name:str="RepriseStd",glyph_char:str="œ",confidence_thresholds:Sequence[float]=(0.65,0.70,0.75))->dict[str,Any]:
     """Compara candidatos OMR con glifos notehead del texto vectorial del PDF."""
     path=Path(pdf_path)
     if not path.is_file(): raise ValueError(f"No existe el PDF: {path}")
     if not isinstance(tolerance_points,(int,float)) or isinstance(tolerance_points,bool) or not math.isfinite(tolerance_points) or tolerance_points<=0: raise ValueError("tolerance_points debe ser positivo y finito")
     if not isinstance(font_name,str) or not font_name.strip(): raise ValueError("font_name debe ser texto no vacío")
     if not isinstance(glyph_char,str) or len(glyph_char)!=1: raise ValueError("glyph_char debe contener exactamente un carácter")
+    if not isinstance(confidence_thresholds,(list,tuple)) or not confidence_thresholds: raise ValueError("confidence_thresholds debe ser una lista no vacía")
+    thresholds=[]
+    for threshold in confidence_thresholds:
+        if isinstance(threshold,bool) or not isinstance(threshold,(int,float)) or not math.isfinite(threshold) or not 0<=threshold<=1:
+            raise ValueError("Cada confidence_threshold debe estar entre 0 y 1")
+        if float(threshold) in thresholds: raise ValueError("confidence_thresholds no puede repetir valores")
+        thresholds.append(float(threshold))
     data=json.loads(Path(analysis).read_text(encoding="utf-8")) if isinstance(analysis,(str,Path)) else dict(analysis)
     pages=data.get("pages")
     if not isinstance(pages,list) or not pages: raise ValueError("analysis debe contener una lista pages no vacía")
@@ -66,6 +73,7 @@ def evaluate_pdf_glyph_noteheads(pdf_path:str|Path,analysis:Mapping[str,Any]|str
     if not isinstance(dpi,(int,float)) or isinstance(dpi,bool) or dpi<=0: raise ValueError("analysis debe incluir render_dpi positivo")
     scale=float(dpi)/72.0; digest=sha256(path.read_bytes()).hexdigest()
     results=[]; total_pred=total_ref=total_match=0; all_dist=[]
+    threshold_totals={threshold:{"predicted":0,"references":0,"matches":0,"pages":[]} for threshold in thresholds}
     with fitz.open(path) as document:
         if len(document)!=len(pages): raise ValueError("El número de páginas del PDF y analysis no coincide")
         for page_index,(pdf_page,page_data) in enumerate(zip(document,pages),start=1):
@@ -73,8 +81,30 @@ def evaluate_pdf_glyph_noteheads(pdf_path:str|Path,analysis:Mapping[str,Any]|str
             refs=_glyph_centers(pdf_page,font_name,glyph_char)
             items=list(page_data.get("notehead_candidates",[]))+list(page_data.get("hollow_notehead_candidates",[]))
             preds=[(float(item["center_x"])/scale,float(item["center_y"])/scale) for item in items]
+            confidences=[]
+            for item in items:
+                confidence=item.get("confidence",1.0)
+                if isinstance(confidence,bool) or not isinstance(confidence,(int,float)) or not math.isfinite(confidence) or not 0<=confidence<=1:
+                    raise ValueError("Cada candidato debe tener confidence entre 0 y 1")
+                confidences.append(float(confidence))
             matches=_maximum_cardinality_matches(preds,refs,float(tolerance_points))
+            for threshold in thresholds:
+                selected=[index for index,value in enumerate(confidences) if value>=threshold]
+                threshold_preds=[preds[index] for index in selected]
+                threshold_matches=_maximum_cardinality_matches(threshold_preds,refs,float(tolerance_points))
+                bucket=threshold_totals[threshold]
+                bucket["predicted"]+=len(threshold_preds)
+                bucket["references"]+=len(refs)
+                bucket["matches"]+=len(threshold_matches)
+                bucket["pages"].append({"page_number":page_index,**_metrics(len(threshold_preds),len(refs),len(threshold_matches))})
             metrics=_metrics(len(preds),len(refs),len(matches)); distances=[item[2] for item in matches]; all_dist.extend(distances)
             results.append({"page_number":page_index,**metrics,"mean_matched_center_error_points":sum(distances)/len(distances) if distances else None})
             total_pred+=len(preds); total_ref+=len(refs); total_match+=len(matches)
-    return {"evaluation_type":"pdf_embedded_glyph_notehead_geometry","source_pdf":path.name,"source_sha256":digest,"page_count":len(results),"reference_font":font_name,"reference_glyph":glyph_char,"tolerance_points":float(tolerance_points),**_metrics(total_pred,total_ref,total_match),"mean_matched_center_error_points":sum(all_dist)/len(all_dist) if all_dist else None,"pages":results,"limitations":["Solo evalúa localización de cabezas contra glifos vectoriales del PDF.","No mide notas omitidas que no estén representadas por el glifo configurado.","No mide alturas, alteraciones, figuras, duraciones, silencios, voces ni polifonía.","No es una métrica de precisión musical global ni una validación de partituras escaneadas.","El mapa de fuente y glifo de referencia debe verificarse para cada familia tipográfica."]}
+    threshold_sweep=[]
+    for threshold,bucket in threshold_totals.items():
+        threshold_sweep.append({
+            "confidence_threshold":threshold,
+            **_metrics(bucket["predicted"],bucket["references"],bucket["matches"]),
+            "pages":bucket["pages"],
+        })
+    return {"evaluation_type":"pdf_embedded_glyph_notehead_geometry","source_pdf":path.name,"source_sha256":digest,"page_count":len(results),"reference_font":font_name,"reference_glyph":glyph_char,"tolerance_points":float(tolerance_points),**_metrics(total_pred,total_ref,total_match),"mean_matched_center_error_points":sum(all_dist)/len(all_dist) if all_dist else None,"pages":results,"confidence_threshold_sweep":threshold_sweep,"limitations":["Solo evalúa localización de cabezas contra glifos vectoriales del PDF.","No mide notas omitidas que no estén representadas por el glifo configurado.","No mide alturas, alteraciones, figuras, duraciones, silencios, voces ni polifonía.","No es una métrica de precisión musical global ni una validación de partituras escaneadas.","El mapa de fuente y glifo de referencia debe verificarse para cada familia tipográfica."]}
