@@ -86,13 +86,25 @@ test("stop devuelve reloj y cursor al inicio", async () => {
   assert.equal(stopped.visual.page_index, 0);
 });
 
-test("no solicita cambio de página cuando el anclaje es ambiguo", async () => {
+test("no solicita cambio de página cuando hay eventos simultáneos en páginas distintas", async () => {
   const calls = [];
-  const { context, session } = makeSession(value => calls.push(value));
-  await session.play();
-  assert.equal(calls.length, 1);
-  // El cursor ya seleccionó página 0; se conserva sin saltos especulativos.
-  context.currentTime = 1.5;
-  session.frame();
-  assert.equal(calls.length, 1);
+  const context = new Context();
+  const sink = new WebAudioSink({ audioContext: context });
+  const player = new BrowserPlaybackController(stream, sink);
+  const ambiguousProjection = { ...projection, events: [
+    ...projection.events,
+    { event_id: "other", voice_id: "alto", start_seconds: 0, duration_seconds: 1 },
+  ] };
+  const ambiguousAnchors = [
+    ...anchors,
+    { event_id: "other", page_index: 1, system_index: 0, measure_index: 4, x: 40, y: 30, width: 10, height: 8 },
+  ];
+  const cursor = new ScoreVisualCursor(ambiguousProjection, ambiguousAnchors);
+  const session = new BrowserScorePlaybackSession({
+    player, visualCursor: cursor, onPageChange: value => calls.push(value),
+  });
+  const frame = await session.play();
+  assert.equal(frame.visual.ambiguous_location, true);
+  assert.equal(frame.visual.page_index, null);
+  assert.equal(calls.length, 0);
 });
