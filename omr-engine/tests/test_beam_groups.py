@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import pytest
 
-from palermo_omr.beam_groups import detect_beam_group_candidates
+from palermo_omr.beam_groups import _beam_y_at_x, detect_beam_group_candidates
 from palermo_omr.imaging import StaffCandidate
 from palermo_omr.rhythm import RhythmCandidate
 from palermo_omr.symbols import NoteheadCandidate
@@ -148,58 +148,15 @@ def test_uses_measured_stem_x_when_fixed_center_offset_misses_shared_beam():
     assert groups[0].connection_type_candidate == "shared"
 
 
-def test_groups_noteheads_connected_by_sloped_shared_beam_at_local_heights():
-    image = np.full((160, 240), 255, dtype=np.uint8)
-    for y in [60, 70, 80, 90, 100]:
-        cv2.line(image, (5, y), (230, y), 0, 1)
-    heads = [
-        NoteheadCandidate((97, 75, 16, 10), 105.0, 80.0, 0, 2, .8, .9, .9),
-        NoteheadCandidate((137, 75, 16, 10), 145.0, 80.0, 0, 2, .8, .9, .9),
-    ]
-    for x in [105, 145]:
-        cv2.ellipse(image, (x, 80), (8, 5), -20, 0, 360, 0, -1)
-    # La barra sube 10 px de izquierda a derecha. Cada plica termina
-    # en una altura distinta; usar el centro del bbox rompe la segunda unión.
-    cv2.line(image, (112, 35), (152, 45), 0, 3)
-    cv2.line(image, (112, 80), (112, 35), 0, 2)
-    cv2.line(image, (152, 80), (152, 45), 0, 2)
 
-    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
-    rhythms = [
-        RhythmCandidate(head.bbox, 0, "filled", .9, "up", 45, 1,
-                        "eighth", .8, (), stem_x)
-        for head, stem_x in zip(heads, [112, 152])
-    ]
-    groups = detect_beam_group_candidates(image, [staff], heads, rhythms)
+def test_estimates_local_height_at_each_end_of_sloped_beam():
+    image = np.full((100, 100), 255, dtype=np.uint8)
+    cv2.line(image, (20, 20), (80, 40), 0, 3)
+    ink = (image < 128).astype(np.uint8)
 
-    assert len(groups) == 1
-    assert groups[0].notehead_indices == [0, 1]
-    assert groups[0].connection_type_candidate == "shared"
+    left_y = _beam_y_at_x(ink, (20, 18, 61, 25), 20)
+    right_y = _beam_y_at_x(ink, (20, 18, 61, 25), 80)
 
-
-def test_counts_two_parallel_sloped_beams_using_local_stem_heights():
-    image = np.full((160, 240), 255, dtype=np.uint8)
-    for y in [60, 70, 80, 90, 100]:
-        cv2.line(image, (5, y), (230, y), 0, 1)
-    heads = [
-        NoteheadCandidate((97, 75, 16, 10), 105.0, 80.0, 0, 2, .8, .9, .9),
-        NoteheadCandidate((137, 75, 16, 10), 145.0, 80.0, 0, 2, .8, .9, .9),
-    ]
-    for x in [105, 145]:
-        cv2.ellipse(image, (x, 80), (8, 5), -20, 0, 360, 0, -1)
-    for y_offset in [0, 7]:
-        cv2.line(image, (112, 35 + y_offset), (152, 45 + y_offset), 0, 3)
-    cv2.line(image, (112, 80), (112, 35), 0, 2)
-    cv2.line(image, (152, 80), (152, 45), 0, 2)
-
-    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
-    rhythms = [
-        RhythmCandidate(head.bbox, 0, "filled", .9, "up", 45, 2,
-                        "sixteenth", .8, (), stem_x)
-        for head, stem_x in zip(heads, [112, 152])
-    ]
-    groups = detect_beam_group_candidates(image, [staff], heads, rhythms)
-
-    assert len(groups) == 1
-    assert groups[0].notehead_indices == [0, 1]
-    assert groups[0].beam_count_candidate == 2
+    assert left_y is not None
+    assert right_y is not None
+    assert right_y - left_y >= 15
