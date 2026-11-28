@@ -16,6 +16,8 @@ midi_bytes = render_polyphonic_midi(
     default_program=52,  # GM Choir Aahs
     time_signature=(4, 4),
     key_signature=(5, 0),  # cinco sostenidos, mayor
+    tempo_changes=[{"time_seconds": 12.0, "tempo_bpm": 88}],
+    event_velocities={"event-17": 104},
 )
 Path("partitura.mid").write_bytes(midi_bytes)
 ```
@@ -27,7 +29,9 @@ Path("partitura.mid").write_bytes(midi_bytes)
 - Los acordes se expanden en notas simultáneas.
 - Cada nota conserva su propio inicio y final; al mismo tick, note-off precede
   a un nuevo note-on de la misma altura.
-- Incluye pista conductora con tempo, compás y armadura opcionales, además de PPQ configurable.
+- Incluye pista conductora con tempo, cambios de tempo, compás y armadura opcionales, además de PPQ configurable.
+- Los cambios de tempo se expresan en segundos absolutos y se convierten a ticks integrando cada tramo de tempo.
+- `event_velocities` permite aplicar dinámica revisada por evento (1–127) sin cambiar la velocidad de las demás notas.
 - `render_score_playback_bundle_midi(bundle, ...)` exporta directamente el flujo de comandos de un paquete de reproducción multipágina.
 - Programa General MIDI predeterminado 52 (Choir Aahs), con opción de cambiar
   programa, canal y paneo por voz.
