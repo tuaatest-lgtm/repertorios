@@ -160,3 +160,16 @@ def test_estimates_local_height_at_each_end_of_sloped_beam():
     assert left_y is not None
     assert right_y is not None
     assert right_y - left_y >= 15
+
+
+def test_local_beam_height_excludes_vertical_stem_at_sloped_beam_endpoint():
+    image = np.full((100, 100), 255, dtype=np.uint8)
+    cv2.line(image, (20, 20), (80, 40), 0, 3)
+    # La plica vertical ocupa todo el bbox local y sesgaría su mediana.
+    cv2.line(image, (20, 5), (20, 70), 0, 2)
+    ink = (image < 128).astype(np.uint8)
+
+    beam_y = _beam_y_at_x(ink, (20, 18, 61, 25), 20)
+
+    assert beam_y is not None
+    assert abs(beam_y - 20) <= 2.5
