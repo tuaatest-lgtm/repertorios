@@ -1,6 +1,6 @@
 # Análisis rítmico preliminar
 
-El módulo `palermo_omr.rhythm` propone hipótesis geométricas sobre el relleno de las cabezas, las plicas, su dirección, las barras cercanas y una duración base tentativa.
+El módulo `palermo_omr.rhythm` propone hipótesis geométricas sobre el relleno de las cabezas, las plicas, su dirección, las barras cercanas y una duración base tentativa. Cuando la búsqueda primaria de plica no encuentra una conexión, existe un fallback conservador en los bordes de la caja de la cabeza: borde derecho para plica ascendente e izquierdo para descendente. Solo se activa con forma de cabeza suficientemente definida, limita la longitud del trazo y reduce la confianza máxima a 0.78; añade una advertencia explícita para revisión.
 
 El módulo `palermo_omr.rhythm_symbols` añade:
 - candidatos de puntillos de aumento próximos a cabezas de nota;
