@@ -66,45 +66,56 @@ def _sample_line(
     return present / valid, density / valid
 
 
-def _stem_reaches_anchor(
-    ink: np.ndarray,
+def _find_stem_anchor(
+    vertical_ink: np.ndarray,
     head: NoteheadCandidate,
-    stem_x: int,
-    anchor_y: int,
+    spacing: float,
     direction: str,
-) -> bool:
-    """Exige continuidad vertical entre el núcleo de cabeza y el anclaje."""
-    cy = int(round(head.center_y))
-    x0, x1 = max(0, stem_x - 1), min(ink.shape[1], stem_x + 2)
-    vertical_sign = -1 if direction == "up" else 1
+) -> tuple[int, int, int] | None:
+    """Localiza la plica dentro de la caja de la cabeza y devuelve su extremo.
 
-    # Primero localiza el extremo real de la plica recorriéndola desde la
-    # cabeza. No basta con que la barra pase cerca: debe tocar el extremo.
-    tip_y = None
-    gap = 0
-    for y in range(cy, -1 if direction == "up" else ink.shape[0], vertical_sign):
-        if ink[y, x0:x1].any():
-            tip_y = y
-            gap = 0
-        else:
-            gap += 1
-            if gap > 1 and tip_y is not None:
-                break
-    if tip_y is None or abs(anchor_y - tip_y) > 2:
-        return False
+    La apertura vertical elimina la mayoría de barras y líneas horizontales.
+    La búsqueda queda limitada al entorno de la cabeza y a la longitud
+    tipográfica esperada, evitando capturar plicas de otros sistemas.
+    """
+    x, _y, width, _height = head.bbox
+    center_y = int(round(head.center_y))
+    sign = -1 if direction == "up" else 1
+    expected_x = head.center_x + sign * spacing * 0.72
+    x_min = max(0, int(x) - 3)
+    x_max = min(vertical_ink.shape[1] - 1, int(x + width) + 3)
+    y_start = center_y + sign * int(round(spacing * 0.25))
+    y_stop = center_y + sign * int(round(spacing * 4.8))
 
-    start, end = sorted((cy, anchor_y))
-    if end - start < 3:
-        return False
-    values = []
-    for y in range(start, end + 1):
-        values.append(bool(ink[y, x0:x1].any()))
-    coverage = sum(values) / len(values)
-    longest_gap = current = 0
-    for value in values:
-        current = 0 if value else current + 1
-        longest_gap = max(longest_gap, current)
-    return coverage >= 0.78 and longest_gap <= 1
+    best: tuple[float, int, int, int] | None = None
+    for stem_x in range(x_min, x_max + 1):
+        column = vertical_ink[
+            :, max(0, stem_x - 1):min(vertical_ink.shape[1], stem_x + 2)
+        ].max(axis=1)
+        run_start = last_y = None
+        gap = 0
+        for y in range(y_start, y_stop, sign):
+            if column[y]:
+                if run_start is None:
+                    run_start = y
+                last_y = y
+                gap = 0
+            elif run_start is not None:
+                gap += 1
+                if gap > 1:
+                    break
+        if run_start is None or last_y is None:
+            continue
+        run_length = abs(last_y - run_start) + 1
+        if run_length < spacing * 1.35:
+            continue
+        score = run_length - abs(stem_x - expected_x) * 0.25
+        if best is None or score > best[0]:
+            best = (score, stem_x, last_y, run_length)
+
+    if best is None:
+        return None
+    return best[1], best[2], best[3]
 
 
 def _parallel_beam_count(
@@ -154,11 +165,11 @@ def detect_local_beam_candidates(
     min_pair_spacing: float = 1.5,
     max_pair_spacing: float = 8.0,
 ) -> list[LocalBeamCandidate]:
-    """Detecta haces inclinados compartidos mediante hipótesis entre dos plicas.
+    """Detecta haces inclinados siguiendo los extremos reales de las plicas.
 
-    Se limita a pendientes no horizontales; la ruta horizontal existente sigue
-    funcionando en paralelo. Las barras parciales de una sola plica también
-    permanecen en el detector anterior.
+    La trayectoria candidata se define por los extremos de dos plicas
+    localizadas en la imagen, no por posiciones estimadas desde el centro de
+    las cabezas. La ruta horizontal sigue siendo independiente.
     """
     if binary is None or binary.ndim != 2 or binary.size == 0:
         raise ValueError("Se requiere una imagen binaria monocroma no vacía")
@@ -173,69 +184,54 @@ def detect_local_beam_candidates(
         spacing = float(staff.spacing_px)
         if spacing <= 1:
             continue
-        staff_heads = [
-            index for index, (head, rhythm) in enumerate(zip(noteheads, rhythms))
-            if head.staff_index == staff_index and rhythm.stem_direction in ("up", "down")
-        ]
+
+        vertical_ink = cv2.morphologyEx(
+            ink,
+            cv2.MORPH_OPEN,
+            cv2.getStructuringElement(
+                cv2.MORPH_RECT,
+                (1, max(3, int(round(spacing * 1.8)))),
+            ),
+        )
+        anchors: dict[int, tuple[int, int, int]] = {}
+        for index, (head, rhythm) in enumerate(zip(noteheads, rhythms)):
+            if head.staff_index != staff_index or rhythm.stem_direction not in ("up", "down"):
+                continue
+            anchor = _find_stem_anchor(
+                vertical_ink, head, spacing, rhythm.stem_direction
+            )
+            if anchor is not None:
+                anchors[index] = anchor
+
+        staff_heads = sorted(anchors, key=lambda index: noteheads[index].center_x)
         for pos, first_index in enumerate(staff_heads):
             first = noteheads[first_index]
             first_rhythm = rhythms[first_index]
+            stem_x1, tip_y1, _length1 = anchors[first_index]
             for second_index in staff_heads[pos + 1:]:
                 second = noteheads[second_index]
                 second_rhythm = rhythms[second_index]
-                dx = second.center_x - first.center_x
-                if dx <= 0:
-                    continue
-                if not spacing * min_pair_spacing <= dx <= spacing * max_pair_spacing:
-                    continue
                 if first_rhythm.stem_direction != second_rhythm.stem_direction:
                     continue
-
-                direction = first_rhythm.stem_direction
-                stem_sign = 1 if direction == "up" else -1
-                stem_offset = max(1, int(round(spacing * 0.72)))
-                stem_x1 = int(round(first.center_x + stem_sign * stem_offset))
-                stem_x2 = int(round(second.center_x + stem_sign * stem_offset))
-                if not (0 <= stem_x1 < binary.shape[1] and 0 <= stem_x2 < binary.shape[1]):
+                stem_x2, tip_y2, _length2 = anchors[second_index]
+                dx = stem_x2 - stem_x1
+                if dx <= 0 or not spacing * min_pair_spacing <= dx <= spacing * max_pair_spacing:
                     continue
 
-                # Los extremos de las plicas deben quedar fuera del núcleo de
-                # las cabezas y dentro de una longitud tipográfica plausible.
-                vertical_sign = -1 if direction == "up" else 1
-                best: tuple[float, float, int, int, float] | None = None
-                first_min = int(round(first.center_y + vertical_sign * spacing * 4.8))
-                first_max = int(round(first.center_y + vertical_sign * spacing * 1.15))
-                y_values = range(min(first_min, first_max), max(first_min, first_max) + 1)
-                for y1 in y_values:
-                    for slope_step in range(-10, 11):
-                        slope = slope_step * max_slope / 10.0
-                        if abs(slope) < 0.08:
-                            continue
-                        y2_float = y1 + slope * (stem_x2 - stem_x1)
-                        y2 = int(round(y2_float))
-                        distance2 = (y2 - second.center_y) * vertical_sign
-                        if not spacing * 1.15 <= distance2 <= spacing * 4.8:
-                            continue
-                        support, density = _sample_line(
-                            ink, stem_x1, y1, stem_x2, y2, half_width=1
-                        )
-                        if support < 0.82 or density < 0.68:
-                            continue
-                        if not _stem_reaches_anchor(ink, first, stem_x1, y1, direction):
-                            continue
-                        if not _stem_reaches_anchor(ink, second, stem_x2, y2, direction):
-                            continue
-                        score = support * 0.75 + density * 0.25 - abs(slope) * 0.025
-                        if best is None or score > best[0]:
-                            best = (score, slope, y1, y2, support)
-
-                if best is None:
+                slope = (tip_y2 - tip_y1) / dx
+                if abs(slope) < 0.08 or abs(slope) > max_slope:
                     continue
-                score, slope, y1, y2, support = best
-                start, end = (stem_x1, y1), (stem_x2, y2)
+
+                support, density = _sample_line(
+                    ink, stem_x1, tip_y1, stem_x2, tip_y2, half_width=1
+                )
+                if support < 0.82 or density < 0.68:
+                    continue
+
+                start, end = (stem_x1, tip_y1), (stem_x2, tip_y2)
                 beam_count = _parallel_beam_count(ink, start, end, spacing)
                 left, right = min(stem_x1, stem_x2), max(stem_x1, stem_x2)
-                top, bottom = min(y1, y2), max(y1, y2)
+                top, bottom = min(tip_y1, tip_y2), max(tip_y1, tip_y2)
                 results.append(LocalBeamCandidate(
                     notehead_indices=(first_index, second_index),
                     start=start,
@@ -246,8 +242,8 @@ def detect_local_beam_candidates(
                     bbox=(left, top, right - left + 1, bottom - top + 1),
                 ))
 
-    # Un mismo par puede admitir varios trazos candidatos; conservar la
-    # hipótesis con mayor soporte y evitar duplicados por pequeñas variaciones.
+    # Un mismo par puede admitir varios trazos candidatos; conservar una sola
+    # hipótesis y no convertir la geometría en duración musical confirmada.
     unique: dict[tuple[int, int], LocalBeamCandidate] = {}
     for candidate in results:
         previous = unique.get(candidate.notehead_indices)
