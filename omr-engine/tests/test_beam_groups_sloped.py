@@ -150,8 +150,8 @@ def test_three_note_beam_includes_middle_stem_and_preserves_partial_secondary_be
     for y in [60, 70, 80, 90, 100]:
         cv2.line(image, (5, y), (220, y), 0, 1)
 
-    centers = [(60, 80), (110, 72), (160, 64)]
-    stem_xs = [66, 116, 166]
+    centers = [(60, 80), (100, 72), (140, 64)]
+    stem_xs = [66, 106, 146]
     stem_tips = [40, 32, 24]
     heads = []
     for x, y in centers:
@@ -165,8 +165,8 @@ def test_three_note_beam_includes_middle_stem_and_preserves_partial_secondary_be
 
     # Barra primaria para las tres notas y barra secundaria parcial solo
     # entre la primera y la segunda.
-    cv2.line(image, (66, 40), (166, 24), 0, 3)
-    cv2.line(image, (67, 47), (117, 39), 0, 3)
+    cv2.line(image, (66, 40), (146, 24), 0, 3)
+    cv2.line(image, (67, 47), (107, 39), 0, 3)
 
     staves = [StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)]
     rhythms = [
