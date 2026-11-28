@@ -50,6 +50,8 @@ test("reporta eventos sin geometría en lugar de inventar posiciones", () => {
     { event_id: "s2", reason: "missing_visual_anchor" },
   ]);
   assert.equal(cursor.positionAt(2.5).page_index, null);
+  assert.equal(cursor.positionAt(2.5).ambiguous_location, true);
+  assert.deepEqual(cursor.positionAt(2.5).unresolved_active_event_ids, ["s2"]);
   assert.equal(cursor.positionAt(2.5).unresolved_visual_events, 2);
 });
 
