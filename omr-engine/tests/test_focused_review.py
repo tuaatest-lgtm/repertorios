@@ -84,3 +84,19 @@ def test_focus_rejects_missing_staff_candidate_and_duplicate_ids():
     package["pages"][0]["notehead_candidates"][1]["candidate_id"] = "p1-filled_notehead-1"
     with pytest.raises(ValueError, match="IDs"):
         build_focused_review_package(package, page_number=1, staff_indices=[0, 1])
+
+
+
+def test_focus_excludes_relations_that_cross_outside_selected_staff_scope():
+    package = _package()
+    package["pages"][0]["other_candidates"].append({
+        "candidate_id": "p1-cross-staff-1",
+        "related_candidate_ids": ["p1-filled_notehead-1", "p1-filled_notehead-3"],
+        "review_status": "pending",
+        "decision": None,
+    })
+    result = build_focused_review_package(
+        package, page_number=1, staff_indices=[0, 1]
+    )
+    ids = {item["candidate_id"] for item in result["pages"][0]["other_candidates"]}
+    assert "p1-cross-staff-1" not in ids
