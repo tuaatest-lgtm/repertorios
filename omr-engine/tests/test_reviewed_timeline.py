@@ -356,3 +356,86 @@ def test_page_tie_rejects_non_contiguous_measure_events():
                  "confirmed_event_ids": ["b"], "event_voice_ids": {"b": "soprano"}},
             ],
         })
+
+
+def test_reviewed_timeline_reports_single_unknown_duration_from_confirmed_measure_remainder():
+    groups = [
+        group("a", 0, 10, duration="quarter", indices=(0,)),
+        group("b", 0, 20, duration="quarter", indices=(1,)),
+        group("c", 0, 30, duration="quarter", indices=(2,)),
+        group("unknown", 0, 40, duration="unknown", indices=(3,)),
+    ]
+    result = build_reviewed_page_timelines(groups, {
+        "page_number": 1,
+        "measures": [{
+            "measure_index": 0, "numerator": 4, "denominator": 4,
+            "confirmed_event_ids": ["a", "b", "c", "unknown"],
+            "event_voice_ids": {
+                "a": "soprano", "b": "soprano", "c": "soprano", "unknown": "soprano",
+            },
+            "duration_completion_review": {
+                "allow_unknown_duration_candidates": True,
+                "measure_complete_confirmed": True,
+                "ties_and_tuplets_resolved": True,
+            },
+        }],
+    })[0]
+    assert result["status"] == "incomplete_data"
+    assert result["events"][-1]["event_id"] == "unknown"
+    assert result["events"][-1]["duration_quarters"] is None
+    candidate = result["duration_completion_candidates"][0]
+    assert candidate["status"] == "single_unknown_duration_candidate"
+    assert candidate["event_id"] == "unknown"
+    assert candidate["candidate_duration_quarters"] == "1"
+    assert candidate["candidate_base_duration"] == "quarter"
+
+
+def test_duration_completion_candidate_does_not_appear_without_complete_measure_review():
+    groups = [
+        group("known", 0, 10, duration="quarter", indices=(0,)),
+        group("unknown", 0, 20, duration="unknown", indices=(1,)),
+    ]
+    result = build_reviewed_page_timelines(groups, {
+        "page_number": 1,
+        "measures": [{
+            "measure_index": 0, "numerator": 4, "denominator": 4,
+            "confirmed_event_ids": ["known", "unknown"],
+            "event_voice_ids": {"known": "alto", "unknown": "alto"},
+            "duration_completion_review": {
+                "allow_unknown_duration_candidates": True,
+                "measure_complete_confirmed": False,
+                "ties_and_tuplets_resolved": True,
+            },
+        }],
+    })[0]
+    assert result["duration_completion_candidates"][0]["status"] == "review_prerequisites_not_confirmed"
+    assert result["duration_completion_candidates"][0]["candidate_duration_quarters"] is None
+
+
+def test_unknown_duration_requires_explicit_review_manifest_permission():
+    groups = [group("unknown", 0, 10, duration="unknown", indices=(0,))]
+    with pytest.raises(ValueError, match="no tiene duración"):
+        build_reviewed_page_timelines(groups, {
+            "page_number": 1,
+            "measures": [{
+                "measure_index": 0, "numerator": 4, "denominator": 4,
+                "confirmed_event_ids": ["unknown"],
+                "event_voice_ids": {"unknown": "tenor"},
+            }],
+        })
+
+
+def test_duration_completion_review_rejects_non_boolean_flags():
+    groups = [group("unknown", 0, 10, duration="unknown", indices=(0,))]
+    with pytest.raises(ValueError, match="debe ser booleano"):
+        build_reviewed_page_timelines(groups, {
+            "page_number": 1,
+            "measures": [{
+                "measure_index": 0, "numerator": 4, "denominator": 4,
+                "confirmed_event_ids": ["unknown"],
+                "event_voice_ids": {"unknown": "tenor"},
+                "duration_completion_review": {
+                    "allow_unknown_duration_candidates": "yes",
+                },
+            }],
+        })
