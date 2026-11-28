@@ -50,7 +50,7 @@ def extract_beam_segments(
         theta=np.pi / 180.0,
         threshold=max(5, int(round(min_length * 0.45))),
         minLineLength=min_length,
-        maxLineGap=max(2, int(round(spacing * 0.60))),
+        maxLineGap=max(3, int(round(spacing * 1.20))),
     )
     if lines is None:
         return []
@@ -69,7 +69,7 @@ def extract_beam_segments(
         angle = abs(math.degrees(math.atan(slope)))
         # Este módulo complementa el detector horizontal por filas: excluir
         # trazos casi horizontales evita duplicarlos como segmentos oblicuos.
-        if angle < 1.5 or angle > max_angle_degrees:
+        if angle < 4.0 or angle > max_angle_degrees:
             continue
         if dx < min_length:
             continue
@@ -81,9 +81,9 @@ def extract_beam_segments(
     # Hough de una sola barra como barras rítmicas diferentes.
     raw.sort(key=lambda item: (item[0], item[1], item[2]))
     merged: list[list[float]] = []
-    angle_tolerance = math.tan(math.radians(max(2, angle_step_degrees)))
-    intercept_tolerance = max(3.0, spacing * 0.75)
-    max_gap = max(3.0, spacing * 0.75)
+    angle_tolerance = math.tan(math.radians(max(4, angle_step_degrees * 2.5)))
+    perpendicular_tolerance = max(2.5, spacing * 0.65)
+    max_gap = max(3.0, spacing * 1.20)
 
     for slope, intercept, x0, x1 in raw:
         match = None
@@ -92,9 +92,20 @@ def extract_beam_segments(
                 if slope - candidate[0] > angle_tolerance:
                     break
                 continue
-            if abs(intercept - candidate[1]) > intercept_tolerance:
-                continue
             if x0 > candidate[3] + max_gap or x1 < candidate[2] - max_gap:
+                continue
+            overlap_left = max(float(x0), candidate[2])
+            overlap_right = min(float(x1), candidate[3])
+            if overlap_left <= overlap_right:
+                probe_x = (overlap_left + overlap_right) / 2.0
+            else:
+                probe_x = (
+                    min(float(x0), candidate[2])
+                    + max(float(x1), candidate[3])
+                ) / 2.0
+            current_y = slope * probe_x + intercept
+            candidate_y = candidate[0] * probe_x + candidate[1]
+            if abs(current_y - candidate_y) > perpendicular_tolerance:
                 continue
             match = candidate
             break
