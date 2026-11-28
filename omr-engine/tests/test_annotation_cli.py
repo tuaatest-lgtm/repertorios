@@ -310,6 +310,10 @@ def test_import_events_preserves_visual_candidate_evidence(tmp_path):
     )
     event = imported.scores[0].events[0]
     assert event.source_candidate_ids == ("p1-filled_notehead-3", "p1-staff-1")
+    import hashlib
+    assert imported.scores[0].source_review_package_sha256 == hashlib.sha256(
+        review_package.read_bytes()
+    ).hexdigest()
     assert imported.scores[0].review_status == "draft"
 
 
