@@ -94,7 +94,7 @@ def attach_reviewed_accidentals(
             unresolved.append({"candidate_id": glyph_id, "reason": "glyph_not_human_confirmed"})
             continue
         kind = glyph.get("kind")
-        if kind not in _ALLOWED:
+        if not isinstance(kind, str) or kind not in _ALLOWED:
             unresolved.append({"candidate_id": glyph_id, "reason": "unsupported_accidental_kind"})
             continue
         staff = glyph.get("staff_index")
