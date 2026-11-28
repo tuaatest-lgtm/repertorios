@@ -1,6 +1,9 @@
 import pytest
 
-from palermo_omr.visual_anchor_map import build_visual_anchor_map_from_page_analysis
+from palermo_omr.visual_anchor_map import (
+    build_visual_anchor_map_from_page_analysis,
+    evaluate_visual_anchor_coverage,
+)
 
 
 def page_analysis():
@@ -74,3 +77,12 @@ def test_page_analysis_adapter_rejects_invalid_head_indices_and_shared_heads():
         build_visual_anchor_map_from_page_analysis(
             page_analysis(), {"a": [0], "b": [0]},
         )
+
+
+def test_evaluates_geometry_coverage_without_claiming_music_accuracy():
+    result = evaluate_visual_anchor_coverage(page_analysis())
+    assert result["candidate_noteheads"] == 4
+    assert result["anchored_noteheads"] == 4
+    assert result["unresolved_noteheads"] == 0
+    assert result["coverage_ratio"] == 1.0
+    assert "no precisión" in result["warning"]
