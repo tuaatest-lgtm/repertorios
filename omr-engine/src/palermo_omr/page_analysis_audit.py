@@ -145,6 +145,64 @@ def _page_audit(page: Mapping[str, Any], *, low_confidence_threshold: float) -> 
     }
 
 
+
+
+def build_rhythm_review_queue(analysis: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Crea una cola priorizada de candidatos que necesitan revisión rítmica."""
+    if not isinstance(analysis, Mapping) or not isinstance(analysis.get("pages"), list):
+        raise ValueError("analysis debe contener una lista pages")
+    queue = []
+    for page in analysis["pages"]:
+        if not isinstance(page, Mapping):
+            raise ValueError("Cada página debe ser un objeto")
+        page_number = page.get("page_number")
+        heads = _list(page, "notehead_candidates")
+        rhythms = _list(page, "rhythm_candidates")
+        interpretations = _list(page, "rhythmic_interpretation_candidates")
+        if len(rhythms) != len(heads) or len(interpretations) != len(heads):
+            raise ValueError("Cabezas, ritmos e interpretaciones deben estar alineados para la cola de revisión")
+        for index, (head, rhythm, interpretation) in enumerate(zip(heads, rhythms, interpretations)):
+            if not all(isinstance(item, Mapping) for item in (head, rhythm, interpretation)):
+                raise ValueError("Cada candidato de revisión debe ser un objeto")
+            reasons = []
+            if rhythm.get("stem_direction") == "none":
+                reasons.append("missing_stem_direction")
+            if rhythm.get("base_duration") == "unknown":
+                reasons.append("unknown_duration")
+            if interpretation.get("status") in {"ambiguous", "unclassified"}:
+                reasons.append("ambiguous_or_unclassified_rhythm")
+            if interpretation.get("status") == "candidate_from_partial_beam":
+                reasons.append("partial_beam_requires_review")
+            if not reasons:
+                continue
+            confidence = rhythm.get("confidence", 0.0)
+            if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1:
+                raise ValueError("confidence del candidato rítmico debe estar entre 0 y 1")
+            priority = 1 if "missing_stem_direction" in reasons else 2
+            candidate_id = f"p{page_number}-filled_notehead-{index + 1}"
+            queue.append({
+                "candidate_id": candidate_id,
+                "page_number": page_number,
+                "candidate_index": index,
+                "staff_index": head.get("staff_index"),
+                "bbox": head.get("bbox"),
+                "center_x": head.get("center_x"),
+                "center_y": head.get("center_y"),
+                "confidence": float(confidence),
+                "stem_direction": rhythm.get("stem_direction"),
+                "base_duration": rhythm.get("base_duration"),
+                "beam_count": rhythm.get("beam_count"),
+                "interpretation_status": interpretation.get("status"),
+                "review_reasons": reasons,
+                "priority": priority,
+            })
+    queue.sort(key=lambda item: (
+        item["priority"], item["confidence"],
+        item["page_number"], item["candidate_index"],
+    ))
+    return queue
+
+
 def audit_page_analysis(
     analysis: Mapping[str, Any],
     *,
@@ -186,6 +244,7 @@ def audit_page_analysis(
         item["rhythm_candidate_distribution"]["stem_direction"].get("none", 0)
         for item in results
     )
+    review_queue = build_rhythm_review_queue(analysis)
     return {
         "status": "candidate_geometry_audit",
         "source_pdf": analysis.get("source_pdf"),
@@ -201,6 +260,8 @@ def audit_page_analysis(
             "measure_span_unique_coverage": unique_measure / total_heads if total_heads else None,
         },
         "pages": results,
+        "rhythm_review_queue_count": len(review_queue),
+        "rhythm_review_queue": review_queue,
         "limitations": [
             "No se compara con anotaciones de referencia ni ground truth.",
             "Los intervalos de compás y pentagramas son candidatos geométricos.",
