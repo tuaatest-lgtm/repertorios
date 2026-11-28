@@ -20,7 +20,7 @@ from .symbols import NoteheadCandidate
 
 @dataclass(frozen=True)
 class LocalBeamCandidate:
-    notehead_indices: tuple[int, int]
+    notehead_indices: tuple[int, ...]
     start: tuple[int, int]
     end: tuple[int, int]
     beam_count: int
