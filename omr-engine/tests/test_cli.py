@@ -290,3 +290,48 @@ def test_notehead_confidence_filter_is_opt_in_and_validated():
     assert filter_notehead_candidates_by_confidence(candidates, .7) == [candidates[0]]
     with pytest.raises(ValueError, match="entre 0 y 1"):
         filter_notehead_candidates_by_confidence(candidates, 1.2)
+
+
+
+def test_cli_exports_embedded_clef_glyphs_without_auto_confirming_them(tmp_path, monkeypatch):
+    from palermo_omr.pdf_clef_glyphs import EmbeddedPdfClefCandidate
+    from palermo_omr.symbols import NoteheadCandidate
+
+    pdf_path = tmp_path / "embedded-clef-score.pdf"
+    document = fitz.open()
+    page = document.new_page(width=612, height=792)
+    for y in (250, 255, 260, 265, 270):
+        page.draw_line((100, y), (550, y), color=(0, 0, 0), width=0.7)
+    document.save(pdf_path)
+    document.close()
+
+    candidate = NoteheadCandidate(
+        bbox=(195, 255, 10, 5), center_x=200, center_y=260,
+        staff_index=0, diatonic_step_from_bottom=1,
+        fill_ratio=.8, notehead_shape_score=.9, confidence=.9,
+    )
+    clef = EmbeddedPdfClefCandidate(
+        candidate_id="p1-embedded-clef-1", page_number=1, staff_index=0,
+        clef_candidate="treble", glyph="°", font_name="RepriseSpecialStd",
+        bbox_pdf=(10, 90, 12, 112), center_y_pdf=101,
+        staff_center_distance_points=1, confidence=.95,
+    )
+    monkeypatch.setattr("palermo_omr.cli.detect_notehead_candidates", lambda *args: [candidate])
+    monkeypatch.setattr("palermo_omr.cli.detect_hollow_notehead_candidates", lambda *args: [])
+    monkeypatch.setattr(
+        "palermo_omr.cli.detect_embedded_pdf_clef_candidates",
+        lambda *args, **kwargs: (clef,),
+    )
+    output_dir = tmp_path / "embedded-clef-output"
+    monkeypatch.setattr(
+        sys, "argv",
+        ["palermo-omr", str(pdf_path), "--output", str(output_dir), "--dpi", "72",
+         "--embedded-pdf-clef-glyphs"],
+    )
+
+    assert main() == 0
+    page_data = json.loads((output_dir / "analysis.json").read_text(encoding="utf-8"))["pages"][0]
+    assert page_data["embedded_clef_candidate_count"] == 1
+    assert page_data["embedded_clef_candidates"][0]["clef_candidate"] == "treble"
+    assert page_data["embedded_clef_candidates"][0]["status"] == "pending_human_review"
+    assert page_data["pitch_candidates"][0]["status"] == "unresolved_clef"
