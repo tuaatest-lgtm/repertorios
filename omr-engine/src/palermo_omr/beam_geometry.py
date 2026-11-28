@@ -55,7 +55,7 @@ def extract_beam_segments(
         combined, connectivity=8
     )
     min_width = max(3, int(round(spacing * min_length_spacing * 0.75)))
-    max_height = max(4, int(round(spacing * 0.75)))
+    max_height = max(4, int(round(spacing * 0.75 + thickness * 2)))
     segments: list[tuple[int, int, int, int]] = []
     for index in range(1, count):
         x, y, width, height, _area = (int(value) for value in stats[index])
