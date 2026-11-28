@@ -32,9 +32,11 @@ def test_builds_independent_voice_timelines_and_groups_simultaneous_attacks():
     timeline = timelines[0]
     assert timeline["candidate_status"] == "unconfirmed_timeline"
     assert timeline["onset_groups"][0]["event_ids"] == ["a1", "s1"]
-    assert timeline["events"][0]["duration_quarters"] == "2"
-    assert timeline["events"][1]["onset_quarters"] == "0"
-    assert timeline["events"][2]["onset_quarters"] == "1"
+    by_id = {event["event_id"]: event for event in timeline["events"]}
+    assert by_id["s1"]["duration_quarters"] == "2"
+    assert by_id["s1"]["onset_quarters"] == "0"
+    assert by_id["a1"]["onset_quarters"] == "0"
+    assert by_id["a2"]["onset_quarters"] == "1"
 
 
 def test_unknown_duration_stops_only_its_own_voice_onset_propagation():
