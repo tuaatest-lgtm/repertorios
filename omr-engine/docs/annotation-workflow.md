@@ -25,6 +25,12 @@ las notas simultáneas de un acorde forman un evento con varias alturas MIDI.
 Las voces que sostienen notas mientras otras cambian conservan eventos y
 duraciones independientes. Los silencios son eventos explícitos.
 
+Cada evento puede incluir `source_candidate_ids`, una lista con los IDs exactos
+que lo sustentan en el paquete `prepare-review` (por ejemplo, la cabeza visual
+y su pentagrama). Así se conserva la trazabilidad entre la anotación musical
+y la evidencia de imagen. La lista puede estar vacía cuando la anotación se
+realiza directamente sobre el PDF sin un candidato OMR asociado.
+
 El formato actual registra alturas MIDI y tiempos en negras. La asignación
 de pentagrama, compás y voz debe verificarse contra la partitura. No completar
 por intuición los datos que no se puedan leer: primero se resuelve la anotación
@@ -38,8 +44,14 @@ definidos en `annotation-dataset.md` y ejecutar:
 ```bash
 palermo-omr-dataset import-events corpus/manifest.json \
   --score-id clamare-dios-coro \
-  --events corpus/clamare-events.json
+  --events corpus/clamare-events.json \
+  --review-package review/clamare/review-package.json
 ```
+
+Si los eventos incluyen `source_candidate_ids`, `--review-package` es obligatorio.
+El comando calcula SHA-256 sobre los bytes del JSON suministrado y guarda esa
+huella en `source_review_package_sha256` a nivel de partitura. Así los IDs quedan
+vinculados a un artefacto concreto, no a una cadena aislada.
 
 La importación valida cada evento, conserva fracciones exactas y mantiene la
 partitura en estado `draft`. No sobrescribe una partitura que ya tenga eventos

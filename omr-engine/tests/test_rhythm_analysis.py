@@ -66,3 +66,40 @@ def test_hollow_head_without_stem_proposes_whole_note():
     assert result.notehead_fill == "hollow"
     assert result.stem_direction == "none"
     assert result.base_duration == "whole"
+
+
+def test_detects_stem_at_actual_notehead_edge_not_fixed_center_offset():
+    image = np.full((180, 260), 255, dtype=np.uint8)
+    for y in [40, 60, 80, 100, 120]:
+        cv2.line(image, (5, y), (250, y), 0, 1)
+    cv2.ellipse(image, (103, 80), (8, 5), -20, 0, 360, 0, -1)
+    # La plica está en el borde derecho del núcleo de la cabeza.
+    cv2.line(image, (112, 80), (112, 35), 0, 2)
+
+    staff = StaffCandidate([40, 60, 80, 100, 120], 20.0, 1.0)
+    result = analyze_rhythm_candidates(image, [staff], [_head()])[0]
+
+    assert result.stem_direction == "up"
+    assert result.stem_x in {111, 112, 113}
+    assert result.stem_length_px >= 40
+
+
+def test_stem_anchor_ignores_expanded_bbox_containing_beam_and_stem():
+    image = np.full((180, 260), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (250, y), 0, 1)
+    cv2.ellipse(image, (103, 80), (8, 5), -20, 0, 360, 0, -1)
+    cv2.line(image, (110, 80), (110, 40), 0, 2)
+    cv2.line(image, (110, 40), (145, 40), 0, 3)
+    expanded = NoteheadCandidate(
+        bbox=(90, 35, 56, 50), center_x=103.0, center_y=80.0,
+        staff_index=0, diatonic_step_from_bottom=2,
+        fill_ratio=0.8, notehead_shape_score=0.9, confidence=0.9,
+    )
+
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    result = analyze_rhythm_candidates(image, [staff], [expanded])[0]
+
+    assert result.stem_direction == "up"
+    assert result.stem_x in range(108, 113)
+    assert result.stem_length_px >= 35

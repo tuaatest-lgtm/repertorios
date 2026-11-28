@@ -27,6 +27,7 @@ class AnnotatedScore:
     annotation_version: str
     review_status: str
     events: tuple[ScoreEvent, ...]
+    source_review_package_sha256: str | None = None
 
     def validate(self) -> None:
         if not isinstance(self.score_id, str) or not self.score_id.strip():
@@ -43,6 +44,13 @@ class AnnotatedScore:
             raise ValueError("review_status debe ser draft o reviewed")
         if not isinstance(self.events, tuple):
             raise ValueError("events debe ser una tupla de ScoreEvent")
+        if self.source_review_package_sha256 is not None and (
+            not isinstance(self.source_review_package_sha256, str)
+            or not _SHA256_RE.fullmatch(self.source_review_package_sha256)
+        ):
+            raise ValueError("source_review_package_sha256 debe ser SHA-256 hexadecimal o null")
+        # Legacy manifests may contain candidate IDs without a package digest.
+        # New imports enforce the digest in import_score_events; do not reject old data.
 
         # Reutiliza la validación estricta de las referencias del evaluador.
         evaluate_score_events(self.events, ())
@@ -91,6 +99,7 @@ class AnnotationDataset:
                     "split": score.split,
                     "annotation_version": score.annotation_version,
                     "review_status": score.review_status,
+                    "source_review_package_sha256": score.source_review_package_sha256,
                     "events": [
                         {
                             "event_id": event.event_id,
@@ -105,6 +114,7 @@ class AnnotationDataset:
                             ),
                             "duration_quarters": _number_string(event.duration_quarters),
                             "voice_id": event.voice_id,
+                            "source_candidate_ids": list(event.source_candidate_ids),
                         }
                         for event in score.events
                     ],
@@ -125,7 +135,8 @@ class AnnotationDataset:
                 "score_id", "source_sha256", "page_count", "split",
                 "annotation_version", "review_status", "events",
             }
-            if not isinstance(score_data, dict) or set(score_data) != expected_score_keys:
+            optional_score_keys = expected_score_keys | {"source_review_package_sha256"}
+            if not isinstance(score_data, dict) or set(score_data) not in (expected_score_keys, optional_score_keys):
                 raise ValueError("Cada partitura debe contener exactamente los campos definidos")
             if not isinstance(score_data["events"], list):
                 raise ValueError("events debe ser una lista")
@@ -136,8 +147,13 @@ class AnnotationDataset:
                     "onset_quarters", "event_type", "pitches_midi",
                     "duration_quarters", "voice_id",
                 }
-                if not isinstance(event_data, dict) or set(event_data) != expected_event_keys:
-                    raise ValueError("Cada evento debe contener exactamente los campos definidos")
+                optional_event_keys = expected_event_keys | {"source_candidate_ids"}
+                if (not isinstance(event_data, dict)
+                        or set(event_data) not in (expected_event_keys, optional_event_keys)):
+                    raise ValueError("Cada evento debe contener los campos definidos y evidencia opcional")
+                candidate_ids = event_data.get("source_candidate_ids", [])
+                if not isinstance(candidate_ids, list):
+                    raise ValueError("source_candidate_ids debe ser una lista")
                 pitches = event_data["pitches_midi"]
                 if pitches is not None and not isinstance(pitches, list):
                     raise ValueError("pitches_midi debe ser una lista o null")
@@ -151,6 +167,7 @@ class AnnotationDataset:
                     pitches_midi=tuple(pitches) if pitches is not None else None,
                     duration_quarters=_parse_fraction(event_data["duration_quarters"]),
                     voice_id=event_data["voice_id"],
+                    source_candidate_ids=tuple(candidate_ids),
                 ))
             scores.append(AnnotatedScore(
                 score_id=score_data["score_id"],
@@ -160,6 +177,7 @@ class AnnotationDataset:
                 annotation_version=score_data["annotation_version"],
                 review_status=score_data["review_status"],
                 events=tuple(events),
+                source_review_package_sha256=score_data.get("source_review_package_sha256"),
             ))
         result = cls(dataset_version=data["dataset_version"], scores=tuple(scores))
         result.validate(require_reviewed=False)

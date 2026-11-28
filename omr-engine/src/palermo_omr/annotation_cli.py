@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import hashlib
 from pathlib import Path
 import sys
 
@@ -97,6 +98,8 @@ def import_score_events(
     manifest_path: str | Path,
     score_id: str,
     events_path: str | Path,
+    *,
+    review_package_path: str | Path | None = None,
 ) -> AnnotationDataset:
     """Importa eventos revisados/por revisar desde un JSON separado, sin aprobarlos."""
     from dataclasses import replace
@@ -116,14 +119,23 @@ def import_score_events(
     if not isinstance(raw_events, list) or not raw_events:
         raise ValueError("El archivo de eventos debe ser una lista JSON no vacía")
     parsed = []
+    review_package_digest = None
+    if review_package_path is not None:
+        package_path = Path(review_package_path)
+        if not package_path.is_file():
+            raise ValueError(f"No existe el paquete de revisión: {package_path}")
+        review_package_digest = hashlib.sha256(package_path.read_bytes()).hexdigest()
     required = {
         "event_id", "page_number", "staff_index", "measure_index",
         "onset_quarters", "event_type", "pitches_midi",
         "duration_quarters", "voice_id",
     }
+    allowed = required | {"source_candidate_ids"}
     for raw in raw_events:
-        if not isinstance(raw, dict) or set(raw) != required:
-            raise ValueError("Cada evento debe contener exactamente los campos de ScoreEvent")
+        if not isinstance(raw, dict) or set(raw) not in (required, allowed):
+            raise ValueError("Cada evento debe contener los campos de ScoreEvent y evidencia opcional")
+        if "source_candidate_ids" in raw and not isinstance(raw["source_candidate_ids"], list):
+            raise ValueError("source_candidate_ids debe ser una lista")
         parsed.append(raw)
     manifest_data = dataset.to_dict()
     for raw_score in manifest_data["scores"]:
@@ -131,6 +143,12 @@ def import_score_events(
             if raw_score["events"]:
                 raise ValueError("La partitura ya tiene eventos; no se sobrescriben ni duplican")
             raw_score["events"] = parsed
+            if any(item.get("source_candidate_ids") for item in parsed):
+                if review_package_digest is None:
+                    raise ValueError("Debe proporcionar --review-package cuando los eventos incluyen source_candidate_ids")
+                raw_score["source_review_package_sha256"] = review_package_digest
+            elif review_package_digest is not None:
+                raw_score["source_review_package_sha256"] = review_package_digest
             break
     updated = AnnotationDataset.from_dict(manifest_data)
     updated.validate(require_reviewed=False)
@@ -183,13 +201,17 @@ def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
         "onset_quarters", "event_type", "pitches_midi",
         "duration_quarters", "voice_id",
     }
+    allowed = required | {"source_candidate_ids"}
     for score_id, items in raw.items():
         if not isinstance(score_id, str) or not isinstance(items, list):
             raise ValueError("Cada score_id debe contener una lista de eventos")
         parsed = []
         for item in items:
-            if not isinstance(item, dict) or set(item) != required:
+            if not isinstance(item, dict) or set(item) not in (required, allowed):
                 raise ValueError("Predicción con campos ausentes o desconocidos")
+            candidate_ids = item.get("source_candidate_ids", [])
+            if not isinstance(candidate_ids, list):
+                raise ValueError("source_candidate_ids debe ser una lista")
             onset = item["onset_quarters"]
             duration = item["duration_quarters"]
             parsed.append(ScoreEvent(
@@ -202,6 +224,7 @@ def evaluate_manifest(manifest_path, predictions_path, *, split="test"):
                 pitches_midi=tuple(item["pitches_midi"]) if item["pitches_midi"] is not None else None,
                 duration_quarters=Fraction(str(duration)) if duration is not None else None,
                 voice_id=item["voice_id"],
+                source_candidate_ids=tuple(candidate_ids),
             ))
         predictions[score_id] = tuple(parsed)
     result = evaluate_annotation_dataset(dataset, predictions, split=split)
@@ -310,6 +333,7 @@ def build_parser() -> argparse.ArgumentParser:
     import_parser.add_argument("manifest")
     import_parser.add_argument("--score-id", required=True)
     import_parser.add_argument("--events", required=True)
+    import_parser.add_argument("--review-package", help="Paquete prepare-review exacto que sustenta source_candidate_ids")
 
     section_review_parser = subparsers.add_parser(
         "review-sections",
@@ -374,7 +398,10 @@ def main(argv: list[str] | None = None) -> int:
                     f"{len(score.events)} eventos, {score.split}, {score.review_status}"
                 )
         elif args.command == "import-events":
-            dataset = import_score_events(args.manifest, args.score_id, args.events)
+            dataset = import_score_events(
+                args.manifest, args.score_id, args.events,
+                review_package_path=args.review_package,
+            )
             score = next(item for item in dataset.scores if item.score_id == args.score_id)
             print(f"Eventos importados: {len(score.events)}")
             print("Estado: draft (requiere revisión humana)")

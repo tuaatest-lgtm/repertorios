@@ -62,6 +62,40 @@ def _stem_reaches_beam(
     return coverage >= 0.84 and longest_gap <= 1
 
 
+
+def _beam_y_at_x(
+    ink: np.ndarray,
+    beam_bbox: tuple[int, int, int, int],
+    stem_x: int,
+) -> float | None:
+    """Obtiene la altura local de la tinta de una barra en la X de la plica."""
+    x, y, width, height = beam_bbox
+    # La segmentación horizontal puede recortar el extremo del trazo uno o
+    # dos píxeles antes del centro de la plica; se permite esa tolerancia y
+    # se estima la altura extrapolando desde las columnas de barra disponibles.
+    if stem_x < x - 2 or stem_x > x + width + 1:
+        return None
+    y0 = max(0, y)
+    y1 = min(ink.shape[0], y + max(1, height))
+    # Excluye el núcleo de la plica: al ser vertical, puede ocupar todas
+    # las filas del bbox y desplazar la mediana lejos de la barra inclinada.
+    sample_xs = [
+        sx for sx in range(max(x, stem_x - 6), min(x + width, stem_x + 7))
+        if abs(sx - stem_x) > 1 and 0 <= sx < ink.shape[1]
+    ]
+    centers: list[tuple[float, float]] = []
+    for sx in sample_xs:
+        rows = np.flatnonzero(ink[y0:y1, sx])
+        if rows.size:
+            centers.append((float(sx), float(y0 + np.median(rows))))
+    if len(centers) < 2:
+        return None
+    xs = np.asarray([point[0] for point in centers], dtype=float)
+    ys = np.asarray([point[1] for point in centers], dtype=float)
+    slope, intercept = np.polyfit(xs, ys, 1)
+    return float(intercept + slope * stem_x)
+
+
 def detect_beam_group_candidates(
     binary: np.ndarray,
     staves: list[StaffCandidate],
@@ -147,7 +181,7 @@ def detect_beam_group_candidates(
         for x, y, w, h in segments:
             if not (min_width <= w <= max_width):
                 continue
-            beam_y = y + h / 2.0
+            beam_bbox = (x, y, w, h)
 
             matched: list[int] = []
             for head_index, (head, rhythm) in enumerate(zip(noteheads, rhythms)):
@@ -159,26 +193,39 @@ def detect_beam_group_candidates(
                     <= x + w + spacing * max_head_gap_spacing
                 ):
                     continue
-                vertical_distance = beam_y - head.center_y
-                if abs(vertical_distance) < spacing * 0.8 or abs(vertical_distance) > spacing * 4.5:
-                    continue
-                expected_direction = "up" if vertical_distance < 0 else "down"
-                if rhythm.stem_direction != expected_direction:
-                    continue
-
+                # Una barra inclinada puede tener una altura distinta en cada plica.
+                # Se obtiene el punto local sin alterar la segmentación existente.
                 # Una barra debe cruzar la zona donde se espera la plica de
                 # esta cabeza. La mera proximidad horizontal puede asociar una
                 # barra de otro pentagrama/voz o un trazo editorial cercano.
                 stem_offset = max(1, int(round(spacing * 0.72)))
                 stem_tolerance = max(2, int(round(spacing * 0.20)))
                 expected_stem_xs = (
-                    int(round(head.center_x - stem_offset)),
-                    int(round(head.center_x + stem_offset)),
+                    (int(rhythm.stem_x),)
+                    if rhythm.stem_x is not None
+                    else (
+                        int(round(head.center_x - stem_offset)),
+                        int(round(head.center_x + stem_offset)),
+                    )
                 )
-                intersects_expected_stem = any(
-                    x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
+                local_beam_points = {
+                    stem_x: _beam_y_at_x(ink, beam_bbox, stem_x)
                     for stem_x in expected_stem_xs
-                )
+                    if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
+                }
+                valid_beam_points = {}
+                for stem_x, local_beam_y in local_beam_points.items():
+                    if local_beam_y is None:
+                        continue
+                    vertical_distance = local_beam_y - head.center_y
+                    # La altura local puede caer en medio píxel por el ajuste
+                    # lineal; evita rechazar el límite por error de coma flotante.
+                    if abs(vertical_distance) < spacing * 0.8 or abs(vertical_distance) > spacing * 4.5 + 0.5:
+                        continue
+                    expected_direction = "up" if vertical_distance < 0 else "down"
+                    if rhythm.stem_direction == expected_direction:
+                        valid_beam_points[stem_x] = local_beam_y
+                intersects_expected_stem = bool(valid_beam_points)
                 if not intersects_expected_stem:
                     continue
 
@@ -188,8 +235,8 @@ def detect_beam_group_candidates(
                 connected_stem_x = next(
                     (
                         stem_x for stem_x in expected_stem_xs
-                        if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
-                        and _stem_reaches_beam(ink, head, beam_y, stem_x)
+                        if stem_x in valid_beam_points
+                        and _stem_reaches_beam(ink, head, valid_beam_points[stem_x], stem_x)
                     ),
                     None,
                 )

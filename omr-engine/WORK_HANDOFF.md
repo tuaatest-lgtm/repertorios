@@ -4,11 +4,13 @@ Este archivo es la instrucción operativa que recibe cualquier persona o agente 
 
 ## Estado verificado al abrir este turno
 - Repositorio: `tuaatest-lgtm/repertorios`.
-- Rama de desarrollo: `feature/omr-propio-palermo`.
-- HEAD base de este relevo: `1288480e562c6a23359f58897d13ec131106fd66`.
-- Commit inmediatamente anterior con funcionalidad OMR: `2a291cb2994c9f7706427350b7f0e66ae658ea38`.
-- CI observado para ese commit funcional: ejecución `46083299834`, resultado `success`: https://github.com/tuaatest-lgtm/repertorios/actions/runs/46083299834
-- El commit base de este relevo añade las reglas de contribución en `AGENTS.md`; no es una mejora de precisión OMR. Verifica CI del HEAD antes de declarar la rama completamente verde.
+- Rama base de desarrollo: `feature/omr-propio-palermo`.
+- HEAD base verificado al iniciar este turno: `9408a82b44608f1cbf2bfc08b62f7777ebd7d2f6`.
+- La discrepancia del relevo anterior (`1288480e...`) quedó reconciliada: `ef38120a...` añadió el documento de relevo y `9408a82...` solo enlazó ambos documentos desde el README del motor; ninguno alteró código funcional OMR.
+- CI del HEAD base `9408a82...`: ejecución `46083898050`, resultado `success`: https://github.com/tuaatest-lgtm/repertorios/actions/runs/46083898050
+- Rama aislada de este turno: `work/review-index-contract-20261127`.
+- Cambios de código y regresiones: commit `40f87583106898b87dbc47af73f5b16c9b9651f2` (incluye el commit previo de código `eb9cc7134cf411ae60010f044a32e7dc83d1371d`). PR de validación en borrador #1: https://github.com/tuaatest-lgtm/repertorios/pull/1; no fusionado.
+- CI PR `46085178837`: instalación, suite `pytest` y test del cliente API del navegador observados como `success`; la ejecución seguía finalizando tareas de limpieza al redactar este relevo: https://github.com/tuaatest-lgtm/repertorios/actions/runs/46085178837.
 - `main`, `index.html` de producción y Sonoro permanecen fuera de alcance.
 
 ## Qué existe y qué no debe confundirse
@@ -47,4 +49,10 @@ Este archivo es la instrucción operativa que recibe cualquier persona o agente 
 Trabaja como responsable técnico del motor OMR propio de Palermo Music. Empieza verificando la rama y el SHA; lee `AGENTS.md` y este archivo; inspecciona primero lo que ya existe antes de programar. Ejecuta el encargo del siguiente turno con el alcance limitado y los criterios de aceptación indicados. No inventes resultados ni completes datos musicales por intuición. Mantén la polifonía real y la aritmética temporal exacta. Al terminar, actualiza este mismo archivo con el estado comprobado y deja una sola tarea siguiente, concreta y ejecutable para el próximo participante. No hagas push, merge, despliegue ni integración con Sonoro sin autorización expresa.
 
 ## Registro de turnos
-- Turno inicial de relevo: reglas generales añadidas en `AGENTS.md`; instrucción vigente creada aquí. El commit de este documento y el CI asociado quedan pendientes de verificación al cerrar la operación.
+- Turno inicial de relevo: reglas generales añadidas en `AGENTS.md`; instrucción vigente creada aquí.
+- Turno de corrección de referencias: se verificó que `rhythmic_event_groups.py` construye grupos sobre `noteheads + hollow_noteheads`, mientras `staff_voice_layers.py` opera solo sobre cabezas rellenas. `review_package.py` resolvía ambas familias contra `filled_candidate_ids`, causando índices fuera de rango o asociaciones erróneas cuando un grupo incluía cabezas huecas.
+- Corrección: el paquete ahora mantiene un mapa de IDs y pentagramas para el espacio combinado, y conserva el mapa exclusivo de cabezas rellenas para capas de voz, haces y puntillos. Añadidas dos regresiones en `tests/test_review_package.py`: vínculo de grupo rítmico a cabeza hueca y conservación del espacio de índices de capas de voz.
+- Archivos funcionales modificados: `omr-engine/src/palermo_omr/review_package.py` y `omr-engine/tests/test_review_package.py`. No se modificó `main`, `index.html`, Sonoro ni el porcentaje de progreso.
+- Base de trabajo: `9408a82b44608f1cbf2bfc08b62f7777ebd7d2f6`. Rama aislada: `work/review-index-contract-20261127`. Commit de código + pruebas: `40f87583106898b87dbc47af73f5b16c9b9651f2`. PR #1 está abierto en borrador, sin fusionar.
+- Validación local: no ejecutada, porque el entorno no pudo clonar el repositorio por falta de resolución DNS. Validación CI PR `46085178837`: resultado final `success`; instalación, `python -m pytest -q` y `node --test web/test-omr-client.mjs` completados exitosamente: https://github.com/tuaatest-lgtm/repertorios/actions/runs/46085178837.
+- Siguiente tarea única: una vez confirmado el resultado final de CI, ejecutar el pipeline y `prepare_review_package` sobre `Clamaré a Dios - Coro.pdf` (SHA-256 `bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74c`) en el primer sistema de la primera página; comprobar que todos los `rhythmic_event_group` y `staff_voice_layer` se enlazan a los IDs correctos sin errores. El PDF sí está disponible en la biblioteca de archivos y su SHA-256 fue verificado en el entorno: `bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74c`; contiene 3 páginas. La inspección visual de la página 1 muestra cuatro sistemas (intro y sistemas rotulados 4, 7 y 10). El entorno actual no tiene checkout ejecutable del repositorio; no afirmar que se ejecutó el motor sobre el PDF hasta disponer de una copia de trabajo del código. Después continuar la primera plantilla de anotación humana draft/needs_review, sin declarar ground truth.

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import pytest
 
-from palermo_omr.beam_groups import detect_beam_group_candidates
+from palermo_omr.beam_groups import _beam_y_at_x, detect_beam_group_candidates
 from palermo_omr.imaging import StaffCandidate
 from palermo_omr.rhythm import RhythmCandidate
 from palermo_omr.symbols import NoteheadCandidate
@@ -119,3 +119,57 @@ def test_rejects_shared_beam_when_one_stem_does_not_reach_it():
     cv2.line(image, (152, 42), (152, 80), 0, 2)
     groups = detect_beam_group_candidates(image, staves, heads, rhythms)
     assert all(group.notehead_indices != [0, 1] for group in groups)
+
+
+def test_uses_measured_stem_x_when_fixed_center_offset_misses_shared_beam():
+    image = np.full((160, 240), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (230, y), 0, 1)
+    heads = [
+        NoteheadCandidate((97, 75, 16, 10), 105.0, 80.0, 0, 2, .8, .9, .9),
+        NoteheadCandidate((137, 75, 16, 10), 145.0, 80.0, 0, 2, .8, .9, .9),
+    ]
+    for x in [105, 145]:
+        cv2.ellipse(image, (x, 80), (8, 5), -20, 0, 360, 0, -1)
+    for x in [108, 148]:
+        cv2.line(image, (x, 80), (x, 35), 0, 2)
+    cv2.line(image, (108, 35), (148, 35), 0, 3)
+
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    rhythms = [
+        RhythmCandidate(head.bbox, 0, "filled", .9, "up", 45, 1,
+                        "eighth", .8, (), stem_x)
+        for head, stem_x in zip(heads, [108, 148])
+    ]
+    groups = detect_beam_group_candidates(image, [staff], heads, rhythms)
+
+    assert len(groups) == 1
+    assert groups[0].notehead_indices == [0, 1]
+    assert groups[0].connection_type_candidate == "shared"
+
+
+
+def test_estimates_local_height_at_each_end_of_sloped_beam():
+    image = np.full((100, 100), 255, dtype=np.uint8)
+    cv2.line(image, (20, 20), (80, 40), 0, 3)
+    ink = (image < 128).astype(np.uint8)
+
+    left_y = _beam_y_at_x(ink, (20, 18, 61, 25), 20)
+    right_y = _beam_y_at_x(ink, (20, 18, 61, 25), 80)
+
+    assert left_y is not None
+    assert right_y is not None
+    assert right_y - left_y >= 15
+
+
+def test_local_beam_height_excludes_vertical_stem_at_sloped_beam_endpoint():
+    image = np.full((100, 100), 255, dtype=np.uint8)
+    cv2.line(image, (20, 20), (80, 40), 0, 3)
+    # La plica vertical ocupa todo el bbox local y sesgaría su mediana.
+    cv2.line(image, (20, 5), (20, 70), 0, 2)
+    ink = (image < 128).astype(np.uint8)
+
+    beam_y = _beam_y_at_x(ink, (20, 18, 61, 25), 20)
+
+    assert beam_y is not None
+    assert abs(beam_y - 20) <= 2.5

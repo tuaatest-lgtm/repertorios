@@ -24,6 +24,7 @@ class RhythmCandidate:
     base_duration: str
     confidence: float
     warnings: tuple[str, ...]
+    stem_x: int | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -53,32 +54,79 @@ def _classify_fill(binary: np.ndarray, head: NoteheadCandidate, spacing: float) 
     return "unknown", .35
 
 
-def _stem(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> tuple[str, int]:
+def _stem(
+    binary: np.ndarray,
+    head: NoteheadCandidate,
+    spacing: float,
+) -> tuple[str, int, int | None]:
+    """Localiza la plica alrededor del núcleo estimado de la cabeza.
+
+    El bbox del detector puede incluir partes de plicas o barras conectadas.
+    Por eso no se usa su borde como anclaje: la búsqueda se limita a bandas
+    normalizadas respecto del centro de la cabeza y del espaciado del pentagrama.
+    """
+    if spacing <= 1:
+        return "none", 0, None
     ink = _ink(binary)
-    h, w = ink.shape
-    cx, cy = int(round(head.center_x)), int(round(head.center_y))
-    radius = max(1, int(round(spacing*.72)))
-    vertical = cv2.morphologyEx(ink, cv2.MORPH_OPEN,
-        cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, int(round(spacing*1.8))))))
-    best = ("none", 0)
-    for x in (cx-radius, cx+radius):
-        if not 0 <= x < w:
-            continue
-        col = vertical[:, max(0,x-1):min(w,x+2)].max(axis=1)
-        for direction, indices in (
-            ("up", range(max(0,cy-int(spacing*.25)), -1, -1)),
-            ("down", range(min(h-1,cy+int(spacing*.25)), h)),
-        ):
-            run = maximum = 0
-            for y in indices:
-                if col[y]:
-                    run += 1
-                    maximum = max(maximum, run)
-                elif run:
-                    break
-            if maximum > best[1]:
-                best = (direction, maximum)
-    return best if best[1] >= int(spacing*1.35) else ("none", best[1])
+    height, width = ink.shape
+    cx = int(round(head.center_x))
+    cy = int(round(head.center_y))
+    vertical = cv2.morphologyEx(
+        ink,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(
+            cv2.MORPH_RECT, (1, max(3, int(round(spacing * 1.8))))
+        ),
+    )
+
+    # Una plica suele unirse cerca de uno de los extremos de la cabeza.
+    # Las bandas cubren variaciones de ancho sin seguir cajas infladas por haces.
+    anchor_offset = spacing * 0.45
+    anchor_tolerance = max(1, int(round(spacing * 0.25)))
+    anchor_ranges = (
+        range(
+            max(0, int(round(cx - anchor_offset - anchor_tolerance))),
+            min(width, int(round(cx - anchor_offset + anchor_tolerance)) + 1),
+        ),
+        range(
+            max(0, int(round(cx + anchor_offset - anchor_tolerance))),
+            min(width, int(round(cx + anchor_offset + anchor_tolerance)) + 1),
+        ),
+    )
+    candidates: list[tuple[int, str, int]] = []
+    crossing_tolerance = max(1, int(round(spacing * 0.22)))
+    for edge_xs in anchor_ranges:
+        for x in edge_xs:
+            col = vertical[:, max(0, x - 1):min(width, x + 2)].max(axis=1)
+            ys = np.flatnonzero(col)
+            if ys.size == 0:
+                continue
+            runs = np.split(ys, np.where(np.diff(ys) > 1)[0] + 1)
+            for run in runs:
+                # Solo cuenta una línea que atraviesa el núcleo de la cabeza.
+                if run[0] > cy + crossing_tolerance or run[-1] < cy - crossing_tolerance:
+                    continue
+                up_length = max(0, cy - int(run[0]))
+                down_length = max(0, int(run[-1]) - cy)
+                if max(up_length, down_length) < int(spacing * 1.35):
+                    continue
+                if abs(up_length - down_length) < int(spacing * 0.35):
+                    continue
+                direction = "up" if up_length > down_length else "down"
+                length = max(up_length, down_length)
+                candidates.append((int(x), direction, int(length)))
+
+    if not candidates:
+        return "none", 0, None
+    candidates.sort(key=lambda item: item[2], reverse=True)
+    best = candidates[0]
+    competing = next(
+        (item for item in candidates[1:] if item[1] != best[1]),
+        None,
+    )
+    if competing and best[2] - competing[2] < int(spacing * 0.35):
+        return "none", best[2], None
+    return best[1], best[2], best[0]
 
 
 def _beam_count(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> int:
@@ -120,7 +168,7 @@ def analyze_rhythm_candidates(binary: np.ndarray, staves: list[StaffCandidate],
         if spacing <= 1:
             continue
         fill, fill_score = _classify_fill(binary,head,spacing)
-        direction, stem_length = _stem(binary,head,spacing)
+        direction, stem_length, stem_x = _stem(binary, head, spacing)
         beams = _beam_count(binary,head,spacing)
         duration = "unknown"
         warnings = []
@@ -139,5 +187,5 @@ def analyze_rhythm_candidates(binary: np.ndarray, staves: list[StaffCandidate],
             warnings.append("La agrupación de barras es una hipótesis geométrica.")
         confidence = min(.95,.45*fill_score+(.4 if direction!="none" else 0)+(.15 if duration!="unknown" else 0))
         results.append(RhythmCandidate(head.bbox,head.staff_index,fill,round(fill_score,3),
-            direction,int(stem_length),beams,duration,round(confidence,3),tuple(warnings)))
+            direction,int(stem_length),beams,duration,round(confidence,3),tuple(warnings),stem_x))
     return results
