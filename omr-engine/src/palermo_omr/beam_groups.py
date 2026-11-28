@@ -169,14 +169,12 @@ def detect_beam_group_candidates(
                 segments.append((left, upper, width, height))
 
         # Complementa los trazos horizontales con segmentos inclinados
-        # detectados localmente en la franja del pentagrama. Hough no decide
-        # duración: cada candidato todavía debe conectar físicamente con las
-        # plicas esperadas de las cabezas.
+        # detectados localmente. Solo se admiten candidatos que cubran dos
+        # anclajes de plica distintos; fragmentos de plica o haces parciales
+        # quedan fuera de esta ruta y siguen tratándose por el detector local.
         staff_roi = ink[top:bottom + 1, :]
         diagonal_lines = cv2.HoughLinesP(
-            staff_roi,
-            rho=1,
-            theta=np.pi / 180.0,
+            staff_roi, rho=1, theta=np.pi / 180.0,
             threshold=max(6, int(round(spacing * 0.75))),
             minLineLength=max(8, int(round(min_width))),
             maxLineGap=max(1, int(round(spacing * 0.25))),
@@ -184,21 +182,46 @@ def detect_beam_group_candidates(
         if diagonal_lines is not None:
             for line in diagonal_lines[:, 0, :]:
                 x1, local_y1, x2, local_y2 = (int(value) for value in line)
-                dx = x2 - x1
-                dy = local_y2 - local_y1
+                dx, dy = x2 - x1, local_y2 - local_y1
                 if dx == 0:
                     continue
                 slope = dy / dx
-                if abs(slope) < 0.035 or abs(slope) > 0.28:
+                if abs(slope) < 0.035 or abs(slope) > 0.22:
                     continue
                 left, right = sorted((x1, x2))
-                upper = min(local_y1, local_y2) + top
-                lower = max(local_y1, local_y2) + top
-                width = right - left + 1
-                height = lower - upper + 1
-                if min_width <= width <= max_width and height <= spacing * 1.35:
+                upper, lower = min(local_y1, local_y2) + top, max(local_y1, local_y2) + top
+                width, height = right - left + 1, lower - upper + 1
+                if not (min_width <= width <= max_width and height <= spacing * 1.25):
+                    continue
+                def line_y_at(anchor_x):
+                    return top + local_y1 + slope * (anchor_x - x1)
+                eligible = []
+                for head_index, (head, rhythm) in enumerate(zip(noteheads, rhythms)):
+                    if head.staff_index != staff_index or rhythm.stem_direction == 'none':
+                        continue
+                    stem_offset = max(1, int(round(spacing * 0.72)))
+                    expected_xs = (head.center_x - stem_offset, head.center_x + stem_offset)
+                    anchors = [ax for ax in expected_xs
+                               if left - spacing * 0.2 <= ax <= right + spacing * 0.2
+                               and spacing * 0.8 <= abs(line_y_at(ax) - head.center_y) <= spacing * 4.5]
+                    if anchors:
+                        eligible.append((head_index, anchors[0]))
+                paired = False
+                for i, (first_index, first_x) in enumerate(eligible):
+                    for second_index, second_x in eligible[i + 1:]:
+                        first_head, second_head = noteheads[first_index], noteheads[second_index]
+                        first_rhythm, second_rhythm = rhythms[first_index], rhythms[second_index]
+                        if first_rhythm.stem_direction != second_rhythm.stem_direction:
+                            continue
+                        if abs(first_head.center_x - second_head.center_x) < spacing * 1.5:
+                            continue
+                        if left - spacing * 0.2 <= min(first_x, second_x) and right + spacing * 0.2 >= max(first_x, second_x):
+                            paired = True
+                            break
+                    if paired:
+                        break
+                if paired:
                     segments.append((left, upper, width, height))
-
         # La clave es el conjunto exacto de cabezas asociado a cada trazo.
         segments_by_heads: dict[tuple[int, ...], list[tuple[int, int, int, int]]] = {}
         for x, y, w, h in segments:
