@@ -89,18 +89,27 @@ def test_audit_cli_writes_json_and_reports_geometry_coverage(tmp_path, capsys):
     source = tmp_path / "analysis.json"
     output = tmp_path / "report" / "audit.json"
     queue_csv = tmp_path / "report" / "rhythm-queue.csv"
+    symbol_csv = tmp_path / "report" / "symbol-queue.csv"
     source.write_text(json.dumps({"source_pdf": "fixture.pdf", "pages": [_page()]}), encoding="utf-8")
-    assert main([str(source), str(output), "--queue-csv", str(queue_csv)]) == 0
+    assert main([
+        str(source), str(output), "--queue-csv", str(queue_csv),
+        "--symbol-queue-csv", str(symbol_csv),
+    ]) == 0
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["totals"]["filled_notehead_candidates"] == 3
     captured = capsys.readouterr().out
     assert "66.67%" in captured
     assert "pendientes rítmicos: 1" in captured
+    assert "símbolos: 3" in captured
     import csv
     with queue_csv.open(encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     assert rows[0]["candidate_id"] == "p1-filled_notehead-2"
     assert "missing_stem_direction" in rows[0]["review_reasons"]
+    with symbol_csv.open(encoding="utf-8", newline="") as handle:
+        symbol_rows = list(csv.DictReader(handle))
+    assert len(symbol_rows) == 3
+    assert {row["family"] for row in symbol_rows} == {"rest_shape", "tie_slur_shape"}
 
 
 def test_audit_rejects_empty_or_invalid_analysis(tmp_path, capsys):
