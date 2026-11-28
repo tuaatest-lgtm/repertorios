@@ -168,6 +168,37 @@ def detect_beam_group_candidates(
             if height <= max(2, int(round(spacing * 0.95))):
                 segments.append((left, upper, width, height))
 
+        # Complementa los trazos horizontales con segmentos inclinados
+        # detectados localmente en la franja del pentagrama. Hough no decide
+        # duración: cada candidato todavía debe conectar físicamente con las
+        # plicas esperadas de las cabezas.
+        staff_roi = ink[top:bottom + 1, :]
+        diagonal_lines = cv2.HoughLinesP(
+            staff_roi,
+            rho=1,
+            theta=np.pi / 180.0,
+            threshold=max(6, int(round(spacing * 0.75))),
+            minLineLength=max(8, int(round(min_width))),
+            maxLineGap=max(1, int(round(spacing * 0.25))),
+        )
+        if diagonal_lines is not None:
+            for line in diagonal_lines[:, 0, :]:
+                x1, local_y1, x2, local_y2 = (int(value) for value in line)
+                dx = x2 - x1
+                dy = local_y2 - local_y1
+                if dx == 0:
+                    continue
+                slope = dy / dx
+                if abs(slope) < 0.035 or abs(slope) > 0.28:
+                    continue
+                left, right = sorted((x1, x2))
+                upper = min(local_y1, local_y2) + top
+                lower = max(local_y1, local_y2) + top
+                width = right - left + 1
+                height = lower - upper + 1
+                if min_width <= width <= max_width and height <= spacing * 1.35:
+                    segments.append((left, upper, width, height))
+
         # La clave es el conjunto exacto de cabezas asociado a cada trazo.
         segments_by_heads: dict[tuple[int, ...], list[tuple[int, int, int, int]]] = {}
         for x, y, w, h in segments:
