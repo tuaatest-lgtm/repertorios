@@ -63,6 +63,25 @@ def _stem_reaches_beam(
 
 
 
+
+def _is_thin_beam_stroke(
+    stroke: list[tuple[int, int, int, int]],
+    spacing: float,
+) -> bool:
+    """Acepta barras horizontales o inclinadas de grosor reducido.
+
+    El alto del bbox mezcla el grosor real con la pendiente. Se mide el
+    residuo respecto de una recta ajustada a los centros de cada fila.
+    """
+    if len(stroke) < 2:
+        return True
+    centers_x = np.asarray([x + width / 2.0 for x, _y, width, _h in stroke])
+    centers_y = np.asarray([y + 0.5 for _x, y, _width, _h in stroke])
+    slope, intercept = np.polyfit(centers_x, centers_y, 1)
+    residual = centers_y - (slope * centers_x + intercept)
+    thickness = float(np.percentile(residual, 95) - np.percentile(residual, 5))
+    return thickness <= max(2.0, spacing * 0.55)
+
 def _beam_y_at_x(
     ink: np.ndarray,
     beam_bbox: tuple[int, int, int, int],
@@ -164,7 +183,7 @@ def detect_beam_group_candidates(
             lower = max(item[1] + item[3] for item in stroke)
             width = right - left
             height = lower - upper
-            if height <= max(2, int(round(spacing * 0.55))):
+            if _is_thin_beam_stroke(stroke, spacing):
                 segments.append((left, upper, width, height))
 
         # La clave es el conjunto exacto de cabezas asociado a cada trazo.
