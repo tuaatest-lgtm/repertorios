@@ -20,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("output", type=Path, help="Archivo JSON de auditoría")
     parser.add_argument("--low-confidence", type=float, default=0.60)
     parser.add_argument("--queue-csv", type=Path, help="Exporta la cola rítmica priorizada a CSV")
+    parser.add_argument("--symbol-queue-csv", type=Path, help="Exporta la cola de silencios, ligaduras y haces a CSV")
     return parser
 
 
@@ -52,6 +53,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                     row["review_reasons"] = ";".join(item["review_reasons"])
                     writer.writerow(row)
             queue_temporary.replace(args.queue_csv)
+        if args.symbol_queue_csv is not None:
+            args.symbol_queue_csv.parent.mkdir(parents=True, exist_ok=True)
+            symbol_temporary = args.symbol_queue_csv.with_suffix(args.symbol_queue_csv.suffix + ".tmp")
+            symbol_fields = [
+                "candidate_id", "page_number", "family", "candidate_index",
+                "staff_index", "confidence", "candidate_type",
+                "review_reasons", "priority",
+            ]
+            with symbol_temporary.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=symbol_fields)
+                writer.writeheader()
+                for item in report["symbol_review_queue"]:
+                    row = {key: item.get(key) for key in symbol_fields}
+                    row["review_reasons"] = ";".join(item["review_reasons"])
+                    writer.writerow(row)
+            symbol_temporary.replace(args.symbol_queue_csv)
     except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
         print(f"palermo-omr-audit: {exc}", file=sys.stderr)
         return 2
@@ -62,7 +79,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"Auditoría exportada: {args.output}; "
         f"{totals['filled_notehead_candidates']} cabezas; "
         f"ubicación única en compás: {percentage}; "
-        f"pendientes rítmicos: {report['rhythm_review_queue_count']}"
+        f"pendientes rítmicos: {report['rhythm_review_queue_count']}; "
+        f"símbolos: {report['symbol_review_queue_count']}"
     )
     return 0
 
