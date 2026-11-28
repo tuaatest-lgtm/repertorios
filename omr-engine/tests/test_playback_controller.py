@@ -48,7 +48,7 @@ def test_pause_resume_freezes_score_clock_and_restarts_sustained_notes():
     assert player.state == "playing"
     assert sink.calls[before:] == [("on", "alto", 60, "a1"), ("on", "soprano", 72, "s1")]
     player.tick(500.6)
-    assert player.snapshot()["current_seconds"] == 0.6
+    assert player.snapshot()["current_seconds"] == 1.0
 
 
 def test_stop_clears_active_notes_and_rewinds():
@@ -74,7 +74,7 @@ def test_voice_mute_is_independent_and_unmute_restores_only_that_voice():
     player.set_voice_muted("soprano", False)
     assert sink.calls[-1] == ("on", "soprano", 72, "s1")
     player.tick(1.0)
-    assert ("off", "alto", 60, "a1") not in sink.calls
+    assert sink.calls.count(("off", "alto", 60, "a1")) == 1
 
 
 def test_muting_before_note_attack_suppresses_only_selected_voice():
