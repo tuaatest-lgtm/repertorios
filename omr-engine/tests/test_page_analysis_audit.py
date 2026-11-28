@@ -71,7 +71,7 @@ def test_audit_handles_missing_optional_arrays_and_unknown_staff_links():
 
 def test_audit_rejects_misaligned_rhythm_and_duplicate_pages():
     page = _page()
-    page["rhythm_candidates"] = []
+    page["rhythm_candidates"] = [{}, {}]
     with pytest.raises(ValueError, match="alinearse"):
         audit_page_analysis({"pages": [page]})
     with pytest.raises(ValueError, match="único"):
