@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 
 from .symbols import NoteheadCandidate
+from .rhythm import RhythmCandidate
 
 
 def draw_notehead_overlay(
@@ -333,4 +334,68 @@ def draw_geometry_overlay(page_image: np.ndarray, page_data: dict) -> np.ndarray
             cv2.line(overlay, point(x2, lines[0]), point(x2, lines[-1]), color, 1)
             label(tag, int(x1), int(lines[0]) - 4, color)
 
+    return overlay
+
+
+def draw_rhythm_overlay(
+    page_image: np.ndarray,
+    noteheads: list[NoteheadCandidate],
+    rhythms: list[RhythmCandidate],
+) -> np.ndarray:
+    """Dibuja plicas y figuras como hipótesis revisables, nunca como música confirmada."""
+    if page_image is None or page_image.size == 0:
+        raise ValueError("La imagen de página está vacía")
+    if page_image.ndim != 3 or page_image.shape[2] != 3:
+        raise ValueError("Se requiere una imagen BGR de tres canales")
+    if not isinstance(noteheads, list) or not isinstance(rhythms, list) or len(noteheads) != len(rhythms):
+        raise ValueError("noteheads y rhythms deben ser listas alineadas")
+    if any(not isinstance(item, NoteheadCandidate) for item in noteheads):
+        raise ValueError("noteheads debe contener NoteheadCandidate")
+    if any(not isinstance(item, RhythmCandidate) for item in rhythms):
+        raise ValueError("rhythms debe contener RhythmCandidate")
+
+    overlay = page_image.copy()
+    height, width = overlay.shape[:2]
+    duration_labels = {
+        "whole": "W", "half": "H", "quarter": "Q",
+        "eighth": "8", "sixteenth": "16", "thirty_second": "32",
+        "sixty_fourth": "64", "unknown": "?",
+    }
+    for head, rhythm in zip(noteheads, rhythms):
+        cx, cy = int(round(head.center_x)), int(round(head.center_y))
+        x, y, box_width, box_height = head.bbox
+        if rhythm.stem_direction == "up":
+            anchor_x = int(round(x + box_width - 2))
+            end_y = max(0, cy - max(0, rhythm.stem_length_px))
+        elif rhythm.stem_direction == "down":
+            anchor_x = int(round(x + 1))
+            end_y = min(height - 1, cy + max(0, rhythm.stem_length_px))
+        else:
+            anchor_x = cx
+            end_y = cy
+
+        if rhythm.stem_direction == "none" or rhythm.base_duration == "unknown":
+            color = (0, 165, 255)
+        elif rhythm.confidence < 0.60:
+            color = (40, 40, 220)
+        else:
+            color = (40, 180, 40)
+
+        if rhythm.stem_direction != "none" and rhythm.stem_length_px > 0:
+            cv2.line(
+                overlay,
+                (max(0, min(width - 1, anchor_x)), cy),
+                (max(0, min(width - 1, anchor_x)), end_y),
+                color, 2, cv2.LINE_AA,
+            )
+        else:
+            cv2.circle(overlay, (cx, cy), 7, color, 2, cv2.LINE_AA)
+
+        label = f"{duration_labels.get(rhythm.base_duration, '?')} B{rhythm.beam_count} {rhythm.confidence:.2f}"
+        text_x = max(2, min(width - 90, x))
+        text_y = max(14, min(height - 2, y - 4))
+        cv2.putText(
+            overlay, label, (text_x, text_y),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.38, color, 1, cv2.LINE_AA,
+        )
     return overlay
