@@ -70,7 +70,10 @@ def _beam_y_at_x(
 ) -> float | None:
     """Obtiene la altura local de la tinta de una barra en la X de la plica."""
     x, y, width, height = beam_bbox
-    if not x <= stem_x < x + width:
+    # La segmentación horizontal puede recortar el extremo del trazo uno o
+    # dos píxeles antes del centro de la plica; se permite esa tolerancia y
+    # se estima la altura extrapolando desde las columnas de barra disponibles.
+    if stem_x < x - 2 or stem_x > x + width + 1:
         return None
     y0 = max(0, y)
     y1 = min(ink.shape[0], y + max(1, height))
