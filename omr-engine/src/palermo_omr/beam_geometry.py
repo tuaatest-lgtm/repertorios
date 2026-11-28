@@ -343,8 +343,21 @@ def detect_local_beam_candidates(
                     continue
 
                 second_indices = heads_by_stem[second_key]
+                linked_indices = list(first_indices + second_indices)
+                intercept = beam_y1 - slope * stem_x1
+                # Incluye plicas intermedias que descansan sobre la misma
+                # trayectoria, no solo las dos cabezas de los extremos.
+                for middle_key in stem_keys:
+                    middle_x, middle_tip_y, middle_direction = middle_key
+                    if middle_direction != direction1 or not stem_x1 < middle_x < stem_x2:
+                        continue
+                    distance = abs(
+                        middle_tip_y - (slope * middle_x + intercept)
+                    ) / math.sqrt(1.0 + slope * slope)
+                    if distance <= max(2.0, spacing * 0.20):
+                        linked_indices.extend(heads_by_stem[middle_key])
                 linked_heads = tuple(sorted(
-                    first_indices + second_indices,
+                    set(linked_indices),
                     key=lambda index: (noteheads[index].center_x, noteheads[index].center_y),
                 ))
                 start = (stem_x1, int(round(beam_y1)))
@@ -362,10 +375,42 @@ def detect_local_beam_candidates(
                     bbox=(left, top, right - left + 1, bottom - top + 1),
                 ))
 
-    # Un mismo par puede admitir varios trazos candidatos; conservar una sola
-    # hipótesis y no convertir la geometría en duración musical confirmada.
-    unique: dict[tuple[int, int], LocalBeamCandidate] = {}
+    # Colapsa parejas redundantes cuando una hipótesis más larga ya contiene
+    # las plicas intermedias de la misma trayectoria y el mismo nivel de barra.
+    filtered: list[LocalBeamCandidate] = []
     for candidate in results:
+        candidate_set = set(candidate.notehead_indices)
+        candidate_slope = (
+            (candidate.end[1] - candidate.start[1])
+            / max(1, candidate.end[0] - candidate.start[0])
+        )
+        candidate_intercept = candidate.start[1] - candidate_slope * candidate.start[0]
+        is_subset = False
+        for other in results:
+            if other is candidate or other.beam_count != candidate.beam_count:
+                continue
+            if not candidate_set < set(other.notehead_indices):
+                continue
+            other_slope = (
+                (other.end[1] - other.start[1])
+                / max(1, other.end[0] - other.start[0])
+            )
+            other_intercept = other.start[1] - other_slope * other.start[0]
+            if abs(candidate_slope - other_slope) > 0.025:
+                continue
+            if abs(candidate_intercept - other_intercept) > 3.0:
+                continue
+            if other.bbox[0] <= candidate.bbox[0] and (
+                other.bbox[0] + other.bbox[2]
+                >= candidate.bbox[0] + candidate.bbox[2]
+            ):
+                is_subset = True
+                break
+        if not is_subset:
+            filtered.append(candidate)
+
+    unique: dict[tuple[int, ...], LocalBeamCandidate] = {}
+    for candidate in filtered:
         previous = unique.get(candidate.notehead_indices)
         if previous is None or candidate.support > previous.support:
             unique[candidate.notehead_indices] = candidate
