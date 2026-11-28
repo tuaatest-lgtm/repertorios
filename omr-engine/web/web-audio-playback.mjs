@@ -46,7 +46,7 @@ export class WebAudioSink {
     return bus;
   }
 
-  note_on(voiceId, midi, eventId) {
+  note_on(voiceId, midi, eventId, when = this.context.currentTime) {
     this.#assertLive();
     if (typeof voiceId !== "string" || !voiceId || typeof eventId !== "string" || !eventId ||
         !Number.isInteger(midi) || midi < 0 || midi > 127) {
@@ -55,32 +55,39 @@ export class WebAudioSink {
     const key = this.#key(voiceId, eventId, midi);
     if (this.notes.has(key)) throw new Error("La nota ya está activa");
     const now = this.context.currentTime;
+    if (!Number.isFinite(when) || when < 0) throw new RangeError("El instante de ataque no es válido");
+    const startAt = Math.max(now, when);
     const oscillator = this.context.createOscillator();
     const envelope = this.context.createGain();
     oscillator.type = this.waveform;
-    oscillator.frequency.setValueAtTime(440 * (2 ** ((midi - 69) / 12)), now);
-    envelope.gain.setValueAtTime(0.0001, now);
+    oscillator.frequency.setValueAtTime(440 * (2 ** ((midi - 69) / 12)), startAt);
+    envelope.gain.setValueAtTime(0.0001, startAt);
     const attackSeconds = 0.012;
-    envelope.gain.exponentialRampToValueAtTime(0.7, now + attackSeconds);
+    envelope.gain.exponentialRampToValueAtTime(0.7, startAt + attackSeconds);
     oscillator.connect(envelope);
     envelope.connect(this.#voiceBus(voiceId));
-    oscillator.start(now);
-    this.notes.set(key, { oscillator, envelope, voiceId, midi, eventId, startedAt: now, attackSeconds });
+    oscillator.start(startAt);
+    const note = { oscillator, envelope, voiceId, midi, eventId, startedAt: startAt, attackSeconds, stopScheduled: false };
+    oscillator.onended = () => { if (this.notes.get(key) === note) this.notes.delete(key); };
+    this.notes.set(key, note);
   }
 
-  note_off(voiceId, midi, eventId) {
+  note_off(voiceId, midi, eventId, when = this.context.currentTime) {
     this.#assertLive();
     const key = this.#key(voiceId, eventId, midi);
     const note = this.notes.get(key);
-    if (!note) return;
+    if (!note || note.stopScheduled) return;
     const now = this.context.currentTime;
-    note.envelope.gain.cancelScheduledValues(now);
-    const attackProgress = Math.max(0, Math.min(1, (now - note.startedAt) / note.attackSeconds));
+    if (!Number.isFinite(when) || when < 0) throw new RangeError("El instante de liberación no es válido");
+    const releaseAt = Math.max(now, when, note.startedAt);
+    note.envelope.gain.cancelScheduledValues(releaseAt);
+    const attackProgress = Math.max(0, Math.min(1, (releaseAt - note.startedAt) / note.attackSeconds));
     const heldGain = 0.0001 * (0.7 / 0.0001) ** attackProgress;
-    note.envelope.gain.setValueAtTime(Math.max(heldGain, 0.0001), now);
-    note.envelope.gain.exponentialRampToValueAtTime(0.0001, now + this.releaseSeconds);
-    note.oscillator.stop(now + this.releaseSeconds + 0.005);
-    this.notes.delete(key);
+    note.envelope.gain.setValueAtTime(Math.max(heldGain, 0.0001), releaseAt);
+    note.envelope.gain.exponentialRampToValueAtTime(0.0001, releaseAt + this.releaseSeconds);
+    note.oscillator.stop(releaseAt + this.releaseSeconds + 0.005);
+    note.stopScheduled = true;
+    note.releaseAt = releaseAt;
   }
 
   set_voice_muted(voiceId, muted) {
