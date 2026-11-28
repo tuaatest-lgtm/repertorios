@@ -104,56 +104,8 @@ def extract_beam_segments(
         if width >= min_length and width / max(height, 1) >= 1.5:
             segments.add((left, upper, width, height))
 
-    # Respaldo por componentes conectados: Hough puede partir una línea
-    # gruesa en fragmentos distintos según la pendiente y el grosor del trazo.
-    # Ajustar una recta a los píxeles de cada componente recupera su extensión
-    # completa sin recurrir a primitivas vectoriales del PDF.
-    count, labels, stats, _centroids = cv2.connectedComponentsWithStats(
-        (ink > 0).astype(np.uint8), connectivity=8
-    )
-    for label in range(1, count):
-        x, y, width, height, area = (int(v) for v in stats[label])
-        if width < min_length or width / max(height, 1) < 1.5:
-            continue
-        ys, xs = np.where(labels[y:y + height, x:x + width] == label)
-        if xs.size < min_length:
-            continue
-        points = np.column_stack((xs + x, ys + y)).astype(np.float32)
-        vx, vy, x0, y0 = (float(v) for v in cv2.fitLine(
-            points, cv2.DIST_L2, 0, 0.01, 0.01
-        ).reshape(-1))
-        if abs(vx) < 1e-6:
-            continue
-        # fitLine puede devolver el vector en cualquiera de los dos sentidos.
-        # Normalizarlo hacia X creciente evita rechazar pendientes positivas
-        # cuando OpenCV entrega vx y vy negativos.
-        if vx < 0:
-            vx, vy = -vx, -vy
-        angle = abs(math.degrees(math.atan2(vy, vx)))
-        # El fallback por componentes también debe aportar solo geometría
-        # realmente inclinada; el grosor de un trazo horizontal no es pendiente.
-        if angle < 1.5 or angle > max_angle_degrees:
-            continue
-        # Un componente puede unir una barra horizontal con dos plicas.
-        # Su bbox parece alargado, pero ajustar una sola recta a toda la
-        # estructura produce una falsa barra oblicua. Rechazamos componentes
-        # con demasiada tinta fuera de la recta dominante.
-        residuals = np.abs(
-            (points[:, 0] - x0) * vy - (points[:, 1] - y0) * vx
-        )
-        if float(np.percentile(residuals, 75)) > max(2.0, spacing * 0.28):
-            continue
-        projections = (points[:, 0] - x0) * vx + (points[:, 1] - y0) * vy
-        p0, p1 = float(projections.min()), float(projections.max())
-        xa = int(round(x0 + p0 * vx))
-        ya = int(round(y0 + p0 * vy))
-        xb = int(round(x0 + p1 * vx))
-        yb = int(round(y0 + p1 * vy))
-        left, right = sorted((xa, xb))
-        upper, lower = sorted((ya, yb))
-        candidate = (left, upper - 2, right - left + 1,
-                     max(5, lower - upper + 5))
-        if candidate[2] >= min_length:
-            segments.add(candidate)
+    # No se usa fallback por componentes conectados: una barra horizontal
+    # unida a plicas puede formar un único componente y fitLine la confunde
+    # con una barra oblicua. Hough conserva los segmentos inclinados aislados.
 
     return sorted(segments, key=lambda item: (item[0], item[1]))
