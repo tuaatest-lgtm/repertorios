@@ -82,18 +82,21 @@ def build_focused_review_package(
         if related and set(related).issubset(selected_scope_ids):
             selected_other.append(item)
 
-    all_selected_ids = (
-        selected_staff_ids
-        | notehead_ids
-        | {
-            item["candidate_id"] for item in selected_other
-            if isinstance(item.get("candidate_id"), str)
-        }
-    )
-    if len(all_selected_ids) != (
-        len(selected_staff_ids) + len(notehead_ids) + len(selected_other)
-    ):
+    if len(notehead_ids) != len(selected_noteheads):
         raise ValueError("Los IDs de candidatos seleccionados deben ser únicos")
+    selected_other_ids = [
+        item.get("candidate_id") for item in selected_other
+    ]
+    if any(not isinstance(value, str) or not value for value in selected_other_ids):
+        raise ValueError("Cada candidato relacionado requiere candidate_id")
+    if len(set(selected_other_ids)) != len(selected_other_ids):
+        raise ValueError("Los IDs de candidatos seleccionados deben ser únicos")
+    if set(selected_other_ids).intersection(selected_staff_ids | notehead_ids):
+        raise ValueError("Los IDs de candidatos seleccionados deben ser únicos")
+
+    all_selected_ids = (
+        selected_staff_ids | notehead_ids | set(selected_other_ids)
+    )
 
     staff_lines = []
     for item in selected_staves:
