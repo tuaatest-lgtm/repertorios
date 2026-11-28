@@ -215,27 +215,32 @@ def detect_local_beam_candidates(
                 (1, max(3, int(round(spacing * 1.8)))),
             ),
         )
-        anchors: dict[int, tuple[int, int, int]] = {}
+        # Cabezas de un mismo acorde pueden compartir una plica. Agrupamos
+        # por extremo detectado para no crear pares duplicados ni separar acordes.
+        heads_by_stem: dict[tuple[int, int, str], list[int]] = {}
         for index, (head, rhythm) in enumerate(zip(noteheads, rhythms)):
             if head.staff_index != staff_index or rhythm.stem_direction not in ("up", "down"):
                 continue
             anchor = _find_stem_anchor(
                 vertical_ink, head, spacing, rhythm.stem_direction
             )
-            if anchor is not None:
-                anchors[index] = anchor
+            if anchor is None:
+                continue
+            stem_x, tip_y, _stem_length = anchor
+            key = (stem_x, tip_y, rhythm.stem_direction)
+            heads_by_stem.setdefault(key, []).append(index)
 
-        staff_heads = sorted(anchors, key=lambda index: noteheads[index].center_x)
-        for pos, first_index in enumerate(staff_heads):
-            first = noteheads[first_index]
-            first_rhythm = rhythms[first_index]
-            stem_x1, tip_y1, _length1 = anchors[first_index]
-            for second_index in staff_heads[pos + 1:]:
-                second = noteheads[second_index]
-                second_rhythm = rhythms[second_index]
-                if first_rhythm.stem_direction != second_rhythm.stem_direction:
+        stem_keys = sorted(
+            heads_by_stem,
+            key=lambda key: (key[0], key[1]),
+        )
+        for pos, first_key in enumerate(stem_keys):
+            stem_x1, tip_y1, direction1 = first_key
+            first_indices = heads_by_stem[first_key]
+            for second_key in stem_keys[pos + 1:]:
+                stem_x2, tip_y2, direction2 = second_key
+                if direction1 != direction2:
                     continue
-                stem_x2, tip_y2, _length2 = anchors[second_index]
                 dx = stem_x2 - stem_x1
                 if dx <= 0 or not spacing * min_pair_spacing <= dx <= spacing * max_pair_spacing:
                     continue
@@ -250,12 +255,17 @@ def detect_local_beam_candidates(
                 if support < 0.82 or density < 0.68:
                     continue
 
+                second_indices = heads_by_stem[second_key]
+                linked_heads = tuple(sorted(
+                    first_indices + second_indices,
+                    key=lambda index: (noteheads[index].center_x, noteheads[index].center_y),
+                ))
                 start, end = (stem_x1, tip_y1), (stem_x2, tip_y2)
                 beam_count = _parallel_beam_count(ink, start, end, spacing)
                 left, right = min(stem_x1, stem_x2), max(stem_x1, stem_x2)
                 top, bottom = min(tip_y1, tip_y2), max(tip_y1, tip_y2)
                 results.append(LocalBeamCandidate(
-                    notehead_indices=(first_index, second_index),
+                    notehead_indices=linked_heads,
                     start=start,
                     end=end,
                     beam_count=beam_count,
