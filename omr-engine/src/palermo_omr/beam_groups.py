@@ -165,6 +165,7 @@ def detect_beam_group_candidates(
         # Añade segmentos multiángulo detectados en la región del pentagrama.
         # Se conservan los segmentos horizontales previos como vía de respaldo.
         staff_crop = binary[top:bottom + 1]
+        sloped_segments: set[tuple[int, int, int, int]] = set()
         for sx, sy, sw, sh in extract_beam_segments(
             staff_crop,
             spacing=spacing,
@@ -172,10 +173,10 @@ def detect_beam_group_candidates(
         ):
             # Los trazos casi horizontales ya se obtienen por filas. Añadirlos
             # otra vez desde Hough duplica grupos y altera el número de barras.
-            # Hough se reserva aquí para barras con pendiente visible.
             if sh <= max(2, int(round(spacing * 0.15))):
                 continue
             candidate = (sx, sy + top, sw, sh)
+            sloped_segments.add(candidate)
             if min_width <= sw <= max_width and not any(
                 abs(candidate[0] - existing[0]) <= 2
                 and abs(candidate[1] - existing[1]) <= 2
@@ -236,6 +237,11 @@ def detect_beam_group_candidates(
             # Una barra corta puede ser un haz parcial unido a una sola plica.
             # Se conserva como candidato separado, nunca como grupo compartido.
             if len(matched_tuple) >= 1:
+                # Un segmento Hough oblicuo aislado no basta para declarar una
+                # bandera parcial: exigimos que conecte dos cabezas. Los haces
+                # parciales horizontales siguen viniendo del detector por filas.
+                if (x, y, w, h) in sloped_segments and len(matched_tuple) < 2:
+                    continue
                 segments_by_heads.setdefault(matched_tuple, []).append((x, y, w, h))
 
         for matched, segments in segments_by_heads.items():
