@@ -66,8 +66,6 @@ class PlaybackController:
 
     @property
     def current_seconds(self) -> float:
-        if self._state == "playing" and self._anchor is not None:
-            return max(0.0, self._anchor)
         return self._elapsed
 
     @property
@@ -117,14 +115,15 @@ class PlaybackController:
             if voice_id in self._muted:
                 return
             self._muted.add(voice_id)
-            for note in self._active.values():
-                if note["voice_id"] == voice_id:
-                    self._sink.note_off(voice_id, note["midi"], note["event_id"])
+            if self._state == "playing":
+                for note in self._active.values():
+                    if note["voice_id"] == voice_id:
+                        self._sink.note_off(voice_id, note["midi"], note["event_id"])
         else:
             if voice_id not in self._muted:
                 return
             self._muted.remove(voice_id)
-            if self._state in {"playing", "paused"}:
+            if self._state == "playing":
                 for note in self._active.values():
                     if note["voice_id"] == voice_id:
                         self._sink.note_on(voice_id, note["midi"], note["event_id"])
