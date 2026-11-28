@@ -72,7 +72,7 @@ def test_rejects_duplicate_or_out_of_range_notehead_indices():
         fuse_score_event_candidates(
             [group(notehead_indices=(0, 2))], [pitch(), pitch()], ["a", "b"]
         )
-    with pytest.raises(ValueError, match="no vacío y sin duplicados"):
+    with pytest.raises(ValueError, match="sin duplicados"):
         fuse_score_event_candidates(
             [group(notehead_indices=(0, 0))], [pitch()], ["a"]
         )
@@ -98,3 +98,27 @@ def test_requires_unique_source_ids_and_serializes_fraction_exactly():
         [pitch(), pitch()], ["a", "b"]
     )[0]
     assert event.to_dict()["duration_quarters_candidate"] == "3/2"
+
+
+def test_fuses_rest_without_noteheads_or_pitch_candidates():
+    rest = group(
+        event_id="rest-1",
+        notehead_indices=(),
+        event_type="rest",
+        status="single_rest_candidate",
+    )
+    event = fuse_score_event_candidates([rest], [], [])[0]
+    assert event.event_type == "rest"
+    assert event.notehead_candidate_ids == ()
+    assert event.pitch_candidates == ()
+    assert event.status == "ready_for_review"
+
+
+def test_rejects_rest_that_claims_noteheads_or_unknown_event_type():
+    with pytest.raises(ValueError, match="no puede apropiarse"):
+        fuse_score_event_candidates(
+            [group(event_type="rest", status="single_rest_candidate")],
+            [pitch(), pitch()], ["a", "b"]
+        )
+    with pytest.raises(ValueError, match="event_type"):
+        fuse_score_event_candidates([group(event_type="unknown")], [pitch(), pitch()], ["a", "b"])

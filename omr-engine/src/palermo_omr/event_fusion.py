@@ -21,6 +21,7 @@ class ScoreEventCandidate:
     duration_quarters_candidate: Fraction | None
     status: str
     warnings: tuple[str, ...]
+    event_type: str = "note"
 
     def to_dict(self) -> dict[str, Any]:
         result = asdict(self)
@@ -69,9 +70,14 @@ def fuse_score_event_candidates(
             raise ValueError("Cada grupo debe tener un event_id único y no vacío")
         seen_event_ids.add(event_id)
 
+        event_type = getattr(group, "event_type", "note")
+        if event_type not in {"note", "rest"}:
+            raise ValueError(f"{event_id}: event_type debe ser 'note' o 'rest'")
         indices = tuple(getattr(group, "notehead_indices", ()))
-        if not indices or len(set(indices)) != len(indices):
-            raise ValueError(f"{event_id}: notehead_indices debe ser no vacío y sin duplicados")
+        if (event_type == "note" and not indices) or len(set(indices)) != len(indices):
+            raise ValueError(f"{event_id}: notehead_indices debe ser no vacío para notas y sin duplicados")
+        if event_type == "rest" and indices:
+            raise ValueError(f"{event_id}: un silencio no puede apropiarse de cabezas de nota")
         if any(not isinstance(index, int) or isinstance(index, bool) or index < 0 or index >= len(pitch_candidates) for index in indices):
             raise ValueError(f"{event_id}: índice de cabeza fuera del rango de candidatos")
         if any(index in seen_heads for index in indices):
@@ -84,7 +90,7 @@ def fuse_score_event_candidates(
             raise ValueError(f"{event_id}: grupo y altura pertenecen a pentagramas distintos")
 
         payloads = tuple(_pitch_payload(item) for item in selected)
-        pitch_resolved = all(
+        pitch_resolved = event_type == "rest" or bool(selected) and all(
             getattr(item, "status", None) == "resolved_from_supplied_clef"
             and getattr(item, "pitch", None) is not None
             for item in selected
@@ -95,9 +101,10 @@ def fuse_score_event_candidates(
         group_status = getattr(group, "status", "ambiguous")
         warnings = list(getattr(group, "warnings", ()))
 
-        if group_status not in {"single_note_candidate", "proposed_chord"}:
-            warnings.append("El grupo rítmico no está resuelto; se conserva como candidato ambiguo.")
-        if not pitch_resolved:
+        allowed_statuses = {"single_rest_candidate"} if event_type == "rest" else {"single_note_candidate", "proposed_chord"}
+        if group_status not in allowed_statuses:
+            warnings.append("El evento rítmico no está resuelto; se conserva como candidato ambiguo.")
+        if event_type == "note" and not pitch_resolved:
             warnings.append("Una o más alturas siguen sin resolver por falta de contexto notacional confirmado.")
         if voice_id is None:
             warnings.append("No existe asignación explícita de voz para este evento.")
@@ -105,7 +112,7 @@ def fuse_score_event_candidates(
             warnings.append("La duración no está resuelta; no se asigna posición temporal.")
 
         ready = (
-            group_status in {"single_note_candidate", "proposed_chord"}
+            group_status in allowed_statuses
             and pitch_resolved
             and isinstance(voice_id, str) and bool(voice_id.strip())
             and duration is not None
@@ -120,6 +127,7 @@ def fuse_score_event_candidates(
             duration_quarters_candidate=duration,
             status="ready_for_review" if ready else "incomplete_candidate",
             warnings=tuple(dict.fromkeys(warnings)),
+            event_type=event_type,
         ))
 
     return tuple(output)

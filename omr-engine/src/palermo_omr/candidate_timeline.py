@@ -92,7 +92,7 @@ def build_candidate_measure_timelines(
             measure_index=measure_index,
             order_index=order_index,
             duration_quarters=duration,
-            event_type="note",
+            event_type=event.event_type,
             notehead_ids=event.notehead_candidate_ids,
         ))
         if event.status != "ready_for_review":
