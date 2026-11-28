@@ -11,6 +11,7 @@ import cv2
 
 from . import __version__
 from .imaging import analyze_page, render_pdf
+from .pdf_clef_glyphs import detect_embedded_pdf_clef_candidates
 from .symbols import (
     detect_hollow_notehead_candidates,
     detect_notehead_candidates,
@@ -67,6 +68,7 @@ def main() -> int:
     parser.add_argument("--output", default="omr-output", help="Carpeta de salida")
     parser.add_argument("--dpi", type=int, default=300, help="Resolución de renderizado (72-600)")
     parser.add_argument("--min-notehead-confidence", type=float, default=0.0, help="Filtro opcional de confianza para cabezas rellenas (0-1); 0 conserva todos los candidatos")
+    parser.add_argument("--embedded-pdf-clef-glyphs", action="store_true", help="Extrae candidatos de clave desde glifos de fuente embebidos en PDFs Sibelius/Reprise; quedan pendientes de revisión")
     parser.add_argument(
         "--staff-clefs", default="{}",
         help="JSON opcional: claves por índice de pentagrama, p. ej. '{\"0\":\"treble\",\"1\":\"bass\"}'. No se detectan visualmente.",
@@ -125,6 +127,16 @@ def main() -> int:
 
         page_data = analysis.to_dict()
         page_data["render_dpi"] = args.dpi
+        embedded_clef_candidates = (
+            detect_embedded_pdf_clef_candidates(
+                args.pdf, page_number, analysis.staves, dpi=args.dpi
+            )
+            if args.embedded_pdf_clef_glyphs else ()
+        )
+        page_data["embedded_clef_candidates"] = [
+            item.to_dict() for item in embedded_clef_candidates
+        ]
+        page_data["embedded_clef_candidate_count"] = len(embedded_clef_candidates)
         raw_noteheads = detect_notehead_candidates(binary, analysis.staves)
         noteheads = filter_notehead_candidates_by_confidence(
             raw_noteheads, args.min_notehead_confidence
