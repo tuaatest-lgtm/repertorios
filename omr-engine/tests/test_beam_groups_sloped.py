@@ -114,3 +114,19 @@ def test_rejects_note_pair_farther_than_local_search_limit():
             image, staves, heads[:2], rhythms[:2]
         )
     ]
+
+
+def test_chord_noteheads_sharing_one_stem_are_kept_in_same_beam_candidate():
+    image, staves, heads, rhythms = _sloped_fixture(slope=-0.16)
+    chord_head = NoteheadCandidate(
+        (74, 65, 16, 10), 82.0, 70.0, 0, 4, .8, .9, .9
+    )
+    cv2.ellipse(image, (82, 70), (8, 5), -20, 0, 360, 0, -1)
+    cv2.line(image, (86, 70), (86, 40), 0, 2)
+    heads.append(chord_head)
+    rhythms.append(RhythmCandidate(
+        chord_head.bbox, 0, "filled", .9, "up", 30, 0, "quarter", .8, ()
+    ))
+    candidates = detect_local_beam_candidates(image, staves, heads, rhythms)
+    assert len(candidates) == 1
+    assert set(candidates[0].notehead_indices) == {0, 1, 2}
