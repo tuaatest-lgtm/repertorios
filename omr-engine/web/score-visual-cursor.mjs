@@ -68,11 +68,12 @@ export class ScoreVisualCursor {
     const systems = [...new Set(focus.map(e =>
       JSON.stringify([e.anchor.page_index, e.anchor.system_index])))].sort();
     const latest = [...focus].sort((a, b) => b.start_seconds - a.start_seconds)[0] ?? null;
+    const ambiguousLocation = pages.length > 1 || systems.length > 1 || unresolvedActive.length > 0;
     return {
       current_seconds: seconds,
-      page_index: pages.length === 1 ? pages[0] : null,
-      system_index: systems.length === 1 ? JSON.parse(systems[0])[1] : null,
-      ambiguous_location: pages.length > 1 || systems.length > 1 || unresolvedActive.length > 0,
+      page_index: !ambiguousLocation && pages.length === 1 ? pages[0] : null,
+      system_index: !ambiguousLocation && systems.length === 1 ? JSON.parse(systems[0])[1] : null,
+      ambiguous_location: ambiguousLocation,
       active_event_ids: active.map(e => e.event_id),
       unresolved_active_event_ids: unresolvedActive.map(e => e.event_id),
       active_voices: [...new Set(active.map(e => e.voice_id).filter(Boolean))].sort(),
