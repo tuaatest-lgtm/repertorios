@@ -27,6 +27,7 @@ palermo-omr-glyph-baseline = "palermo_omr.glyph_baseline_cli:main"
 palermo-omr-glyph-train = "palermo_omr.glyph_train_cli:main"
 palermo-omr-glyph-predict = "palermo_omr.glyph_predict_cli:main"
 palermo-omr-pdf-glyph-evaluate = "palermo_omr.pdf_glyph_validation_cli:main"
+palermo-omr-focus-review = "palermo_omr.focused_review_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
