@@ -268,6 +268,9 @@ def test_cli_supports_opt_in_filled_notehead_confidence_filter(tmp_path, monkeyp
     analysis = json.loads((output_dir / "analysis.json").read_text(encoding="utf-8"))
     page_data = analysis["pages"][0]
     assert page_data["notehead_confidence_filter"] == .7
+    assert page_data["notehead_candidate_count_before_filter"] == 2
+    assert page_data["notehead_candidates_filtered_out_count"] == 1
+    assert page_data["notehead_candidates_filtered_out"][0]["confidence"] == .6
     assert page_data["notehead_candidate_count"] == 1
     assert page_data["notehead_candidates"][0]["confidence"] == .9
 
