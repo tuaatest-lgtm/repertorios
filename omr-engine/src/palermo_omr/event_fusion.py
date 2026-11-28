@@ -5,6 +5,7 @@ los estados de altura y las incertidumbres antes de construir una línea tempora
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from fractions import Fraction
 from typing import Any, Sequence
