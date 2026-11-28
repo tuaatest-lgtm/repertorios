@@ -72,14 +72,25 @@ def _beam_y_at_x(
     x, y, width, height = beam_bbox
     if not x <= stem_x < x + width:
         return None
-    x0 = max(0, stem_x - 1)
-    x1 = min(ink.shape[1], stem_x + 2)
     y0 = max(0, y)
     y1 = min(ink.shape[0], y + max(1, height))
-    rows = np.flatnonzero(ink[y0:y1, x0:x1].any(axis=1))
-    if rows.size == 0:
+    # Excluye el núcleo de la plica: al ser vertical, puede ocupar todas
+    # las filas del bbox y desplazar la mediana lejos de la barra inclinada.
+    sample_xs = [
+        sx for sx in range(max(x, stem_x - 6), min(x + width, stem_x + 7))
+        if abs(sx - stem_x) > 1 and 0 <= sx < ink.shape[1]
+    ]
+    centers: list[tuple[float, float]] = []
+    for sx in sample_xs:
+        rows = np.flatnonzero(ink[y0:y1, sx])
+        if rows.size:
+            centers.append((float(sx), float(y0 + np.median(rows))))
+    if len(centers) < 2:
         return None
-    return float(y0 + np.median(rows))
+    xs = np.asarray([point[0] for point in centers], dtype=float)
+    ys = np.asarray([point[1] for point in centers], dtype=float)
+    slope, intercept = np.polyfit(xs, ys, 1)
+    return float(intercept + slope * stem_x)
 
 
 def detect_beam_group_candidates(
