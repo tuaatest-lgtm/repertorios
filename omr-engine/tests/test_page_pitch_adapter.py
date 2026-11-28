@@ -1,5 +1,6 @@
 import pytest
 
+from palermo_omr.accidental_attachment import attach_reviewed_accidentals
 from palermo_omr.page_pitch_adapter import build_pitch_candidates_from_page_analysis
 
 
@@ -87,3 +88,39 @@ def test_page_pitch_adapter_rejects_invalid_staff_context_and_alignment():
                  "key_signature": {}, "key_signature_status": "human_confirmed"}},
             explicit_accidentals=["natural"],
         )
+
+
+def test_page_pitch_adapter_accepts_only_human_approved_accidental_attachments():
+    page = {
+        "page_number": 3,
+        "notehead_candidates": [
+            {"center_x": 25, "staff_index": 0, "diatonic_step_from_bottom": 1},
+            {"center_x": 85, "staff_index": 0, "diatonic_step_from_bottom": 1},
+            {"center_x": 25, "staff_index": 1, "diatonic_step_from_bottom": 1},
+        ],
+    }
+    attachment_map = attach_reviewed_accidentals(
+        [{"candidate_id": "natural-1", "kind": "natural",
+          "status": "human_confirmed", "staff_index": 0, "measure_id": "m1",
+          "bbox": [8, 48, 8, 12]}],
+        [
+            {"candidate_id": "h0", "staff_index": 0, "measure_id": "m1", "bbox": [20, 50, 10, 8]},
+            {"candidate_id": "h1", "staff_index": 0, "measure_id": "m1", "bbox": [80, 50, 10, 8]},
+            {"candidate_id": "h2", "staff_index": 1, "measure_id": "m2", "bbox": [20, 150, 10, 8]},
+        ],
+        {0: 10, 1: 10},
+    )
+    result = build_pitch_candidates_from_page_analysis(
+        page,
+        {
+            0: {"clef": "treble", "clef_status": "human_confirmed",
+                "key_signature": {"F": 1}, "key_signature_status": "human_confirmed"},
+            1: {"clef": "bass", "clef_status": "human_confirmed",
+                "key_signature": {}, "key_signature_status": "human_confirmed"},
+        },
+        measure_ids=["m1", "m1", "m2"],
+        notehead_ids=["h0", "h1", "h2"],
+        accidental_attachment_map=attachment_map,
+        accepted_accidental_ids=["natural-1"],
+    )
+    assert [item["pitch"]["midi"] for item in result["pitch_candidates"]] == [65, 65, 45]
