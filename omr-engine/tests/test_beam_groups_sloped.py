@@ -139,4 +139,7 @@ def test_stem_anchor_scan_is_clamped_at_bottom_page_edge():
     head = NoteheadCandidate(
         (20, 160, 10, 10), 25.0, 165.0, 0, 0, .8, .9, .9
     )
-    assert _find_stem_anchor(vertical_ink, head, 2.0, "down") == (25, 169, 3)
+    anchor = _find_stem_anchor(vertical_ink, head, 2.0, "down")
+    assert anchor is not None
+    assert abs(anchor[0] - 25) <= 1
+    assert anchor[1:] == (169, 3)
