@@ -97,6 +97,9 @@ def _pitch_fields(pitch: Mapping) -> tuple[str, int | None, int]:
 
 def _tie_types(event: Mapping) -> tuple[str, ...]:
     values = []
+    for key in ("tie_start", "tie_stop"):
+        if key in event and not isinstance(event[key], bool):
+            raise ValueError(f"{key} debe ser booleano")
     if event.get("tie_stop"):
         values.append("stop")
     if event.get("tie_start"):
@@ -194,12 +197,15 @@ def render_reviewed_timelines_musicxml(
                 if pitches:
                     raise ValueError("Un silencio no puede contener alturas")
                 normalized_pitches = []
+            ties = _tie_types(event)
+            if kind == "rest" and ties:
+                raise ValueError("Un silencio no puede contener ligaduras")
             notation = _notation(duration)
             parsed_events.append({
                 "event_id": event_id, "voice_id": voice_id,
                 "onset": onset, "duration": duration, "kind": kind,
                 "pitches": normalized_pitches, "notation": notation,
-                "ties": _tie_types(event),
+                "ties": ties,
             })
         normalized.append({
             "page_number": page_number, "measure_index": measure_index,
@@ -261,6 +267,8 @@ def render_reviewed_timelines_musicxml(
             voice_events = [
                 event for event in timeline["events"] if event["voice_id"] == voice
             ]
+            if not voice_events:
+                raise ValueError("Cada voz requiere un evento o silencio explícito en cada compás")
             by_onset = defaultdict(list)
             for event in voice_events:
                 by_onset[event["onset"]].append(event)
