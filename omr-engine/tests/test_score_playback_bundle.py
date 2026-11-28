@@ -1,10 +1,9 @@
 from fractions import Fraction
 
 from palermo_omr.event_fusion import ScoreEventCandidate
-from palermo_omr.score_document import (
-    GlobalMeasureNumber, ScoreDocument, ScoreStaff, ScoreStructure, ScoreSystem,
-    MeasureRegion,
-)
+from palermo_omr.score_document import ScoreDocument
+from palermo_omr.score_structure import ScoreStaff, ScoreStructure, ScoreSystem, MeasureRegion
+
 from palermo_omr.score_playback_bundle import build_score_playback_bundle
 
 
