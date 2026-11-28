@@ -105,6 +105,7 @@ class AnnotationDataset:
                             ),
                             "duration_quarters": _number_string(event.duration_quarters),
                             "voice_id": event.voice_id,
+                            "source_candidate_ids": list(event.source_candidate_ids),
                         }
                         for event in score.events
                     ],
@@ -136,8 +137,13 @@ class AnnotationDataset:
                     "onset_quarters", "event_type", "pitches_midi",
                     "duration_quarters", "voice_id",
                 }
-                if not isinstance(event_data, dict) or set(event_data) != expected_event_keys:
-                    raise ValueError("Cada evento debe contener exactamente los campos definidos")
+                optional_event_keys = expected_event_keys | {"source_candidate_ids"}
+                if (not isinstance(event_data, dict)
+                        or set(event_data) not in (expected_event_keys, optional_event_keys)):
+                    raise ValueError("Cada evento debe contener los campos definidos y evidencia opcional")
+                candidate_ids = event_data.get("source_candidate_ids", [])
+                if not isinstance(candidate_ids, list):
+                    raise ValueError("source_candidate_ids debe ser una lista")
                 pitches = event_data["pitches_midi"]
                 if pitches is not None and not isinstance(pitches, list):
                     raise ValueError("pitches_midi debe ser una lista o null")
@@ -151,6 +157,7 @@ class AnnotationDataset:
                     pitches_midi=tuple(pitches) if pitches is not None else None,
                     duration_quarters=_parse_fraction(event_data["duration_quarters"]),
                     voice_id=event_data["voice_id"],
+                    source_candidate_ids=tuple(candidate_ids),
                 ))
             scores.append(AnnotatedScore(
                 score_id=score_data["score_id"],
