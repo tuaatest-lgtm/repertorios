@@ -132,7 +132,7 @@ def render_polyphonic_midi(
     voices = set()
     active: dict[tuple[str, str, int], float] = {}
     active_pitch: set[tuple[str, int]] = set()
-    intervals: list[tuple[str, int, int, int]] = []
+    intervals: list[tuple[str, int, int, int, str]] = []
     seen_commands: set[tuple[str, str, int, str]] = set()
 
     for command in commands:
@@ -173,7 +173,7 @@ def render_polyphonic_midi(
             active_pitch.remove(pitch_key)
             if when <= start:
                 raise ValueError("note_off debe ocurrir después de note_on")
-            start_tick = round(start * float(tempo_bpm) / 60.0 * ticks_per_quarter)
+            start_tick = _seconds_to_ticks(start, float(tempo_bpm), normalized_tempo_changes, ticks_per_quarter)
             end_tick = _seconds_to_ticks(when, float(tempo_bpm), normalized_tempo_changes, ticks_per_quarter)
             if end_tick <= start_tick:
                 raise ValueError("La duración es inferior a la resolución MIDI")
@@ -288,6 +288,8 @@ def render_score_playback_bundle_midi(
     voice_pan: Mapping[str, float] | None = None,
     time_signature: tuple[int, int] | None = None,
     key_signature: tuple[int, int] | None = None,
+    tempo_changes: tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]] = (),
+    event_velocities: Mapping[str, int] | None = None,
 ) -> bytes:
     """Exporta directamente el command_stream de un paquete de partitura."""
     if not isinstance(bundle, Mapping) or bundle.get("status") != "unconfirmed_score_playback_bundle":
@@ -303,4 +305,6 @@ def render_score_playback_bundle_midi(
         voice_pan=voice_pan,
         time_signature=time_signature,
         key_signature=key_signature,
+        tempo_changes=tempo_changes,
+        event_velocities=event_velocities,
     )
