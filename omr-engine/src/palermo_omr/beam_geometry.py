@@ -396,9 +396,9 @@ def detect_local_beam_candidates(
                 / max(1, other.end[0] - other.start[0])
             )
             other_intercept = other.start[1] - other_slope * other.start[0]
-            if abs(candidate_slope - other_slope) > 0.025:
+            if abs(candidate_slope - other_slope) > 0.035:
                 continue
-            if abs(candidate_intercept - other_intercept) > 3.0:
+            if abs(candidate_intercept - other_intercept) > 4.0:
                 continue
             if other.bbox[0] <= candidate.bbox[0] and (
                 other.bbox[0] + other.bbox[2]
