@@ -194,6 +194,7 @@ def render_polyphonic_midi(
             not isinstance(key_signature, tuple) or len(key_signature) != 2
             or not isinstance(key_signature[0], int) or isinstance(key_signature[0], bool)
             or not -7 <= key_signature[0] <= 7
+            or not isinstance(key_signature[1], int) or isinstance(key_signature[1], bool)
             or key_signature[1] not in (0, 1)
         ):
             raise ValueError("key_signature debe ser (alteraciones -7..7, modo 0 mayor/1 menor)")
