@@ -136,6 +136,9 @@ def build_score_playback_bundle_from_page_analyses(
 
     timeline_result = None
     timelines_for_projection = timelines
+    timeline_pages = {item.get("page_number") for item in timelines if isinstance(item, Mapping) and item.get("page_number") is not None}
+    if len(timeline_pages) > 1 and page_measure_global_indices is None:
+        raise ValueError("La reproducción multipágina requiere page_measure_global_indices explícito")
     if page_measure_global_indices is not None:
         timeline_result = merge_page_timelines_by_global_measure_map(
             timelines, page_measure_global_indices
