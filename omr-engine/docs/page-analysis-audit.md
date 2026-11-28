@@ -66,3 +66,17 @@ positivos y negativos son discrepancias de localización frente a ese glifo
 de referencia. No indican por sí mismos si una nota musical fue interpretada
 correctamente. Esta medición no valida alturas, alteraciones, figuras,
 duraciones, silencios, voces, compases ni reproducción.
+
+
+### Sensibilidad al umbral de confianza
+
+La evaluación también calcula una curva de filtrado por confianza, sin cambiar
+el detector ni descartar candidatos del JSON original. En este PDF, usando solo
+cabezas rellenas y el mismo glifo de referencia, el umbral 0.70 conserva los
+494 emparejamientos verdaderos, reduce los candidatos de 564 a 549 y eleva F1
+de 89.98% a 91.23%. El umbral 0.75 reduce aún más los falsos positivos, pero
+pierde seis emparejamientos y produce F1 91.47%.
+
+Estos umbrales se muestran como análisis de sensibilidad para este documento,
+no como un valor universal ni como una modificación automática del motor.
+La evaluación de referencia sigue limitada al glifo de cabeza rellena.
