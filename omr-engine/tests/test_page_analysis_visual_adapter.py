@@ -1,6 +1,6 @@
 import pytest
 
-from palermo_omr.visual_anchor_map import (
+from palermo_omr.page_analysis_visual_adapter import (
     build_visual_anchor_map_from_page_analysis,
     evaluate_visual_anchor_coverage,
 )
