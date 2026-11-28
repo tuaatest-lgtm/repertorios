@@ -121,7 +121,7 @@ def test_rejects_shared_beam_when_one_stem_does_not_reach_it():
     assert all(group.notehead_indices != [0, 1] for group in groups)
 
 
-@pytest.mark.parametrize("slope", [-0.16, 0.16])
+@pytest.mark.parametrize("slope", [-0.22, -0.16, 0.16, 0.22])
 @pytest.mark.parametrize("beam_count", [1, 2, 3, 4])
 def test_detects_locally_sloped_shared_beams_with_connected_stems(slope, beam_count):
     image = np.full((180, 260), 255, dtype=np.uint8)
