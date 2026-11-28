@@ -163,3 +163,40 @@ def evaluate_visual_anchor_coverage(page_analysis: Mapping[str, Any]) -> dict[st
             "ritmo, voces ni reconocimiento musical."
         ),
     }
+
+
+def build_score_structure_from_page_analysis(page_analysis: Mapping[str, Any]):
+    """Construye ScoreStructure geométrico desde un objeto JSON de página."""
+    if not isinstance(page_analysis, Mapping):
+        raise ValueError("page_analysis debe ser un objeto")
+    page_number = page_analysis.get("page_number")
+    staves_raw = page_analysis.get("staves")
+    systems_raw = page_analysis.get("staff_system_candidates")
+    spans_raw = page_analysis.get("measure_span_candidates")
+    if not isinstance(staves_raw, list) or not isinstance(systems_raw, list) or not isinstance(spans_raw, list):
+        raise ValueError("El análisis debe incluir staves, systems y measure spans")
+    staves = [StaffCandidate(
+        lines_y=list(item["lines_y"]),
+        spacing_px=float(item["spacing_px"]),
+        confidence=float(item.get("confidence", 0.0)),
+    ) for item in staves_raw]
+    systems = [StaffSystemCandidate(
+        system_index=int(item["system_index"]),
+        staff_indices=list(item["staff_indices"]),
+        y_top=float(item["y_top"]),
+        y_bottom=float(item["y_bottom"]),
+        confidence=float(item["confidence"]),
+        warning=str(item.get("warning", "Sistema geométrico candidato.")),
+    ) for item in systems_raw]
+    spans = [MeasureSpanCandidate(
+        staff_index=int(item["staff_index"]),
+        measure_index=int(item["measure_index"]),
+        x_start=float(item["x_start"]),
+        x_end=float(item["x_end"]),
+        width_px=float(item.get("width_px", item["x_end"] - item["x_start"])),
+        left_boundary_observed=bool(item.get("left_boundary_observed", False)),
+        right_boundary_observed=bool(item.get("right_boundary_observed", False)),
+        confidence=float(item.get("confidence", 0.0)),
+        warning=str(item.get("warning", "Intervalo geométrico candidato.")),
+    ) for item in spans_raw]
+    return build_geometric_score_structure(page_number, staves, systems, spans)
