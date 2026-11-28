@@ -81,6 +81,60 @@ def _stem(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> tuple[
     return best if best[1] >= int(spacing*1.35) else ("none", best[1])
 
 
+
+def _stem_from_bbox_edges(
+    binary: np.ndarray,
+    head: NoteheadCandidate,
+    spacing: float,
+) -> tuple[str, int]:
+    """Busca una plica en el borde notacional de la cabeza, solo como fallback.
+
+    En notación convencional, una plica ascendente se une al borde derecho y
+    una descendente al izquierdo. Este fallback no reemplaza una detección
+    central válida y limita trazos largos para evitar confundir barlines.
+    """
+    if head.notehead_shape_score < 0.70:
+        return "none", 0
+    ink = _ink(binary)
+    height, width = ink.shape
+    x, y, box_width, box_height = head.bbox
+    if box_width <= 2 or box_height <= 2:
+        return "none", 0
+    vertical = cv2.morphologyEx(
+        ink,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(
+            cv2.MORPH_RECT, (1, max(3, int(round(spacing * 1.8))))
+        ),
+    )
+    center_y = int(round(head.center_y))
+    anchors = (
+        (int(round(x + 1)), "down"),
+        (int(round(x + box_width - 2)), "up"),
+    )
+    best = ("none", 0)
+    minimum = int(spacing * 1.35)
+    maximum = int(spacing * 6.0)
+    for anchor_x, direction in anchors:
+        if not 0 <= anchor_x < width:
+            continue
+        column = vertical[:, max(0, anchor_x - 1):min(width, anchor_x + 2)].max(axis=1)
+        if direction == "up":
+            scan = range(max(0, center_y - int(spacing * 0.25)), -1, -1)
+        else:
+            scan = range(min(height - 1, center_y + int(spacing * 0.25)), height)
+        run = longest = 0
+        for row in scan:
+            if column[row]:
+                run += 1
+                longest = max(longest, run)
+            elif run:
+                break
+        if minimum <= longest <= maximum and longest > best[1]:
+            best = (direction, longest)
+    return best
+
+
 def _beam_count(binary: np.ndarray, head: NoteheadCandidate, spacing: float) -> int:
     ink = _ink(binary)
     h, w = ink.shape
@@ -121,9 +175,19 @@ def analyze_rhythm_candidates(binary: np.ndarray, staves: list[StaffCandidate],
             continue
         fill, fill_score = _classify_fill(binary,head,spacing)
         direction, stem_length = _stem(binary,head,spacing)
+        stem_fallback = False
+        if direction == "none":
+            direction, fallback_length = _stem_from_bbox_edges(binary, head, spacing)
+            if direction != "none":
+                stem_length = fallback_length
+                stem_fallback = True
         beams = _beam_count(binary,head,spacing)
         duration = "unknown"
         warnings = []
+        if stem_fallback:
+            warnings.append(
+                "Plica candidata localizada en el borde de la cabeza; dirección y conexión requieren revisión."
+            )
         if fill == "hollow" and direction == "none":
             duration = "whole"
             warnings.append("No distingue redonda de figuras mayores.")
@@ -138,6 +202,8 @@ def analyze_rhythm_candidates(binary: np.ndarray, staves: list[StaffCandidate],
         if beams:
             warnings.append("La agrupación de barras es una hipótesis geométrica.")
         confidence = min(.95,.45*fill_score+(.4 if direction!="none" else 0)+(.15 if duration!="unknown" else 0))
+        if stem_fallback:
+            confidence = min(.78, confidence * .75)
         results.append(RhythmCandidate(head.bbox,head.staff_index,fill,round(fill_score,3),
             direction,int(stem_length),beams,duration,round(confidence,3),tuple(warnings)))
     return results
