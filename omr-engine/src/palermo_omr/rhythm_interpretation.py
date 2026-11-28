@@ -63,21 +63,24 @@ def interpret_rhythm_from_beam_groups(
 
         if linked:
             counts = {item[1].beam_count_candidate for item in linked}
-            if len(counts) != 1:
+            if rhythm.notehead_fill != "filled" or rhythm.stem_direction == "none":
                 duration = "unknown"
-                beam_count = 0
-                confidence = 0.0
-                status = "ambiguous"
-                warnings.append("La cabeza aparece en grupos con cantidades de barras incompatibles.")
-            elif rhythm.notehead_fill != "filled" or rhythm.stem_direction == "none":
-                duration = "unknown"
-                beam_count = counts.pop()
+                beam_count = max(counts)
                 confidence = 0.0
                 status = "insufficient_note_evidence"
                 warnings.append("Hay barras candidatas, pero falta una cabeza rellena y una plica compatibles.")
             else:
-                beam_count = counts.pop()
+                # Una misma nota puede tener una barra completa hacia un lado
+                # y una barra secundaria parcial hacia el otro. El valor de la
+                # figura depende del máximo nivel de barra que alcanza su plica,
+                # no de exigir que todos los tramos vecinos tengan igual recuento.
+                beam_count = max(counts)
                 duration = _BEAM_DURATIONS[beam_count]
+                if len(counts) > 1:
+                    warnings.append(
+                        "La nota participa en tramos con distintos niveles de barras; "
+                        "se conserva el máximo nivel local observado."
+                    )
                 if any(item[1].connection_type_candidate == "partial" for item in linked):
                     confidence = min(0.55, max(0.25, rhythm.confidence * 0.55))
                     status = "candidate_from_partial_beam"
