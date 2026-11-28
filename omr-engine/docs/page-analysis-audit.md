@@ -137,3 +137,12 @@ La auditoría incluye además `symbol_review_queue` para formas de silencio,
 arcos de ligadura/expresión y haces parciales. Los candidatos se priorizan por
 confianza y tipo de ambigüedad. Así la revisión puede abarcar no solo las
 figuras de las cabezas, sino también silencios, ligaduras y conexiones de haces.
+
+
+Para exportar también las formas de silencio, ligaduras/arcos y haces parciales:
+
+```bash
+palermo-omr-audit analysis.json audit.json \
+  --queue-csv rhythm-review.csv \
+  --symbol-queue-csv symbol-review.csv
+```
