@@ -179,3 +179,5 @@ ambiguos los sucesores competidores. Consulta `docs/voice-continuity.md`.
 ## Refinamiento de sistemas con evidencia de agrupación
 
 La CLI combina los sistemas iniciales detectados por conectores con evidencia de llaves curvas y corchetes rectos candidatos entre pentagramas adyacentes. Las líneas verticales genéricas no bastan para fusionar sistemas. El resultado sigue siendo geométrico y requiere revisión humana; no identifica por sí solo piano, coro ni instrumentos. Consulta `docs/measure-layout.md`.
+
+- **Integración del contexto de notación con alturas**: `build_pitch_candidates_with_notation_context` conecta claves confirmadas, candidatos de armadura y alturas MIDI; solo aplica armaduras aceptadas explícitamente. Ver `docs/notation-context-pitch.md`.
