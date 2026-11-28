@@ -96,3 +96,13 @@ como `notehead_confidence_filter`. Los candidatos descartados no se convierten
 en falsos negativos del análisis original: esta opción es una vista filtrada
 para revisión y comparación. El umbral debe recalibrarse con otros documentos
 antes de usarlo como valor general.
+
+
+## Evidencia visual de ritmo
+
+El análisis principal genera ahora `page-NNN-rhythm-overlay.png` además de
+los overlays de cabezas y geometría. Muestra la dirección y longitud de plicas
+propuestas, la figura base, el número de haces candidato y la confianza
+heurística. Los casos sin plica o sin duración quedan señalados como pendientes.
+El overlay es una ayuda de revisión: no convierte ninguna hipótesis en una
+figura confirmada.
