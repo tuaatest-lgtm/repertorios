@@ -91,4 +91,4 @@ def test_bundle_reports_missing_page_or_visual_geometry_without_guessing():
         "missing-head": "missing_notehead_geometry",
         "missing-page": "missing_page_mapping",
     }
-    assert result["coverage"]["playable_without_visual_anchor"] == ["missing-page", "missing-head"]
+    assert result["coverage"]["playable_without_visual_anchor"] == ["missing-head", "missing-page"]
