@@ -101,7 +101,7 @@ def _parallel_beam_count(
     length = max(math.hypot(dx, dy), 1.0)
     nx, ny = -dy / length, dx / length
     offsets_with_support: list[float] = []
-    max_offset = spacing * 1.05
+    max_offset = spacing * 3.6
     offset = spacing * 0.42
     while offset <= max_offset:
         for sign in (-1.0, 1.0):
@@ -192,7 +192,7 @@ def detect_local_beam_candidates(
                 for y1 in y_values:
                     for slope_step in range(-10, 11):
                         slope = slope_step * max_slope / 10.0
-                        if abs(slope) < 0.035:
+                        if abs(slope) < 0.08:
                             continue
                         y2_float = y1 + slope * (stem_x2 - stem_x1)
                         y2 = int(round(y2_float))
