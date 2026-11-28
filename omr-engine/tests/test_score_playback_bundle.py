@@ -4,7 +4,10 @@ from palermo_omr.event_fusion import ScoreEventCandidate
 from palermo_omr.score_document import ScoreDocument
 from palermo_omr.score_structure import ScoreStaff, ScoreStructure, ScoreSystem, MeasureRegion
 
-from palermo_omr.score_playback_bundle import build_score_playback_bundle
+from palermo_omr.score_playback_bundle import (
+    build_score_playback_bundle,
+    build_score_playback_bundle_from_page_analyses,
+)
 
 
 def _candidate(event_id, staff, heads, midi, event_type="note", status="ready_for_review"):
@@ -91,3 +94,64 @@ def test_bundle_reports_missing_page_or_visual_geometry_without_guessing():
         "missing-page": "missing_page_mapping",
     }
     assert result["coverage"]["playable_without_visual_anchor"] == ["missing-head", "missing-page"]
+
+
+def test_builds_complete_bundle_from_raw_page_analysis_json():
+    page = {
+        "page_number": 1,
+        "staves": [{"lines_y": [40, 50, 60, 70, 80], "spacing_px": 10, "confidence": 0.9}],
+        "staff_system_candidates": [{
+            "system_index": 0, "staff_indices": [0], "y_top": 40, "y_bottom": 80,
+            "confidence": 0.65, "warning": "candidate",
+        }],
+        "measure_span_candidates": [{
+            "staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 100,
+            "width_px": 100, "left_boundary_observed": True, "right_boundary_observed": True,
+            "confidence": 0.8, "warning": "candidate",
+        }],
+        "notehead_candidates": [{"bbox": [20, 50, 10, 6], "staff_index": 0}],
+    }
+    result = build_score_playback_bundle_from_page_analyses(
+        [{"measure_index": 0, "expected_quarters": "4", "events": [{
+            "event_id": "n1", "event_type": "note", "voice_id": "soprano",
+            "onset_quarters": "0", "duration_quarters": "1",
+        }]}],
+        [_candidate("n1", 0, ["head-id"], [67])],
+        [page],
+        event_page_numbers={"n1": 1},
+        event_notehead_indices={"n1": [0]},
+        tempo_bpm=120,
+    )
+    assert len(result["command_stream"]["commands"]) == 2
+    assert result["visual_anchor_map"]["anchors"][0]["event_id"] == "n1"
+    assert result["coverage"]["playable_without_visual_anchor"] == []
+
+
+def test_raw_page_bundle_does_not_guess_notehead_index_alignment():
+    page = {
+        "page_number": 1,
+        "staves": [{"lines_y": [40, 50, 60, 70, 80], "spacing_px": 10, "confidence": 0.9}],
+        "staff_system_candidates": [{
+            "system_index": 0, "staff_indices": [0], "y_top": 40, "y_bottom": 80,
+            "confidence": 0.65, "warning": "candidate",
+        }],
+        "measure_span_candidates": [{
+            "staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 100,
+            "width_px": 100, "left_boundary_observed": True, "right_boundary_observed": True,
+            "confidence": 0.8, "warning": "candidate",
+        }],
+        "notehead_candidates": [{"bbox": [20, 50, 10, 6], "staff_index": 0}],
+    }
+    result = build_score_playback_bundle_from_page_analyses(
+        [{"measure_index": 0, "expected_quarters": "4", "events": [{
+            "event_id": "n1", "event_type": "note", "voice_id": "soprano",
+            "onset_quarters": "0", "duration_quarters": "1",
+        }]}],
+        [_candidate("n1", 0, ["head-id"], [67])],
+        [page], event_page_numbers={"n1": 1},
+        event_notehead_indices={"n1": []}, tempo_bpm=120,
+    )
+    assert result["visual_anchor_map"]["anchors"] == []
+    assert result["visual_anchor_map"]["unresolved"] == [
+        {"event_id": "n1", "reason": "notehead_index_mapping_mismatch"},
+    ]
