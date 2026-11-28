@@ -66,10 +66,12 @@ test("pause congela la línea temporal y resume reenciende notas sostenidas", as
   const player = new BrowserPlaybackController(stream, sink);
   await player.play();
   context.currentTime = 0.4;
+  assert.equal(player.current_seconds, 0.4);
   player.pause();
   assert.equal(player.state, "paused");
   assert.equal(sink.notes.size, 0);
   context.currentTime = 5;
+  assert.equal(player.current_seconds, 0.4);
   await player.resume();
   assert.equal(player.snapshot().current_seconds, 0.4);
   assert.equal(sink.notes.size, 2);
