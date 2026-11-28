@@ -120,3 +120,14 @@ los empates se ordenan por menor confianza y posición de origen.
 La cola facilita revisar primero los casos que bloquean la interpretación
 rítmica. No asigna duración ni dirección automáticamente y no modifica el
 `analysis.json` original.
+
+
+La cola también puede exportarse a CSV para ordenar y revisar en una hoja de
+cálculo:
+
+```bash
+palermo-omr-audit analysis.json audit.json --queue-csv rhythm-review.csv
+```
+
+El CSV incluye ID estable, página, pentagrama, posición, confianza, hipótesis
+de plica/figura/haces, razones de revisión y prioridad.
