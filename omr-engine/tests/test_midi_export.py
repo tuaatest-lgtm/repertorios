@@ -226,3 +226,57 @@ def test_rejects_invalid_midi_time_signature(meter):
 def test_rejects_invalid_midi_key_signature(key):
     with pytest.raises(ValueError, match="key_signature"):
         render_polyphonic_midi(stream([]), key_signature=key)
+
+
+def test_tempo_map_changes_tick_rate_without_losing_absolute_note_timing():
+    commands = [
+        cmd("note_on", "long", "soprano", 72, 0),
+        cmd("note_off", "long", "soprano", 72, 2),
+        cmd("note_on", "later", "alto", 60, 1.5),
+        cmd("note_off", "later", "alto", 60, 2),
+    ]
+    data = render_polyphonic_midi(
+        stream(commands), tempo_bpm=120,
+        tempo_changes=[{"time_seconds": 1.0, "tempo_bpm": 60}],
+    )
+    _, _, _, tracks = chunks(data)
+    conductor = parse_track(tracks[0])
+    tempo_changes = [e for e in conductor if e[1] == "meta" and e[2] == 0x51]
+    assert [(e[0], int.from_bytes(e[3], "big")) for e in tempo_changes] == [
+        (0, 500000), (960, 1000000),
+    ]
+    soprano = [e for e in parse_track(tracks[2]) if isinstance(e[1], int) and e[1] in (0x80, 0x90)]
+    alto = [e for e in parse_track(tracks[1]) if isinstance(e[1], int) and e[1] in (0x80, 0x90)]
+    assert [(e[0], e[1]) for e in soprano] == [(0, 0x90), (1440, 0x80)]
+    assert [(e[0], e[1]) for e in alto] == [(1200, 0x90), (1440, 0x80)]
+
+
+def test_per_event_velocity_is_written_to_note_on_and_bundle_wrapper_forwards_it():
+    bundle = {
+        "status": "unconfirmed_score_playback_bundle",
+        "command_stream": stream([
+            cmd("note_on", "accent", "soprano", 72, 0),
+            cmd("note_off", "accent", "soprano", 72, 1),
+        ]),
+    }
+    data = render_score_playback_bundle_midi(
+        bundle, event_velocities={"accent": 112},
+        tempo_changes=[{"time_seconds": 0.5, "tempo_bpm": 90}],
+    )
+    _, _, _, tracks = chunks(data)
+    note_on = next(e for e in parse_track(tracks[1]) if isinstance(e[1], int) and e[1] == 0x90)
+    assert note_on[4] == 112
+
+
+def test_rejects_unsorted_tempo_changes_and_invalid_event_velocity():
+    commands = [
+        cmd("note_on", "n", "alto", 60, 0),
+        cmd("note_off", "n", "alto", 60, 1),
+    ]
+    with pytest.raises(ValueError, match="estrictamente crecientes"):
+        render_polyphonic_midi(stream(commands), tempo_changes=[
+            {"time_seconds": 2, "tempo_bpm": 90},
+            {"time_seconds": 1, "tempo_bpm": 100},
+        ])
+    with pytest.raises(ValueError, match="velocidad"):
+        render_polyphonic_midi(stream(commands), event_velocities={"n": 0})
