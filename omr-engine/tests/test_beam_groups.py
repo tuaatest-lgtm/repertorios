@@ -173,3 +173,32 @@ def test_local_beam_height_excludes_vertical_stem_at_sloped_beam_endpoint():
 
     assert beam_y is not None
     assert abs(beam_y - 20) <= 2.5
+
+
+def test_detects_shared_sloped_beam_between_two_stems():
+    image = np.full((160, 240), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (230, y), 0, 1)
+    heads = [
+        NoteheadCandidate((97, 75, 16, 10), 105.0, 80.0, 0, 2, .8, .9, .9),
+        NoteheadCandidate((137, 75, 16, 10), 145.0, 80.0, 0, 2, .8, .9, .9),
+    ]
+    for x in [105, 145]:
+        cv2.ellipse(image, (x, 80), (8, 5), -20, 0, 360, 0, -1)
+    cv2.line(image, (108, 35), (108, 80), 0, 2)
+    cv2.line(image, (148, 45), (148, 80), 0, 2)
+    cv2.line(image, (108, 35), (148, 45), 0, 4)
+
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    rhythms = [
+        RhythmCandidate(head.bbox, 0, "filled", .9, "up", 45, 1,
+                        "eighth", .8, (), stem_x)
+        for head, stem_x in zip(heads, [108, 148])
+    ]
+    groups = detect_beam_group_candidates(image, [staff], heads, rhythms)
+
+    assert any(
+        group.notehead_indices == [0, 1]
+        and group.connection_type_candidate == "shared"
+        for group in groups
+    )
