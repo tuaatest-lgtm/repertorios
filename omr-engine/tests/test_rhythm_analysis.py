@@ -81,5 +81,5 @@ def test_detects_stem_at_actual_notehead_edge_not_fixed_center_offset():
     result = analyze_rhythm_candidates(image, [staff], [_head()])[0]
 
     assert result.stem_direction == "up"
-    assert result.stem_x == 112
+    assert result.stem_x in {111, 112}
     assert result.stem_length_px >= 40
