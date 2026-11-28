@@ -175,6 +175,7 @@ def build_reviewed_voice_events(
     measure_index: int,
     confirmed_event_ids: set[str] | frozenset[str],
     event_dot_counts: Mapping[str, int] | None = None,
+    allow_unknown_duration_event_ids: set[str] | frozenset[str] = frozenset(),
 ) -> tuple[OrderedVoiceEvent, ...]:
     """Convierte solo grupos revisados explícitamente en eventos ordenables.
 
@@ -258,6 +259,13 @@ def build_reviewed_voice_events_by_voice(
     if confirmed - set(by_id):
         raise ValueError("La revisión referencia event_id inexistentes")
     dot_counts = _validate_reviewed_dot_counts(event_dot_counts, confirmed)
+    if not isinstance(allow_unknown_duration_event_ids, (set, frozenset)):
+        raise ValueError("allow_unknown_duration_event_ids debe ser un conjunto de IDs")
+    allowed_unknown = set(allow_unknown_duration_event_ids)
+    if allowed_unknown - confirmed:
+        raise ValueError("Solo se pueden habilitar duraciones desconocidas de eventos confirmados")
+    if allowed_unknown.intersection(dot_counts):
+        raise ValueError("No se pueden aplicar puntillos a una figura base desconocida")
     if set(event_voice_ids) != confirmed:
         raise ValueError("Debe existir exactamente una asignación de voz por evento confirmado")
 
@@ -266,7 +274,7 @@ def build_reviewed_voice_events_by_voice(
         group = by_id[event_id]
         if group.status not in {"single_note_candidate", "proposed_chord"}:
             raise ValueError("No se puede confirmar un grupo ambiguo")
-        if group.duration_quarters_candidate is None:
+        if group.duration_quarters_candidate is None and event_id not in allowed_unknown:
             raise ValueError("El grupo no tiene duración candidata conocida")
         voice_id = event_voice_ids[event_id]
         if not isinstance(voice_id, str) or not voice_id.strip():
@@ -287,7 +295,10 @@ def build_reviewed_voice_events_by_voice(
                 voice_id=voice_id,
                 measure_index=measure_index,
                 order_index=order_index,
-                duration_quarters=duration_in_quarters(group.duration_candidate, dot_counts.get(group.event_id, 0)),
+                duration_quarters=(
+                    None if group.duration_quarters_candidate is None
+                    else duration_in_quarters(group.duration_candidate, dot_counts.get(group.event_id, 0))
+                ),
                 event_type="note",
                 notehead_ids=tuple(
                     f"staff-{group.staff_index + 1}-head-{index}"
