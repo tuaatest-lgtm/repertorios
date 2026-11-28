@@ -65,7 +65,7 @@ def extract_beam_segments(
     raw.sort(key=lambda item: (item[0], item[1], item[2]))
     merged: list[list[float]] = []
     angle_tolerance = math.tan(math.radians(max(2, angle_step_degrees)))
-    intercept_tolerance = max(2.0, spacing * 0.35)
+    intercept_tolerance = max(3.0, spacing * 0.75)
     max_gap = max(3.0, spacing * 0.75)
 
     for slope, intercept, x0, x1 in raw:
