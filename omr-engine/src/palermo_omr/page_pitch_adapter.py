@@ -135,13 +135,16 @@ def build_pitch_candidates_from_page_analysis(
     safe_signatures = {
         staff: signatures[staff] for staff in safe_clefs
     }
+    aligned_accidentals = explicit_accidentals
+    if measure_ids is not None and aligned_accidentals is None:
+        aligned_accidentals = [None] * len(noteheads)
     base = build_pitch_candidates(
         noteheads,
         staff_clefs=safe_clefs,
         key_signatures=safe_signatures,
         measure_ids=measure_ids,
         simultaneous_group_ids=simultaneous_group_ids,
-        explicit_accidentals=explicit_accidentals,
+        explicit_accidentals=aligned_accidentals,
         source_indices=list(range(len(noteheads))),
     )
 
