@@ -1,5 +1,8 @@
+from types import SimpleNamespace
+
 import pytest
 
+from palermo_omr.pitch_candidates import build_pitch_candidates
 from palermo_omr.accidental_attachment import (
     attach_reviewed_accidentals,
     build_accepted_explicit_accidentals,
@@ -90,3 +93,30 @@ def test_rejects_invalid_geometry_and_measure_context():
         attach_reviewed_accidentals(
             [], [_head("head", 10, 10)], {0: 0},
         )
+
+
+def test_accepted_attachment_flows_into_pitch_engine_and_resets_at_next_measure():
+    heads = [
+        _head("f-natural", 34, 50),
+        _head("f-repeat", 80, 50),
+        _head("f-next-bar", 34, 50, measure="m2"),
+    ]
+    mapping = attach_reviewed_accidentals(
+        [_glyph("natural-1", "natural", 20, 48)],
+        heads, {0: 10},
+    )
+    explicit = build_accepted_explicit_accidentals(
+        [item["candidate_id"] for item in heads], mapping, ["natural-1"]
+    )
+    noteheads = [
+        SimpleNamespace(staff_index=0, diatonic_step_from_bottom=1, center_x=x)
+        for x in (39, 85, 39)
+    ]
+    pitches = build_pitch_candidates(
+        noteheads,
+        staff_clefs={0: "treble"},
+        key_signatures={0: {"F": 1}},
+        explicit_accidentals=explicit,
+        measure_ids=["m1", "m1", "m2"],
+    )
+    assert [item.pitch.midi for item in pitches] == [65, 65, 66]
