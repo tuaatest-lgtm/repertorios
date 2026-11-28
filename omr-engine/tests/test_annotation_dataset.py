@@ -144,6 +144,7 @@ def test_rejects_duplicate_visual_candidate_evidence_ids():
         item.events[0],
         source_candidate_ids=("p1-filled_notehead-1", "p1-filled_notehead-1"),
     )
+    item = replace(item, source_review_package_sha256="c" * 64)
     with pytest.raises(ValueError, match="no puede contener duplicados"):
         replace(item, events=(event,)).validate()
 
