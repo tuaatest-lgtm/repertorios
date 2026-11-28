@@ -26,6 +26,7 @@ export class ScoreVisualCursor {
 
     this.events = [];
     this.unresolved = [];
+    this.unresolvedTimeline = [];
     const seen = new Set();
     for (const event of playbackProjection.events) {
       if (!event || typeof event.event_id !== "string" || !event.event_id ||
@@ -39,6 +40,7 @@ export class ScoreVisualCursor {
       const anchor = anchors.get(event.event_id);
       if (!anchor) {
         this.unresolved.push({ event_id: event.event_id, reason: "missing_visual_anchor" });
+        this.unresolvedTimeline.push({ event_id: event.event_id, start_seconds: start, end_seconds: start + duration });
         continue;
       }
       this.events.push(Object.freeze({
@@ -60,7 +62,8 @@ export class ScoreVisualCursor {
     }
     const started = this.events.filter(e => e.start_seconds <= seconds);
     const active = started.filter(e => seconds < e.end_seconds);
-    const focus = active.length ? active : started.slice(-1);
+    const unresolvedActive = this.unresolvedTimeline.filter(e => e.start_seconds <= seconds && seconds < e.end_seconds);
+    const focus = active.length ? active : (unresolvedActive.length ? [] : started.slice(-1));
     const pages = [...new Set(focus.map(e => e.anchor.page_index))].sort((a, b) => a - b);
     const systems = [...new Set(focus.map(e =>
       JSON.stringify([e.anchor.page_index, e.anchor.system_index])))].sort();
@@ -69,8 +72,9 @@ export class ScoreVisualCursor {
       current_seconds: seconds,
       page_index: pages.length === 1 ? pages[0] : null,
       system_index: systems.length === 1 ? JSON.parse(systems[0])[1] : null,
-      ambiguous_location: pages.length > 1 || systems.length > 1,
+      ambiguous_location: pages.length > 1 || systems.length > 1 || unresolvedActive.length > 0,
       active_event_ids: active.map(e => e.event_id),
+      unresolved_active_event_ids: unresolvedActive.map(e => e.event_id),
       active_voices: [...new Set(active.map(e => e.voice_id).filter(Boolean))].sort(),
       highlights: active.map(e => ({
         event_id: e.event_id, voice_id: e.voice_id, event_type: e.event_type,
