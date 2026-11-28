@@ -14,6 +14,7 @@ from .imaging import analyze_page, render_pdf
 from .symbols import (
     detect_hollow_notehead_candidates,
     detect_notehead_candidates,
+    filter_notehead_candidates_by_confidence,
 )
 from .notation_preamble import (
     detect_notation_preamble_candidates,
@@ -65,6 +66,7 @@ def main() -> int:
     parser.add_argument("pdf", help="Ruta al archivo PDF")
     parser.add_argument("--output", default="omr-output", help="Carpeta de salida")
     parser.add_argument("--dpi", type=int, default=300, help="Resolución de renderizado (72-600)")
+    parser.add_argument("--min-notehead-confidence", type=float, default=0.0, help="Filtro opcional de confianza para cabezas rellenas (0-1); 0 conserva todos los candidatos")
     parser.add_argument(
         "--staff-clefs", default="{}",
         help="JSON opcional: claves por índice de pentagrama, p. ej. '{\"0\":\"treble\",\"1\":\"bass\"}'. No se detectan visualmente.",
@@ -124,6 +126,9 @@ def main() -> int:
         page_data = analysis.to_dict()
         page_data["render_dpi"] = args.dpi
         noteheads = detect_notehead_candidates(binary, analysis.staves)
+        noteheads = filter_notehead_candidates_by_confidence(
+            noteheads, args.min_notehead_confidence
+        )
         hollow_noteheads = detect_hollow_notehead_candidates(binary, analysis.staves)
         overlay = draw_notehead_overlay(page, noteheads)
         hollow_overlay = draw_notehead_overlay(page, hollow_noteheads)
@@ -133,6 +138,7 @@ def main() -> int:
         overlay_path = output_dir / f"page-{page_number:03d}-noteheads-overlay.png"
         if not cv2.imwrite(str(overlay_path), overlay):
             raise OSError(f"No se pudo escribir {overlay_path}")
+        page_data["notehead_confidence_filter"] = args.min_notehead_confidence
         page_data["notehead_candidates"] = [item.to_dict() for item in noteheads]
         page_data["notehead_candidate_count"] = len(noteheads)
         page_data["hollow_notehead_candidates"] = [item.to_dict() for item in hollow_noteheads]
