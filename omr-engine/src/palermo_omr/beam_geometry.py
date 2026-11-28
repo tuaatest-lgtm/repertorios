@@ -125,35 +125,56 @@ def _parallel_beam_count(
     end: tuple[int, int],
     spacing: float,
 ) -> int:
-    """Cuenta centros de trazos paralelos sin confundir grosor con cantidad."""
+    """Cuenta trazos gruesos paralelos; descarta líneas de pentagrama finas."""
     dx, dy = end[0] - start[0], end[1] - start[1]
     length = max(math.hypot(dx, dy), 1.0)
     nx, ny = -dy / length, dx / length
-    offsets_with_support: list[float] = []
-    max_offset = spacing * 3.6
-    offset = spacing * 0.42
-    while offset <= max_offset:
-        for sign in (-1.0, 1.0):
-            shift = sign * offset
-            support, density = _sample_line(
-                ink,
-                start[0] + nx * shift,
-                start[1] + ny * shift,
-                end[0] + nx * shift,
-                end[1] + ny * shift,
-                half_width=1,
-            )
-            if support >= 0.78 and density >= 0.62:
-                offsets_with_support.append(shift)
-        offset += 1.0
+    middle_x = (start[0] + end[0]) / 2.0
+    middle_y = (start[1] + end[1]) / 2.0
+    max_offset = int(round(spacing * 3.6))
 
-    clusters: list[list[float]] = []
-    for value in sorted(offsets_with_support):
-        if not clusters or value - clusters[-1][-1] > 2.5:
-            clusters.append([value])
-        else:
-            clusters[-1].append(value)
-    return min(4, 1 + len(clusters))
+    profile: list[int] = []
+    offsets = list(range(-max_offset, max_offset + 1))
+    for offset in offsets:
+        px = int(round(middle_x + nx * offset))
+        py = int(round(middle_y + ny * offset))
+        profile.append(
+            int(0 <= px < ink.shape[1] and 0 <= py < ink.shape[0] and ink[py, px])
+        )
+
+    runs: list[list[int]] = []
+    run: list[int] = []
+    for offset, present in zip(offsets, profile):
+        if present:
+            if run and offset > run[-1] + 1:
+                runs.append(run)
+                run = []
+            run.append(offset)
+        elif run:
+            runs.append(run)
+            run = []
+    if run:
+        runs.append(run)
+
+    # En la escala local, una barra suele ser sensiblemente más gruesa que
+    # una línea del pentagrama. El umbral es proporcional al interlineado.
+    min_thickness = max(3, int(round(spacing * 0.22)))
+    count = 0
+    for stroke in runs:
+        if len(stroke) < min_thickness:
+            continue
+        center_offset = float(np.mean(stroke))
+        support, density = _sample_line(
+            ink,
+            start[0] + nx * center_offset,
+            start[1] + ny * center_offset,
+            end[0] + nx * center_offset,
+            end[1] + ny * center_offset,
+            half_width=1,
+        )
+        if support >= 0.78 and density >= 0.62:
+            count += 1
+    return max(1, min(4, count))
 
 
 def detect_local_beam_candidates(
