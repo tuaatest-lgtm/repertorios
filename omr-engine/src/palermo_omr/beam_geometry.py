@@ -354,7 +354,7 @@ def detect_local_beam_candidates(
                     distance = abs(
                         middle_tip_y - (slope * middle_x + intercept)
                     ) / math.sqrt(1.0 + slope * slope)
-                    if distance <= max(2.0, spacing * 0.20):
+                    if distance <= max(2.0, spacing * 0.30):
                         linked_indices.extend(heads_by_stem[middle_key])
                 linked_heads = tuple(sorted(
                     set(linked_indices),
@@ -384,7 +384,6 @@ def detect_local_beam_candidates(
             (candidate.end[1] - candidate.start[1])
             / max(1, candidate.end[0] - candidate.start[0])
         )
-        candidate_intercept = candidate.start[1] - candidate_slope * candidate.start[0]
         is_subset = False
         for other in results:
             if other is candidate or other.beam_count != candidate.beam_count:
@@ -395,10 +394,20 @@ def detect_local_beam_candidates(
                 (other.end[1] - other.start[1])
                 / max(1, other.end[0] - other.start[0])
             )
-            other_intercept = other.start[1] - other_slope * other.start[0]
-            if abs(candidate_slope - other_slope) > 0.035:
+            if abs(candidate_slope - other_slope) > 0.04:
                 continue
-            if abs(candidate_intercept - other_intercept) > 4.0:
+            overlap_left = max(candidate.start[0], other.start[0])
+            overlap_right = min(candidate.end[0], other.end[0])
+            if overlap_right <= overlap_left:
+                continue
+            overlap_mid = (overlap_left + overlap_right) / 2.0
+            candidate_y = candidate.start[1] + candidate_slope * (
+                overlap_mid - candidate.start[0]
+            )
+            other_y = other.start[1] + other_slope * (
+                overlap_mid - other.start[0]
+            )
+            if abs(candidate_y - other_y) > max(3.0, spacing * 0.18):
                 continue
             if other.bbox[0] <= candidate.bbox[0] and (
                 other.bbox[0] + other.bbox[2]
