@@ -106,6 +106,8 @@ def apply_reviewed_voice_assignments(
             raise ValueError(f"{event_id}: staff_index no válido")
 
         if event_id in overrides:
+            if not isinstance(overrides[event_id], Mapping):
+                raise ValueError(f"{event_id}: el override de voz debe ser un objeto")
             voice_id, reason = _confirmed_voice(overrides[event_id], event_id)
             source = "event_override"
         else:
