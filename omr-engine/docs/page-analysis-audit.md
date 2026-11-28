@@ -92,10 +92,11 @@ palermo-omr "Clamaré a Dios - Coro.pdf" --output omr-output --min-notehead-conf
 ```
 
 El filtro se aplica solo a cabezas rellenas y queda registrado en cada página
-como `notehead_confidence_filter`. Los candidatos descartados no se convierten
-en falsos negativos del análisis original: esta opción es una vista filtrada
-para revisión y comparación. El umbral debe recalibrarse con otros documentos
-antes de usarlo como valor general.
+como `notehead_confidence_filter`. El JSON conserva los candidatos excluidos
+en `notehead_candidates_filtered_out` y registra los conteos antes/después
+del filtro, de modo que la revisión no pierde la evidencia original. Esta
+opción crea una vista filtrada para comparación; el umbral debe recalibrarse
+con otros documentos antes de usarlo como valor general.
 
 
 ## Evidencia visual de ritmo
