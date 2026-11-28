@@ -120,6 +120,8 @@ def build_score_playback_bundle_from_page_analyses(
     """
     if not isinstance(page_analyses, (list, tuple)) or not page_analyses:
         raise ValueError("page_analyses debe contener al menos una página")
+    if not isinstance(event_page_numbers, Mapping) or not isinstance(event_notehead_indices, Mapping):
+        raise ValueError("event_page_numbers y event_notehead_indices deben ser mapas")
     structures = [build_score_structure_from_page_analysis(page) for page in page_analyses]
     structures.sort(key=lambda page: page.page_number)
     document = ScoreDocument(pages=tuple(structures))
