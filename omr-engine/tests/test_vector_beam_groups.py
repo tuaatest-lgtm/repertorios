@@ -72,7 +72,7 @@ def _rhythm(staff=0):
 def test_vector_stems_recover_up_direction_from_pdf_paths():
     drawings, heads = _drawings()
     candidates = detect_vector_stem_candidates(
-        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], heads,
+        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], heads, dpi=72,
     )
     assert len(candidates) == 2
     assert {item.direction for item in candidates} == {"up"}
@@ -83,7 +83,7 @@ def test_vector_stems_recover_up_direction_from_pdf_paths():
 def test_vector_stem_candidates_fill_only_missing_raster_directions():
     drawings, heads = _drawings()
     candidates = detect_vector_stem_candidates(
-        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], heads,
+        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], heads, dpi=72,
     )
     rhythms = [_rhythm(), replace(_rhythm(), stem_direction="down", base_duration="quarter")]
     result = apply_vector_stem_candidates(rhythms, candidates)
@@ -110,7 +110,7 @@ def test_single_vector_flag_is_kept_as_partial_candidate():
     head = _head(40, 59)
     drawings = [_line(50, 20, 59), _beam(50, 36, 75, 39)]
     groups = detect_vector_beam_group_candidates(
-        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], [head],
+        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], [head], dpi=72,
     )
     assert len(groups) == 1
     assert groups[0].notehead_indices == [0]
