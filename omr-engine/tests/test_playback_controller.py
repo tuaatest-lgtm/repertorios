@@ -46,7 +46,7 @@ def test_pause_resume_freezes_score_clock_and_restarts_sustained_notes():
     before = len(sink.calls)
     player.resume(500.0)
     assert player.state == "playing"
-    assert sink.calls[before:] == [("on", "soprano", 72, "s1"), ("on", "alto", 60, "a1")]
+    assert sink.calls[before:] == [("on", "alto", 60, "a1"), ("on", "soprano", 72, "s1")]
     player.tick(500.6)
     assert player.snapshot()["current_seconds"] == 0.6
 
@@ -94,3 +94,16 @@ def test_rejects_invalid_clock_and_sink():
         player.play(float("nan"))
     with pytest.raises(ValueError, match="sink"):
         PlaybackController(make_stream(), object())
+
+
+def test_voice_mute_changes_during_pause_do_not_restart_audio_until_resume():
+    sink = FakeSink()
+    player = PlaybackController(make_stream(), sink)
+    player.play(0)
+    player.pause(0.25)
+    before = len(sink.calls)
+    player.set_voice_muted("soprano", True)
+    player.set_voice_muted("alto", False)
+    assert len(sink.calls) == before
+    player.resume(10)
+    assert sink.calls[before:] == [("on", "alto", 60, "a1")]
