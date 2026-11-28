@@ -219,7 +219,7 @@ def detect_beam_group_candidates(
                 connected_stem_x = next(
                     (
                         stem_x for stem_x in expected_stem_xs
-                        if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
+                        if stem_x in valid_beam_points
                         and _stem_reaches_beam(ink, head, valid_beam_points[stem_x], stem_x)
                     ),
                     None,
