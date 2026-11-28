@@ -63,40 +63,12 @@ def _stem_reaches_beam(
 
 
 
-
-def _is_thin_beam_stroke(
-    stroke: list[tuple[int, int, int, int]],
-    spacing: float,
-) -> bool:
-    """Acepta barras horizontales o inclinadas de grosor reducido.
-
-    El alto del bbox mezcla el grosor real con la pendiente. Se mide el
-    residuo respecto de una recta ajustada a los centros de cada fila.
-    """
-    if len(stroke) < 2:
-        return True
-    centers_x = np.asarray([x + width / 2.0 for x, _y, width, _h in stroke])
-    centers_y = np.asarray([y + 0.5 for _x, y, _width, _h in stroke])
-    if float(np.ptp(centers_x)) < spacing:
-        return False
-    slope, intercept = np.polyfit(centers_x, centers_y, 1)
-    if abs(float(slope)) > 0.6:
-        return False
-    residual = centers_y - (slope * centers_x + intercept)
-    thickness = float(np.percentile(residual, 95) - np.percentile(residual, 5))
-    return thickness <= max(2.0, spacing * 0.55)
-
 def _beam_y_at_x(
     ink: np.ndarray,
     beam_bbox: tuple[int, int, int, int],
     stem_x: int,
 ) -> float | None:
-    """Estima la altura local de una barra inclinada junto a una plica.
-
-    El centro vertical del bbox no representa la altura de una barra oblicua
-    en todos sus extremos. Se muestrea una franja estrecha alrededor de la
-    plica y se devuelve la mediana de los píxeles de barra presentes.
-    """
+    """Obtiene la altura local de la tinta de una barra en la X de la plica."""
     x, y, width, height = beam_bbox
     if not x <= stem_x < x + width:
         return None
@@ -150,10 +122,6 @@ def detect_beam_group_candidates(
         row_runs: list[tuple[int, int, int, int]] = []
         min_width = spacing * min_beam_width_spacing
         max_width = spacing * max_beam_width_spacing
-        # En barras inclinadas cada fila contiene solo un tramo corto del
-        # polígono. El ancho mínimo se aplica al trazo reconstruido completo,
-        # no a cada fila individual.
-        min_row_width = max(2, int(round(spacing * 0.15)))
         for y in range(top, bottom + 1):
             xs = np.flatnonzero(ink[y])
             if xs.size == 0:
@@ -162,7 +130,7 @@ def detect_beam_group_candidates(
             for chunk in chunks:
                 x = int(chunk[0])
                 width = int(chunk[-1] - chunk[0] + 1)
-                if min_row_width <= width <= max_width:
+                if min_width <= width <= max_width:
                     row_runs.append((x, y, width, 1))
 
         # Reúne filas contiguas con solapamiento horizontal en un solo trazo.
@@ -191,7 +159,7 @@ def detect_beam_group_candidates(
             lower = max(item[1] + item[3] for item in stroke)
             width = right - left
             height = lower - upper
-            if _is_thin_beam_stroke(stroke, spacing):
+            if height <= max(2, int(round(spacing * 0.55))):
                 segments.append((left, upper, width, height))
 
         # La clave es el conjunto exacto de cabezas asociado a cada trazo.
@@ -200,6 +168,7 @@ def detect_beam_group_candidates(
             if not (min_width <= w <= max_width):
                 continue
             beam_bbox = (x, y, w, h)
+
             matched: list[int] = []
             for head_index, (head, rhythm) in enumerate(zip(noteheads, rhythms)):
                 if head.staff_index != staff_index or rhythm.stem_direction == "none":
@@ -210,9 +179,11 @@ def detect_beam_group_candidates(
                     <= x + w + spacing * max_head_gap_spacing
                 ):
                     continue
-
-                # Una barra inclinada no tiene la misma altura en todas las
-                # plicas. Se valida cada conexión en la altura local del trazo.
+                # Una barra inclinada puede tener una altura distinta en cada plica.
+                # Se obtiene el punto local sin alterar la segmentación existente.
+                # Una barra debe cruzar la zona donde se espera la plica de
+                # esta cabeza. La mera proximidad horizontal puede asociar una
+                # barra de otro pentagrama/voz o un trazo editorial cercano.
                 stem_offset = max(1, int(round(spacing * 0.72)))
                 stem_tolerance = max(2, int(round(spacing * 0.20)))
                 expected_stem_xs = (
@@ -223,26 +194,39 @@ def detect_beam_group_candidates(
                         int(round(head.center_x + stem_offset)),
                     )
                 )
-                connected_stem_x = None
-                for stem_x in expected_stem_xs:
-                    if not (x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance):
-                        continue
-                    local_beam_y = _beam_y_at_x(ink, beam_bbox, stem_x)
+                local_beam_points = {
+                    stem_x: _beam_y_at_x(ink, beam_bbox, stem_x)
+                    for stem_x in expected_stem_xs
+                    if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
+                }
+                valid_beam_points = {}
+                for stem_x, local_beam_y in local_beam_points.items():
                     if local_beam_y is None:
                         continue
                     vertical_distance = local_beam_y - head.center_y
                     if abs(vertical_distance) < spacing * 0.8 or abs(vertical_distance) > spacing * 4.5:
                         continue
                     expected_direction = "up" if vertical_distance < 0 else "down"
-                    if rhythm.stem_direction != expected_direction:
-                        continue
-                    # La plica debe llegar físicamente a su punto de unión;
-                    # no basta con que cruce el intervalo horizontal de la barra.
-                    if _stem_reaches_beam(ink, head, local_beam_y, stem_x):
-                        connected_stem_x = stem_x
-                        break
+                    if rhythm.stem_direction == expected_direction:
+                        valid_beam_points[stem_x] = local_beam_y
+                intersects_expected_stem = bool(valid_beam_points)
+                if not intersects_expected_stem:
+                    continue
+
+                # Además de cruzar la posición esperada, la plica debe llegar
+                # físicamente hasta la barra en la imagen binaria. Esto evita
+                # asociar segmentos cercanos separados por un hueco visible.
+                connected_stem_x = next(
+                    (
+                        stem_x for stem_x in expected_stem_xs
+                        if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
+                        and _stem_reaches_beam(ink, head, valid_beam_points[stem_x], stem_x)
+                    ),
+                    None,
+                )
                 if connected_stem_x is None:
                     continue
+
                 matched.append(head_index)
 
             matched_tuple = tuple(sorted(set(matched), key=lambda idx: noteheads[idx].center_x))
