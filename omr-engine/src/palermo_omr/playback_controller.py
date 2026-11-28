@@ -85,6 +85,8 @@ class PlaybackController:
         if self._state != "playing":
             return
         self.tick(now)
+        if self._state != "playing":
+            return
         self._elapsed = max(0.0, float(now) - float(self._anchor))
         self._anchor = None
         self._state = "paused"
