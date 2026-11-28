@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from palermo_omr.page_analysis_audit import audit_page_analysis
+from palermo_omr.page_analysis_audit import audit_page_analysis, build_rhythm_review_queue
 from palermo_omr.page_analysis_audit_cli import main
 
 
@@ -56,6 +56,9 @@ def test_audit_counts_geometry_and_candidate_distributions_without_claiming_accu
     assert page["geometry_coverage"]["staves_in_exactly_one_system_candidate"] == 2
     assert "no equivale" in page["interpretation"]
     assert len(report["limitations"]) >= 4
+    assert report["rhythm_review_queue_count"] == 1
+    assert report["rhythm_review_queue"][0]["candidate_id"] == "p1-filled_notehead-2"
+    assert "missing_stem_direction" in report["rhythm_review_queue"][0]["review_reasons"]
 
 
 def test_audit_handles_missing_optional_arrays_and_unknown_staff_links():
@@ -94,3 +97,32 @@ def test_audit_rejects_empty_or_invalid_analysis(tmp_path, capsys):
     source.write_text(json.dumps({"pages": []}), encoding="utf-8")
     assert main([str(source), str(output)]) == 2
     assert "no vacía" in capsys.readouterr().err
+
+
+
+def test_rhythm_review_queue_prioritizes_missing_stems_then_low_confidence():
+    page = _page()
+    page["rhythm_candidates"][2]["stem_direction"] = "none"
+    page["rhythm_candidates"][2]["base_duration"] = "unknown"
+    page["rhythm_candidates"][2]["confidence"] = .2
+    page["rhythmic_interpretation_candidates"][2]["status"] = "unclassified"
+    queue = build_rhythm_review_queue({"pages": [page]})
+    assert [item["candidate_id"] for item in queue] == [
+        "p1-filled_notehead-2", "p1-filled_notehead-3",
+    ]
+    assert queue[0]["priority"] == 1
+    assert queue[1]["priority"] == 1
+    assert queue[0]["confidence"] <= queue[1]["confidence"]
+
+
+def test_rhythm_review_queue_allows_pages_without_rhythm_data_and_rejects_misalignment():
+    page = {
+        "page_number": 1,
+        "notehead_candidates": [{"staff_index": 0}],
+        "rhythm_candidates": [],
+        "rhythmic_interpretation_candidates": [],
+    }
+    assert build_rhythm_review_queue({"pages": [page]}) == []
+    page["rhythm_candidates"] = [{}]
+    with pytest.raises(ValueError, match="alineados"):
+        build_rhythm_review_queue({"pages": [page]})
