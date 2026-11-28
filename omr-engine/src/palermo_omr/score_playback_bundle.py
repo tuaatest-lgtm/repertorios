@@ -12,6 +12,10 @@ from .polyphonic_command_stream import build_polyphonic_command_stream
 from .score_document import ScoreDocument
 from .page_analysis_visual_adapter import build_score_structure_from_page_analysis
 from .visual_anchor_map import build_visual_anchor_map_from_score_structure
+from .voice_assignment import (
+    apply_reviewed_voice_assignments,
+    apply_voice_assignments_to_timelines,
+)
 
 
 def build_score_playback_bundle(
@@ -24,6 +28,8 @@ def build_score_playback_bundle(
     event_geometry_by_id: Mapping[str, Any] | None = None,
     tempo_bpm: int | float,
     padding_px: float = 2.0,
+    staff_voice_contexts: Mapping[int | str, Mapping[str, Any]] | None = None,
+    event_voice_overrides: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Construye agenda de audio y anclajes de cursor para un ScoreDocument.
 
@@ -37,8 +43,23 @@ def build_score_playback_bundle(
     if not isinstance(event_page_numbers, Mapping):
         raise ValueError("event_page_numbers debe ser un mapa explícito")
 
+    voice_assignment = None
+    projection_candidates: Sequence[Any] = event_candidates
+    projection_timelines: Sequence[Mapping[str, Any]] = timelines
+    if staff_voice_contexts is not None:
+        voice_assignment = apply_reviewed_voice_assignments(
+            event_candidates, staff_voice_contexts,
+            event_voice_overrides=event_voice_overrides,
+        )
+        projection_candidates = voice_assignment["event_candidates"]
+        projection_timelines = apply_voice_assignments_to_timelines(
+            timelines, voice_assignment
+        )
+    elif event_voice_overrides is not None:
+        raise ValueError("event_voice_overrides requiere staff_voice_contexts")
+
     candidates_by_id: dict[str, Any] = {}
-    for event in event_candidates:
+    for event in projection_candidates:
         payload = event.to_dict() if hasattr(event, "to_dict") else event
         if not isinstance(payload, Mapping):
             raise ValueError("Cada evento candidato debe ser serializable")
@@ -75,7 +96,7 @@ def build_score_playback_bundle(
             unresolved_visual[event_id] = item
 
     projection = build_playback_projection(
-        timelines, list(candidates_by_id.values()), tempo_bpm=tempo_bpm
+        projection_timelines, list(candidates_by_id.values()), tempo_bpm=tempo_bpm
     )
     command_stream = build_polyphonic_command_stream(projection)
     visual_map = {
@@ -90,6 +111,7 @@ def build_score_playback_bundle(
         "playback_projection": projection,
         "command_stream": command_stream,
         "visual_anchor_map": visual_map,
+        **({"voice_assignment": voice_assignment} if voice_assignment is not None else {}),
         "coverage": {
             "candidate_events": len(candidates_by_id),
             "playable_events": len(playable_ids),
@@ -115,6 +137,8 @@ def build_score_playback_bundle_from_page_analyses(
     event_geometry_by_id: Mapping[str, Any] | None = None,
     tempo_bpm: int | float,
     padding_px: float = 2.0,
+    staff_voice_contexts: Mapping[int | str, Mapping[str, Any]] | None = None,
+    event_voice_overrides: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Construye el bundle desde los JSON de análisis multipágina originales.
 
@@ -198,6 +222,8 @@ def build_score_playback_bundle_from_page_analyses(
         event_geometry_by_id=event_geometry_by_id,
         tempo_bpm=tempo_bpm,
         padding_px=padding_px,
+        staff_voice_contexts=staff_voice_contexts,
+        event_voice_overrides=event_voice_overrides,
     )
     unresolved = {item["event_id"]: item for item in result["visual_anchor_map"]["unresolved"]}
     unresolved.update(overrides)
