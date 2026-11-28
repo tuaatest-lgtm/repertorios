@@ -100,3 +100,38 @@ def test_focus_excludes_relations_that_cross_outside_selected_staff_scope():
     )
     ids = {item["candidate_id"] for item in result["pages"][0]["other_candidates"]}
     assert "p1-cross-staff-1" not in ids
+
+
+
+def test_focus_review_cli_writes_pending_fragment_and_keeps_original_ids(tmp_path):
+    import json
+    from palermo_omr.focused_review_cli import main
+
+    source = tmp_path / "review.json"
+    destination = tmp_path / "fragment.json"
+    source.write_text(json.dumps(_package()), encoding="utf-8")
+    result = main([
+        str(source), "--page", "1", "--staff-indices", "0,1",
+        "--label", "Primer sistema", "--output", str(destination),
+    ])
+    assert result == 0
+    focused = json.loads(destination.read_text(encoding="utf-8"))
+    assert focused["scope"]["label"] == "Primer sistema"
+    assert focused["summary"]["event_count"] == 0
+    assert focused["ground_truth_eligible"] is False
+    assert "p1-filled_notehead-1" in focused["candidate_ids"]
+
+
+def test_focus_review_cli_rejects_invalid_staff_indices(tmp_path):
+    import json
+    from palermo_omr.focused_review_cli import main
+
+    source = tmp_path / "review.json"
+    destination = tmp_path / "fragment.json"
+    source.write_text(json.dumps(_package()), encoding="utf-8")
+    result = main([
+        str(source), "--page", "1", "--staff-indices", "0,99",
+        "--output", str(destination),
+    ])
+    assert result == 2
+    assert not destination.exists()
