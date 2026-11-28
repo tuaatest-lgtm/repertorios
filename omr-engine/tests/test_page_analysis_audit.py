@@ -123,6 +123,6 @@ def test_rhythm_review_queue_allows_pages_without_rhythm_data_and_rejects_misali
         "rhythmic_interpretation_candidates": [],
     }
     assert build_rhythm_review_queue({"pages": [page]}) == []
-    page["rhythm_candidates"] = [{}]
+    page["rhythm_candidates"] = [{}, {}]
     with pytest.raises(ValueError, match="alineados"):
         build_rhythm_review_queue({"pages": [page]})
