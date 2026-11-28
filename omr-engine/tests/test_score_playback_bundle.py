@@ -155,3 +155,75 @@ def test_raw_page_bundle_does_not_guess_notehead_index_alignment():
     assert result["visual_anchor_map"]["unresolved"] == [
         {"event_id": "n1", "reason": "notehead_index_mapping_mismatch"},
     ]
+
+
+def _raw_page(number, x):
+    return {
+        "page_number": number,
+        "staves": [{"lines_y": [40, 50, 60, 70, 80], "spacing_px": 10, "confidence": 0.9}],
+        "staff_system_candidates": [{
+            "system_index": 0, "staff_indices": [0], "y_top": 40, "y_bottom": 80,
+            "confidence": 0.65, "warning": "candidate",
+        }],
+        "measure_span_candidates": [{
+            "staff_index": 0, "measure_index": 1, "x_start": 0, "x_end": 200,
+            "width_px": 200, "left_boundary_observed": True, "right_boundary_observed": True,
+            "confidence": 0.8, "warning": "candidate",
+        }],
+        "notehead_candidates": [{"bbox": [x, 50, 10, 6], "staff_index": 0}],
+    }
+
+
+def test_raw_page_bundle_keeps_audio_clock_contiguous_across_page_turn():
+    candidates = [
+        _candidate("p1n1", 0, ["head-p1"], [60]),
+        _candidate("p2n1", 0, ["head-p2"], [62]),
+    ]
+    page_timelines = [
+        {"page_number": 1, "measure_index": 0, "expected_quarters": "4", "events": [{
+            "event_id": "p1n1", "event_type": "note", "voice_id": "soprano",
+            "onset_quarters": "0", "duration_quarters": "1",
+        }]},
+        {"page_number": 2, "measure_index": 0, "expected_quarters": "4", "events": [{
+            "event_id": "p2n1", "event_type": "note", "voice_id": "soprano",
+            "onset_quarters": "0", "duration_quarters": "1",
+        }]},
+    ]
+    result = build_score_playback_bundle_from_page_analyses(
+        page_timelines, candidates, [_raw_page(1, 20), _raw_page(2, 40)],
+        event_page_numbers={"p1n1": 1, "p2n1": 2},
+        event_notehead_indices={"p1n1": [0], "p2n1": [0]},
+        page_measure_global_indices={1: {0: 0}, 2: {0: 1}},
+        tempo_bpm=120,
+    )
+    by_id = {item["event_id"]: item for item in result["playback_projection"]["events"]}
+    assert by_id["p1n1"]["start_seconds"] == 0
+    assert by_id["p2n1"]["start_seconds"] == 2
+    assert [item["measure_index"] for item in result["document_timeline"]["timelines"]] == [0, 1]
+
+
+def test_raw_page_bundle_stops_at_missing_global_measure_instead_of_compressing_time():
+    candidates = [
+        _candidate("p1n1", 0, ["head-p1"], [60]),
+        _candidate("p2n1", 0, ["head-p2"], [62]),
+    ]
+    page_timelines = [
+        {"page_number": 1, "measure_index": 0, "expected_quarters": "4", "events": [{
+            "event_id": "p1n1", "event_type": "note", "voice_id": "soprano",
+            "onset_quarters": "0", "duration_quarters": "1",
+        }]},
+        {"page_number": 2, "measure_index": 0, "expected_quarters": "4", "events": [{
+            "event_id": "p2n1", "event_type": "note", "voice_id": "soprano",
+            "onset_quarters": "0", "duration_quarters": "1",
+        }]},
+    ]
+    result = build_score_playback_bundle_from_page_analyses(
+        page_timelines, candidates, [_raw_page(1, 20), _raw_page(2, 40)],
+        event_page_numbers={"p1n1": 1, "p2n1": 2},
+        event_notehead_indices={"p1n1": [0], "p2n1": [0]},
+        page_measure_global_indices={1: {0: 0}, 2: {0: 2}},
+        tempo_bpm=120,
+    )
+    assert [item["event_id"] for item in result["playback_projection"]["events"]] == ["p1n1"]
+    assert result["document_timeline"]["missing_global_measure_indices"] == [1]
+    assert result["document_timeline"]["unresolved_measures"][0]["reason"] == "global_measure_index_gap"
