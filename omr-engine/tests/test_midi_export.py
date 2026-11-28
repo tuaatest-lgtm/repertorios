@@ -81,8 +81,8 @@ def test_exports_type_one_midi_with_independent_tracks_and_simultaneous_voices()
     data = render_polyphonic_midi(stream(commands), tempo_bpm=120)
     fmt, count, ppq, tracks = chunks(data)
     assert (fmt, count, ppq) == (1, 3, 480)
-    soprano = parse_track(tracks[1])
-    alto = parse_track(tracks[2])
+    alto = parse_track(tracks[1])
+    soprano = parse_track(tracks[2])
     soprano_notes = [event for event in soprano if isinstance(event[1], int) and event[1] in (0x80, 0x90)]
     alto_notes = [event for event in alto if isinstance(event[1], int) and event[1] in (0x80, 0x90)]
     assert [(e[0], e[1], e[3]) for e in soprano_notes] == [(0, 0x90, 72), (960, 0x80, 72)]
