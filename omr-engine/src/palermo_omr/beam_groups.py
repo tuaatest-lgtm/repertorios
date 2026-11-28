@@ -62,6 +62,28 @@ def _stem_reaches_beam(
     return coverage >= 0.84 and longest_gap <= 1
 
 
+
+def _beam_y_at_x(
+    ink: np.ndarray,
+    segment: tuple[int, int, int, int],
+    stem_x: int,
+) -> float:
+    """Estima la altura local del haz donde cruza la plica.
+
+    Usar el centro global del bbox falla en haces inclinados: puede quedar
+    varios píxeles separado del punto real de conexión de una plica.
+    """
+    x, y, width, height = segment
+    x0 = max(0, stem_x - 1)
+    x1 = min(ink.shape[1], stem_x + 2)
+    y0 = max(0, y)
+    y1 = min(ink.shape[0], y + height)
+    pixels = np.argwhere(ink[y0:y1, x0:x1] > 0)
+    if pixels.size == 0:
+        return float(y + height / 2.0)
+    return float(y0 + np.median(pixels[:, 0]))
+
+
 def detect_beam_group_candidates(
     binary: np.ndarray,
     staves: list[StaffCandidate],
@@ -193,7 +215,9 @@ def detect_beam_group_candidates(
                     (
                         stem_x for stem_x in expected_stem_xs
                         if x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
-                        and _stem_reaches_beam(ink, head, beam_y, stem_x)
+                        and _stem_reaches_beam(
+                            ink, head, _beam_y_at_x(ink, (x, y, w, h), stem_x), stem_x
+                        )
                     ),
                     None,
                 )
