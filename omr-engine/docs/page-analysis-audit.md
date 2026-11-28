@@ -80,3 +80,19 @@ pierde seis emparejamientos y produce F1 91.47%.
 Estos umbrales se muestran como análisis de sensibilidad para este documento,
 no como un valor universal ni como una modificación automática del motor.
 La evaluación de referencia sigue limitada al glifo de cabeza rellena.
+
+
+## Filtro opcional en el análisis
+
+El CLI principal mantiene todos los candidatos por defecto. Para explorar el
+umbral evaluado en esta partitura sin alterar el valor predeterminado:
+
+```bash
+palermo-omr "Clamaré a Dios - Coro.pdf" --output omr-output --min-notehead-confidence 0.70
+```
+
+El filtro se aplica solo a cabezas rellenas y queda registrado en cada página
+como `notehead_confidence_filter`. Los candidatos descartados no se convierten
+en falsos negativos del análisis original: esta opción es una vista filtrada
+para revisión y comparación. El umbral debe recalibrarse con otros documentos
+antes de usarlo como valor general.
