@@ -131,3 +131,9 @@ palermo-omr-audit analysis.json audit.json --queue-csv rhythm-review.csv
 
 El CSV incluye ID estable, página, pentagrama, posición, confianza, hipótesis
 de plica/figura/haces, razones de revisión y prioridad.
+
+
+La auditoría incluye además `symbol_review_queue` para formas de silencio,
+arcos de ligadura/expresión y haces parciales. Los candidatos se priorizan por
+confianza y tipo de ambigüedad. Así la revisión puede abarcar no solo las
+figuras de las cabezas, sino también silencios, ligaduras y conexiones de haces.
