@@ -218,13 +218,13 @@ def detect_beam_group_candidates(
                     if local_beam_y is None:
                         continue
                     vertical_distance = local_beam_y - head.center_y
-                    if abs(vertical_distance) < spacing * 0.8 or abs(vertical_distance) > spacing * 4.5:
+                    # La altura local puede caer en medio píxel por el ajuste
+                    # lineal; evita rechazar el límite por error de coma flotante.
+                    if abs(vertical_distance) < spacing * 0.8 or abs(vertical_distance) > spacing * 4.5 + 0.5:
                         continue
                     expected_direction = "up" if vertical_distance < 0 else "down"
                     if rhythm.stem_direction == expected_direction:
                         valid_beam_points[stem_x] = local_beam_y
-                if head.center_x == 145.0:
-                    print("BEAM_DEBUG", beam_bbox, expected_stem_xs, local_beam_points, valid_beam_points)
                 intersects_expected_stem = bool(valid_beam_points)
                 if not intersects_expected_stem:
                     continue
