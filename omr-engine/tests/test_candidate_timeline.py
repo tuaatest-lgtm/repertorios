@@ -105,4 +105,4 @@ def test_preserves_rest_events_as_timed_silences():
     event = timelines[0]["events"][0]
     assert event["event_type"] == "rest"
     assert event["duration_quarters"] == "2"
-    assert event["notehead_ids"] == []
+    assert event["notehead_ids"] == ()
