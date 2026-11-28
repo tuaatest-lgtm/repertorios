@@ -205,6 +205,56 @@ def build_rhythm_review_queue(analysis: Mapping[str, Any]) -> list[dict[str, Any
     return queue
 
 
+
+
+def build_symbol_review_queue(analysis: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Prioriza formas de silencio, haces parciales y arcos sin clasificación."""
+    if not isinstance(analysis, Mapping) or not isinstance(analysis.get("pages"), list):
+        raise ValueError("analysis debe contener una lista pages")
+    queue = []
+    for page in analysis["pages"]:
+        if not isinstance(page, Mapping):
+            raise ValueError("Cada página debe ser un objeto")
+        page_number = page.get("page_number")
+        if not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
+            raise ValueError("Cada página requiere page_number entero positivo")
+        families = (
+            ("rest_shape", "rest_shape_candidates", "unclassified_rest_shape"),
+            ("tie_slur_shape", "tie_slur_shape_candidates", "unclassified_tie_or_slur"),
+            ("beam_group", "beam_group_candidates", "partial_beam_connection"),
+        )
+        for family, key, reason in families:
+            for index, candidate in enumerate(_list(page, key)):
+                if not isinstance(candidate, Mapping):
+                    raise ValueError(f"{key} debe contener objetos")
+                confidence = candidate.get("confidence", candidate.get("type_confidence", 0.0))
+                if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1:
+                    raise ValueError(f"{key} contiene confidence inválida")
+                if family == "beam_group" and candidate.get("connection_type_candidate") != "partial":
+                    continue
+                if family == "rest_shape" and confidence >= 0.75 and candidate.get("rest_type_candidate") not in {None, "unclassified"}:
+                    continue
+                if family == "tie_slur_shape" and confidence >= 0.75:
+                    continue
+                queue.append({
+                    "candidate_id": f"p{page_number}-{family}-{index + 1}",
+                    "page_number": page_number,
+                    "family": family,
+                    "candidate_index": index,
+                    "staff_index": candidate.get("staff_index"),
+                    "bbox": candidate.get("bbox"),
+                    "confidence": float(confidence),
+                    "candidate_type": candidate.get("rest_type_candidate", candidate.get("connection_type_candidate")),
+                    "review_reasons": [reason],
+                    "priority": 1 if family == "beam_group" or confidence < 0.50 else 2,
+                })
+    queue.sort(key=lambda item: (
+        item["priority"], item["confidence"], item["page_number"],
+        item["family"], item["candidate_index"],
+    ))
+    return queue
+
+
 def audit_page_analysis(
     analysis: Mapping[str, Any],
     *,
@@ -247,6 +297,7 @@ def audit_page_analysis(
         for item in results
     )
     review_queue = build_rhythm_review_queue(analysis)
+    symbol_queue = build_symbol_review_queue(analysis)
     return {
         "status": "candidate_geometry_audit",
         "source_pdf": analysis.get("source_pdf"),
@@ -264,6 +315,8 @@ def audit_page_analysis(
         "pages": results,
         "rhythm_review_queue_count": len(review_queue),
         "rhythm_review_queue": review_queue,
+        "symbol_review_queue_count": len(symbol_queue),
+        "symbol_review_queue": symbol_queue,
         "limitations": [
             "No se compara con anotaciones de referencia ni ground truth.",
             "Los intervalos de compás y pentagramas son candidatos geométricos.",
