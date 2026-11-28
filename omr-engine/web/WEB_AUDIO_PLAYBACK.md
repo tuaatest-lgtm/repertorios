@@ -24,7 +24,7 @@ requestAnimationFrame(frame);
 // player.stop(); sink.dispose();
 ```
 
-La aplicación debe crear el AudioContext como consecuencia de una acción del usuario
+El cursor visual puede consultar `player.current_seconds` para leer el reloj maestro directamente, incluso entre ticks de la interfaz. La aplicación debe crear el AudioContext como consecuencia de una acción del usuario
 (por las políticas de autoplay), llamar `tick()` continuamente mientras reproduce y
 cerrar el sink al desmontar el reproductor. Esta capa sintetiza tonos básicos; no es
 todavía un instrumento GM ni está conectada a index.html/Sonoro. El scheduler usa
