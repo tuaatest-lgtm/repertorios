@@ -3,7 +3,7 @@ import wave
 
 import pytest
 
-from palermo_omr.wav_renderer import render_polyphonic_wav
+from palermo_omr.wav_renderer import render_polyphonic_wav, render_score_playback_bundle_wav
 
 
 def stream(commands):
@@ -74,3 +74,23 @@ def test_rejects_excessive_render_duration_and_invalid_voice_pan():
         render_polyphonic_wav(stream(commands), max_duration_seconds=1)
     with pytest.raises(ValueError, match="voice_pan"):
         render_polyphonic_wav(stream([]), voice_pan={"soprano": 2})
+
+
+
+def test_renders_wav_directly_from_score_playback_bundle():
+    bundle = {
+        "status": "unconfirmed_score_playback_bundle",
+        "command_stream": stream([
+            cmd("note_on", "x", "alto", 60, 0),
+            cmd("note_off", "x", "alto", 60, .1),
+        ]),
+    }
+    params, frames = read_wav(render_score_playback_bundle_wav(bundle, sample_rate=8000))
+    assert params.nchannels == 2
+    assert params.framerate == 8000
+    assert any(frames)
+
+
+def test_rejects_non_bundle_input_for_score_wav_wrapper():
+    with pytest.raises(ValueError, match="paquete provisional"):
+        render_score_playback_bundle_wav(stream([]))
