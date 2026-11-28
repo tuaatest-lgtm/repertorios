@@ -146,3 +146,44 @@ def apply_reviewed_voice_assignments(
             "automática de partes ni de líneas polifónicas."
         ),
     }
+
+
+def apply_voice_assignments_to_timelines(
+    timelines: Sequence[Mapping[str, Any]],
+    voice_assignment_map: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Propaga IDs de voz confirmados a los eventos temporales por event_id."""
+    if not isinstance(voice_assignment_map, Mapping) or voice_assignment_map.get("status") != "unconfirmed_voice_assignment_map":
+        raise ValueError("Se requiere un mapa de asignación de voz Palermo provisional")
+    voice_by_event = {
+        item["event_id"]: item["voice_id"]
+        for item in voice_assignment_map.get("assignments", [])
+        if item.get("status") == "resolved_from_human_confirmed_context"
+        and isinstance(item.get("voice_id"), str) and item["voice_id"].strip()
+    }
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for timeline in timelines:
+        if not isinstance(timeline, Mapping):
+            raise ValueError("Cada timeline debe ser un objeto")
+        copied = dict(timeline)
+        events = timeline.get("events", [])
+        if not isinstance(events, list):
+            raise ValueError("timeline.events debe ser una lista")
+        copied_events = []
+        for event in events:
+            if not isinstance(event, Mapping):
+                raise ValueError("Cada evento temporal debe ser un objeto")
+            event_id = event.get("event_id")
+            if not isinstance(event_id, str) or not event_id:
+                raise ValueError("Cada evento temporal requiere event_id")
+            if event_id in seen:
+                raise ValueError(f"El evento {event_id} aparece más de una vez")
+            seen.add(event_id)
+            copied_event = dict(event)
+            # No conservar una voz no revisada que viniera en el timeline.
+            copied_event["voice_id"] = voice_by_event.get(event_id)
+            copied_events.append(copied_event)
+        copied["events"] = copied_events
+        result.append(copied)
+    return result
