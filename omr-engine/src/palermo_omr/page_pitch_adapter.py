@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from .pitch_candidates import PitchCandidate, build_pitch_candidates
+from .accidental_attachment import build_accepted_explicit_accidentals
 
 _CLEFS = {"treble", "bass", "alto", "tenor"}
 _CONTEXT_STATES = {
@@ -42,6 +43,9 @@ def build_pitch_candidates_from_page_analysis(
     measure_ids: Sequence[str | int | None] | None = None,
     simultaneous_group_ids: Sequence[str | int | None] | None = None,
     explicit_accidentals: Sequence[str | None] | None = None,
+    notehead_ids: Sequence[str] | None = None,
+    accidental_attachment_map: Mapping[str, Any] | None = None,
+    accepted_accidental_ids: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Interpreta posiciones verticales solo con clave y armadura confirmadas.
 
@@ -58,6 +62,17 @@ def build_pitch_candidates_from_page_analysis(
     if not isinstance(raw_heads, list):
         raise ValueError("El análisis debe incluir notehead_candidates")
     contexts = _normalize_context_map(staff_contexts)
+
+    if accidental_attachment_map is not None:
+        if explicit_accidentals is not None:
+            raise ValueError("Use accidental_attachment_map o explicit_accidentals, no ambos")
+        if notehead_ids is None or len(notehead_ids) != len(raw_heads):
+            raise ValueError("notehead_ids debe alinear cada cabeza del análisis")
+        explicit_accidentals = build_accepted_explicit_accidentals(
+            notehead_ids, accidental_attachment_map, accepted_accidental_ids
+        )
+    elif accepted_accidental_ids or notehead_ids is not None:
+        raise ValueError("notehead_ids y accepted_accidental_ids requieren accidental_attachment_map")
 
     noteheads = []
     head_staffs: list[int] = []
