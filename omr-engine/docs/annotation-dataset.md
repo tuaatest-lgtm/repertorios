@@ -14,12 +14,15 @@ infraestructura de datos: **no detecta notas ni genera ground truth**.
 - `annotation_version`: versión del criterio/formato de anotación.
 - `review_status`: `draft` o `reviewed`.
 - `events`: eventos `ScoreEvent` completos, con página, pentagrama, compás,
-  inicio y duración en negras, tipo, alturas MIDI y voz.
+  inicio y duración en negras, tipo, alturas MIDI y voz. Pueden incluir
+  `source_candidate_ids`, lista de IDs del paquete visual que sustentan el evento.
 
 Los acordes se anotan como una tupla de alturas MIDI en un mismo evento. Los
 silencios llevan `event_type="rest"` y `pitches_midi=[]`. Cada voz mantiene un
 identificador explícito. Los tiempos se serializan como fracciones exactas
-(por ejemplo `"1/3"`) para no introducir redondeos.
+(por ejemplo `"1/3"`) para no introducir redondeos. La evidencia visual se conserva
+como IDs, por ejemplo `p1-filled_notehead-3` y `p1-staff-1`; estos vínculos no
+confirman por sí mismos la nota ni sustituyen la revisión humana.
 
 ## Reglas de validación
 
