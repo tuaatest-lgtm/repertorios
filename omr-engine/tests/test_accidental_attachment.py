@@ -42,7 +42,7 @@ def test_does_not_attach_unreviewed_or_cross_measure_glyphs():
 def test_keeps_near_tied_notehead_targets_ambiguous():
     result = attach_reviewed_accidentals(
         [_glyph("natural-1", "natural", 20, 48)],
-        [_head("head-a", 34, 46), _head("head-b", 34, 50)],
+        [_head("head-a", 34, 46), _head("head-b", 34, 54)],
         {0: 10},
     )
     assert result["attachments"] == []
