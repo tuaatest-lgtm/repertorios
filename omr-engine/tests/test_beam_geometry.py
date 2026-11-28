@@ -31,3 +31,13 @@ def test_ignores_short_non_beam_mark():
 def test_rejects_invalid_binary_input():
     with pytest.raises(ValueError):
         extract_beam_segments(np.zeros((10, 10, 3), dtype=np.uint8), spacing=10)
+
+
+def test_connected_horizontal_beam_and_stems_are_not_sloped_beam():
+    image = np.full((120, 180), 255, dtype=np.uint8)
+    # Una barra horizontal unida a dos plicas forma un único componente.
+    cv2.line(image, (55, 40), (125, 40), 0, 4)
+    cv2.line(image, (60, 40), (60, 95), 0, 2)
+    cv2.line(image, (120, 40), (120, 95), 0, 2)
+
+    assert extract_beam_segments(image, spacing=10) == []
