@@ -172,8 +172,12 @@ def detect_beam_group_candidates(
                 stem_offset = max(1, int(round(spacing * 0.72)))
                 stem_tolerance = max(2, int(round(spacing * 0.20)))
                 expected_stem_xs = (
-                    int(round(head.center_x - stem_offset)),
-                    int(round(head.center_x + stem_offset)),
+                    (int(rhythm.stem_x),)
+                    if rhythm.stem_x is not None
+                    else (
+                        int(round(head.center_x - stem_offset)),
+                        int(round(head.center_x + stem_offset)),
+                    )
                 )
                 intersects_expected_stem = any(
                     x - stem_tolerance <= stem_x <= x + w - 1 + stem_tolerance
