@@ -19,29 +19,39 @@ Este archivo es la instrucción operativa que recibe cualquier persona o agente 
 - No existe aún una transcripción completa, validada y medida de una partitura real. Los tests sintéticos prueban contratos de software, no la exactitud musical.
 - El porcentaje publicado en `omr-engine/docs/project-progress.md` es una estimación de madurez funcional, no de precisión. No lo aumentes por agregar infraestructura, tests o candidatos.
 
+## Estado al cierre de esta intervención
+
+- Rama de trabajo: `work/annotation-first-fragment-20261128`.
+- Rama base de desarrollo: `feature/omr-propio-palermo`.
+- SHA base verificado: `9408a82b44608f1cbf2bfc08b62f7777ebd7d2f6`.
+- El SHA base anterior escrito en este archivo (`1288480e562c6a23359f58897d13ec131106fd66`) era dos commits anterior; se comparó con GitHub. Los únicos commits intermedios (`ef38120`, `9408a82`) añadieron este relevo y el enlace desde README, sin modificar el motor. La base actual coincide con el PR #8.
+- PR de esta intervención: https://github.com/tuaatest-lgtm/repertorios/pull/9 (draft, abierto, no fusionado).
+- PR #8 permanece separado: detector local de barras inclinadas, draft, sin fusionar.
+- Se confirmó CI de la fase anterior sobre el HEAD `a1301c13efefe7f42c937db4dfbc2d13439d0f13`: 588 pruebas Python y 4 pruebas del cliente web aprobadas.
+- En el turno actual se implementó una herramienta para acotar paquetes de revisión a una página y pentagramas seleccionados. No genera eventos musicales ni ground truth.
+- Archivos añadidos: `src/palermo_omr/focused_review.py`, `src/palermo_omr/focused_review_cli.py`, `tests/test_focused_review.py`, `docs/focused-review.md`.
+- Archivo modificado: `pyproject.toml` (entrada de consola `palermo-omr-focus-review`) y `README.md` (referencia documental).
+- La primera CI del nuevo módulo detectó un fallo en la comprobación de IDs duplicados: 584 aprobadas y 1 fallida. Se corrigió explícitamente la validación. La CI del commit `2f48d1e90fcb9e5ad1e1192ec522212b80720927` pasó con 585 pruebas Python; el cliente web también pasó en esa ejecución. El commit más reciente añade dos pruebas de CLI y requiere la confirmación final de CI antes de dar el PR por validado.
+- PDF de referencia disponible en Library: `Clamaré a Dios - Coro.pdf`, SHA-256 `bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74`.
+- También está disponible un `analysis.json` histórico de esa partitura, versión 0.3.0. No equivale a una ejecución del HEAD actual ni a una transcripción humana revisada.
+- En la imagen original de la primera página se identificó visualmente el primer sistema como dos pentagramas unidos por llave. El análisis histórico enumera esos pentagramas por separado (índices 0 y 1); la selección debe registrarse como región elegida por una persona y no como sistema/parte/voz reconocidos por el motor.
+- No se ha producido todavía un manifiesto de eventos musicales humanos ni se ha calculado precisión/recall. No aumentar el porcentaje de progreso.
+
 ## Encargo del siguiente turno
-**Construir una primera unidad de anotación humana asistida, reproducible y trazable para una sección pequeña de una partitura real**, usando las herramientas y esquemas de anotación que ya existen. El objetivo es cerrar el ciclo entre candidatos visuales y verdad de referencia humana; no inventar una transcripción automática.
 
-### Secuencia de trabajo
-1. Verifica el HEAD actual y confirma que contiene este archivo. Si la rama avanzó desde `1288480e562c6a23359f58897d13ec131106fd66`, inspecciona y reconcilia los cambios antes de continuar.
-2. Lee `omr-engine/docs/annotation-dataset.md`, `omr-engine/docs/annotation-workflow.md`, `omr-engine/docs/review-package.md`, `omr-engine/docs/event-evaluation.md`, `omr-engine/docs/dataset-evaluation.md` y el esquema del manifiesto/corpus. Inspecciona las implementaciones y pruebas actuales; reutilízalas.
-3. Localiza la partitura de referencia `Clamaré a Dios - Coro.pdf`. Su SHA-256 conocido es `bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74c`. Si el archivo no está disponible en el entorno, no sustituyas otra partitura ni inventes resultados: deja documentada la dependencia exacta y avanza solo con el diseño/herramientas que puedan probarse.
-4. Escoge una sola unidad acotada (preferiblemente el primer sistema completo de la primera página) y verifica que su alcance sea identificable en el PDF y en los candidatos del motor. No intentes anotar las tres páginas en este turno.
-5. Implementa o completa, solo si hace falta, una exportación/plantilla de anotación que permita a una persona revisar candidatos con identificadores estables y registrar por evento, como mínimo: sistema/pentagrama, voz o estado sin resolver, compás o estado sin resolver, tipo de evento, cabezas de nota asociadas, alturas escritas/sonoras según el esquema existente, onset y duración exactos o estado desconocido, y evidencia/decisión humana. Los silencios, acordes y ligaduras deben poder permanecer pendientes; nunca fuerces valores.
-6. Asegura que la anotación pueda volver a cargarse y validarse sin perder IDs, fracciones, página, coordenadas ni estados de incertidumbre. Si el esquema actual ya lo permite, no dupliques formatos: añade el ejemplo de fixture y la documentación que falten.
-7. Crea un fixture de ejemplo claramente marcado como `draft` o `needs_review`. **No lo declares ground truth ni lo uses para publicar precisión** mientras no haya confirmación humana completa.
-8. Añade pruebas para exportar, reimportar, validar IDs, preservar fracciones exactas, rechazar referencias inexistentes y bloquear la promoción de borradores a referencia aprobada.
-9. Ejecuta pruebas específicas y suite completa. Consulta el resultado CI real del commit final. Documenta límites y cualquier paso de revisión que todavía deba realizar una persona.
-10. Actualiza este archivo para entregar el siguiente turno a otra persona, con SHA base/final, evidencia de tests y una única tarea siguiente acotada.
+**Aplicar la nueva herramienta al primer sistema visual de `Clamaré a Dios - Coro.pdf` y preparar un paquete real de revisión pendiente para sus dos pentagramas.**
 
-### Criterios de aceptación
-- El flujo funciona sobre un fragmento real o, si el PDF no está disponible, el bloqueo queda descrito sin fingir ejecución real.
-- La anotación mantiene la distinción entre candidato, decisión humana y ground truth aprobado.
-- IDs, coordenadas, fracciones y estados desconocidos sobreviven al ciclo exportar/importar.
-- La validación impide aprobar una anotación incompleta o no revisada.
-- Las pruebas automatizadas cubren los contratos nuevos y las regresiones.
-- No hay cambios en `main`, `index.html` ni Sonoro; no se despliega ni integra.
-- No se modifica el porcentaje de progreso salvo evidencia musical real aprobada que cumpla la política del proyecto.
+Instrucciones ejecutables:
+1. Verificar el HEAD actual de la rama `work/annotation-first-fragment-20261128`, el SHA de PR #9 y la CI asociada. No continuar sobre un SHA distinto sin inspeccionar su diff.
+2. Descargar/materializar desde Library el PDF `Clamaré a Dios - Coro.pdf` y el `analysis.json` histórico. Verificar que el SHA-256 del PDF sea exactamente `bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74`.
+3. No tratar el análisis histórico como salida del HEAD actual. Si es posible ejecutar el motor actual, generar una salida nueva a 300 DPI; si no, documentar que el paquete usa el análisis histórico y conservar esa procedencia.
+4. Crear el paquete completo con `palermo-omr-dataset prepare-review` y después extraer el fragmento con:
+   `palermo-omr-focus-review <paquete> --page 1 --staff-indices 0,1 --label "Primer sistema visual, página 1" --output <destino>`.
+5. Verificar en el PDF que esos dos pentagramas son la pareja unida por llave del primer sistema. El paquete debe mantener `review_status=pending`, `annotation_status=draft`, `events=[]` y `ground_truth_eligible=false`. No convertir candidatos en ScoreEvent.
+6. Inspeccionar los overlays y corregir únicamente errores de integridad o selección de candidatos que se puedan demostrar. No asignar notas, duraciones, voces o compases por intuición.
+7. Si el flujo funciona, dejar el paquete como artefacto de revisión descargable y documentar los IDs pendientes. Si no funciona por incompatibilidad del análisis histórico, volver a ejecutar el motor actual o dejar descrito el bloqueo exacto.
+8. Ejecutar pruebas específicas, suite completa y CI final. Actualizar este archivo con SHA base/final, resultados observados y la siguiente tarea acotada.
+9. No modificar `main`, `index.html` ni Sonoro; no fusionar ni desplegar.
 
 ## Instrucción exacta para quien toma el turno
 Trabaja como responsable técnico del motor OMR propio de Palermo Music. Empieza verificando la rama y el SHA; lee `AGENTS.md` y este archivo; inspecciona primero lo que ya existe antes de programar. Ejecuta el encargo del siguiente turno con el alcance limitado y los criterios de aceptación indicados. No inventes resultados ni completes datos musicales por intuición. Mantén la polifonía real y la aritmética temporal exacta. Al terminar, actualiza este mismo archivo con el estado comprobado y deja una sola tarea siguiente, concreta y ejecutable para el próximo participante. No hagas push, merge, despliegue ni integración con Sonoro sin autorización expresa.
