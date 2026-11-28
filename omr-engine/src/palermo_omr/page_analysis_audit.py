@@ -159,6 +159,8 @@ def build_rhythm_review_queue(analysis: Mapping[str, Any]) -> list[dict[str, Any
         heads = _list(page, "notehead_candidates")
         rhythms = _list(page, "rhythm_candidates")
         interpretations = _list(page, "rhythmic_interpretation_candidates")
+        if not rhythms and not interpretations:
+            continue
         if len(rhythms) != len(heads) or len(interpretations) != len(heads):
             raise ValueError("Cabezas, ritmos e interpretaciones deben estar alineados para la cola de revisión")
         for index, (head, rhythm, interpretation) in enumerate(zip(heads, rhythms, interpretations)):
