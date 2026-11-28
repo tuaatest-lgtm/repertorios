@@ -143,3 +143,40 @@ def test_stem_anchor_scan_is_clamped_at_bottom_page_edge():
     assert anchor is not None
     assert abs(anchor[0] - 25) <= 1
     assert anchor[1:] == (169, 3)
+
+
+def test_three_note_beam_includes_middle_stem_and_preserves_partial_secondary_beam():
+    image = np.full((150, 230), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (220, y), 0, 1)
+
+    centers = [(60, 80), (110, 72), (160, 64)]
+    stem_xs = [66, 116, 166]
+    stem_tips = [40, 32, 24]
+    heads = []
+    for x, y in centers:
+        head = NoteheadCandidate((x - 8, y - 5, 16, 10), float(x), float(y),
+                                 0, 2, .8, .9, .9)
+        heads.append(head)
+        cv2.ellipse(image, (x, y), (8, 5), -20, 0, 360, 0, -1)
+
+    for x, (_head_x, head_y), tip_y in zip(stem_xs, centers, stem_tips):
+        cv2.line(image, (x, head_y), (x, tip_y), 0, 2)
+
+    # Barra primaria para las tres notas y barra secundaria parcial solo
+    # entre la primera y la segunda.
+    cv2.line(image, (66, 40), (166, 24), 0, 3)
+    cv2.line(image, (67, 47), (117, 39), 0, 3)
+
+    staves = [StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)]
+    rhythms = [
+        RhythmCandidate(head.bbox, 0, "filled", .9, "up", 35, 0,
+                        "quarter", .8, ())
+        for head in heads
+    ]
+    candidates = detect_local_beam_candidates(image, staves, heads, rhythms)
+    by_heads = {tuple(candidate.notehead_indices): candidate for candidate in candidates}
+
+    assert set(by_heads) == {(0, 1), (0, 1, 2)}
+    assert by_heads[(0, 1)].beam_count == 2
+    assert by_heads[(0, 1, 2)].beam_count == 1
