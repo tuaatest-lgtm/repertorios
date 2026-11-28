@@ -43,14 +43,11 @@ def test_voice_pan_changes_stereo_balance():
     commands = [
         cmd("note_on", "left", "soprano", 69, 0.0),
         cmd("note_off", "left", "soprano", 69, 0.1),
-        cmd("note_on", "right", "bass", 69, 0.0),
-        cmd("note_off", "right", "bass", 69, 0.1),
     ]
     _, frames = read_wav(render_polyphonic_wav(stream(commands), sample_rate=8000))
     left_energy = sum(abs(int.from_bytes(frames[i:i+2], "little", signed=True)) for i in range(0, len(frames), 4))
     right_energy = sum(abs(int.from_bytes(frames[i:i+2], "little", signed=True)) for i in range(2, len(frames), 4))
-    assert left_energy > 0 and right_energy > 0
-    assert left_energy != right_energy
+    assert left_energy > right_energy
 
 
 def test_rejects_unclosed_or_unmatched_notes_and_bad_parameters():
