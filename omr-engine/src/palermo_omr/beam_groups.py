@@ -170,6 +170,11 @@ def detect_beam_group_candidates(
             spacing=spacing,
             min_length_spacing=min_beam_width_spacing,
         ):
+            # Los trazos casi horizontales ya se obtienen por filas. Añadirlos
+            # otra vez desde Hough duplica grupos y altera el número de barras.
+            # Hough se reserva aquí para barras con pendiente visible.
+            if sh <= max(2, int(round(spacing * 0.15))):
+                continue
             candidate = (sx, sy + top, sw, sh)
             if min_width <= sw <= max_width and not any(
                 abs(candidate[0] - existing[0]) <= 2
