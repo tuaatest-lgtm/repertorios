@@ -84,3 +84,23 @@ def test_rejects_invalid_context_and_duplicate_event_ids():
         )
     with pytest.raises(ValueError, match="Contexto de voz"):
         apply_reviewed_voice_assignments([_event("x")], {0: "soprano"})
+
+
+def test_applies_confirmed_voice_ids_to_timeline_and_clears_unreviewed_values():
+    from palermo_omr.voice_assignment import apply_voice_assignments_to_timelines
+
+    assignment = apply_reviewed_voice_assignments(
+        [_event("a"), _event("b")],
+        {0: {"voice_id": "soprano", "status": "human_confirmed"}},
+        event_voice_overrides={
+            "b": {"voice_id": "alto", "status": "pending_human_review"},
+        },
+    )
+    result = apply_voice_assignments_to_timelines(
+        [{"measure_index": 0, "events": [
+            {"event_id": "a", "voice_id": "unreviewed"},
+            {"event_id": "b", "voice_id": "tenor"},
+        ]}],
+        assignment,
+    )
+    assert [item["voice_id"] for item in result[0]["events"]] == ["soprano", None]
