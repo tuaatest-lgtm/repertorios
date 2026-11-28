@@ -98,7 +98,7 @@ def test_vector_stem_candidates_fill_only_missing_raster_directions():
 def test_vector_beam_groups_support_moderately_sloped_beams(slope):
     drawings, heads = _drawings(two_beams=True, slope=slope)
     groups = detect_vector_beam_group_candidates(
-        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], heads,
+        drawings, [StaffCandidate([40, 50, 60, 70, 80], 10, 1)], heads, dpi=72,
     )
     assert len(groups) == 1
     assert groups[0].notehead_indices == [0, 1]
