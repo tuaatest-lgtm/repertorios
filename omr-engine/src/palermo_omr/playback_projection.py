@@ -136,3 +136,94 @@ def build_playback_projection(
             "el reconocimiento musical. Los eventos no resueltos se excluyen."
         ),
     }
+
+
+def merge_page_timelines_by_global_measure_map(
+    page_timelines: Sequence[Mapping[str, Any]],
+    page_measure_global_indices: Mapping[int, Mapping[int, int]],
+) -> dict[str, Any]:
+    """Concatena medidas de varias páginas solo con un mapa global explícito.
+
+    Los índices locales son cero-based. Si falta un mapeo o hay un salto en la
+    secuencia global, se conserva únicamente el prefijo contiguo; las medidas
+    posteriores no se compactan ni reciben tiempos inventados.
+    """
+    if not isinstance(page_measure_global_indices, Mapping):
+        raise ValueError("page_measure_global_indices debe ser un mapa")
+    normalized_map: dict[int, dict[int, int]] = {}
+    used_global: set[int] = set()
+    for page_number, local_map in page_measure_global_indices.items():
+        if not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
+            raise ValueError("Los números de página deben ser enteros positivos")
+        if not isinstance(local_map, Mapping):
+            raise ValueError("Cada mapa de página debe ser un objeto")
+        normalized_map[page_number] = {}
+        for local_index, global_index in local_map.items():
+            if (not isinstance(local_index, int) or isinstance(local_index, bool) or local_index < 0
+                    or not isinstance(global_index, int) or isinstance(global_index, bool) or global_index < 0):
+                raise ValueError("Los índices locales/globales deben ser enteros no negativos")
+            if global_index in used_global:
+                raise ValueError("No se puede asignar dos medidas al mismo índice global")
+            used_global.add(global_index)
+            normalized_map[page_number][local_index] = global_index
+
+    ordered = []
+    for timeline in page_timelines:
+        if not isinstance(timeline, Mapping):
+            raise ValueError("Cada línea temporal de página debe ser un objeto")
+        page_number = timeline.get("page_number")
+        local_index = timeline.get("measure_index")
+        if (not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1
+                or not isinstance(local_index, int) or isinstance(local_index, bool) or local_index < 0):
+            raise ValueError("Cada timeline requiere page_number y measure_index locales válidos")
+        global_index = normalized_map.get(page_number, {}).get(local_index)
+        ordered.append((page_number, local_index, global_index, dict(timeline)))
+
+    ordered.sort(key=lambda item: (item[0], item[1]))
+    mapped_values = [item[2] for item in ordered if item[2] is not None]
+    if mapped_values != sorted(mapped_values):
+        raise ValueError("El mapa global debe respetar el orden de páginas y medidas")
+    accepted = []
+    unresolved = []
+    expected_global = 0
+    gap_started = False
+    missing_global: list[int] = []
+    for page_number, local_index, global_index, timeline in ordered:
+        if gap_started:
+            unresolved.append({
+                "page_number": page_number, "local_measure_index": local_index,
+                "global_measure_index": global_index,
+                "reason": "after_unresolved_measure_gap",
+            })
+            continue
+        if global_index is None:
+            gap_started = True
+            unresolved.append({
+                "page_number": page_number, "local_measure_index": local_index,
+                "global_measure_index": None, "reason": "missing_global_measure_mapping",
+            })
+            continue
+        if global_index != expected_global:
+            gap_started = True
+            missing_global.extend(range(expected_global, global_index))
+            unresolved.append({
+                "page_number": page_number, "local_measure_index": local_index,
+                "global_measure_index": global_index, "reason": "global_measure_index_gap",
+            })
+            continue
+        timeline["measure_index"] = global_index
+        timeline["page_number"] = page_number
+        timeline["local_measure_index"] = local_index
+        accepted.append(timeline)
+        expected_global += 1
+
+    return {
+        "status": "unconfirmed_document_timeline",
+        "timelines": accepted,
+        "unresolved_measures": unresolved,
+        "missing_global_measure_indices": missing_global,
+        "warning": (
+            "Las medidas se concatenan solo cuando existe un mapeo global "
+            "explícito y contiguo; no se comprimen huecos ni se inventan compases."
+        ),
+    }
