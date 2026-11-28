@@ -66,3 +66,20 @@ def test_hollow_head_without_stem_proposes_whole_note():
     assert result.notehead_fill == "hollow"
     assert result.stem_direction == "none"
     assert result.base_duration == "whole"
+
+
+def test_detects_stem_at_actual_notehead_edge_not_fixed_center_offset():
+    image = np.full((180, 260), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (250, y), 0, 1)
+    cv2.ellipse(image, (103, 80), (8, 5), -20, 0, 360, 0, -1)
+    # La plica real está en x=112; el muestreo antiguo (x=96 y x=110)
+    # no la intercepta. El bbox de la cabeza sí contiene el punto de unión.
+    cv2.line(image, (112, 80), (112, 35), 0, 2)
+
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    result = analyze_rhythm_candidates(image, [staff], [_head()])[0]
+
+    assert result.stem_direction == "up"
+    assert result.stem_x == 112
+    assert result.stem_length_px >= 45
