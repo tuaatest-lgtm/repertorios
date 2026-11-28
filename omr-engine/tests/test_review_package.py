@@ -105,6 +105,7 @@ def test_build_review_package_keeps_all_candidates_pending_and_unconfirmed():
     assert package["pages"][0]["overlays"]["geometry"] == "page-001-geometry-overlay.png"
     assert "No representan eventos" in package["review_policy"]
     assert package["global_measure_sequence"]["global_measure_candidate_count"] == 1
+    assert package["rhythm_review_queue"] == []
     assert package["global_measure_sequence"]["global_measure_candidates"][0]["global_measure_candidate"] == 1
 
 
@@ -467,3 +468,20 @@ def test_review_package_rejects_event_group_linking_other_staff_noteheads():
     data["pages"][0]["rhythmic_event_group_candidates"][0]["staff_index"] = 1
     with pytest.raises(ValueError, match="pentagramas distintos"):
         build_review_package(data, score_id="score-invalid-event-review")
+
+
+
+def test_review_package_embeds_prioritized_rhythm_review_queue():
+    data = sample_analysis()
+    data["pages"][0]["rhythm_candidates"][0].update({
+        "stem_direction": "none", "base_duration": "unknown", "confidence": .42,
+    })
+    data["pages"][0]["rhythmic_interpretation_candidates"][0]["status"] = "unclassified"
+    package = build_review_package(data, score_id="score-rhythm-queue")
+    assert package["summary"]["rhythm_review_queue_count"] == 1
+    item = package["rhythm_review_queue"][0]
+    assert item["candidate_id"] == "p1-filled_notehead-1"
+    assert item["review_reasons"] == [
+        "missing_stem_direction", "unknown_duration", "ambiguous_or_unclassified_rhythm",
+    ]
+    assert item["priority"] == 1
