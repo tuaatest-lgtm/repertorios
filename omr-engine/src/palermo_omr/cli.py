@@ -125,10 +125,14 @@ def main() -> int:
 
         page_data = analysis.to_dict()
         page_data["render_dpi"] = args.dpi
-        noteheads = detect_notehead_candidates(binary, analysis.staves)
+        raw_noteheads = detect_notehead_candidates(binary, analysis.staves)
         noteheads = filter_notehead_candidates_by_confidence(
-            noteheads, args.min_notehead_confidence
+            raw_noteheads, args.min_notehead_confidence
         )
+        filtered_out_noteheads = [
+            item for item in raw_noteheads
+            if item.confidence < args.min_notehead_confidence
+        ]
         hollow_noteheads = detect_hollow_notehead_candidates(binary, analysis.staves)
         overlay = draw_notehead_overlay(page, noteheads)
         hollow_overlay = draw_notehead_overlay(page, hollow_noteheads)
@@ -139,6 +143,11 @@ def main() -> int:
         if not cv2.imwrite(str(overlay_path), overlay):
             raise OSError(f"No se pudo escribir {overlay_path}")
         page_data["notehead_confidence_filter"] = args.min_notehead_confidence
+        page_data["notehead_candidate_count_before_filter"] = len(raw_noteheads)
+        page_data["notehead_candidates_filtered_out"] = [
+            item.to_dict() for item in filtered_out_noteheads
+        ]
+        page_data["notehead_candidates_filtered_out_count"] = len(filtered_out_noteheads)
         page_data["notehead_candidates"] = [item.to_dict() for item in noteheads]
         page_data["notehead_candidate_count"] = len(noteheads)
         page_data["hollow_notehead_candidates"] = [item.to_dict() for item in hollow_noteheads]
