@@ -34,4 +34,35 @@ El resultado es una inferencia de duración, no una identificación visual de la
 - `complete`: todos los eventos declarados conocidos suman exactamente el compás.
 - `unaccounted_remainder`: no se declararon eventos desconocidos, pero queda tiempo sin explicar.
 
-Este módulo es una herramienta de validación y no está conectado todavía al análisis de imágenes ni al reproductor Sonoro.
+El módulo aritmético base no detecta figuras ni altera eventos. La capa `measure_duration_review.py` ya se integra opcionalmente en `reviewed_timeline.py` para producir candidatos de duración que la persona revisora puede inspeccionar.
+
+
+## Integración segura en el manifiesto de revisión
+
+Para permitir que una nota confirmada conserve duración desconocida y recibir
+una sugerencia aritmética, el compás puede incluir:
+
+```json
+{
+  "duration_completion_review": {
+    "allow_unknown_duration_candidates": true,
+    "measure_complete_confirmed": true,
+    "ties_and_tuplets_resolved": true
+  }
+}
+```
+
+Las tres condiciones tienen funciones distintas:
+
+- `allow_unknown_duration_candidates`: permite que una nota con figura no
+  clasificada entre en la línea temporal como duración desconocida.
+- `measure_complete_confirmed`: la persona revisora declara que se han
+  contabilizado todas las notas y silencios del compás, sin anacrusa ni eventos
+  omitidos.
+- `ties_and_tuplets_resolved`: declara que las ligaduras y subdivisiones
+  irregulares ya fueron resueltas antes del balance.
+
+La salida `duration_completion_candidates` es solo una sugerencia. No cambia
+`duration_quarters`, no recalcula automáticamente los ataques posteriores y
+no habilita reproducción. Para usarla, la persona revisora debe aceptar la
+figura y volver a generar el manifiesto con la duración explícita.
