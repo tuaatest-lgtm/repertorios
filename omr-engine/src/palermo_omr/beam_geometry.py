@@ -75,12 +75,29 @@ def _stem_reaches_anchor(
 ) -> bool:
     """Exige continuidad vertical entre el núcleo de cabeza y el anclaje."""
     cy = int(round(head.center_y))
+    x0, x1 = max(0, stem_x - 1), min(ink.shape[1], stem_x + 2)
+    vertical_sign = -1 if direction == "up" else 1
+
+    # Primero localiza el extremo real de la plica recorriéndola desde la
+    # cabeza. No basta con que la barra pase cerca: debe tocar el extremo.
+    tip_y = None
+    gap = 0
+    for y in range(cy, -1 if direction == "up" else ink.shape[0], vertical_sign):
+        if ink[y, x0:x1].any():
+            tip_y = y
+            gap = 0
+        else:
+            gap += 1
+            if gap > 1 and tip_y is not None:
+                break
+    if tip_y is None or abs(anchor_y - tip_y) > 2:
+        return False
+
     start, end = sorted((cy, anchor_y))
     if end - start < 3:
         return False
     values = []
     for y in range(start, end + 1):
-        x0, x1 = max(0, stem_x - 1), min(ink.shape[1], stem_x + 2)
         values.append(bool(ink[y, x0:x1].any()))
     coverage = sum(values) / len(values)
     longest_gap = current = 0
