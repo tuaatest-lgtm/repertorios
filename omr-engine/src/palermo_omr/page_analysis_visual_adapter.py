@@ -128,3 +128,38 @@ def build_visual_anchor_map_from_page_analysis(
         str(index): f"p{page_number}-head-{index}" for index in range(len(heads_raw))
     }
     return result
+
+
+def evaluate_visual_anchor_coverage(page_analysis: Mapping[str, Any]) -> dict[str, Any]:
+    """Mide qué cabezas tienen anclaje único a sistema y región de compás.
+
+    Es una métrica geométrica de cobertura, no precisión de reconocimiento
+    musical: cada cabeza se trata como evento de prueba individual.
+    """
+    heads = page_analysis.get("notehead_candidates") if isinstance(page_analysis, Mapping) else None
+    if not isinstance(heads, list):
+        raise ValueError("El análisis debe incluir notehead_candidates")
+    page_number = page_analysis.get("page_number")
+    event_indices = {
+        f"p{page_number}-head-event-{index}": [index]
+        for index in range(len(heads))
+    }
+    result = build_visual_anchor_map_from_page_analysis(page_analysis, event_indices)
+    reasons: dict[str, int] = {}
+    for item in result["unresolved"]:
+        reasons[item["reason"]] = reasons.get(item["reason"], 0) + 1
+    total = len(heads)
+    anchored = len(result["anchors"])
+    return {
+        "status": "unconfirmed_visual_anchor_coverage",
+        "page_number": page_number,
+        "candidate_noteheads": total,
+        "anchored_noteheads": anchored,
+        "unresolved_noteheads": total - anchored,
+        "coverage_ratio": anchored / total if total else 1.0,
+        "unresolved_reasons": dict(sorted(reasons.items())),
+        "warning": (
+            "Cobertura geométrica de anclajes, no precisión de cabezas, alturas, "
+            "ritmo, voces ni reconocimiento musical."
+        ),
+    }
