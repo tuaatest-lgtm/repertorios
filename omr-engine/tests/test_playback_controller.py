@@ -107,3 +107,11 @@ def test_voice_mute_changes_during_pause_do_not_restart_audio_until_resume():
     assert len(sink.calls) == before
     player.resume(10)
     assert sink.calls[before:] == [("on", "alto", 60, "a1")]
+
+
+def test_pause_at_end_of_score_does_not_overwrite_finished_state():
+    sink = FakeSink()
+    player = PlaybackController(make_stream(), sink)
+    player.play(0)
+    player.pause(2.0)
+    assert player.state == "finished"
