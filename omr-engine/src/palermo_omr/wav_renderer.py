@@ -121,3 +121,23 @@ def render_polyphonic_wav(
             pcm.extend(struct.pack("<hh", l_int, r_int))
         wav.writeframes(bytes(pcm))
     return output.getvalue()
+
+
+def render_score_playback_bundle_wav(
+    bundle: Mapping[str, Any],
+    *,
+    sample_rate: int = 22050,
+    gain: float = 0.22,
+    voice_pan: Mapping[str, float] | None = None,
+    max_duration_seconds: float = 180.0,
+) -> bytes:
+    """Renderiza el command_stream de un paquete de partitura a WAV estéreo."""
+    if not isinstance(bundle, Mapping) or bundle.get("status") != "unconfirmed_score_playback_bundle":
+        raise ValueError("Se requiere un paquete provisional de reproducción de partitura")
+    return render_polyphonic_wav(
+        bundle.get("command_stream", {}),
+        sample_rate=sample_rate,
+        gain=gain,
+        voice_pan=voice_pan,
+        max_duration_seconds=max_duration_seconds,
+    )
