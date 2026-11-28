@@ -156,13 +156,17 @@ def build_rhythm_review_queue(analysis: Mapping[str, Any]) -> list[dict[str, Any
         if not isinstance(page, Mapping):
             raise ValueError("Cada página debe ser un objeto")
         page_number = page.get("page_number")
+        if not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
+            raise ValueError("Cada página requiere page_number entero positivo")
         heads = _list(page, "notehead_candidates")
         rhythms = _list(page, "rhythm_candidates")
         interpretations = _list(page, "rhythmic_interpretation_candidates")
-        if not rhythms and not interpretations:
+        if not rhythms:
             continue
-        if len(rhythms) != len(heads) or len(interpretations) != len(heads):
+        if len(rhythms) != len(heads) or (interpretations and len(interpretations) != len(heads)):
             raise ValueError("Cabezas, ritmos e interpretaciones deben estar alineados para la cola de revisión")
+        if not interpretations:
+            interpretations = [{} for _ in heads]
         for index, (head, rhythm, interpretation) in enumerate(zip(heads, rhythms, interpretations)):
             if not all(isinstance(item, Mapping) for item in (head, rhythm, interpretation)):
                 raise ValueError("Cada candidato de revisión debe ser un objeto")
