@@ -148,13 +148,15 @@ def test_rejects_duplicate_visual_candidate_evidence_ids():
         replace(item, events=(event,)).validate()
 
 
-def test_rejects_visual_evidence_without_review_package_hash():
+def test_legacy_visual_evidence_without_review_package_hash_remains_loadable():
     from dataclasses import replace
 
     item = score()
     event = replace(item.events[0], source_candidate_ids=("p1-notehead-1",))
-    with pytest.raises(ValueError, match="requiere SHA-256"):
-        replace(item, events=(event,)).validate()
+    legacy = AnnotationDataset("0.1", (replace(item, events=(event,)),))
+    restored = AnnotationDataset.from_dict(legacy.to_dict())
+    assert restored.scores[0].events[0].source_candidate_ids == ("p1-notehead-1",)
+    assert restored.scores[0].source_review_package_sha256 is None
 
 
 def test_review_package_hash_round_trips_and_validates():
