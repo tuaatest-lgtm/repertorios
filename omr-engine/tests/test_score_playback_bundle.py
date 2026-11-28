@@ -291,3 +291,53 @@ def test_rejects_cross_page_timeline_without_explicit_global_measure_map():
             timelines, [], [page], event_page_numbers={}, event_notehead_indices={},
             tempo_bpm=120,
         )
+
+
+def test_bundle_integrates_reviewed_staff_and_event_voice_assignments_into_polyphonic_audio():
+    page = {
+        "page_number": 1,
+        "staves": [{"lines_y": [40, 50, 60, 70, 80], "spacing_px": 10, "confidence": 0.9}],
+        "staff_system_candidates": [{"system_index": 0, "staff_indices": [0], "y_top": 40,
+            "y_bottom": 80, "confidence": 0.65, "warning": "candidate"}],
+        "measure_span_candidates": [{"staff_index": 0, "measure_index": 1, "x_start": 0,
+            "x_end": 100, "width_px": 100, "left_boundary_observed": True,
+            "right_boundary_observed": True, "confidence": 0.8, "warning": "candidate"}],
+        "notehead_candidates": [
+            {"bbox": [20, 50, 10, 8], "staff_index": 0},
+            {"bbox": [60, 70, 10, 8], "staff_index": 0},
+        ],
+    }
+    candidates = [
+        {"event_id": "upper", "staff_index": 0, "notehead_candidate_ids": ["upper-head"],
+         "pitch_candidates": [{"status": "resolved_from_supplied_clef", "pitch": {"midi": 72}}],
+         "voice_id_candidate": None, "duration_candidate": "quarter",
+         "duration_quarters_candidate": "1", "status": "incomplete_candidate",
+         "warnings": [], "event_type": "note"},
+        {"event_id": "lower", "staff_index": 0, "notehead_candidate_ids": ["lower-head"],
+         "pitch_candidates": [{"status": "resolved_from_supplied_clef", "pitch": {"midi": 60}}],
+         "voice_id_candidate": None, "duration_candidate": "quarter",
+         "duration_quarters_candidate": "1", "status": "incomplete_candidate",
+         "warnings": [], "event_type": "note"},
+    ]
+    timelines = [{"measure_index": 0, "expected_quarters": "4", "events": [
+        {"event_id": "upper", "event_type": "note", "onset_quarters": "0", "duration_quarters": "1"},
+        {"event_id": "lower", "event_type": "note", "onset_quarters": "0", "duration_quarters": "1"},
+    ]}]
+    result = build_score_playback_bundle_from_page_analyses(
+        timelines, candidates, [page],
+        event_page_numbers={"upper": 1, "lower": 1},
+        event_notehead_indices={"upper": [0], "lower": [1]},
+        tempo_bpm=120,
+        staff_voice_contexts={0: {"voice_id": "soprano", "status": "human_confirmed"}},
+        event_voice_overrides={
+            "lower": {"voice_id": "alto", "status": "human_confirmed"},
+        },
+    )
+    scheduled = {item["event_id"]: item for item in result["playback_projection"]["events"]}
+    assert scheduled["upper"]["voice_id"] == "soprano"
+    assert scheduled["lower"]["voice_id"] == "alto"
+    assert scheduled["upper"]["start_seconds"] == scheduled["lower"]["start_seconds"] == 0
+    assert {item["voice_id"] for item in result["command_stream"]["commands"]} == {
+        "soprano", "alto",
+    }
+    assert len(result["visual_anchor_map"]["anchors"]) == 2
