@@ -119,3 +119,9 @@ los empates se ordenan por menor confianza y posición de origen.
 La cola facilita revisar primero los casos que bloquean la interpretación
 rítmica. No asigna duración ni dirección automáticamente y no modifica el
 `analysis.json` original.
+
+
+La misma cola se incluye ahora dentro de `review_package.json` bajo
+`rhythm_review_queue`, con su conteo en `summary.rhythm_review_queue_count`.
+Así el paquete de revisión humana conserva juntas las anotaciones completas
+y la lista priorizada de los problemas rítmicos.
