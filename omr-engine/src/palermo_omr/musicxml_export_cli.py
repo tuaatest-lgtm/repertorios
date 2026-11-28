@@ -24,6 +24,18 @@ def _key_signature(value: str) -> tuple[int, str]:
     return fifths, mode
 
 
+def _voice_clef(value: str) -> tuple[str, dict]:
+    parts = value.split(":")
+    if len(parts) not in {3, 4} or not parts[0].strip():
+        raise argparse.ArgumentTypeError("--voice-clef requiere VOZ:SIGNO:LINEA[:OCTAVA]")
+    try:
+        line = int(parts[2])
+        octave = int(parts[3]) if len(parts) == 4 else 0
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("LINEA y OCTAVA deben ser enteros") from exc
+    return parts[0], {"sign": parts[1], "line": line, "octave_change": octave}
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="palermo-omr-musicxml",
@@ -35,6 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tempo-bpm", type=float)
     parser.add_argument("--key-signature", type=_key_signature)
     parser.add_argument("--global-measure-numbers", type=Path, help="JSON que mapea 'pagina:indice' a número global")
+    parser.add_argument("--voice-clef", action="append", type=_voice_clef, default=[], metavar="VOZ:SIGNO:LINEA[:OCTAVA]")
     return parser
 
 
@@ -54,12 +67,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             measure_numbers = json.loads(args.global_measure_numbers.read_text(encoding="utf-8"))
             if not isinstance(measure_numbers, dict):
                 raise ValueError("global-measure-numbers debe contener un objeto JSON")
+        voice_clefs = payload.get("voice_clefs", {}) if isinstance(payload, dict) else {}
+        for voice, clef in args.voice_clef:
+            if voice in voice_clefs:
+                raise ValueError(f"--voice-clef repite la voz {voice}")
+            voice_clefs[voice] = clef
         musicxml = render_reviewed_timelines_musicxml(
             timelines,
             title=args.title,
             tempo_bpm=args.tempo_bpm,
             key_signature=args.key_signature,
             global_measure_numbers=measure_numbers,
+            voice_clefs=voice_clefs,
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.output.with_suffix(args.output.suffix + ".tmp")
