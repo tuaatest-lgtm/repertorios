@@ -66,6 +66,8 @@ def render_polyphonic_midi(
     voice_programs: Mapping[str, int] | None = None,
     voice_channels: Mapping[str, int] | None = None,
     voice_pan: Mapping[str, float] | None = None,
+    time_signature: tuple[int, int] | None = None,
+    key_signature: tuple[int, int] | None = None,
 ) -> bytes:
     """Devuelve un archivo MIDI tipo 1 desde note_on/note_off en segundos.
 
@@ -176,6 +178,26 @@ def render_polyphonic_midi(
 
     micros_per_quarter = round(60_000_000 / float(tempo_bpm))
     conductor = [(0, 0, _meta(0x51, micros_per_quarter.to_bytes(3, "big")))]
+    if time_signature is not None:
+        if (
+            not isinstance(time_signature, tuple) or len(time_signature) != 2
+            or any(not isinstance(value, int) or isinstance(value, bool) or value <= 0 for value in time_signature)
+        ):
+            raise ValueError("time_signature debe ser una tupla (numerador, denominador) positiva")
+        numerator, denominator = time_signature
+        if denominator & (denominator - 1) or denominator > 128 or numerator > 255:
+            raise ValueError("time_signature requiere denominador potencia de dos y valores MIDI válidos")
+        denominator_power = denominator.bit_length() - 1
+        conductor.append((0, 1, _meta(0x58, bytes((numerator, denominator_power, 24, 8)))))
+    if key_signature is not None:
+        if (
+            not isinstance(key_signature, tuple) or len(key_signature) != 2
+            or not isinstance(key_signature[0], int) or isinstance(key_signature[0], bool)
+            or not -7 <= key_signature[0] <= 7
+            or key_signature[1] not in (0, 1)
+        ):
+            raise ValueError("key_signature debe ser (alteraciones -7..7, modo 0 mayor/1 menor)")
+        conductor.append((0, 2, _meta(0x59, bytes((key_signature[0] & 0xFF, key_signature[1])))))
     tracks = [_track_chunk(conductor)]
     intervals_by_voice: dict[str, list[tuple[int, int, int]]] = {voice: [] for voice in ordered_voices}
     for voice, midi, start_tick, end_tick in intervals:
@@ -198,3 +220,34 @@ def render_polyphonic_midi(
 
     header = b"MThd" + struct.pack(">IHHH", 6, 1, len(tracks), ticks_per_quarter)
     return header + b"".join(tracks)
+
+
+
+def render_score_playback_bundle_midi(
+    bundle: Mapping[str, Any],
+    *,
+    tempo_bpm: int | float = 120,
+    ticks_per_quarter: int = 480,
+    velocity: int = 88,
+    default_program: int = _DEFAULT_PROGRAM,
+    voice_programs: Mapping[str, int] | None = None,
+    voice_channels: Mapping[str, int] | None = None,
+    voice_pan: Mapping[str, float] | None = None,
+    time_signature: tuple[int, int] | None = None,
+    key_signature: tuple[int, int] | None = None,
+) -> bytes:
+    """Exporta directamente el command_stream de un paquete de partitura."""
+    if not isinstance(bundle, Mapping) or bundle.get("status") != "unconfirmed_score_playback_bundle":
+        raise ValueError("Se requiere un paquete provisional de reproducción de partitura")
+    return render_polyphonic_midi(
+        bundle.get("command_stream", {}),
+        tempo_bpm=tempo_bpm,
+        ticks_per_quarter=ticks_per_quarter,
+        velocity=velocity,
+        default_program=default_program,
+        voice_programs=voice_programs,
+        voice_channels=voice_channels,
+        voice_pan=voice_pan,
+        time_signature=time_signature,
+        key_signature=key_signature,
+    )
