@@ -4,7 +4,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .playback_projection import build_playback_projection
+from .playback_projection import (
+    build_playback_projection,
+    merge_page_timelines_by_global_measure_map,
+)
 from .polyphonic_command_stream import build_polyphonic_command_stream
 from .score_document import ScoreDocument
 from .page_analysis_visual_adapter import build_score_structure_from_page_analysis
@@ -108,6 +111,7 @@ def build_score_playback_bundle_from_page_analyses(
     *,
     event_page_numbers: Mapping[str, int],
     event_notehead_indices: Mapping[str, Sequence[int]],
+    page_measure_global_indices: Mapping[int, Mapping[int, int]] | None = None,
     event_geometry_by_id: Mapping[str, Any] | None = None,
     tempo_bpm: int | float,
     padding_px: float = 2.0,
@@ -129,6 +133,14 @@ def build_score_playback_bundle_from_page_analyses(
     pages_by_number = {page["page_number"]: page for page in page_analyses}
     if len(pages_by_number) != len(page_analyses):
         raise ValueError("page_analyses no puede repetir page_number")
+
+    timeline_result = None
+    timelines_for_projection = timelines
+    if page_measure_global_indices is not None:
+        timeline_result = merge_page_timelines_by_global_measure_map(
+            timelines, page_measure_global_indices
+        )
+        timelines_for_projection = timeline_result["timelines"]
 
     geometry: dict[str, Any] = {}
     overrides: dict[str, dict[str, str]] = {}
@@ -177,7 +189,7 @@ def build_score_playback_bundle_from_page_analyses(
             geometry[head_id] = {"bbox": head.get("bbox")}
 
     result = build_score_playback_bundle(
-        timelines, event_candidates, document,
+        timelines_for_projection, event_candidates, document,
         event_page_numbers=event_page_numbers,
         notehead_geometry_by_id=geometry,
         event_geometry_by_id=event_geometry_by_id,
@@ -194,4 +206,6 @@ def build_score_playback_bundle_from_page_analyses(
     result["coverage"]["anchored_events"] = len(anchored)
     result["coverage"]["playable_without_visual_anchor"] = sorted(playable - anchored)
     result["coverage"]["visual_without_playback_event"] = sorted(anchored - playable)
+    if timeline_result is not None:
+        result["document_timeline"] = timeline_result
     return result
