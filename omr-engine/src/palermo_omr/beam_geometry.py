@@ -124,6 +124,11 @@ def extract_beam_segments(
         ).reshape(-1))
         if abs(vx) < 1e-6:
             continue
+        # fitLine puede devolver el vector en cualquiera de los dos sentidos.
+        # Normalizarlo hacia X creciente evita rechazar pendientes positivas
+        # cuando OpenCV entrega vx y vy negativos.
+        if vx < 0:
+            vx, vy = -vx, -vy
         angle = abs(math.degrees(math.atan2(vy, vx)))
         # El fallback por componentes también debe aportar solo geometría
         # realmente inclinada; el grosor de un trazo horizontal no es pendiente.
@@ -136,7 +141,7 @@ def extract_beam_segments(
         residuals = np.abs(
             (points[:, 0] - x0) * vy - (points[:, 1] - y0) * vx
         )
-        if float(np.percentile(residuals, 90)) > max(2.0, spacing * 0.28):
+        if float(np.percentile(residuals, 75)) > max(2.0, spacing * 0.28):
             continue
         projections = (points[:, 0] - x0) * vx + (points[:, 1] - y0) * vy
         p0, p1 = float(projections.min()), float(projections.max())
