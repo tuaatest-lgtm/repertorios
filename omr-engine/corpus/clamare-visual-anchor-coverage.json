@@ -1,0 +1,68 @@
+{
+  "evaluation_type": "visual_anchor_geometry_coverage",
+  "source_pdf": "Clamaré a Dios - Coro.pdf",
+  "source_pdf_sha256": "bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74c",
+  "analysis_version": "0.3.0",
+  "page_count": 3,
+  "candidate_noteheads": 564,
+  "unambiguous_page_system_measure_anchor_candidates": 563,
+  "ambiguous_measure_boundary_candidates": 1,
+  "missing_system_mapping": 0,
+  "missing_measure_region": 0,
+  "geometric_anchorability_ratio": 0.99822695035461,
+  "pages": [
+    {
+      "page_number": 1,
+      "candidate_noteheads": 199,
+      "unique_measure_anchor_candidates": 198,
+      "ambiguous_measure_boundary_candidates": 1
+    },
+    {
+      "page_number": 2,
+      "candidate_noteheads": 273,
+      "unique_measure_anchor_candidates": 273,
+      "ambiguous_measure_boundary_candidates": 0
+    },
+    {
+      "page_number": 3,
+      "candidate_noteheads": 92,
+      "unique_measure_anchor_candidates": 92,
+      "ambiguous_measure_boundary_candidates": 0
+    }
+  ],
+  "method": "Each detected notehead center was matched against observed measure spans for its staff and the page's candidate staff-system mapping. A head was counted as uniquely anchorable only when exactly one measure span contained its center. Boundaries are inclusive on both adjacent measure regions, so a notehead center exactly on a shared boundary is correctly counted as ambiguous.",
+  "limitations": [
+    "This measures geometric anchorability only, not notehead detection precision or recall.",
+    "Staff-system assignments remain candidates; in this analysis several staves remain separate system candidates.",
+    "Measure spans are observed geometric intervals, not confirmed musical bar numbers.",
+    "No pitch, key signature, accidental, duration, voice, or audio correctness is measured.",
+    "The one ambiguous boundary is retained for review rather than forced into either adjacent measure."
+  ],
+  "ambiguous_boundary_example": {
+    "page_number": 1,
+    "notehead_array_index": 77,
+    "staff_index": 3,
+    "center_x": 1577,
+    "center_y": 1597,
+    "bbox": [
+      1566,
+      1592,
+      23,
+      11
+    ],
+    "candidate_measure_regions": [
+      {
+        "measure_index": 10,
+        "x_start": 1478,
+        "x_end": 1577
+      },
+      {
+        "measure_index": 11,
+        "x_start": 1577,
+        "x_end": 1689.5
+      }
+    ],
+    "reason": "ambiguous_measure_region",
+    "handling": "kept unresolved; not assigned to either adjacent measure"
+  }
+}

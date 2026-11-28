@@ -5,6 +5,7 @@ los estados de altura y las incertidumbres antes de construir una línea tempora
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from fractions import Fraction
 from typing import Any, Sequence
@@ -31,6 +32,12 @@ class ScoreEventCandidate:
         result["pitch_candidates"] = list(self.pitch_candidates)
         result["warnings"] = list(self.warnings)
         return result
+
+
+def _candidate_field(candidate: Any, name: str) -> Any:
+    if isinstance(candidate, Mapping):
+        return candidate.get(name)
+    return getattr(candidate, name, None)
 
 
 def _pitch_payload(candidate: Any) -> dict[str, Any]:
@@ -86,13 +93,13 @@ def fuse_score_event_candidates(
 
         staff_index = getattr(group, "staff_index", None)
         selected = [pitch_candidates[index] for index in indices]
-        if any(getattr(item, "staff_index", None) != staff_index for item in selected):
+        if any(_candidate_field(item, "staff_index") != staff_index for item in selected):
             raise ValueError(f"{event_id}: grupo y altura pertenecen a pentagramas distintos")
 
         payloads = tuple(_pitch_payload(item) for item in selected)
         pitch_resolved = event_type == "rest" or bool(selected) and all(
-            getattr(item, "status", None) == "resolved_from_supplied_clef"
-            and getattr(item, "pitch", None) is not None
+            _candidate_field(item, "status") == "resolved_from_supplied_clef"
+            and _candidate_field(item, "pitch") is not None
             for item in selected
         )
         voice_id = getattr(group, "voice_id_candidate", None)

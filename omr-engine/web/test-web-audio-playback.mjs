@@ -37,7 +37,8 @@ test("WebAudioSink crea osciladores independientes y libera notas", () => {
   assert.equal(sink.notes.size, 2);
   assert.equal(sink.voices.size, 2);
   sink.note_off("soprano", 69, "a");
-  assert.equal(sink.notes.size, 1);
+  assert.equal(sink.notes.size, 2);
+  assert.ok([...sink.notes.values()].some(note => note.stopScheduled));
   assert.ok([...sink.notes.values()][0].oscillator.started === 0);
   sink.all_notes_off();
   assert.equal(sink.notes.size, 0);

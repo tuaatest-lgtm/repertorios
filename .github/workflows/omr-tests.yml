@@ -40,6 +40,16 @@ jobs:
         run: node --test web/test-omr-client.mjs
       - name: Test browser Web Audio playback
         run: node --test web/test-web-audio-playback.mjs
+      - name: Test lookahead playback scheduler
+        run: node --test web/test-lookahead-playback-controller.mjs
+      - name: Test score visual cursor
+        run: node --test web/test-score-visual-cursor.mjs
+      - name: Test score viewport transform
+        run: node --test web/test-score-viewport-transform.mjs
+      - name: Test audio-driven score playback session
+        run: node --test web/test-score-playback-session.mjs
+      - name: Test browser score playback factory
+        run: node --test web/test-browser-score-playback-factory.mjs
       - name: Package source snapshot for reproducible validation
         if: github.ref == 'refs/heads/feature/omr-propio-palermo'
         run: tar -czf ../palermo-omr-source.tar.gz src pyproject.toml
