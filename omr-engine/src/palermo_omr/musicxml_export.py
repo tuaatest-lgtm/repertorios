@@ -95,6 +95,20 @@ def _pitch_fields(pitch: Mapping) -> tuple[str, int | None, int]:
     return step, int(alter) if alter else None, octave
 
 
+def _voice_clef(value):
+    if not isinstance(value, Mapping):
+        raise ValueError("Cada voice_clefs debe ser un objeto confirmado")
+    sign, line = value.get("sign"), value.get("line")
+    octave_change = value.get("octave_change", 0)
+    if sign not in {"G", "F", "C", "percussion", "TAB"}:
+        raise ValueError("El signo de clave debe ser G, F, C, percussion o TAB")
+    if not isinstance(line, int) or isinstance(line, bool) or not 1 <= line <= 5:
+        raise ValueError("La línea de clave debe estar entre 1 y 5")
+    if not isinstance(octave_change, int) or isinstance(octave_change, bool) or octave_change not in {-2, -1, 0, 1, 2}:
+        raise ValueError("octave_change debe ser -2, -1, 0, 1 o 2")
+    return sign, line, octave_change
+
+
 def _tie_types(event: Mapping) -> tuple[str, ...]:
     values = []
     for key in ("tie_start", "tie_stop"):
@@ -122,6 +136,7 @@ def render_reviewed_timelines_musicxml(
     tempo_bpm: int | float | None = None,
     key_signature=None,
     global_measure_numbers: Mapping[str, int] | None = None,
+    voice_clefs: Mapping[str, Mapping] | None = None,
 ) -> bytes:
     """Genera MusicXML solo desde eventos con tiempo, duración y altura revisados.
 
@@ -139,6 +154,9 @@ def render_reviewed_timelines_musicxml(
     ):
         raise ValueError("tempo_bpm debe estar entre 20 y 300")
     key = _key_signature(key_signature)
+    if voice_clefs is not None and not isinstance(voice_clefs, Mapping):
+        raise ValueError("voice_clefs debe ser un objeto por voz")
+    clefs = {voice: _voice_clef(clef) for voice, clef in (voice_clefs or {}).items()}
 
     normalized = []
     voice_ids = set()
@@ -242,6 +260,9 @@ def render_reviewed_timelines_musicxml(
         score_part = ET.SubElement(part_list, "score-part", {"id": part_id})
         _text(score_part, "part-name", voice)
 
+    if set(clefs) - voice_ids:
+        raise ValueError("voice_clefs referencia una voz inexistente")
+
     for voice in ordered_voices:
         part = ET.SubElement(root, "part", {"id": part_ids[voice]})
         for measure_index, timeline in enumerate(normalized):
@@ -256,6 +277,13 @@ def render_reviewed_timelines_musicxml(
                 key_element = ET.SubElement(attributes, "key")
                 _text(key_element, "fifths", key[0])
                 _text(key_element, "mode", key[1])
+            if voice in clefs:
+                sign, line, octave_change = clefs[voice]
+                clef_element = ET.SubElement(attributes, "clef")
+                _text(clef_element, "sign", sign)
+                _text(clef_element, "line", line)
+                if octave_change:
+                    _text(clef_element, "clef-octave-change", octave_change)
             if tempo_bpm is not None and voice == ordered_voices[0] and measure_index == 0:
                 direction = ET.SubElement(measure, "direction", {"placement": "above"})
                 direction_type = ET.SubElement(direction, "direction-type")
