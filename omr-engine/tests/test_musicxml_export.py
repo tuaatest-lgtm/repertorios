@@ -198,7 +198,8 @@ def test_preserves_leading_silence_and_exact_onset_with_forward_element():
         },
     ])
     root = parse(render_reviewed_timelines_musicxml([measure]))
-    soprano = next(part for part in root.findall("part") if part.findtext("part-name") == "soprano")
+    soprano_id = next(item.attrib["id"] for item in root.findall("part-list/score-part") if item.findtext("part-name") == "soprano")
+    soprano = next(part for part in root.findall("part") if part.attrib["id"] == soprano_id)
     forward = soprano.find("measure/forward")
     assert forward is not None
     assert forward.findtext("duration") == "480"
