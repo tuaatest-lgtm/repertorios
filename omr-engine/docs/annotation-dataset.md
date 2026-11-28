@@ -25,8 +25,10 @@ identificador explícito. Los tiempos se serializan como fracciones exactas
 (por ejemplo `"1/3"`) para no introducir redondeos. La evidencia visual se conserva
 como IDs, por ejemplo `p1-filled_notehead-3` y `p1-staff-1`; estos vínculos no
 confirman por sí mismos la nota ni sustituyen la revisión humana. Cuando se usan,
-el manifiesto exige la huella SHA-256 del paquete completo para impedir que IDs
-similares de otra revisión se interpreten como la misma evidencia.
+las nuevas importaciones exigen la huella SHA-256 del paquete completo para impedir que IDs
+similares de otra revisión se interpreten como la misma evidencia. Los manifiestos
+heredados sin esa huella siguen siendo legibles; su evidencia queda identificada
+como histórica/no vinculada y no debe confundirse con una referencia verificada.
 
 ## Reglas de validación
 
