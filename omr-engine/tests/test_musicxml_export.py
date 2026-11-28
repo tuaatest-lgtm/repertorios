@@ -68,7 +68,8 @@ def test_exports_independent_voice_parts_chords_and_tempo_key_meter():
     assert soprano.findtext("measure/attributes/time/beats") == "4"
     assert soprano.findtext("measure/attributes/time/beat-type") == "4"
     assert soprano.findtext("measure/attributes/key/fifths") == "5"
-    assert soprano.findtext("measure/direction/direction-type/metronome/per-minute") == "96"
+    alto = next(part for part in parts if part.attrib["id"] == "P1")
+    assert alto.findtext("measure/direction/direction-type/metronome/per-minute") == "96"
 
 
 def test_exports_rests_dotted_durations_and_tuplet_time_modification():
