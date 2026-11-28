@@ -45,6 +45,19 @@ test("WebAudioSink crea osciladores independientes y libera notas", () => {
   assert.throws(() => sink.note_on("soprano", 69, "c"), /cerrado/);
 });
 
+
+test("note_off conserva el nivel de envolvente si llega durante el ataque", () => {
+  const context = new FakeAudioContext();
+  const sink = new WebAudioSink({ audioContext: context });
+  sink.note_on("soprano", 69, "attack");
+  const envelope = [...sink.notes.values()][0].envelope;
+  context.currentTime = 0.006;
+  sink.note_off("soprano", 69, "attack");
+  const held = envelope.gain.calls.find(call => call[0] === "set" && call[2] === 0.006);
+  assert.ok(held);
+  assert.ok(held[1] > 0.0001 && held[1] < 0.7);
+});
+
 test("scheduler mantiene dos voces simultáneas y finaliza tras duraciones independientes", async () => {
   const context = new FakeAudioContext();
   const sink = new WebAudioSink({ audioContext: context });
