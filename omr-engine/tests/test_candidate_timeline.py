@@ -90,3 +90,19 @@ def test_rejects_invalid_meter_and_order_reference():
         build_candidate_measure_timelines([], {0: (4, 0)}, {}, {})
     with pytest.raises(ValueError, match="inexistentes"):
         build_candidate_measure_timelines([], {0: (4, 4)}, {"ghost": 0}, {})
+
+
+def test_preserves_rest_events_as_timed_silences():
+    rest = ScoreEventCandidate(
+        event_id="rest-1", staff_index=0, notehead_candidate_ids=(),
+        pitch_candidates=(), voice_id_candidate="soprano",
+        duration_candidate="half_rest", duration_quarters_candidate=Fraction(2),
+        status="ready_for_review", warnings=(), event_type="rest",
+    )
+    timelines = build_candidate_measure_timelines(
+        [rest], {0: (4, 4)}, {"rest-1": 0}, {"rest-1": 0}
+    )
+    event = timelines[0]["events"][0]
+    assert event["event_type"] == "rest"
+    assert event["duration_quarters"] == "2"
+    assert event["notehead_ids"] == []
