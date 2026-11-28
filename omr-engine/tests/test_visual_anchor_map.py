@@ -1,6 +1,10 @@
 import pytest
 
-from palermo_omr.visual_anchor_map import build_visual_anchor_map
+from palermo_omr.visual_anchor_map import (
+    build_visual_anchor_map,
+    build_visual_anchor_map_from_score_structure,
+)
+from palermo_omr.score_structure import MeasureRegion, ScoreStaff, ScoreStructure, ScoreSystem
 
 
 def test_maps_single_notehead_geometry_to_cursor_anchor():
@@ -67,3 +71,52 @@ def test_rejects_duplicate_events_and_invalid_boxes():
             {"h": {"bbox": [1, 2, 0, 4]}}, page_index=0,
             system_by_staff={0: 0}, measure_by_event={"x": 0},
         )
+
+
+def test_derives_page_system_and_measure_from_score_structure():
+    structure = ScoreStructure(
+        page_number=2,
+        systems=(ScoreSystem("sys-a", 2, ("staff-a", "staff-b")),
+                 ScoreSystem("sys-b", 2, ("staff-c",))),
+        staves=(ScoreStaff("staff-a", 2, 0), ScoreStaff("staff-b", 2, 1),
+                ScoreStaff("staff-c", 2, 2)),
+        measure_regions=(
+            MeasureRegion("m1a", "sys-a", "staff-a", 5, 20, 100),
+            MeasureRegion("m2a", "sys-a", "staff-a", 6, 100, 200),
+            MeasureRegion("m1b", "sys-a", "staff-b", 5, 20, 200),
+            MeasureRegion("m1c", "sys-b", "staff-c", 5, 20, 200),
+        ),
+    )
+    result = build_visual_anchor_map_from_score_structure(
+        [{"event_id": "note", "staff_index": 0, "notehead_candidate_ids": ["h1"]}],
+        {"h1": {"bbox": [120, 50, 12, 8]}},
+        structure,
+    )
+    assert result["anchors"] == [{
+        "event_id": "note", "page_index": 1, "system_index": 0,
+        "measure_index": 5, "x": 118.0, "y": 48.0, "width": 16.0, "height": 12.0,
+    }]
+
+
+def test_score_structure_adapter_does_not_guess_missing_or_overlapping_measures():
+    structure = ScoreStructure(
+        page_number=1,
+        systems=(ScoreSystem("sys", 1, ("staff",)),),
+        staves=(ScoreStaff("staff", 1, 0),),
+        measure_regions=(
+            MeasureRegion("m1", "sys", "staff", 1, 0, 100),
+            MeasureRegion("m2", "sys", "staff", 2, 90, 200),
+        ),
+    )
+    result = build_visual_anchor_map_from_score_structure(
+        [
+            {"event_id": "overlap", "staff_index": 0, "notehead_candidate_ids": ["h1"]},
+            {"event_id": "outside", "staff_index": 0, "notehead_candidate_ids": ["h2"]},
+        ],
+        {"h1": {"bbox": [95, 40, 10, 8]}, "h2": {"bbox": [250, 40, 10, 8]}},
+        structure,
+    )
+    assert result["anchors"] == []
+    assert {item["reason"] for item in result["unresolved"]} == {
+        "ambiguous_measure_region", "missing_measure_region",
+    }
