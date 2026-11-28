@@ -12,6 +12,7 @@ import numpy as np
 from .imaging import StaffCandidate
 from .rhythm import RhythmCandidate
 from .symbols import NoteheadCandidate
+from .beam_geometry import detect_local_beam_candidates
 
 
 @dataclass(frozen=True)
@@ -249,6 +250,33 @@ def detect_beam_group_candidates(
                     ),
                     connection_type_candidate="partial" if is_partial else "shared",
                 ))
+
+    # Segunda ruta: haces inclinados buscados localmente entre parejas de
+    # plicas compatibles. La ruta horizontal anterior permanece independiente.
+    sloped_candidates = detect_local_beam_candidates(
+        binary, staves, noteheads, rhythms
+    )
+    existing_shared = {
+        tuple(group.notehead_indices)
+        for group in results
+        if group.connection_type_candidate == "shared"
+    }
+    for candidate in sloped_candidates:
+        if candidate.notehead_indices in existing_shared:
+            continue
+        results.append(BeamGroupCandidate(
+            staff_index=noteheads[candidate.notehead_indices[0]].staff_index,
+            notehead_indices=list(candidate.notehead_indices),
+            bbox=candidate.bbox,
+            beam_count_candidate=candidate.beam_count,
+            confidence=round(min(0.82, 0.58 + 0.18 * candidate.support), 3),
+            warning=(
+                "Grupo compartido candidato detectado por trayectoria local inclinada; "
+                "la pendiente no modifica el valor rítmico y el recuento no confirma "
+                "por sí solo figuras ni duraciones."
+            ),
+            connection_type_candidate="shared",
+        ))
 
     results.sort(key=lambda item: (item.staff_index, item.bbox[0], item.bbox[1]))
     return results

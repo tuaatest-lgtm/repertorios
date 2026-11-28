@@ -37,15 +37,17 @@ def test_partial_beam_produces_lower_confidence_candidate():
     assert any("confianza reducida" in warning for warning in result.warnings)
 
 
-def test_incompatible_groups_make_duration_ambiguous():
+def test_note_uses_maximum_beam_level_across_full_and_partial_segments():
     rhythms = [_rhythm()]
     groups = [
         BeamGroupCandidate(0, [0], (10, 10, 20, 3), 1, .7, "candidato"),
         BeamGroupCandidate(0, [0], (10, 15, 20, 3), 2, .7, "candidato"),
     ]
     result = interpret_rhythm_from_beam_groups(rhythms, groups)[0]
-    assert result.duration_candidate == "unknown"
-    assert result.status == "ambiguous"
+    assert result.duration_candidate == "sixteenth"
+    assert result.beam_count_candidate == 2
+    assert result.status == "candidate_from_shared_beam"
+    assert any("máximo nivel local" in warning for warning in result.warnings)
 
 
 def test_unfilled_notehead_does_not_receive_beamed_duration():
