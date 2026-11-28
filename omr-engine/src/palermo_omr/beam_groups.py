@@ -77,7 +77,11 @@ def _is_thin_beam_stroke(
         return True
     centers_x = np.asarray([x + width / 2.0 for x, _y, width, _h in stroke])
     centers_y = np.asarray([y + 0.5 for _x, y, _width, _h in stroke])
+    if float(np.ptp(centers_x)) < spacing:
+        return False
     slope, intercept = np.polyfit(centers_x, centers_y, 1)
+    if abs(float(slope)) > 0.6:
+        return False
     residual = centers_y - (slope * centers_x + intercept)
     thickness = float(np.percentile(residual, 95) - np.percentile(residual, 5))
     return thickness <= max(2.0, spacing * 0.55)
@@ -146,6 +150,10 @@ def detect_beam_group_candidates(
         row_runs: list[tuple[int, int, int, int]] = []
         min_width = spacing * min_beam_width_spacing
         max_width = spacing * max_beam_width_spacing
+        # En barras inclinadas cada fila contiene solo un tramo corto del
+        # polígono. El ancho mínimo se aplica al trazo reconstruido completo,
+        # no a cada fila individual.
+        min_row_width = max(2, int(round(spacing * 0.15)))
         for y in range(top, bottom + 1):
             xs = np.flatnonzero(ink[y])
             if xs.size == 0:
@@ -154,7 +162,7 @@ def detect_beam_group_candidates(
             for chunk in chunks:
                 x = int(chunk[0])
                 width = int(chunk[-1] - chunk[0] + 1)
-                if min_width <= width <= max_width:
+                if min_row_width <= width <= max_width:
                     row_runs.append((x, y, width, 1))
 
         # Reúne filas contiguas con solapamiento horizontal en un solo trazo.
