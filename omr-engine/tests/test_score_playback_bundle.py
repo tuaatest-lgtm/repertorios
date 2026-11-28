@@ -1,5 +1,7 @@
 from fractions import Fraction
 
+import pytest
+
 from palermo_omr.event_fusion import ScoreEventCandidate
 from palermo_omr.score_document import ScoreDocument
 from palermo_omr.score_structure import ScoreStaff, ScoreStructure, ScoreSystem, MeasureRegion
