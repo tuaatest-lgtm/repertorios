@@ -8,6 +8,8 @@ from pathlib import Path
 import json
 from typing import Any
 
+from .page_analysis_audit import build_rhythm_review_queue
+
 
 def _validated_indices(value: Any, upper_bound: int, label: str) -> list[int]:
     if not isinstance(value, list) or not value:
@@ -414,6 +416,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         isinstance(status, str) and status.startswith("excluded_")
         for status in section_marker_statuses
     )
+    rhythm_review_queue = build_rhythm_review_queue(analysis)
     return {
         "review_package_version": "1.0",
         "score_id": score_id,
@@ -429,6 +432,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
         "summary": {
             "page_count": len(pages),
             "notehead_candidate_count": total_noteheads,
+            "rhythm_review_queue_count": len(rhythm_review_queue),
             "other_candidate_count": total_other,
             "pending_count": total_noteheads + total_other,
             "global_measure_candidate_count": len(global_measure_candidates),
@@ -465,6 +469,7 @@ def build_review_package(analysis: dict[str, Any], *, score_id: str) -> dict[str
             "staff_identity_evidence_count": identity_evidence_count,
         },
         "pages": pages,
+        "rhythm_review_queue": rhythm_review_queue,
     }
 
 
