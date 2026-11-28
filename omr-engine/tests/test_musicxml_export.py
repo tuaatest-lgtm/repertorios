@@ -183,3 +183,36 @@ def test_rejects_non_boolean_tie_flags_and_ties_on_rests():
     }])
     with pytest.raises(ValueError, match="silencio no puede"):
         render_reviewed_timelines_musicxml([tied_rest])
+
+
+
+def test_preserves_leading_silence_and_exact_onset_with_forward_element():
+    measure = timeline([
+        note("late", "soprano", 1, 1, [pitch("C", 5)]),
+        note("after-gap", "soprano", 2, 2, [pitch("D", 5)]),
+        note("alto-long", "alto", 0, 2, [pitch("A", 3)]),
+        {
+            "event_id": "alto-rest", "voice_id": "alto",
+            "onset_quarters": "2", "duration_quarters": "2",
+            "event_type": "rest", "confirmed_pitches": [],
+        },
+    ])
+    root = parse(render_reviewed_timelines_musicxml([measure]))
+    soprano = next(part for part in root.findall("part") if part.findtext("part-name") == "soprano")
+    forward = soprano.find("measure/forward")
+    assert forward is not None
+    assert forward.findtext("duration") == "480"
+    assert [item.findtext("pitch/step") for item in soprano.findall("measure/note")] == ["C", "D"]
+
+
+def test_musicxml_cli_exports_timeline_json(tmp_path, capsys):
+    import json
+    from palermo_omr.musicxml_export_cli import main
+
+    measure = timeline([note("whole", "alto", 0, 4, [pitch("C", 4)])])
+    source = tmp_path / "reviewed.json"
+    output = tmp_path / "out" / "reviewed.musicxml"
+    source.write_text(json.dumps({"timelines": [measure]}), encoding="utf-8")
+    assert main([str(source), str(output), "--title", "Reviewed score"]) == 0
+    assert output.read_bytes().startswith(b"<?xml")
+    assert "MusicXML exportado" in capsys.readouterr().out
