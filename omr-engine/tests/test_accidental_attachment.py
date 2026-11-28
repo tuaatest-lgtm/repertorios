@@ -86,7 +86,7 @@ def test_rejects_invalid_geometry_and_measure_context():
             [{"candidate_id": "head", "staff_index": 0, "bbox": [34, 50, 10, 8]}],
             {0: 10},
         )
-    with pytest.raises(ValueError, match="positivas"):
+    with pytest.raises(ValueError, match="positivo"):
         attach_reviewed_accidentals(
             [], [_head("head", 10, 10)], {0: 0},
         )
