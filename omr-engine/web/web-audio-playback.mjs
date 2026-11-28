@@ -241,9 +241,16 @@ export class BrowserPlaybackController {
     return this.snapshot();
   }
 
+  get current_seconds() {
+    if (this.state === "playing" && this.anchor !== null) {
+      return Math.max(0, this.sink.context.currentTime - this.anchor);
+    }
+    return this.elapsed;
+  }
+
   snapshot() {
     return {
-      state: this.state, current_seconds: this.elapsed,
+      state: this.state, current_seconds: this.current_seconds,
       processed_commands: this.index, total_commands: this.commands.length,
       active_notes: this.active.size, muted_voices: [...this.muted].sort(),
     };
