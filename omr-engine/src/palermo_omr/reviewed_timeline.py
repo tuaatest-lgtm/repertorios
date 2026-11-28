@@ -21,6 +21,7 @@ from .reviewed_tie_chains import (
     apply_reviewed_tie_chains_to_timeline,
     apply_reviewed_tie_chains_to_page_timelines,
 )
+from .measure_duration_review import build_measure_duration_completion_candidates
 
 
 def build_reviewed_page_timelines(
@@ -124,12 +125,42 @@ def build_reviewed_page_timelines(
                 used_dot_candidate_indices.add(candidate_index)
             linked_dot_counts[event_id] = len(indices)
         effective_dot_counts = {**dot_counts, **linked_dot_counts}
+        raw_duration_review = measure.get("duration_completion_review")
+        if raw_duration_review is None:
+            duration_review = None
+            allow_unknown_duration_ids = frozenset()
+        else:
+            if not isinstance(raw_duration_review, Mapping):
+                raise ValueError("duration_completion_review debe ser un objeto")
+            allowed_review_keys = {
+                "allow_unknown_duration_candidates",
+                "measure_complete_confirmed",
+                "ties_and_tuplets_resolved",
+            }
+            if set(raw_duration_review) - allowed_review_keys:
+                raise ValueError("duration_completion_review contiene campos desconocidos")
+            for key in allowed_review_keys:
+                if key in raw_duration_review and not isinstance(raw_duration_review[key], bool):
+                    raise ValueError(f"{key} debe ser booleano")
+            duration_review = {
+                "measure_complete_confirmed": raw_duration_review.get("measure_complete_confirmed", False),
+                "ties_and_tuplets_resolved": raw_duration_review.get("ties_and_tuplets_resolved", False),
+            }
+            allow_unknown_duration_ids = (
+                frozenset(
+                    event_id for event_id in confirmed
+                    if next(group for group in groups if group.event_id == event_id).duration_quarters_candidate is None
+                )
+                if raw_duration_review.get("allow_unknown_duration_candidates", False)
+                else frozenset()
+            )
         events = build_reviewed_voice_events_by_voice(
             groups,
             measure_index=measure_index,
             event_voice_ids=voice_map,
             confirmed_event_ids=set(confirmed),
             event_dot_counts=effective_dot_counts,
+            allow_unknown_duration_event_ids=allow_unknown_duration_ids,
         )
         order_map = measure.get("event_order_indices")
         if order_map is not None:
@@ -249,6 +280,16 @@ def build_reviewed_page_timelines(
             timeline_data = apply_reviewed_tie_chains_to_timeline(
                 timeline_data, tie_candidates, tie_confirmations
             )
+        if duration_review is not None:
+            timeline_data["duration_completion_candidates"] = [
+                item.to_dict()
+                for item in build_measure_duration_completion_candidates(
+                    timeline_data["events"],
+                    numerator,
+                    denominator,
+                    **duration_review,
+                )
+            ]
         results.append({
             "page_number": page_number,
             "time_signature": {"numerator": numerator, "denominator": denominator},
