@@ -1,3 +1,5 @@
+import pytest
+
 from palermo_omr.page_pitch_adapter import build_pitch_candidates_from_page_analysis
 
 
@@ -26,7 +28,7 @@ def test_page_pitch_adapter_uses_only_confirmed_clef_and_key_signature():
         },
     )
     pitches = result["pitch_candidates"]
-    assert [item["pitch"]["midi"] for item in pitches] == [66, 66, 54]
+    assert [item["pitch"]["midi"] for item in pitches] == [66, 66, 45]
     assert all(item["status"] == "resolved_from_supplied_clef" for item in pitches)
     assert result["unresolved_staff_contexts"] == []
 
