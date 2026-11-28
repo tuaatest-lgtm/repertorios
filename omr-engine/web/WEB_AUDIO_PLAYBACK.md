@@ -31,3 +31,6 @@ todavía un instrumento GM ni está conectada a index.html/Sonoro. El scheduler 
 ticks de navegador y no anticipa eventos mediante look-ahead, por lo que bloqueos
 prolongados del hilo principal pueden introducir retardo. Los eventos y alturas siguen
 siendo provisionales hasta validar el reconocimiento OMR.
+
+
+Para reproducción más estable cuando la interfaz pierde fotogramas, usar `LookaheadPlaybackController` del módulo `lookahead-playback-controller.mjs` en lugar del scheduler básico. Programa los ataques y liberaciones sobre tiempos absolutos del `AudioContext` con una ventana configurable (20–500 ms); el cursor visual sigue `current_seconds`, no los comandos anticipados. Al pausar cancela también los eventos futuros y al reanudar restaura las notas sostenidas.
