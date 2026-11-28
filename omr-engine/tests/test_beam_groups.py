@@ -119,3 +119,59 @@ def test_rejects_shared_beam_when_one_stem_does_not_reach_it():
     cv2.line(image, (152, 42), (152, 80), 0, 2)
     groups = detect_beam_group_candidates(image, staves, heads, rhythms)
     assert all(group.notehead_indices != [0, 1] for group in groups)
+
+
+@pytest.mark.parametrize("slope", [-0.16, 0.16])
+@pytest.mark.parametrize("beam_count", [1, 2, 3, 4])
+def test_detects_locally_sloped_shared_beams_with_connected_stems(slope, beam_count):
+    image = np.full((180, 260), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (250, y), 0, 1)
+    heads = [
+        NoteheadCandidate((97, 75, 16, 10), 105.0, 80.0, 0, 2, .8, .9, .9),
+        NoteheadCandidate((137, 75, 16, 10), 145.0, 80.0, 0, 2, .8, .9, .9),
+    ]
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    end_y = int(round(40 + slope * 40))
+    for x, y in [(112, 40), (152, end_y)]:
+        cv2.line(image, (x, 80), (x, y), 0, 2)
+    for offset in range(beam_count):
+        y0 = 40 + offset * 7
+        y1 = end_y + offset * 7
+        cv2.line(image, (112, y0), (152, y1), 0, 3)
+    rhythms = [
+        RhythmCandidate(head.bbox, 0, "filled", .9, "up", 30, 0,
+                        "quarter", .8, ())
+        for head in heads
+    ]
+
+    groups = detect_beam_group_candidates(image, [staff], heads, rhythms)
+
+    assert len(groups) == 1
+    assert groups[0].notehead_indices == [0, 1]
+    assert groups[0].beam_count_candidate == beam_count
+    assert groups[0].connection_type_candidate == "shared"
+
+
+def test_rejects_sloped_beam_when_one_stem_has_a_visible_connection_gap():
+    image = np.full((180, 260), 255, dtype=np.uint8)
+    for y in [60, 70, 80, 90, 100]:
+        cv2.line(image, (5, y), (250, y), 0, 1)
+    heads = [
+        NoteheadCandidate((97, 75, 16, 10), 105.0, 80.0, 0, 2, .8, .9, .9),
+        NoteheadCandidate((137, 75, 16, 10), 145.0, 80.0, 0, 2, .8, .9, .9),
+    ]
+    staff = StaffCandidate([60, 70, 80, 90, 100], 10.0, 1.0)
+    cv2.line(image, (112, 80), (112, 40), 0, 2)
+    cv2.line(image, (152, 80), (152, 48), 0, 2)
+    cv2.line(image, (112, 40), (152, 46), 0, 3)
+    image[46:50, 151:154] = 255
+    rhythms = [
+        RhythmCandidate(head.bbox, 0, "filled", .9, "up", 30, 0,
+                        "quarter", .8, ())
+        for head in heads
+    ]
+
+    groups = detect_beam_group_candidates(image, [staff], heads, rhythms)
+
+    assert all(group.notehead_indices != [0, 1] for group in groups)
