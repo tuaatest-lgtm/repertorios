@@ -128,3 +128,89 @@ def build_visual_anchor_map(
             "No confirman la identidad musical ni la posición temporal."
         ),
     }
+
+
+def build_visual_anchor_map_from_score_structure(
+    events: Sequence[Any],
+    notehead_geometry_by_id: Mapping[str, Any],
+    score_structure: Any,
+    *,
+    event_geometry_by_id: Mapping[str, Any] | None = None,
+    padding_px: float = 2.0,
+) -> dict[str, Any]:
+    """Deriva página/sistema/compás desde ScoreStructure validado.
+
+    El centro horizontal de las cajas de cabezas (o del glifo explícito de un
+    silencio) debe caer dentro de exactamente una región de compás del mismo
+    pentagrama. Los casos sin región única se conservan como unresolved.
+    """
+    if not hasattr(score_structure, "validate") or not hasattr(score_structure, "staves"):
+        raise ValueError("Se requiere un ScoreStructure validable")
+    score_structure.validate()
+    staff_to_system: dict[int, int] = {}
+    staff_id_to_index = {
+        staff.staff_id: staff.detected_staff_index for staff in score_structure.staves
+    }
+    for system_index, system in enumerate(score_structure.systems):
+        for staff_id in system.staff_ids:
+            staff_index = staff_id_to_index.get(staff_id)
+            if staff_index is not None:
+                if staff_index in staff_to_system:
+                    raise ValueError("Un pentagrama no puede pertenecer a dos sistemas")
+                staff_to_system[staff_index] = system_index
+
+    geometry_by_event = event_geometry_by_id or {}
+    measure_by_event: dict[str, int] = {}
+    pre_unresolved: list[dict[str, str]] = []
+    for event in events:
+        payload = _payload(event)
+        event_id = payload.get("event_id")
+        staff_index = payload.get("staff_index")
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError("Cada evento debe tener event_id")
+        staff = next((item for item in score_structure.staves
+                      if item.detected_staff_index == staff_index), None)
+        if staff is None:
+            pre_unresolved.append({"event_id": event_id, "reason": "missing_staff"})
+            continue
+        head_ids = payload.get("notehead_candidate_ids", ())
+        boxes = []
+        if head_ids:
+            if any(head_id not in notehead_geometry_by_id for head_id in head_ids):
+                pre_unresolved.append({"event_id": event_id, "reason": "missing_notehead_geometry"})
+                continue
+            boxes = [_bbox(notehead_geometry_by_id[head_id], label=f"{event_id}/{head_id}")
+                     for head_id in head_ids]
+        elif event_id in geometry_by_event:
+            boxes = [_bbox(geometry_by_event[event_id], label=event_id)]
+        else:
+            pre_unresolved.append({"event_id": event_id, "reason": "missing_event_geometry"})
+            continue
+        center_x = (min(box[0] for box in boxes) +
+                    max(box[0] + box[2] for box in boxes)) / 2.0
+        matching = [
+            region for region in score_structure.measure_regions
+            if region.staff_id == staff.staff_id
+            and region.x_start <= center_x <= region.x_end
+        ]
+        if len(matching) != 1:
+            pre_unresolved.append({
+                "event_id": event_id,
+                "reason": "missing_measure_region" if not matching else "ambiguous_measure_region",
+            })
+            continue
+        measure_by_event[event_id] = matching[0].measure_number - 1
+
+    result = build_visual_anchor_map(
+        events, notehead_geometry_by_id,
+        page_index=score_structure.page_number - 1,
+        system_by_staff=staff_to_system,
+        measure_by_event=measure_by_event,
+        event_geometry_by_id=event_geometry_by_id,
+        padding_px=padding_px,
+    )
+    unresolved = {item["event_id"]: item for item in result["unresolved"]}
+    for item in pre_unresolved:
+        unresolved[item["event_id"]] = item
+    result["unresolved"] = sorted(unresolved.values(), key=lambda item: item["event_id"])
+    return result
