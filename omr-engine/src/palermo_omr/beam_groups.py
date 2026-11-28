@@ -256,7 +256,7 @@ def detect_beam_group_candidates(
                     continue
                 previous = clusters[-1][-1]
                 previous_y = previous[1] + previous[3] / 2.0
-                if center_y - previous_y <= spacing * 0.45:
+                if center_y - previous_y <= spacing * 0.75:
                     clusters[-1].append(segment)
                 else:
                     clusters.append([segment])
