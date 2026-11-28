@@ -40,6 +40,8 @@ jobs:
         run: node --test web/test-omr-client.mjs
       - name: Test browser Web Audio playback
         run: node --test web/test-web-audio-playback.mjs
+      - name: Test lookahead playback scheduler
+        run: node --test web/test-lookahead-playback-controller.mjs
       - name: Test score visual cursor
         run: node --test web/test-score-visual-cursor.mjs
       - name: Test audio-driven score playback session
