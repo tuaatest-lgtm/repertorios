@@ -32,9 +32,11 @@ Este archivo es la instrucción operativa que recibe cualquier persona o agente 
 - Archivos añadidos: `src/palermo_omr/focused_review.py`, `src/palermo_omr/focused_review_cli.py`, `tests/test_focused_review.py`, `docs/focused-review.md`.
 - Archivo modificado: `pyproject.toml` (entrada de consola `palermo-omr-focus-review`) y `README.md` (referencia documental).
 - La primera CI del nuevo módulo detectó un fallo en la comprobación de IDs duplicados: 584 aprobadas y 1 fallida. Se corrigió explícitamente la validación. La CI del commit `2f48d1e90fcb9e5ad1e1192ec522212b80720927` pasó con 585 pruebas Python; el cliente web también pasó en esa ejecución. El commit más reciente añade dos pruebas de CLI y requiere la confirmación final de CI antes de dar el PR por validado.
-- PDF de referencia disponible en Library: `Clamaré a Dios - Coro.pdf`, SHA-256 `bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74`.
+- PDF de referencia disponible en Library: `Clamaré a Dios - Coro.pdf`, SHA-256 `bbf62fa7b3be45585e3d77a7d0b3fe57ab4701ff17c8e821f14dbdc88f64f74c`.
 - También está disponible un `analysis.json` histórico de esa partitura, versión 0.3.0. No equivale a una ejecución del HEAD actual ni a una transcripción humana revisada.
 - En la imagen original de la primera página se identificó visualmente el primer sistema como dos pentagramas unidos por llave. El análisis histórico enumera esos pentagramas por separado (índices 0 y 1); la selección debe registrarse como región elegida por una persona y no como sistema/parte/voz reconocidos por el motor.
+- Se generó fuera del repositorio un paquete de trabajo preliminar `/mnt/data/clamare-first-system-review-draft.json` a partir del `analysis.json` histórico: página 1, pentagramas 0 y 1, 35 candidatos de cabeza y 2 candidatos geométricos de pentagrama. Mantiene todos los candidatos pendientes, `events=[]` y `ground_truth_eligible=false`. Es un paquete manual de inspección, no una ejecución de la CLI nueva ni una anotación humana aprobada.
+- Se generó `/mnt/data/clamare-first-system-candidates.png` con la ubicación de los candidatos para revisión visual. Los círculos son propuestas del análisis histórico, no detecciones confirmadas.
 - No se ha producido todavía un manifiesto de eventos musicales humanos ni se ha calculado precisión/recall. No aumentar el porcentaje de progreso.
 
 ## Encargo del siguiente turno
