@@ -3,7 +3,10 @@ from fractions import Fraction
 import pytest
 
 from palermo_omr.event_fusion import ScoreEventCandidate
-from palermo_omr.playback_projection import build_playback_projection
+from palermo_omr.playback_projection import (
+    build_playback_projection,
+    merge_page_timelines_by_global_measure_map,
+)
 
 
 def candidate(event_id, midi=(60,), status="ready_for_review"):
@@ -94,4 +97,49 @@ def test_rejects_duplicate_event_ids_in_candidates_and_timeline():
         build_playback_projection(
             [timeline(0, [timed("x"), timed("x", onset="1")])],
             [candidate("x")], tempo_bpm=90,
+        )
+
+
+def test_merges_page_timelines_only_with_explicit_contiguous_global_measure_map():
+    page_timelines = [
+        {"page_number": 1, "measure_index": 0, "expected_quarters": "4", "events": []},
+        {"page_number": 1, "measure_index": 1, "expected_quarters": "3", "events": []},
+        {"page_number": 2, "measure_index": 0, "expected_quarters": "4", "events": []},
+    ]
+    result = merge_page_timelines_by_global_measure_map(
+        page_timelines, {1: {0: 0, 1: 1}, 2: {0: 2}},
+    )
+    assert [item["measure_index"] for item in result["timelines"]] == [0, 1, 2]
+    assert [item["page_number"] for item in result["timelines"]] == [1, 1, 2]
+    assert [item["local_measure_index"] for item in result["timelines"]] == [0, 1, 0]
+    assert result["unresolved_measures"] == []
+
+
+def test_does_not_compress_missing_page_measure_mapping():
+    page_timelines = [
+        {"page_number": 1, "measure_index": 0, "expected_quarters": "4", "events": []},
+        {"page_number": 1, "measure_index": 1, "expected_quarters": "4", "events": []},
+        {"page_number": 2, "measure_index": 0, "expected_quarters": "4", "events": []},
+    ]
+    result = merge_page_timelines_by_global_measure_map(
+        page_timelines, {1: {0: 0}, 2: {0: 2}},
+    )
+    assert [item["measure_index"] for item in result["timelines"]] == [0]
+    assert [item["reason"] for item in result["unresolved_measures"]] == [
+        "missing_global_measure_mapping", "after_unresolved_measure_gap",
+    ]
+
+
+def test_rejects_nonmonotonic_or_duplicate_global_measure_indices():
+    with pytest.raises(ValueError, match="orden"):
+        merge_page_timelines_by_global_measure_map(
+            [
+                {"page_number": 1, "measure_index": 0, "expected_quarters": "4", "events": []},
+                {"page_number": 2, "measure_index": 0, "expected_quarters": "4", "events": []},
+            ],
+            {1: {0: 1}, 2: {0: 0}},
+        )
+    with pytest.raises(ValueError, match="mismo índice global"):
+        merge_page_timelines_by_global_measure_map(
+            [], {1: {0: 0}, 2: {0: 0}},
         )
