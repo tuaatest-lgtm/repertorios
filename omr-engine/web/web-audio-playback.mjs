@@ -60,11 +60,12 @@ export class WebAudioSink {
     oscillator.type = this.waveform;
     oscillator.frequency.setValueAtTime(440 * (2 ** ((midi - 69) / 12)), now);
     envelope.gain.setValueAtTime(0.0001, now);
-    envelope.gain.exponentialRampToValueAtTime(0.7, now + 0.012);
+    const attackSeconds = 0.012;
+    envelope.gain.exponentialRampToValueAtTime(0.7, now + attackSeconds);
     oscillator.connect(envelope);
     envelope.connect(this.#voiceBus(voiceId));
     oscillator.start(now);
-    this.notes.set(key, { oscillator, envelope, voiceId, midi, eventId });
+    this.notes.set(key, { oscillator, envelope, voiceId, midi, eventId, startedAt: now, attackSeconds });
   }
 
   note_off(voiceId, midi, eventId) {
@@ -74,7 +75,9 @@ export class WebAudioSink {
     if (!note) return;
     const now = this.context.currentTime;
     note.envelope.gain.cancelScheduledValues(now);
-    note.envelope.gain.setValueAtTime(Math.max(note.envelope.gain.value, 0.0001), now);
+    const attackProgress = Math.max(0, Math.min(1, (now - note.startedAt) / note.attackSeconds));
+    const heldGain = 0.0001 * (0.7 / 0.0001) ** attackProgress;
+    note.envelope.gain.setValueAtTime(Math.max(heldGain, 0.0001), now);
     note.envelope.gain.exponentialRampToValueAtTime(0.0001, now + this.releaseSeconds);
     note.oscillator.stop(now + this.releaseSeconds + 0.005);
     this.notes.delete(key);
